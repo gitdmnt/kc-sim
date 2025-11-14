@@ -1,57 +1,56 @@
-import React from "react";
-
+import React, { useState, useEffect } from "react";
 import { connect } from "react-redux";
 import { createSelector } from "reselect";
-import { getFleets } from "poi-plugin-sim/src/hooks/getFleets";
-// import "../assets/styles.css";
-
-// mapStateToPropsでstoreのstateをcomponentのpropsに渡す
-const mapStateToProps = createSelector(
-  (state: any) => state,
-  (state) => ({ state })
-);
+import { Fleets } from "./Fleets";
+import { getFleets } from "./hooks/getFleets";
+import "../assets/styles.css";
+import { Fleet } from "./types";
+import { InteractiveEnemyEditor } from "./InteractiveEnemyEditor";
+import { BattleSim } from "./BattleSim";
+import init from "../sim-core/pkg/sim_core";
+import { connectComponent } from "./hooks/connectComponent";
 
 const App = ({ state }: { state: any }) => {
-  console.log("Sim props:");
-  console.log(JSON.stringify(state.info));
+  const [wasmInitialized, setWasmInitialized] = useState(false);
+
   const fleets = getFleets(state);
   console.log("fleets: ", fleets);
 
+  //   console.log(state.const);
+
+  const [enemyFleet, setEnemyFleet] = React.useState<Fleet | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    // WASMモジュールを初期化
+    init()
+      .then(() => {
+        setWasmInitialized(true);
+        console.log("WASM module initialized.");
+      })
+      .catch(console.error);
+  }, []); // このeffectはコンポーネントのマウント時に一度だけ実行
+
+  // WASMの初期化が完了するまでローディング表示などを行う
+  if (!wasmInitialized) {
+    return <div>Loading WebAssembly module...</div>;
+  }
+
   return (
-    <div>
-      <h1>Sim!</h1>
-      <div>
-        {fleets.map((fleet: any, index: number) => (
-          <div key={index}>
-            <h2>Fleet {index + 1}</h2>
-            <ul>
-              {fleet.ships.map((ship: any, shipIndex: number) => (
-                <li key={shipIndex}>
-                  <div>{state.const.$ships[ship.eugenId].api_name}</div>
-                  <div>HP: {ship.status.hp}</div>
-                  <div>Firepower: {ship.status.firepower}</div>
-                  <div>Equips:</div>
-                  <ul>
-                    {ship.equips.map((equip: any, equipIndex: number) => (
-                      <li key={equipIndex}>
-                        <div>
-                          {state.const.$equips[equip.eugenId].api_name} -
-                          Firepower: {equip.status.firepower}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
+    <div className="bg-gray-100 p-4 min-h-dvh flex flex-col gap-4">
+      <Fleets fleets={fleets} state={state} />
+      <InteractiveEnemyEditor
+        enemyFleet={enemyFleet}
+        setEnemyFleet={setEnemyFleet}
+        state={state}
+      />
+      <BattleSim friend={fleets[0]} enemy={enemyFleet} stage={""} />
     </div>
   );
 };
 
-const ConnectedApp = connect(mapStateToProps)(App);
+const ConnectedApp = connectComponent(App);
 
 // poi will render this component in the plugin panel
 export class reactClass extends React.Component {

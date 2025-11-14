@@ -6,7 +6,7 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { execSync } from "child_process";
 
-const DIST_DIR = "../poi-plugin-sim-build";
+const DIST_DIR = "../node_modules/poi-plugin-sim-build";
 
 const devBuildConfig = {
   outDir: "dist-dev",
@@ -23,23 +23,17 @@ export default defineConfig(({ command }) => {
   if (isServe) {
     console.log("Running vite dev server...");
     return {
-      plugins: [
-        // tailwindcss(),
-        react(),
-        wasm(),
-      ],
+      plugins: [tailwindcss(), react(), wasm()],
       server: {
-        open: true,
-        watch: {
-          // node_modules 内のファイルを監視対象から除外するデフォルトの挙動を無効化
-          ignored: ["!**/node_modules/poi-plugin-sim/**"],
-        },
+        open: false,
+        watch: {},
       },
     };
   } else {
     console.log("Building for production...");
     return {
       plugins: [
+        tailwindcss(),
         react({
           jsxRuntime: "classic",
         }),

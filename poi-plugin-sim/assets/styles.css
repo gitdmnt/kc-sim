@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@layer components {
+    .fleet {
+        display: flex;
+        flex-direction: row;
+        gap: 1rem;
+    }
+
+    .ship {
+        border: 1px solid #ccc;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+    }
+
+    .equips {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        font-size: 0.8rem;
+        color: #888
+    }
+}

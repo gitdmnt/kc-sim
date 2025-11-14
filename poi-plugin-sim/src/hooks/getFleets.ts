@@ -1,3 +1,5 @@
+import { Fleet, Ship, ShipStatus, Equip } from "../types";
+
 export const getFleets = (state: any) => {
   const fleets: Fleet[] = state.info.fleets.map((fleet: any) =>
     fleetInfoFetcher(fleet, state)
@@ -7,37 +9,6 @@ export const getFleets = (state: any) => {
 };
 
 // wasmに送るための数字あるいは直和型だけのデータ構造たち
-
-// 艦隊全体の情報を表す型
-interface Fleet {
-  ships: Ship[];
-}
-
-// 艦娘の情報を表す型
-interface Ship {
-  eugenId: number; // 艦娘の名前ごとの固有ID
-  shipTypeId: number; // 艦種ID
-  status: ShipStatus;
-  equips: Equip[];
-}
-
-// 艦娘のステータスを表す型
-interface ShipStatus {
-  hp: number; // 耐久
-  firepower: number; // 火力
-}
-
-// 装備の情報を表す型
-interface Equip {
-  eugenId: number; // 装備の名前ごとの固有ID
-  equipTypeId: number; // 装備種別ID
-  status: EquipStatus;
-}
-
-// 装備のステータスを表す型
-interface EquipStatus {
-  firepower: number; // 火力
-}
 
 // storeのfleetデータを整形してFleet型に変換する関数
 const fleetInfoFetcher = (fleet: any, state: any): Fleet => {
@@ -74,6 +45,7 @@ const shipStatusFetcher = (shipData: any): ShipStatus => {
   return {
     hp: shipData.api_nowhp,
     firepower: shipData.api_karyoku[0],
+    armor: shipData.api_soukou[0],
   };
 };
 
