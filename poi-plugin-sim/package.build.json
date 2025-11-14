@@ -1,0 +1,19 @@
+{
+  "name": "poi-plugin-sim-build",
+  "version": "0.0.1",
+  "main": "index.js",
+  "description": "My super duper poi plugin",
+  "author": {
+    "name": "gitdmnt",
+    "url": "https://github.com/gitdmnt"
+  },
+  "poiPlugin": {
+    "title": "Simulator for Integrated Management",
+    "description": "POWEEEEEEER!!!",
+    "icon": "fa/rocket",
+    "i18nDir": "i18n",
+    "apiVer": {
+      "11.1.0": "0.0.1"
+    }
+  }
+}

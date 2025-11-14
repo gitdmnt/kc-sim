@@ -1,0 +1,43 @@
+{
+  "name": "poi-plugin-sim",
+  "module": "src/index.ts",
+  "type": "module",
+  "main": "../poi-plugin-sim-build/index.js",
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.17",
+    "@types/bun": "latest",
+    "@types/fs-extra": "^11.0.4",
+    "@types/react": "^19.2.4",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.22",
+    "electron": "^39.1.2",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.27.0",
+    "fs-extra": "^11.3.2",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vite-plugin-static-copy": "^3.1.4",
+    "vite-plugin-wasm": "^3.5.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.10.1",
+    "react": "^19.2.0",
+    "react-bootstrap": "^2.10.10",
+    "react-dom": "^19.2.0",
+    "react-redux": "^9.2.0",
+    "redux": "^5.0.1",
+    "reselect": "^5.1.1",
+    "vite": "^7.2.2"
+  },
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "build:bun": "bun run build.mjs"
+  }
+}
