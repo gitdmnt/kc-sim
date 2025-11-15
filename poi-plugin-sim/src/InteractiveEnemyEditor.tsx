@@ -1,19 +1,20 @@
+import { connectComponent } from "./hooks/connectComponent";
 import { Fleet, Ship } from "./types";
 
-export const InteractiveEnemyEditor = ({
-  enemyFleet,
-  setEnemyFleet,
+const UnconnectedInteractiveEnemyEditor = ({
   state,
+  enemy,
+  setEnemy,
 }: {
-  enemyFleet: Fleet | undefined;
-  setEnemyFleet: React.Dispatch<React.SetStateAction<Fleet | undefined>>;
+  enemy: Fleet | undefined;
+  setEnemy: React.Dispatch<React.SetStateAction<Fleet | undefined>>;
   state: any;
 }) => {
   return (
     <div className="bg-white p-4 rounded shadow">
       <h2 className="text-xl mb-4">敵艦隊エディター</h2>
       <ul className="flex flex-col gap-2 bg-gray-200 rounded p-2 w-64">
-        {enemyFleet?.ships.map((ship: Ship, shipIndex: number) => (
+        {enemy?.ships.map((ship: Ship, shipIndex: number) => (
           <li
             key={shipIndex}
             className="flex flex-row justify-between items-center bg-white p-2 rounded shadow"
@@ -29,18 +30,14 @@ export const InteractiveEnemyEditor = ({
             </div>
             <button
               className="bg-gray-400 w-5 h-5 rounded-full"
-              onClick={(e) =>
-                handleEnemyShipRemove(e, enemyFleet, setEnemyFleet)
-              }
+              onClick={(e) => handleEnemyShipRemove(e, enemy, setEnemy)}
             ></button>
           </li>
         ))}
         <li className="bg-gray-100 rounded p-2 text-sm text-gray-600">
           <select
             value={"Select Enemy Ship"}
-            onChange={(e) =>
-              handleEnemyShipChange(e, enemyFleet, setEnemyFleet, state)
-            }
+            onChange={(e) => handleEnemyShipChange(e, enemy, setEnemy, state)}
           >
             <option>Select Enemy Ship</option>
             {Object.entries(state.const.$ships)
@@ -110,3 +107,7 @@ const handleEnemyShipRemove = (
     });
   }
 };
+
+export const InteractiveEnemyEditor = connectComponent(
+  UnconnectedInteractiveEnemyEditor
+);

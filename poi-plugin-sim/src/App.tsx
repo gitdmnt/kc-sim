@@ -5,7 +5,6 @@ import { Fleets } from "./Fleets";
 import { getFleets } from "./hooks/getFleets";
 import "../assets/styles.css";
 import { Fleet } from "./types";
-import { InteractiveEnemyEditor } from "./InteractiveEnemyEditor";
 import { BattleSim } from "./BattleSim";
 import init from "../sim-core/pkg/sim_core";
 import { connectComponent } from "./hooks/connectComponent";
@@ -17,10 +16,6 @@ const App = ({ state }: { state: any }) => {
   console.log("fleets: ", fleets);
 
   //   console.log(state.const);
-
-  const [enemyFleet, setEnemyFleet] = React.useState<Fleet | undefined>(
-    undefined
-  );
 
   useEffect(() => {
     // WASMモジュールを初期化
@@ -40,12 +35,8 @@ const App = ({ state }: { state: any }) => {
   return (
     <div className="bg-gray-100 p-4 min-h-dvh flex flex-col gap-4">
       <Fleets fleets={fleets} state={state} />
-      <InteractiveEnemyEditor
-        enemyFleet={enemyFleet}
-        setEnemyFleet={setEnemyFleet}
-        state={state}
-      />
-      <BattleSim friend={fleets[0]} enemy={enemyFleet} stage={""} />
+
+      <BattleSim friend={fleets[0]} stage={""} />
     </div>
   );
 };

@@ -29,3 +29,13 @@ export interface Equip {
 export interface EquipStatus {
   firepower: number; // 火力
 }
+
+export interface BattleResult {
+  result: 0 | 1 | 2 | 3 | 4 | 5; // D, C, B, A, S, SS
+  friendFleetResults: ShipResult[];
+  enemyFleetResults: ShipResult[];
+}
+export interface ShipResult {
+  hpBefore: number;
+  hpAfter: number;
+}
