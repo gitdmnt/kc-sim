@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { connect } from "react-redux";
-import { createSelector } from "reselect";
-import { Fleets } from "./Fleets";
-import { getFleets } from "./hooks/getFleets";
+import { getFleets } from "./utils/poiAPIWrapper";
 import "../assets/styles.css";
-import { Fleet } from "./types";
 import { BattleSim } from "./BattleSim";
 import init from "../sim-core/pkg/sim_core";
-import { connectComponent } from "./hooks/connectComponent";
+import { connect } from "react-redux";
 
 const App = ({ state }: { state: any }) => {
   const [wasmInitialized, setWasmInitialized] = useState(false);
 
+  console.log(state.const);
+
   const fleets = getFleets(state);
-  console.log("fleets: ", fleets);
 
   //   console.log(state.const);
 
@@ -34,14 +31,12 @@ const App = ({ state }: { state: any }) => {
 
   return (
     <div className="bg-gray-100 p-4 min-h-dvh flex flex-col gap-4">
-      <Fleets fleets={fleets} state={state} />
-
-      <BattleSim friend={fleets[0]} stage={""} />
+      <BattleSim friend={fleets} stage={""} />
     </div>
   );
 };
 
-const ConnectedApp = connectComponent(App);
+const ConnectedApp = connect((state: any) => ({ state }))(App);
 
 // poi will render this component in the plugin panel
 export class reactClass extends React.Component {

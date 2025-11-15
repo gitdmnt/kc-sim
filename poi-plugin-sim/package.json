@@ -26,6 +26,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1",
     "@reduxjs/toolkit": "^2.10.1",
     "react": "^19.2.0",
     "react-bootstrap": "^2.10.10",
@@ -38,6 +39,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:wasm": "cd sim-core && wasm-pack build --target web --out-dir ../sim-core/pkg && cd ..",
     "build:bun": "bun run build.mjs"
   }
 }

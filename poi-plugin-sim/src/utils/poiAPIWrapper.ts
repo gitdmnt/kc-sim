@@ -1,5 +1,3 @@
-import { Fleet, Ship, ShipStatus, Equip } from "../types";
-
 export const getFleets = (state: any) => {
   const fleets: Fleet[] = state.info.fleets.map((fleet: any) =>
     fleetInfoFetcher(fleet, state)
@@ -69,4 +67,30 @@ const equipsFetcher = (equipSlots: number[], state: any): Equip[] => {
         },
       };
     });
+};
+
+export const getShipNameFromEugenId = (eugenId: number, state: any): string => {
+  return state.const.$ships[eugenId]?.api_name || "不明な艦船";
+};
+export const getEquipNameFromEugenId = (
+  eugenId: number,
+  state: any
+): string => {
+  return state.const.$equips[eugenId]?.api_name || "不明な装備";
+};
+
+export const getArea = (state: any): { id: number; name: string }[] => {
+  return Object.values(state.const.$mapareas).map((area: any) => ({
+    id: area.api_id,
+    name: area.api_name,
+  }));
+};
+
+export const getMapsInArea = (
+  state: any,
+  areaId: number
+): { id: number; name: string }[] => {
+  return Object.values(state.const.$maps)
+    .filter((map: any) => map.api_maparea_id === areaId)
+    .map((map: any) => ({ id: map.api_no, name: map.api_name }));
 };
