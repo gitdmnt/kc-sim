@@ -2,6 +2,7 @@ mod utils;
 
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use web_sys::console::log_1;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -43,8 +44,8 @@ struct EquipStatus {
 #[serde(rename_all = "camelCase")]
 struct BattleResult {
     result: Option<u8>, // 0-5 D, C, B, A, S, SS
-    friend_fleet_results: Vec<FleetResult>,
-    enemy_fleet_results: Vec<FleetResult>,
+    friend_fleet_results: Vec<ShipResult>,
+    enemy_fleet_results: Vec<ShipResult>,
 }
 
 impl BattleResult {
@@ -59,10 +60,10 @@ impl BattleResult {
     fn init(friend: &Fleet, enemy: &Fleet) -> Self {
         let mut result = Self::new();
         for ship in &friend.ships {
-            result.friend_fleet_results.push(FleetResult::from(ship));
+            result.friend_fleet_results.push(ShipResult::from(ship));
         }
         for ship in &enemy.ships {
-            result.enemy_fleet_results.push(FleetResult::from(ship));
+            result.enemy_fleet_results.push(ShipResult::from(ship));
         }
         result
     }
@@ -155,12 +156,12 @@ impl BattleResult {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct FleetResult {
+struct ShipResult {
     hp_before: u16,
     hp_after: u16,
 }
 
-impl FleetResult {
+impl ShipResult {
     fn from(ship: &Ship) -> Self {
         Self {
             hp_before: ship.status.hp,
@@ -173,21 +174,33 @@ impl FleetResult {
 pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue {
     utils::set_panic_hook(); // パニック時の詳細なエラーをコンソールに出力
 
+    log_1(&"Simulation started".into());
+
     let friend: Option<Fleet> = serde_wasm_bindgen::from_value(friend_val).unwrap();
     let enemy: Option<Fleet> = serde_wasm_bindgen::from_value(enemy_val).unwrap();
     let mut results = Vec::new();
     if friend.is_none() || enemy.is_none() {
+        log_1(&"Invalid fleet data provided".into());
+        log_1(&format!("Friend fleet: {:?}", friend).into());
+        log_1(&format!("Enemy fleet: {:?}", enemy).into());
         return serde_wasm_bindgen::to_value(&results).unwrap();
     }
 
     let friend = friend.unwrap();
     let enemy = enemy.unwrap();
 
-    for _ in 0..count {
-        // Simple simulation logic (placeholder)
+    log_1(&format!("Friend fleet: {:?}", friend).into());
+    log_1(&format!("Enemy fleet: {:?}", enemy).into());
+
+    for i in 0..count {
+        if i % 100 == 0 {
+            log_1(&format!("Simulating battle {}/{}", i, count).into());
+        }
         let battle_result = battle_once(&friend, &enemy);
         results.push(battle_result);
     }
+    log_1(&"Simulation completed".into());
+    log_1(&format!("Simulation result: {:?}", results).into());
     serde_wasm_bindgen::to_value(&results).unwrap()
 }
 
