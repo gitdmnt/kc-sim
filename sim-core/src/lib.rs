@@ -4,9 +4,33 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use web_sys::console::log_1;
 
+trait FleetTrait {
+    fn ships(&self) -> &Vec<Ship>;
+}
+
+impl FleetTrait for Fleet {
+    fn ships(&self) -> &Vec<Ship> {
+        &self.ships
+    }
+}
+impl FleetTrait for EnemyFleet {
+    fn ships(&self) -> &Vec<Ship> {
+        &self.ships
+    }
+}
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct Fleet {
+    ships: Vec<Ship>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct EnemyFleet {
+    area: u8,
+    map: u8,
+    node: String,
+    probability: f64,
     ships: Vec<Ship>,
 }
 
@@ -45,6 +69,7 @@ struct EquipStatus {
 struct BattleResult {
     result: Option<u8>, // 0-5 D, C, B, A, S, SS
     friend_fleet_results: Vec<ShipResult>,
+    enemy_index: usize,
     enemy_fleet_results: Vec<ShipResult>,
 }
 
@@ -53,38 +78,40 @@ impl BattleResult {
         Self {
             result: None,
             friend_fleet_results: Vec::new(),
+            enemy_index: 0,
             enemy_fleet_results: Vec::new(),
         }
     }
 
-    fn init(friend: &Fleet, enemy: &Fleet) -> Self {
+    fn init(friend: &dyn FleetTrait, enemy_index: usize, enemy: &dyn FleetTrait) -> Self {
         let mut result = Self::new();
-        for ship in &friend.ships {
+        for ship in friend.ships() {
             result.friend_fleet_results.push(ShipResult::from(ship));
         }
-        for ship in &enemy.ships {
+        result.enemy_index = enemy_index;
+        for ship in enemy.ships() {
             result.enemy_fleet_results.push(ShipResult::from(ship));
         }
         result
     }
 
     // 砲撃戦1巡目
-    fn fire_phase1(&mut self, friend: &Fleet, enemy: &Fleet) -> &mut Self {
+    fn fire_phase1(&mut self, friend: &dyn FleetTrait, enemy: &dyn FleetTrait) -> &mut Self {
         // 艦隊が空の場合は何もしない
-        if friend.ships.is_empty() || enemy.ships.is_empty() {
+        if friend.ships().is_empty() || enemy.ships().is_empty() {
             return self;
         }
 
         // 砲撃順決定
         // TODO: 火力順になってるから射程順に修正する
         let mut fire_order = friend
-            .ships
+            .ships()
             .iter()
             .enumerate()
             .map(|(i, ship)| (true, i, ship)) // (is_friend, ship_index)
             .chain(
                 enemy
-                    .ships
+                    .ships()
                     .iter()
                     .enumerate()
                     .map(|(i, ship)| (false, i, ship)),
@@ -104,12 +131,12 @@ impl BattleResult {
             } else {
                 (enemy, friend)
             };
-            let actor = &actor_fleet.ships[idx_in_fleet];
+            let actor = &actor_fleet.ships()[idx_in_fleet];
 
             // ターゲット決定
             let r = rand::random::<f64>();
-            let target_idx = (r * (target_fleet.ships.len() as f64)) as usize;
-            let target: &Ship = &target_fleet.ships[target_idx];
+            let target_idx = (r * (target_fleet.ships().len() as f64)) as usize;
+            let target: &Ship = &target_fleet.ships()[target_idx];
 
             // 火力計算
             let firepower = actor.status.firepower as f64;
@@ -177,7 +204,7 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
     log_1(&"Simulation started".into());
 
     let friend: Option<Fleet> = serde_wasm_bindgen::from_value(friend_val).unwrap();
-    let enemy: Option<Fleet> = serde_wasm_bindgen::from_value(enemy_val).unwrap();
+    let enemy: Option<Vec<EnemyFleet>> = serde_wasm_bindgen::from_value(enemy_val).unwrap();
     let mut results = Vec::new();
     if friend.is_none() || enemy.is_none() {
         log_1(&"Invalid fleet data provided".into());
@@ -204,9 +231,20 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
     serde_wasm_bindgen::to_value(&results).unwrap()
 }
 
-fn battle_once(friend: &Fleet, enemy: &Fleet) -> BattleResult {
-    let mut result = BattleResult::init(friend, enemy);
+fn battle_once(friend: &Fleet, enemy: &[EnemyFleet]) -> BattleResult {
+    let r = rand::random::<f64>();
+    let mut cumulative_probability = 0.0;
+    let mut selected_enemy_index = 0;
+    for (index, enemy_fleet) in enemy.iter().enumerate() {
+        cumulative_probability += enemy_fleet.probability;
+        if r <= cumulative_probability {
+            selected_enemy_index = index;
+            break;
+        }
+    }
+    let enemy = &enemy[selected_enemy_index];
 
+    let mut result = BattleResult::init(friend, selected_enemy_index, enemy);
     let result = result.fire_phase1(friend, enemy);
 
     result.clone()
