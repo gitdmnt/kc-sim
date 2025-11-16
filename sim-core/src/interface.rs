@@ -139,6 +139,7 @@ pub struct ShipSnapshot {
     hp: u16,
 }
 
+/// -- Baremetal ShipSnapshot methods --
 impl ShipSnapshot {
     /// Create snapshot from current Ship status.
     pub fn from(ship: &Ship) -> Self {
