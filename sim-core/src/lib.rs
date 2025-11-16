@@ -27,8 +27,8 @@ struct Fleet {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct EnemyFleet {
-    area: u8,
-    map: u8,
+    area: u16,
+    map: u16,
     node: String,
     probability: f64,
     ships: Vec<Ship>,
@@ -38,7 +38,7 @@ struct EnemyFleet {
 #[serde(rename_all = "camelCase")]
 struct Ship {
     eugen_id: u16,
-    ship_type_id: u8,
+    ship_type_id: u16,
     status: ShipStatus,
     equips: Vec<Equip>,
 }
@@ -47,27 +47,27 @@ struct Ship {
 #[serde(rename_all = "camelCase")]
 struct ShipStatus {
     hp: u16,
-    firepower: u8,
-    armor: u8,
+    firepower: u16,
+    armor: u16,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct Equip {
     eugen_id: u16,
-    equip_type_id: u8,
+    equip_type_id: u16,
     status: EquipStatus,
 }
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct EquipStatus {
-    firepower: u8,
+    firepower: u16,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct BattleResult {
-    result: Option<u8>, // 0-5 D, C, B, A, S, SS
+    result: Option<u16>, // 0-5 D, C, B, A, S, SS
     friend_fleet_results: Vec<ShipResult>,
     enemy_index: usize,
     enemy_fleet_results: Vec<ShipResult>,
@@ -220,9 +220,6 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
     log_1(&format!("Enemy fleet: {:?}", enemy).into());
 
     for i in 0..count {
-        if i % 100 == 0 {
-            log_1(&format!("Simulating battle {}/{}", i, count).into());
-        }
         let battle_result = battle_once(&friend, &enemy);
         results.push(battle_result);
     }
