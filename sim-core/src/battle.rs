@@ -1,4 +1,4 @@
-use crate::{battle, interface};
+use crate::interface;
 
 use log::{debug, error, info, warn};
 use rand::random_range;

@@ -1,23 +1,53 @@
+use log::warn;
 use serde::{Deserialize, Serialize};
 
 pub trait FleetTrait {
-    fn ships(&self) -> &Vec<Ship>;
+    fn ships(&self) -> &[Ship];
+    fn formation(&self) -> Option<Formation>;
+    fn set_formation_default(&mut self);
+
+    fn is_empty(&self) -> bool {
+        self.ships().is_empty()
+    }
+    fn validate(&mut self) -> bool {
+        if self.is_empty() {
+            warn!("Fleet is empty:  {:?}", self.ships());
+            return false;
+        }
+        if self.formation().is_none() {
+            warn!("Fleet formation is not set:  {:?}", self.ships());
+            self.set_formation_default();
+        }
+        true
+    }
 }
 
 impl FleetTrait for Fleet {
-    fn ships(&self) -> &Vec<Ship> {
+    fn ships(&self) -> &[Ship] {
         &self.ships
+    }
+    fn formation(&self) -> Option<Formation> {
+        self.formation.clone()
+    }
+    fn set_formation_default(&mut self) {
+        self.formation = Some(Formation::LineAhead);
     }
 }
 impl FleetTrait for EnemyFleet {
-    fn ships(&self) -> &Vec<Ship> {
+    fn ships(&self) -> &[Ship] {
         &self.ships
+    }
+    fn formation(&self) -> Option<Formation> {
+        self.formation.clone()
+    }
+    fn set_formation_default(&mut self) {
+        self.formation = Some(Formation::LineAhead);
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
-enum Formation {
+pub enum Formation {
     LineAhead,
     DoubleLine,
     Diamond,
@@ -30,7 +60,7 @@ enum Formation {
 #[serde(rename_all = "camelCase")]
 pub struct Fleet {
     ships: Vec<Ship>,
-    formation: Formation,
+    formation: Option<Formation>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -41,6 +71,7 @@ pub struct EnemyFleet {
     node: String,
     pub probability: f64,
     ships: Vec<Ship>,
+    formation: Option<Formation>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

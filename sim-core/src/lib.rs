@@ -5,6 +5,8 @@ mod battle;
 mod interface;
 mod utils;
 
+use crate::interface::FleetTrait;
+
 static INIT: std::sync::Once = std::sync::Once::new();
 
 fn initialize() {
@@ -21,19 +23,25 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
 
     info!("Simulation started");
 
-    let friend: Option<interface::Fleet> = serde_wasm_bindgen::from_value(friend_val).unwrap();
-    let enemy: Option<Vec<interface::EnemyFleet>> =
+    let mut friend: Option<interface::Fleet> = serde_wasm_bindgen::from_value(friend_val).unwrap();
+    let mut enemy: Option<Vec<interface::EnemyFleet>> =
         serde_wasm_bindgen::from_value(enemy_val).unwrap();
-    let mut results = Vec::new();
-    if friend.is_none() || enemy.is_none() {
-        error!("Invalid fleet data provided");
-        debug!("Friend fleet: {:?}", friend);
-        debug!("Enemy fleet: {:?}", enemy);
-        return serde_wasm_bindgen::to_value(&results).unwrap();
-    }
 
-    let friend = friend.unwrap();
-    let enemy = enemy.unwrap();
+    let Some(friend) = &mut friend else {
+        error!("Friend fleet is None");
+        return serde_wasm_bindgen::to_value(&Vec::<interface::BattleResult>::new()).unwrap();
+    };
+    let Some(enemy) = &mut enemy else {
+        error!("Enemy fleet is None");
+        return serde_wasm_bindgen::to_value(&Vec::<interface::BattleResult>::new()).unwrap();
+    };
+
+    friend.validate();
+    enemy.iter_mut().for_each(|e| {
+        e.validate();
+    });
+
+    let mut results = Vec::new();
 
     debug!("Friend fleet: {:?}", friend);
     debug!("Enemy fleet: {:?}", enemy);
@@ -42,7 +50,7 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
         if i < 10 || i % 100 == 0 {
             info!("Simulating battle {}/{}", i + 1, count);
         }
-        let battle_result = battle_once(&friend, &enemy);
+        let battle_result = battle_once(friend, enemy);
         results.push(battle_result);
     }
     info!("Simulation completed");
