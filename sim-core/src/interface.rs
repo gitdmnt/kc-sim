@@ -146,11 +146,8 @@ impl ShipSnapshot {
     }
 
     /// Apply `amount` damage to this snapshot.
-    /// - `is_friend` が true のときは、撃沈を避けるため HP は最低 1 を維持する。
-    pub fn apply_damage(&mut self, is_friend: bool, amount: u16) {
-        let new_hp = self.hp.saturating_sub(amount);
-        // 味方は撃沈されない
-        self.hp = if is_friend && new_hp == 0 { 1 } else { new_hp };
+    pub fn apply_damage(&mut self, amount: u16) {
+        self.hp = self.hp.saturating_sub(amount);
     }
 
     /// Read-only access to HP.

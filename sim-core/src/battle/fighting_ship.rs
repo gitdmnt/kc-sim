@@ -42,7 +42,40 @@ impl FightingShip {
     pub fn is_alive(&self) -> bool {
         self.result.hp() > 0
     }
+
+    /// Apply damage to the ship during battle.
+    /// If the target ship is a friendly ship, damage will be reduced to avoid sinking.
+    ///
+    /// case: The target ship is
+    ///
+    /// - flagship
+    /// - not 大破 nor red tired (normal fleet)
+    /// - not 大破 (combined fleet)
+    ///
+    /// Then, damage is replaced to rational value.
+    ///
+    /// case: The target ship is
+    ///
+    /// - only not 大破 (normal fleet)
+    ///
+    /// Then, damage is reduced to leave 1 HP.
+    ///
+    /// case: else
+    /// Then, damage is applied as is.
     pub fn apply_damage(&mut self, diff: u16) {
-        self.result.apply_damage(self.is_friend, diff);
+        // 友軍の場合は轟沈ストッパー適用
+        let diff = if self.is_friend && diff >= self.result.hp() {
+            if self.index_in_fleet == 0 {
+                let hp = self.hp() as f64;
+                let r: f64 = rand::random();
+                f64::floor(hp * 0.5 + f64::floor(hp * r) * 0.3) as u16
+            } else {
+                self.hp() - 1
+            }
+        } else {
+            diff
+        };
+
+        self.result.apply_damage(diff);
     }
 }
