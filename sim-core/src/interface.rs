@@ -79,7 +79,9 @@ pub enum Formation {
 #[serde(rename_all = "camelCase")]
 pub struct Ship {
     eugen_id: u16,
+    name: String,
     ship_type_id: u16,
+    ship_type_name: String,
     status: ShipStatus,
     equips: Vec<Equipment>,
 }
