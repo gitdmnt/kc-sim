@@ -114,9 +114,9 @@ const parseKCNavEnemyComps = (
         eugenId: enemy.id,
         shipTypeId: 0, // You may want to fetch or calculate the shipTypeId based on eugenId
         status: {
-          hp: enemy.hp,
-          firepower: enemy.fp,
-          armor: enemy.armor,
+          hp: enemy.hp ?? 0,
+          firepower: enemy.fp ?? 0,
+          armor: enemy.armor ?? 0,
         },
         equips: enemy.equips
           .filter((id: number) => id !== -1)

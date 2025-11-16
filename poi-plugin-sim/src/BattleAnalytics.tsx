@@ -21,6 +21,44 @@ const battleResultToIndex = (result: BattleResult): number | undefined => {
   }
 };
 
+const RESULT_LABELS: string[] = ["SS", "S", "A", "B", "C", "D", "E"];
+
+const COLORS: Record<string, string> = {
+  SS: "#f59e0b",
+  S: "#10b981",
+  A: "#3b82f6",
+  B: "#6366f1",
+  C: "#ef4444",
+  D: "#a78bfa",
+  E: "#64748b",
+};
+
+const StackedRatioBar = ({ counts }: { counts: number[] }) => {
+  const total = counts.reduce((s, c) => s + c, 0) || 1;
+  return (
+    <div className="w-full h-6 rounded overflow-hidden bg-gray-200 flex">
+      {counts.map((count, i) => {
+        const pct = (count / total) * 100;
+        const label = RESULT_LABELS[i];
+        return (
+          <div
+            key={label}
+            style={{ width: `${pct}%` }}
+            className="h-full"
+            title={`${label}: ${count} (${pct.toFixed(1)}%)`}
+          >
+            <div
+              className="h-full"
+              style={{ backgroundColor: COLORS[label], width: "100%" }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ResultRatioBar 内で呼ぶ
 const ResultRatioBar = ({ reports }: { reports: BattleReport[] }) => {
   const resultLabels: string[] = ["SS", "S", "A", "B", "C", "D", "E"];
   const results: BattleResult[] = reports.map((res: any) => res.result);
@@ -36,13 +74,20 @@ const ResultRatioBar = ({ reports }: { reports: BattleReport[] }) => {
   );
 
   return (
-    <ul className="flex flex-row gap-2 text-xs">
-      {resultLabels.map((label, index) => (
-        <li key={index}>
-          {label}: {resultCounts[index]}回 ({resultRatio[index]?.toFixed(2)}%)
-        </li>
-      ))}
-    </ul>
+    <>
+      <StackedRatioBar counts={resultCounts} />
+      <div className="flex gap-2 text-xs mt-1">
+        {RESULT_LABELS.map((label, i) => (
+          <div key={label} className="flex items-center gap-1">
+            <span
+              style={{ background: COLORS[label] }}
+              className="w-3 h-3 block"
+            />
+            {label} {resultCounts[i]}
+          </div>
+        ))}
+      </div>
+    </>
   );
 };
 
