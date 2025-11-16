@@ -21,16 +21,20 @@ const ResultRatioBar = ({ results }: { results: BattleResult[] }) => {
   );
 };
 
-interface OwnProps {
-  friend: Fleet;
-  enemy: EnemyFleet[] | undefined;
-  results: BattleResult[];
-}
+const BattleResultAvarage = ({
+  fleetResults,
+  fleet,
+  state,
+}: {
+  fleetResults: ShipResult[][] | undefined;
+  fleet: Fleet;
+  state: any;
+}) => {
+  const shipHpAfterLists: number[][] =
+    fleetResults?.map((fleetResult: ShipResult[]) =>
+      fleetResult.map((shipResult: ShipResult) => shipResult.hpAfter)
+    ) ?? [];
 
-type Props = OwnProps & StateProps;
-
-const UnconnectedAnalytics = ({ state, friend, enemy, results }: Props) => {
-  console.log("results: ", results);
   const calculateAveragesByIndex = (listOfLists: number[][]): number[] => {
     if (listOfLists.length === 0) {
       return [];
@@ -47,64 +51,70 @@ const UnconnectedAnalytics = ({ state, friend, enemy, results }: Props) => {
     return sums.map((sum) => sum / listOfLists.length);
   };
 
-  // 各試行の friendFleetResults から hpAfter のリストを作成
-  const friendShipHpAfterLists: number[][] = results.map((res: any) =>
-    res.friendFleetResults.map((ship: any) => ship.hpAfter)
-  );
-
   // インデックスごとの平均HPを計算
-  const friendShipAverageHpAfterList = calculateAveragesByIndex(
-    friendShipHpAfterLists
+  const shipAverageHpAfterList = calculateAveragesByIndex(shipHpAfterLists);
+
+  return (
+    <ul className="flex flex-col gap-2 bg-gray-200 p-2 w-64 rounded">
+      {fleet.ships.map((ship: Ship, shipIndex: number) => (
+        <li
+          className="flex flex-col gap-1 bg-white p-3 shadow rounded"
+          key={shipIndex}
+        >
+          <div className="">{state.const.$ships[ship.eugenId].api_name}</div>
+          <div className="text-xs text-gray-600">
+            {ship.status.hp} → {shipAverageHpAfterList[shipIndex]?.toFixed(2)}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+interface OwnProps {
+  friend: Fleet;
+  enemy: EnemyFleet[] | undefined;
+  results: BattleResult[];
+}
+
+type Props = OwnProps & StateProps;
+
+const UnconnectedAnalytics = ({ state, friend, enemy, results }: Props) => {
+  // 各試行の friendFleetResults から hpAfter のリストを作成
+  const friendFleetResults: ShipResult[][] | undefined = results.map(
+    (res) => res.friendFleetResults
   );
 
-  const enemyShipHpAfterLists: number[][][] = [];
+  const enemyFleetResultsList: ShipResult[][][] = [];
   results.forEach((res: any) => {
     const enemyIndex = res.enemyIndex;
-    if (!enemyShipHpAfterLists[enemyIndex]) {
-      enemyShipHpAfterLists[enemyIndex] = [];
+    if (!enemyFleetResultsList[enemyIndex]) {
+      enemyFleetResultsList[enemyIndex] = [];
     }
-    enemyShipHpAfterLists[enemyIndex].push(
-      res.enemyFleetResults.map((ship: any) => ship.hpAfter)
-    );
-  });
-
-  const enemyShipAverageHpAfterList = enemyShipHpAfterLists.map((lists) =>
-    calculateAveragesByIndex(lists)
-  );
+    enemyFleetResultsList[enemyIndex].push(res.enemyFleetResults);
+  }) ?? [];
 
   return (
     <div className="p-4 bg-white rounded shadow flex flex-col gap-4">
       <ResultRatioBar results={results} />
-      <ul>
-        {friend.ships.map((ship: any, shipIndex: number) => (
-          <li key={shipIndex}>
-            <div className="text-lg mb-2">
-              {state.const.$ships[ship.eugenId].api_name} の戦後平均耐久
-            </div>
-            <div>{friendShipAverageHpAfterList[shipIndex]?.toFixed(2)}</div>
-          </li>
-        ))}
-      </ul>
-      <ul>
-        {enemy?.map((fleet: EnemyFleet, fleetIndex: number) => (
-          <li key={fleetIndex}>
-            <ul>
-              {fleet.ships.map((ship: any, shipIndex: number) => (
-                <li key={shipIndex}>
-                  <div className="text-lg mb-2">
-                    {state.const.$ships[ship.eugenId].api_name} の戦後平均耐久
-                  </div>
-                  <div>
-                    {enemyShipAverageHpAfterList[fleetIndex]?.[
-                      shipIndex
-                    ]?.toFixed(2)}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ul>
+      <div className="flex flex-row gap-4">
+        <BattleResultAvarage
+          fleetResults={friendFleetResults!}
+          fleet={friend}
+          state={state}
+        />
+        <ul className="flex flex-row gap-4">
+          {enemy?.map((fleet: EnemyFleet, fleetIndex: number) => (
+            <li key={fleetIndex}>
+              <BattleResultAvarage
+                fleetResults={enemyFleetResultsList![fleetIndex]!}
+                fleet={fleet}
+                state={state}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 };

@@ -49,6 +49,8 @@ const InputMap = ({
     const fetchData = async () => {
       const enemyFleets = await fetchEnemyFromKCNav(area, map, node);
       setEnemyFleets(enemyFleets);
+      const fetchedNodes = await fetchMapFromKCNav(area, map);
+      setNodes(fetchedNodes);
     };
     fetchData();
   }, [trigger]);
@@ -56,14 +58,6 @@ const InputMap = ({
   const areas = getArea(state);
   const maps = getMapsInArea(state, area);
   const [nodes, setNodes] = useState<string[]>([]);
-
-  useEffect(() => {
-    const fetchNodes = async () => {
-      const fetchedNodes = await fetchMapFromKCNav(area, map);
-      setNodes(fetchedNodes);
-    };
-    fetchNodes();
-  }, [trigger]);
 
   return (
     <div className="flex flex-col gap-4 bg-white text-gray-600 p-4 rounded shadow-inner shadow-gray-300 text-xs">

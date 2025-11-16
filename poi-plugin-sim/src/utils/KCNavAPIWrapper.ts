@@ -28,7 +28,7 @@ export const fetchEnemyFromKCNav = async (
     console.error("Failed to read from localStorage", error);
   }
 
-  const enemyFleets = await callKCNavEnemyCompsAPIMock(area, map, node);
+  const enemyFleets = await callKCNavEnemyCompsAPI(area, map, node);
 
   try {
     const itemToCache = {
@@ -48,6 +48,7 @@ const callKCNavEnemyCompsAPIMock = async (
   map: number,
   _node: string
 ) => {
+  console.log("Fetching enemy compositions from KCNav EnemyComps API Mock...");
   const rand = Math.random();
   return [
     {
@@ -89,12 +90,12 @@ const callKCNavEnemyCompsAPIMock = async (
   ];
 };
 
-/*
-export const callKCNavEnemyCompsAPI = async (
+const callKCNavEnemyCompsAPI = async (
   area: number,
   map: number,
   stage: string
 ) => {
+  console.log("Fetching enemy compositions from KCNav API...");
   const date = Temporal.Now.plainDateISO().subtract({ months: 1 }).toString();
   const response = await fetch(
     `https://tsunkit.net/api/routing/maps/${area}-${map}/nodes/${stage}/enemycomps?start=${date}`
@@ -131,7 +132,6 @@ export const callKCNavEnemyCompsAPI = async (
   });
   return enemyFleets;
 };
-*/
 
 export const fetchMapFromKCNav = async (
   area: number,
@@ -173,6 +173,7 @@ export const fetchMapFromKCNav = async (
 
 const callKCNavMapAPIMock = async (_area: number, _map: number) => {
   // Mock implementation for testing
+  console.log("Fetching map data from KCNav Map API Mock...");
   const rand = Math.random() * 100;
   const data = MapSample;
   const nodes = parseKCNavMapNodes(data);
@@ -181,6 +182,7 @@ const callKCNavMapAPIMock = async (_area: number, _map: number) => {
 };
 
 const callKCNavMapAPI = async (area: number, map: number) => {
+  console.log("Fetching map data from KCNav API...");
   const response = await fetch(
     `https://tsunkit.net/api/routing/maps/${area}-${map}`
   );
