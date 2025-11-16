@@ -74,6 +74,36 @@ struct BattleResult {
     enemy_fleet_results: Vec<ShipResult>,
 }
 
+// 戦闘の陣形タイプを表す列挙型
+#[derive(Debug)]
+enum BattleDirection {
+    Same,
+    Against,
+    TAdvantage,
+    TDisadvantage,
+}
+impl BattleDirection {
+    fn correction_factor(&self) -> f64 {
+        match self {
+            BattleDirection::Same => 1.0,
+            BattleDirection::Against => 0.8,
+            BattleDirection::TAdvantage => 1.2,
+            BattleDirection::TDisadvantage => 0.6,
+        }
+    }
+}
+impl std::fmt::Display for BattleDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            BattleDirection::Same => "同航戦",
+            BattleDirection::Against => "反航戦",
+            BattleDirection::TAdvantage => "Ｔ字有利",
+            BattleDirection::TDisadvantage => "Ｔ字不利",
+        };
+        write!(f, "{}", s)
+    }
+}
+
 // 戦闘中の艦船の状態を管理する構造体
 struct FightingShip {
     ship: Ship,
@@ -100,14 +130,28 @@ impl FightingShip {
 
 // 戦闘の進行を管理する構造体
 struct Battle {
+    direction: BattleDirection,
     friend_fleet: Vec<FightingShip>,
-    enemy_fleet: Vec<FightingShip>,
     enemy_index: usize,
+    enemy_fleet: Vec<FightingShip>,
 }
 
 impl Battle {
     fn new(friend: &dyn FleetTrait, enemy_index: usize, enemy: &dyn FleetTrait) -> Self {
+        // -- 陣形決定 --
+        let r = rand::random::<f64>();
+        let direction = if r < 0.45 {
+            BattleDirection::Same // 45%
+        } else if r < 0.75 {
+            BattleDirection::Against // 30%
+        } else if r < 0.9 {
+            BattleDirection::TAdvantage // 15%
+        } else {
+            BattleDirection::TDisadvantage // 10%
+        };
+
         Self {
+            direction,
             friend_fleet: friend
                 .ships()
                 .iter()
@@ -146,6 +190,61 @@ impl Battle {
         order
     }
 
+    // -- 砲撃戦関連 --
+
+    fn get_actor(&self, is_friend: bool, index_in_fleet: usize) -> Option<Ship> {
+        if is_friend {
+            self.friend_fleet
+                .iter()
+                .filter(|s| s.is_alive())
+                .nth(index_in_fleet)
+                .map(|s| s.ship.clone())
+        } else {
+            self.enemy_fleet
+                .iter()
+                .filter(|s| s.is_alive())
+                .nth(index_in_fleet)
+                .map(|s| s.ship.clone())
+        }
+    }
+
+    fn get_target_mut(&mut self, actor_is_friend: bool) -> Option<&mut FightingShip> {
+        let alive_count = if !actor_is_friend {
+            self.friend_fleet.iter().filter(|s| s.is_alive()).count()
+        } else {
+            self.enemy_fleet.iter().filter(|s| s.is_alive()).count()
+        };
+        if alive_count == 0 {
+            return None;
+        }
+        let index_in_fleet = random_range(0..alive_count);
+
+        if !actor_is_friend {
+            self.friend_fleet
+                .iter_mut()
+                .filter(|s| s.is_alive())
+                .nth(index_in_fleet)
+        } else {
+            self.enemy_fleet
+                .iter_mut()
+                .filter(|s| s.is_alive())
+                .nth(index_in_fleet)
+        }
+    }
+
+    fn fp_precap_correction(&self, firepower: f64) -> f64 {
+        let direction_factor = &self.direction.correction_factor();
+        firepower * direction_factor
+    }
+
+    fn fp_capping(firepower: f64, cap: f64) -> f64 {
+        firepower.min(cap) + f64::floor(f64::sqrt((firepower - cap).max(0.0)))
+    }
+
+    fn fp_postcap_correction(firepower: f64) -> f64 {
+        firepower
+    }
+
     // 砲撃戦1巡目
     fn fire_phase1(&mut self) {
         if self.friend_fleet.is_empty() || self.enemy_fleet.is_empty() {
@@ -159,44 +258,31 @@ impl Battle {
         debug!("Fire order: {:?}", fire_order);
 
         for (actor_is_friend, actor_idx) in fire_order.into_iter() {
-            let (actor_fleet, target_fleet) = if actor_is_friend {
-                (&self.friend_fleet, &mut self.enemy_fleet)
-            } else {
-                (&self.enemy_fleet, &mut self.friend_fleet)
+            // --- 攻撃者の情報を取得 ---
+            // actorの参照を保持し続けないように、必要な情報だけをコピーする
+            let actor = {
+                let actor = self.get_actor(actor_is_friend, actor_idx);
+                if actor.is_none() {
+                    debug!("Actor {actor_idx} is dead or does not exist, skipping turn");
+                    continue;
+                }
+                actor.unwrap()
             };
-
-            // 攻撃者が行動不能ならスキップ
-            if !actor_fleet[actor_idx].is_alive() {
-                debug!(
-                    "{}-{} is sunk, skipping attack",
-                    if actor_is_friend { "Friend" } else { "Enemy" },
-                    actor_idx
-                );
-                continue;
-            }
-
-            let actor = &actor_fleet[actor_idx].ship;
-
-            // ターゲット決定
-            let alive_targets_count = target_fleet.iter().filter(|t| t.is_alive()).count();
-            if alive_targets_count == 0 {
-                debug!("All targets are sunk, skipping attack");
-                continue;
-            }
-            let random_index =
-                random_range(0..target_fleet.iter().filter(|t| t.is_alive()).count());
-            let target = target_fleet
-                .iter_mut()
-                .filter(|t| t.is_alive())
-                .nth(random_index)
-                .unwrap();
 
             // 火力計算
             let firepower = actor.status.firepower as f64;
-            let firepower = firepower; // キャップ前補正
-            let firepower =
-                firepower.min(220.0) + f64::floor(f64::sqrt((firepower - 220.0).max(0.0))); // キャップ処理
-            let firepower = firepower; // キャップ後補正
+            let firepower = self.fp_precap_correction(firepower); // キャップ前補正
+            let firepower = Self::fp_capping(firepower, 220.0); // キャップ処理
+            let firepower = Self::fp_postcap_correction(firepower); // キャップ後補正
+
+            // --- ターゲットを取得 ---
+            let target = self.get_target_mut(actor_is_friend);
+
+            if target.is_none() {
+                debug!("No valid targets for actor {actor_idx} , skipping turn");
+                continue;
+            }
+            let target = target.unwrap();
 
             // 防御力計算
             let r: f64 = rand::random();
@@ -327,6 +413,8 @@ fn battle_once(friend: &Fleet, enemy: &[EnemyFleet]) -> BattleResult {
     );
 
     let mut battle = Battle::new(friend, selected_enemy_index, enemy);
+
+    debug!("Battle direction: {}", battle.direction);
 
     battle.fire_phase1();
     debug!("Fire phase 1 finished");
