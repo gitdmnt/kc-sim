@@ -24,34 +24,31 @@ const battleResultToIndex = (result: BattleResult): number | undefined => {
 const RESULT_LABELS: string[] = ["SS", "S", "A", "B", "C", "D", "E"];
 
 const COLORS: Record<string, string> = {
-  SS: "#f59e0b",
-  S: "#10b981",
-  A: "#3b82f6",
-  B: "#6366f1",
-  C: "#ef4444",
-  D: "#a78bfa",
-  E: "#64748b",
+  SS: "hsl(50, 60%, 70%)",
+  S: "hsl(50, 60%, 50%)",
+  A: "hsl(10, 80%, 40%)",
+  B: "hsl(20, 80%, 60%)",
+  C: "hsl(40, 80%, 60%)",
+  D: "hsl(120, 60%, 30%)",
+  E: "hsl(210, 50%, 50%)",
 };
 
 const StackedRatioBar = ({ counts }: { counts: number[] }) => {
   const total = counts.reduce((s, c) => s + c, 0) || 1;
   return (
-    <div className="w-full h-6 rounded overflow-hidden bg-gray-200 flex">
+    // 親を relative にして overlay を上に置く
+    <div className="w-full h-6 rounded overflow-hidden flex border-gray-300 border">
       {counts.map((count, i) => {
         const pct = (count / total) * 100;
         const label = RESULT_LABELS[i];
+
         return (
           <div
             key={label}
-            style={{ width: `${pct}%` }}
+            style={{ width: `${pct}%`, backgroundColor: COLORS[label] }}
             className="h-full"
             title={`${label}: ${count} (${pct.toFixed(1)}%)`}
-          >
-            <div
-              className="h-full"
-              style={{ backgroundColor: COLORS[label], width: "100%" }}
-            />
-          </div>
+          />
         );
       })}
     </div>
@@ -60,7 +57,6 @@ const StackedRatioBar = ({ counts }: { counts: number[] }) => {
 
 // ResultRatioBar 内で呼ぶ
 const ResultRatioBar = ({ reports }: { reports: BattleReport[] }) => {
-  const resultLabels: string[] = ["SS", "S", "A", "B", "C", "D", "E"];
   const results: BattleResult[] = reports.map((res: any) => res.result);
   const resultCounts: number[] = [0, 0, 0, 0, 0, 0, 0]; // SS, S, A, B, C, D, E
   results.forEach((res: BattleResult) => {
@@ -83,7 +79,7 @@ const ResultRatioBar = ({ reports }: { reports: BattleReport[] }) => {
               style={{ background: COLORS[label] }}
               className="w-3 h-3 block"
             />
-            {label} {resultCounts[i]}
+            {label} {resultRatio[i].toFixed(1)}%
           </div>
         ))}
       </div>
@@ -125,13 +121,12 @@ const BattleResultAvarage = ({
   const shipAverageHpAfterList = calculateAveragesByIndex(shipHpAfterLists);
 
   return (
-    <ul className="flex flex-col gap-2 bg-gray-200 p-2 w-64 rounded">
+    <ul className="flex flex-col gap-2 w-64 board">
       {fleet.ships.map((ship: Ship, shipIndex: number) => (
-        <li
-          className="flex flex-col gap-1 bg-white p-3 shadow rounded"
-          key={shipIndex}
-        >
-          <div className="">{state.const.$ships[ship.eugenId].api_name}</div>
+        <li className="flex flex-col gap-1 card" key={shipIndex}>
+          <div className="text-gray-800">
+            {state.const.$ships[ship.eugenId].api_name}
+          </div>
           <div className="text-xs text-gray-600">
             {ship.status.hp} → {shipAverageHpAfterList[shipIndex]?.toFixed(2)}
           </div>
@@ -167,13 +162,15 @@ const UnconnectedAnalytics = ({ state, friend, enemy, reports }: Props) => {
   return (
     <div className="panel flex flex-col gap-4">
       <ResultRatioBar reports={reports} />
-      <div className="flex flex-row gap-4">
-        <BattleResultAvarage
-          fleetResults={friendFleetResults!}
-          fleet={friend}
-          state={state}
-        />
-        <ul className="flex flex-row gap-4">
+      <div className="flex flex-row gap-3">
+        <div className="w-68 p-2 shadow-inner rounded">
+          <BattleResultAvarage
+            fleetResults={friendFleetResults!}
+            fleet={friend}
+            state={state}
+          />
+        </div>
+        <ul className="flex flex-row gap-4 overflow-scroll rounded shadow-inner p-2 bg-gray-500">
           {enemy?.map((fleet: EnemyFleet, fleetIndex: number) => (
             <li key={fleetIndex}>
               <BattleResultAvarage

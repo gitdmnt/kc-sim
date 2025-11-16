@@ -29,15 +29,23 @@
         @apply p-2 rounded shadow bg-gray-200 text-gray-600;
     }
 
+    .card {
+        @apply p-2 rounded shadow bg-white transition-all duration-200;
+
+        &:hover {
+            @apply shadow-lg scale-[1.02];
+        }
+    }
+
     .button {
         @apply px-4 py-2 rounded-full shadow text-white bg-gray-500 transition-all duration-100;
 
         &:hover {
-            @apply bg-gray-600 transition-all duration-100 scale-[1.05] shadow-lg ease-in;
+            @apply bg-gray-600 scale-[1.05] shadow-lg ease-in;
         }
 
         &:active {
-            @apply bg-gray-700 transition-all duration-100 scale-[0.98] shadow-md ease-out;
+            @apply bg-gray-700 scale-[0.98] shadow-md ease-out;
         }
     }
 }

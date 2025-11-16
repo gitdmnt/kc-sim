@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import {
   getArea,
   getEquipNameFromEugenId,
@@ -20,7 +20,7 @@ interface FleetsProps {
 
 export const Fleets = ({ fleets, state }: FleetsProps) => {
   return (
-    <ul className="flex flex-row gap-4">
+    <ul className="flex flex-row gap-4 group">
       {fleets.map((fleet: Fleet, index: number) => (
         <li key={index} className="board w-64">
           <h2 className="p-2">Fleet {index + 1}</h2>
@@ -40,15 +40,56 @@ const InputMap = ({
   >;
   state: any;
 }) => {
-  const [area, setArea] = useState<number>(1);
-  const [map, setMap] = useState<number>(1);
-  const [node, setNode] = useState<string>("A");
+  const [area, setArea] = useState<number | undefined>(undefined);
+  const [map, setMap] = useState<number | undefined>(undefined);
+  const [node, setNode] = useState<string | undefined>(undefined);
+
+  const areas = getArea(state);
+  const maps = getMapsInArea(state, area!);
+  const [nodes, setNodes] = useState<[string, string][]>([]);
+
   const [mapTrigger, setMapTrigger] = useState<boolean>(false);
   const [enemyTrigger, setEnemyTrigger] = useState<boolean>(false);
 
+  // キャッシュ
+  useEffect(() => {
+    const savedData = localStorage.getItem("sim-map");
+    console.log("Loaded map data:", savedData);
+    if (savedData) {
+      const data = JSON.parse(savedData);
+      setArea(data.area);
+      setMap(data.map);
+      setNode(data.node);
+      setNodes(data.nodes);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (
+      area === undefined ||
+      map === undefined ||
+      node === undefined ||
+      nodes.length === 0
+    ) {
+      return;
+    }
+    const data = {
+      area: area,
+      map: map,
+      node: node,
+      nodes: nodes,
+    };
+    localStorage.setItem("sim-map", JSON.stringify(data));
+    console.log("Saved map data:", { area, map, node, nodes });
+  }, [area, map, node, nodes, mapTrigger, enemyTrigger]);
+
+  // APIを叩く
   useEffect(() => {
     const fetchData = async () => {
-      const fetchedNodes = await fetchMapFromKCNav(area, map);
+      if (area === undefined || map === undefined) {
+        return;
+      }
+      const fetchedNodes = await fetchMapFromKCNav(area!, map!);
       setNodes(fetchedNodes);
     };
     fetchData();
@@ -56,15 +97,14 @@ const InputMap = ({
 
   useEffect(() => {
     const fetchData = async () => {
-      const enemyFleets = await fetchEnemyFromKCNav(area, map, node);
+      if (area === undefined || map === undefined || node === undefined) {
+        return;
+      }
+      const enemyFleets = await fetchEnemyFromKCNav(area!, map!, node!);
       setEnemyFleets(enemyFleets);
     };
     fetchData();
   }, [enemyTrigger]);
-
-  const areas = getArea(state);
-  const maps = getMapsInArea(state, area);
-  const [nodes, setNodes] = useState<[string, string][]>([]);
 
   return (
     <div className="flex flex-col gap-4 bg-white text-gray-600 p-4 rounded shadow-inner shadow-gray-300 text-xs">
@@ -245,7 +285,7 @@ export const EnemyFleets = ({
           </button>
         </li>
       </ul>
-      <div className="flex flex-col gap-2 bg-gray-200 p-2 w-64 rounded transition-all duration-200 active:scale-[0.98] group-active:scale-[0.98]">
+      <div className="flex flex-col gap-2 w-64 board transition-all duration-200 active:scale-[0.98] group-active:scale-[0.98]">
         <InputMap setEnemyFleets={setEnemyFleets} state={state} />
         <div className="p-2 text-gray-600">
           敵艦隊 {index + 1} (確率:
@@ -262,11 +302,8 @@ const FleetDisplay = ({ fleet, state }: { fleet: Fleet; state: any }) => {
   return (
     <ul className="flex flex-col gap-2">
       {fleet.ships.map((ship: any, shipIndex: number) => (
-        <li
-          key={shipIndex}
-          className="bg-white p-2 rounded shadow transition-all duration-200 hover:shadow-lg hover:scale-[1.02]"
-        >
-          <div className="group">
+        <li key={shipIndex} className="card">
+          <div className="">
             <div className="px-1 text-md text-gray-800">
               {getShipNameFromEugenId(ship.eugenId, state)}
             </div>
