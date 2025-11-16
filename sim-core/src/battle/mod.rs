@@ -244,7 +244,71 @@ impl Battle {
     }
 
     pub fn calculate_result(&mut self) -> Option<interface::BattleResult> {
-        None
+        let friend_sunk = self.friend_fleet.iter().filter(|fs| !fs.is_alive()).count();
+        let enemy_sunk = self.enemy_fleet.iter().filter(|fs| !fs.is_alive()).count();
+
+        let total_friend_ships: usize = self.friend_fleet.len();
+        let friend_sunk_ratio: f64 = friend_sunk as f64 / total_friend_ships as f64;
+
+        let total_enemy_ships: usize = self.enemy_fleet.len();
+        let alive_enemy_ships: usize = self.enemy_fleet.iter().filter(|fs| fs.is_alive()).count();
+        let enemy_sunk_ratio: f64 = enemy_sunk as f64 / total_enemy_ships as f64;
+        let enemy_flagship_sunk: bool = self
+            .enemy_fleet
+            .first()
+            .map(|fs| !fs.is_alive())
+            .unwrap_or(false);
+
+        let total_damage_to_friend: u32 = self
+            .friend_fleet
+            .iter()
+            .map(|fs| (fs.ship().hp() - fs.hp()) as u32)
+            .sum();
+
+        let total_damage_to_enemy: u32 = self
+            .enemy_fleet
+            .iter()
+            .map(|fs| (fs.ship().hp() - fs.hp()) as u32)
+            .sum();
+        let total_friend_initial_hp: u32 = self
+            .friend_fleet
+            .iter()
+            .map(|fs| fs.ship().hp() as u32)
+            .sum();
+        let total_enemy_initial_hp: u32 = self
+            .enemy_fleet
+            .iter()
+            .map(|fs| fs.ship().hp() as u32)
+            .sum();
+        let friend_gauge = (total_damage_to_enemy as f64) / (total_enemy_initial_hp as f64) * 100.0;
+        let enemy_gauge =
+            (total_damage_to_friend as f64) / (total_friend_initial_hp as f64) * 100.0;
+        let gauge_ratio = friend_gauge / (enemy_gauge + 1E-10); // ゼロ除算防止
+        if friend_sunk > 0 {
+            if gauge_ratio >= 2.5 || (enemy_flagship_sunk && enemy_sunk > friend_sunk) {
+                Some(interface::BattleResult::B)
+            } else if enemy_flagship_sunk || gauge_ratio >= 1.0 {
+                Some(interface::BattleResult::C)
+            } else if friend_sunk_ratio >= 0.5 {
+                Some(interface::BattleResult::E)
+            } else {
+                Some(interface::BattleResult::D)
+            }
+        } else if alive_enemy_ships == 0 {
+            if total_damage_to_friend == 0 {
+                Some(interface::BattleResult::SS)
+            } else {
+                Some(interface::BattleResult::S)
+            }
+        } else if enemy_sunk_ratio >= (2.0 / 3.0) {
+            Some(interface::BattleResult::A)
+        } else if enemy_flagship_sunk || gauge_ratio >= 2.5 {
+            Some(interface::BattleResult::B)
+        } else if gauge_ratio >= 1.0 || friend_gauge >= 50.0 {
+            Some(interface::BattleResult::C)
+        } else {
+            Some(interface::BattleResult::D)
+        }
     }
 }
 
@@ -256,13 +320,13 @@ impl From<Battle> for interface::BattleReport {
             friend_fleet_results: battle
                 .friend_fleet
                 .into_iter()
-                .map(|fs| fs.result())
+                .map(|fs| fs.snapshot())
                 .collect(),
             enemy_index: battle.enemy_index,
             enemy_fleet_results: battle
                 .enemy_fleet
                 .into_iter()
-                .map(|fs| fs.result())
+                .map(|fs| fs.snapshot())
                 .collect(),
         }
     }

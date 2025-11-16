@@ -74,6 +74,7 @@ pub enum Formation {
     Vanguard,
 }
 
+/// -- Baremetal Immutable Ship methods --
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Ship {
@@ -84,6 +85,9 @@ pub struct Ship {
 }
 
 impl Ship {
+    pub fn hp(&self) -> u16 {
+        self.status.hp
+    }
     pub fn firepower(&self) -> u16 {
         self.status.firepower
     }

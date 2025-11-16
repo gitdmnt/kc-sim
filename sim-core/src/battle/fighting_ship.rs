@@ -5,17 +5,17 @@ pub struct FightingShip {
     ship: interface::Ship,
     is_friend: bool,
     index_in_fleet: usize,
-    result: interface::ShipSnapshot,
+    snapshot: interface::ShipSnapshot,
 }
 
 impl FightingShip {
     pub fn new(ship: interface::Ship, is_friend: bool, index_in_fleet: usize) -> Self {
-        let result = interface::ShipSnapshot::from(&ship);
+        let snapshot = interface::ShipSnapshot::from(&ship);
         Self {
             ship,
             is_friend,
             index_in_fleet,
-            result,
+            snapshot,
         }
     }
 
@@ -25,12 +25,12 @@ impl FightingShip {
     pub fn index_in_fleet(&self) -> usize {
         self.index_in_fleet
     }
-    pub fn result(&self) -> interface::ShipSnapshot {
-        self.result.clone()
+    pub fn snapshot(&self) -> interface::ShipSnapshot {
+        self.snapshot.clone()
     }
 
     pub fn hp(&self) -> u16 {
-        self.result.hp()
+        self.snapshot.hp()
     }
     pub fn firepower(&self) -> u16 {
         self.ship.firepower()
@@ -40,7 +40,7 @@ impl FightingShip {
     }
 
     pub fn is_alive(&self) -> bool {
-        self.result.hp() > 0
+        self.snapshot.hp() > 0
     }
 
     /// Apply damage to the ship during battle.
@@ -64,7 +64,7 @@ impl FightingShip {
     /// Then, damage is applied as is.
     pub fn apply_damage(&mut self, diff: u16) {
         // 友軍の場合は轟沈ストッパー適用
-        let diff = if self.is_friend && diff >= self.result.hp() {
+        let diff = if self.is_friend && diff >= self.snapshot.hp() {
             if self.index_in_fleet == 0 {
                 let hp = self.hp() as f64;
                 let r: f64 = rand::random();
@@ -76,6 +76,6 @@ impl FightingShip {
             diff
         };
 
-        self.result.apply_damage(diff);
+        self.snapshot.apply_damage(diff);
     }
 }
