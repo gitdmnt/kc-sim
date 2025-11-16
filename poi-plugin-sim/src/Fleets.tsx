@@ -186,7 +186,14 @@ export const EnemyFleets = ({
 
   const fleet = enemyFleets
     ? enemyFleets[index]
-    : { area: 0, map: 0, node: "", probability: 0, ships: [] };
+    : {
+        area: 0,
+        map: 0,
+        node: "",
+        probability: 0,
+        ships: [],
+        formation: undefined,
+      };
 
   return (
     <div className="flex flex-col gap-2 group">
