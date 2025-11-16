@@ -23,16 +23,13 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
 
     info!("Simulation started");
 
-    let mut friend: Option<interface::Fleet> = serde_wasm_bindgen::from_value(friend_val).unwrap();
-    let mut enemy: Option<Vec<interface::EnemyFleet>> =
-        serde_wasm_bindgen::from_value(enemy_val).unwrap();
-
-    let Some(friend) = &mut friend else {
-        error!("Friend fleet is None");
+    let Ok(mut friend) = serde_wasm_bindgen::from_value::<interface::Fleet>(friend_val) else {
+        error!("Failed to parse friend fleet");
         return serde_wasm_bindgen::to_value(&Vec::<interface::BattleReport>::new()).unwrap();
     };
-    let Some(enemy) = &mut enemy else {
-        error!("Enemy fleet is None");
+    let Ok(mut enemy) = serde_wasm_bindgen::from_value::<Vec<interface::EnemyFleet>>(enemy_val)
+    else {
+        error!("Failed to parse enemy fleets");
         return serde_wasm_bindgen::to_value(&Vec::<interface::BattleReport>::new()).unwrap();
     };
 
@@ -50,7 +47,7 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
         if i < 10 || i % 100 == 0 {
             info!("Simulating battle {}/{}", i + 1, count);
         }
-        let battle_result = battle_once(friend, enemy);
+        let battle_result = battle_once(&friend, &enemy);
         results.push(battle_result);
     }
     info!("Simulation completed");

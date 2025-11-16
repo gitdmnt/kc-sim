@@ -100,7 +100,9 @@ impl Ship {
 #[serde(rename_all = "camelCase")]
 struct ShipStatus {
     hp: u16,
+    #[serde(default)] // undefined/null -> 0
     firepower: u16,
+    #[serde(default)]
     armor: u16,
 }
 
@@ -114,6 +116,7 @@ struct Equipment {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct EquipmentStatus {
+    #[serde(default)] // undefined/null -> 0
     firepower: u16,
 }
 
