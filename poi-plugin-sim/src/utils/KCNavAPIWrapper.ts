@@ -57,7 +57,9 @@ const callKCNavEnemyCompsAPIMock = async (
   const rand = Math.random();
   const mockShip = {
     eugenId: 1501 + 10 * (area - 1) + (map - 1),
+    name: "Mock Enemy Ship",
     shipTypeId: 0,
+    shipTypeName: "Mock Ship Type",
     status: {
       hp: Math.floor(1000 * rand),
       firepower: 1000,

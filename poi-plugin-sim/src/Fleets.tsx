@@ -1,9 +1,10 @@
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import {
   getArea,
   getEquipNameFromEugenId,
   getMapsInArea,
   getShipNameFromEugenId,
+  getShipTypeNameFromId,
 } from "./utils/poiAPIWrapper";
 import {
   fetchEnemyFromKCNav,
@@ -159,11 +160,13 @@ const InputMap = ({
 const AddShipButton = ({
   index,
   setEnemyFleets,
+  state,
 }: {
   index: number;
   setEnemyFleets: React.Dispatch<
     React.SetStateAction<EnemyFleet[] | undefined>
   >;
+  state: any;
 }) => {
   // console.log(wiki.enemy);
   const enemyOptions: [Ship, string][] = Object.values(wiki.enemy)
@@ -171,7 +174,9 @@ const AddShipButton = ({
       return [
         {
           eugenId: enemy._api_id,
+          name: getShipNameFromEugenId(enemy._api_id, state),
           shipTypeId: enemy._type,
+          shipTypeName: getShipTypeNameFromId(enemy._type, state),
           status: {
             hp: enemy._hp,
             firepower: enemy._firepower,
@@ -292,7 +297,11 @@ export const EnemyFleets = ({
           {((fleet?.probability ?? 0) * 100).toFixed(1)}%)
         </div>
         <FleetDisplay fleet={fleet!} state={state} />
-        <AddShipButton index={index} setEnemyFleets={setEnemyFleets} />
+        <AddShipButton
+          index={index}
+          setEnemyFleets={setEnemyFleets}
+          state={state}
+        />
       </div>
     </div>
   );

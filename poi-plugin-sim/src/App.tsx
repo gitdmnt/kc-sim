@@ -12,7 +12,7 @@ import * as kcdb from "@kancolle/data";
 const App = ({ state }: { state: any }) => {
   const [wasmInitialized, setWasmInitialized] = useState(false);
 
-  console.log(state);
+  console.error(state);
 
   const fleets = getFleets(state);
 

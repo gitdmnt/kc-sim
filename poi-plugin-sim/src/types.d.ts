@@ -20,7 +20,9 @@ interface EnemyFleet {
 // 艦娘の情報を表す型
 interface Ship {
   eugenId: number; // 艦娘の名前ごとの固有ID
+  name: string;
   shipTypeId: number; // 艦種ID
+  shipTypeName: string;
   status: ShipStatus;
   equips: Equipment[];
 }
