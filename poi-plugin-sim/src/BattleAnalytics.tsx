@@ -1,24 +1,36 @@
 import { connect } from "react-redux";
 
+const ResultRatioBar = ({ results }: { results: BattleResult[] }) => {
+  const resultLabels = ["SS", "S", "A", "B", "C", "D", "E"];
+  const resultCounts = [0, 0, 0, 0, 0, 0, 0];
+  results.forEach((res: any) => {
+    resultCounts[res.result]++;
+  });
+  const resultRatio = resultCounts.map(
+    (count) => (count / results.length) * 100
+  );
+
+  return (
+    <ul className="flex flex-row gap-2 text-xs">
+      {resultLabels.map((label, index) => (
+        <li key={index}>
+          {label}: {resultCounts[index]}回 ({resultRatio[index]?.toFixed(2)}%)
+        </li>
+      ))}
+    </ul>
+  );
+};
+
 interface OwnProps {
   friend: Fleet;
   enemy: EnemyFleet[] | undefined;
-  result: BattleResult[];
+  results: BattleResult[];
 }
 
 type Props = OwnProps & StateProps;
 
-const UnconnectedAnalytics = ({ state, friend, enemy, result }: Props) => {
-  const resultLabels = ["D", "C", "B", "A", "S", "SS"];
-  const resultCounts = [0, 0, 0, 0, 0, 0];
-  result.forEach((res: any) => {
-    resultCounts[res.result]++;
-  });
-  const resultRatio = resultCounts.map(
-    (count) => (count / result.length) * 100
-  );
-
-  console.log("results: ", result);
+const UnconnectedAnalytics = ({ state, friend, enemy, results }: Props) => {
+  console.log("results: ", results);
   const calculateAveragesByIndex = (listOfLists: number[][]): number[] => {
     if (listOfLists.length === 0) {
       return [];
@@ -36,7 +48,7 @@ const UnconnectedAnalytics = ({ state, friend, enemy, result }: Props) => {
   };
 
   // 各試行の friendFleetResults から hpAfter のリストを作成
-  const friendShipHpAfterLists: number[][] = result.map((res: any) =>
+  const friendShipHpAfterLists: number[][] = results.map((res: any) =>
     res.friendFleetResults.map((ship: any) => ship.hpAfter)
   );
 
@@ -46,7 +58,7 @@ const UnconnectedAnalytics = ({ state, friend, enemy, result }: Props) => {
   );
 
   const enemyShipHpAfterLists: number[][][] = [];
-  result.forEach((res: any) => {
+  results.forEach((res: any) => {
     const enemyIndex = res.enemyIndex;
     if (!enemyShipHpAfterLists[enemyIndex]) {
       enemyShipHpAfterLists[enemyIndex] = [];
@@ -61,14 +73,8 @@ const UnconnectedAnalytics = ({ state, friend, enemy, result }: Props) => {
   );
 
   return (
-    <>
-      <ul>
-        {resultLabels.map((label, index) => (
-          <li key={index}>
-            {label}: {resultCounts[index]}回 ({resultRatio[index]?.toFixed(2)}%)
-          </li>
-        ))}
-      </ul>
+    <div className="p-4 bg-white rounded shadow flex flex-col gap-4">
+      <ResultRatioBar results={results} />
       <ul>
         {friend.ships.map((ship: any, shipIndex: number) => (
           <li key={shipIndex}>
@@ -99,7 +105,7 @@ const UnconnectedAnalytics = ({ state, friend, enemy, result }: Props) => {
           </li>
         ))}
       </ul>
-    </>
+    </div>
   );
 };
 

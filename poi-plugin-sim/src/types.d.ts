@@ -36,7 +36,7 @@ interface EquipStatus {
 }
 
 interface BattleResult {
-  result: 0 | 1 | 2 | 3 | 4 | 5; // D, C, B, A, S, SS
+  result: 0 | 1 | 2 | 3 | 4 | 5 | 6; // SS:0, S:1, A:2, B:3, C:4, D:5 E:6
   friendFleetResults: ShipResult[];
   enemyIndex: number;
   enemyFleetResults: ShipResult[];

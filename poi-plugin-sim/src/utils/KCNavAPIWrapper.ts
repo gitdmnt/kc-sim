@@ -1,6 +1,96 @@
 import { Temporal } from "@js-temporal/polyfill";
+import MapSample from "./KCNavMapAPISampleResponse.json";
 
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 1 month
+
+// Mock implementation of fetchEnemyFromKCNav for testing purposes
 export const fetchEnemyFromKCNav = async (
+  area: number,
+  map: number,
+  node: string
+): Promise<EnemyFleet[]> => {
+  const cacheKey = `kcnav-enemy-${area}-${map}-${node}`;
+  // 1. ローカルストレージからキャッシュを取得
+  try {
+    const cachedItem = localStorage.getItem(cacheKey);
+    if (cachedItem) {
+      const { timestamp, data } = JSON.parse(cachedItem);
+      // キャッシュが有効期間内かチェック
+      if (
+        Temporal.Now.instant().epochMilliseconds - timestamp <
+        CACHE_DURATION_MS
+      ) {
+        console.log(`[KCNav] Returning cached data for ${area}-${map}-${node}`);
+        return data;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to read from localStorage", error);
+  }
+
+  const enemyFleets = await callKCNavEnemyCompsAPIMock(area, map, node);
+
+  try {
+    const itemToCache = {
+      timestamp: Temporal.Now.instant().epochMilliseconds,
+      data: enemyFleets,
+    };
+    localStorage.setItem(cacheKey, JSON.stringify(itemToCache));
+  } catch (error) {
+    console.error("Failed to write to localStorage", error);
+  }
+
+  return enemyFleets;
+};
+
+const callKCNavEnemyCompsAPIMock = async (
+  area: number,
+  map: number,
+  _node: string
+) => {
+  const rand = Math.random();
+  return [
+    {
+      area: 1,
+      map: 1,
+      node: "@",
+      probability: 0.1,
+      ships: [
+        {
+          eugenId: 1501 + 10 * (area - 1) + (map - 1),
+          shipTypeId: 0,
+          status: {
+            hp: Math.floor(1000 * rand),
+            firepower: 1000,
+            armor: 1000,
+          },
+          equips: [],
+        },
+      ],
+    },
+    {
+      area: 1,
+      map: 1,
+      node: "#",
+      probability: 0.9,
+      ships: [
+        {
+          eugenId: 1502,
+          shipTypeId: 0,
+          status: {
+            hp: 10,
+            firepower: 10,
+            armor: 10,
+          },
+          equips: [],
+        },
+      ],
+    },
+  ];
+};
+
+/*
+export const callKCNavEnemyCompsAPI = async (
   area: number,
   map: number,
   stage: string
@@ -40,4 +130,69 @@ export const fetchEnemyFromKCNav = async (
     };
   });
   return enemyFleets;
+};
+*/
+
+export const fetchMapFromKCNav = async (
+  area: number,
+  map: number
+): Promise<string[]> => {
+  const cacheKey = `kcnav-map-${area}-${map}`;
+  // 1. ローカルストレージからキャッシュを取得
+  try {
+    const cachedItem = localStorage.getItem(cacheKey);
+    if (cachedItem) {
+      const { timestamp, data } = JSON.parse(cachedItem);
+      // キャッシュが有効期間内かチェック
+      if (
+        Temporal.Now.instant().epochMilliseconds - timestamp <
+        CACHE_DURATION_MS
+      ) {
+        console.log(`[KCNav] Returning cached map data for ${area}-${map}`);
+        return data;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to read from localStorage", error);
+  }
+
+  const mapData = await callKCNavMapAPIMock(area, map);
+
+  try {
+    const itemToCache = {
+      timestamp: Temporal.Now.instant().epochMilliseconds,
+      data: mapData,
+    };
+    localStorage.setItem(cacheKey, JSON.stringify(itemToCache));
+  } catch (error) {
+    console.error("Failed to write to localStorage", error);
+  }
+
+  return mapData;
+};
+
+const callKCNavMapAPIMock = async (_area: number, _map: number) => {
+  // Mock implementation for testing
+  const rand = Math.random() * 100;
+  const data = MapSample;
+  const nodes = parseKCNavMapNodes(data);
+  nodes.push(rand.toFixed(2).toString());
+  return nodes;
+};
+
+const callKCNavMapAPI = async (area: number, map: number) => {
+  const response = await fetch(
+    `https://tsunkit.net/api/routing/maps/${area}-${map}`
+  );
+  const data = await response?.json();
+  const nodes = parseKCNavMapNodes(data);
+  return nodes;
+};
+
+const parseKCNavMapNodes = (data: any): string[] => {
+  const nodes: string[] = Object.values(data.result.route)
+    .map((node: any) => node[1] as string)
+    .filter((node: string) => node !== "1");
+  const uniqueNodes = [...new Set(nodes)];
+  return uniqueNodes;
 };

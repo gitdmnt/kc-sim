@@ -20,10 +20,10 @@ const UnconnectedBattleDisplay = ({
   stage,
 }: Props) => {
   return (
-    <div>
+    <div className="bg-white p-4 rounded shadow">
       <div>{stage}</div>
       <div className="flex flex-row gap-8 place-content-start">
-        <div className="pt-8">
+        <div className="pt-6">
           {friend ? <Fleets fleets={friend} state={state} /> : null}
         </div>
         <div>

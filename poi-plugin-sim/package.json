@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@js-temporal/polyfill": "^0.5.1",
+    "@kancolle/data": "^0.230101.0",
     "@reduxjs/toolkit": "^2.10.1",
     "react": "^19.2.0",
     "react-bootstrap": "^2.10.10",

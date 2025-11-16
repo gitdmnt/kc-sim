@@ -1,6 +1,5 @@
 import { simulate } from "../sim-core/pkg/sim_core";
 import { useEffect, useState } from "react";
-import { InteractiveEnemyEditor } from "./InteractiveEnemyEditor";
 import { BattleDisplay } from "./BattleDisplay";
 import { BattleAnalytics } from "./BattleAnalytics";
 interface BattleSimProps {
@@ -10,14 +9,12 @@ interface BattleSimProps {
 
 export const BattleSim = ({ friend, stage }: BattleSimProps) => {
   const count = 1000;
-  const [result, setResult] = useState<BattleResult[]>([]);
+  const [results, setResults] = useState<BattleResult[]>([]);
   const [enemyFleets, setEnemyFleets] = useState<EnemyFleet[]>();
 
   useEffect(() => {
-    console.log(friend[0]);
-    console.log(enemyFleets);
     const res: BattleResult[] = simulate(friend[0], enemyFleets, count);
-    setResult(res);
+    setResults(res);
   }, [friend, enemyFleets]);
 
   return (
@@ -28,11 +25,11 @@ export const BattleSim = ({ friend, stage }: BattleSimProps) => {
         setEnemyFleets={setEnemyFleets}
         stage={stage}
       />
-      {result.length > 0 ? (
+      {results.length > 0 ? (
         <BattleAnalytics
           friend={friend[0]}
           enemy={enemyFleets}
-          result={result}
+          results={results}
         />
       ) : null}
     </div>

@@ -5,14 +5,15 @@ import { BattleSim } from "./BattleSim";
 import init from "../sim-core/pkg/sim_core";
 import { connect } from "react-redux";
 
+/* @ts-ignore */
+import * as kcdb from "@kancolle/data";
+
 const App = ({ state }: { state: any }) => {
   const [wasmInitialized, setWasmInitialized] = useState(false);
 
-  console.log(state.const);
+  console.log(state);
 
   const fleets = getFleets(state);
-
-  //   console.log(state.const);
 
   useEffect(() => {
     // WASMモジュールを初期化

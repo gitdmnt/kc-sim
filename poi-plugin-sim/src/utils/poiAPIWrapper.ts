@@ -80,10 +80,11 @@ export const getEquipNameFromEugenId = (
 };
 
 export const getArea = (state: any): { id: number; name: string }[] => {
-  return Object.values(state.const.$mapareas).map((area: any) => ({
+  const area = Object.values(state.const.$mapareas).map((area: any) => ({
     id: area.api_id,
     name: area.api_name,
   }));
+  return area;
 };
 
 export const getMapsInArea = (
