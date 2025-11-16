@@ -1,7 +1,8 @@
 mod utils;
 
-use log::{debug, error, info, trace, warn};
-use serde::{de, Deserialize, Serialize};
+use log::{debug, error, info, warn};
+use rand::random_range;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 trait FleetTrait {
@@ -34,7 +35,7 @@ struct EnemyFleet {
     ships: Vec<Ship>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct Ship {
     eugen_id: u16,
@@ -43,7 +44,7 @@ struct Ship {
     equips: Vec<Equip>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct ShipStatus {
     hp: u16,
@@ -51,14 +52,14 @@ struct ShipStatus {
     armor: u16,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct Equip {
     eugen_id: u16,
     equip_type_id: u16,
     status: EquipStatus,
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct EquipStatus {
     firepower: u16,
@@ -67,79 +68,123 @@ struct EquipStatus {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct BattleResult {
-    result: Option<u16>, // 0-5 D, C, B, A, S, SS
+    result: Option<u16>, // 0-6 SS, S, A, B, C, D, E
     friend_fleet_results: Vec<ShipResult>,
     enemy_index: usize,
     enemy_fleet_results: Vec<ShipResult>,
 }
 
-impl BattleResult {
-    fn new() -> Self {
+// 戦闘中の艦船の状態を管理する構造体
+struct FightingShip {
+    ship: Ship,
+    is_friend: bool,
+    index_in_fleet: usize,
+    result: ShipResult,
+}
+
+impl FightingShip {
+    fn new(ship: Ship, is_friend: bool, index_in_fleet: usize) -> Self {
+        let result = ShipResult::from(&ship);
         Self {
-            result: None,
-            friend_fleet_results: Vec::new(),
-            enemy_index: 0,
-            enemy_fleet_results: Vec::new(),
+            ship,
+            is_friend,
+            index_in_fleet,
+            result,
         }
     }
 
-    fn init(friend: &dyn FleetTrait, enemy_index: usize, enemy: &dyn FleetTrait) -> Self {
-        let mut result = Self::new();
-        for ship in friend.ships() {
-            result.friend_fleet_results.push(ShipResult::from(ship));
+    fn is_alive(&self) -> bool {
+        self.result.hp > 0
+    }
+}
+
+// 戦闘の進行を管理する構造体
+struct Battle {
+    friend_fleet: Vec<FightingShip>,
+    enemy_fleet: Vec<FightingShip>,
+    enemy_index: usize,
+}
+
+impl Battle {
+    fn new(friend: &dyn FleetTrait, enemy_index: usize, enemy: &dyn FleetTrait) -> Self {
+        Self {
+            friend_fleet: friend
+                .ships()
+                .iter()
+                .enumerate()
+                .map(|(i, ship)| FightingShip::new(ship.clone(), true, i))
+                .collect(),
+            enemy_fleet: enemy
+                .ships()
+                .iter()
+                .enumerate()
+                .map(|(i, ship)| FightingShip::new(ship.clone(), false, i))
+                .collect(),
+            enemy_index,
         }
-        result.enemy_index = enemy_index;
-        for ship in enemy.ships() {
-            result.enemy_fleet_results.push(ShipResult::from(ship));
-        }
-        result
+    }
+
+    fn fire_order(&self) -> Vec<(bool, usize)> {
+        let mut order = self
+            .friend_fleet
+            .iter()
+            .enumerate()
+            .map(|(i, fs)| (true, i, fs.ship.status.firepower))
+            .chain(
+                self.enemy_fleet
+                    .iter()
+                    .enumerate()
+                    .map(|(i, fs)| (false, i, fs.ship.status.firepower)),
+            )
+            .collect::<Vec<_>>();
+
+        order.sort_by_key(|a| std::cmp::Reverse(a.2));
+        let order = order
+            .iter()
+            .map(|(is_friend, i, _)| (*is_friend, *i))
+            .collect::<Vec<_>>();
+        order
     }
 
     // 砲撃戦1巡目
-    fn fire_phase1(&mut self, friend: &dyn FleetTrait, enemy: &dyn FleetTrait) -> &mut Self {
-        // 艦隊が空の場合は何もしない
-        if friend.ships().is_empty() || enemy.ships().is_empty() {
+    fn fire_phase1(&mut self) {
+        if self.friend_fleet.is_empty() || self.enemy_fleet.is_empty() {
             debug!("One of the fleets is empty, skipping fire phase 1");
-            return self;
+            return;
         }
 
-        // 砲撃順決定
+        // 砲撃順決定 (is_friend, index_in_fleet, key_for_sort)
         // TODO: 火力順になってるから射程順に修正する
-        let mut fire_order = friend
-            .ships()
-            .iter()
-            .enumerate()
-            .map(|(i, ship)| (true, i, ship)) // (is_friend, ship_index)
-            .chain(
-                enemy
-                    .ships()
-                    .iter()
-                    .enumerate()
-                    .map(|(i, ship)| (false, i, ship)),
-            ) // (is_friend, ship_index)
-            .collect::<Vec<_>>();
-        fire_order.sort_by_key(|a| std::cmp::Reverse(a.2.status.firepower));
+        let fire_order = self.fire_order();
+        debug!("Fire order: {:?}", fire_order);
 
-        let fire_order = fire_order
-            .into_iter()
-            .map(|(is_friend, i, _)| (is_friend, i))
-            .collect::<Vec<_>>();
-
-        trace!("Fire order: {:?}", fire_order);
-
-        // 攻撃処理
-        for (actor_is_friend, idx_in_fleet) in fire_order {
+        for (actor_is_friend, actor_idx) in fire_order.into_iter() {
             let (actor_fleet, target_fleet) = if actor_is_friend {
-                (friend, enemy)
+                (&self.friend_fleet, &mut self.enemy_fleet)
             } else {
-                (enemy, friend)
+                (&self.enemy_fleet, &mut self.friend_fleet)
             };
-            let actor = &actor_fleet.ships()[idx_in_fleet];
+
+            // 攻撃者が行動不能ならスキップ
+            if !actor_fleet[actor_idx].is_alive() {
+                continue;
+            }
+
+            let actor = &actor_fleet[actor_idx].ship;
 
             // ターゲット決定
-            let r = rand::random::<f64>();
-            let target_idx = (r * (target_fleet.ships().len() as f64)) as usize;
-            let target: &Ship = &target_fleet.ships()[target_idx];
+            let alive_targets_count = target_fleet.iter().filter(|t| t.is_alive()).count();
+            if alive_targets_count == 0 {
+                debug!("All targets are sunk, skipping attack");
+                continue;
+            }
+            let random_index =
+                random_range(0..target_fleet.iter().filter(|t| t.is_alive()).count());
+            let target = target_fleet
+                .iter_mut()
+                .filter(|t| t.is_alive())
+                .nth(random_index)
+                .unwrap();
 
             // 火力計算
             let firepower = actor.status.firepower as f64;
@@ -150,19 +195,13 @@ impl BattleResult {
 
             // 防御力計算
             let r: f64 = rand::random();
-            let armor = target.status.armor as f64;
+            let armor = target.ship.status.armor as f64;
             let armor = armor * 0.7 + f64::floor(armor * r) * 0.6;
 
             // ダメージ計算
             let damage = f64::floor(firepower - armor);
 
-            // ターゲットの現在のHPを取得
-            let hp_now = if actor_is_friend {
-                &self.enemy_fleet_results[target_idx]
-            } else {
-                &self.friend_fleet_results[target_idx]
-            }
-            .hp_after as f64;
+            let hp_now = target.result.hp as f64;
 
             let damage = if damage > 0.0 {
                 damage
@@ -171,51 +210,69 @@ impl BattleResult {
                 let r = rand::random::<f64>();
                 hp_now * 0.06 + f64::floor(hp_now * r) * 0.08
             };
-            // HP減少処理
-            let target_result = if actor_is_friend {
-                &mut self.enemy_fleet_results[target_idx]
-            } else {
-                &mut self.friend_fleet_results[target_idx]
-            };
-            target_result.hp_after = target_result.hp_after.saturating_sub(damage as u16);
 
-            trace!(
-                "{}-{} --fired-> {}-{}\nfp: {}, armor: {}, damage {}\n target HP {} -> {}",
+            // HP減少処理
+            let hp_before = target.result.hp;
+            target.result.hp = target.result.hp.saturating_sub(damage as u16);
+
+            debug!(
+                "\n{}-{} --fired-> {}-{}\nfp: {}, armor: {}, damage {}\ntarget HP {} -> {}",
                 if actor_is_friend { "Friend" } else { "Enemy" },
-                idx_in_fleet,
+                actor_idx,
                 if actor_is_friend { "Enemy" } else { "Friend" },
-                target_idx,
+                target.index_in_fleet,
                 firepower,
                 armor,
                 damage,
-                target_result.hp_before,
-                target_result.hp_after
+                hp_before,
+                target.result.hp
             );
         }
+    }
 
-        self
+    fn to_result(&self) -> BattleResult {
+        BattleResult {
+            result: None,
+            friend_fleet_results: self
+                .friend_fleet
+                .iter()
+                .map(|fs| ShipResult { hp: fs.result.hp })
+                .collect(),
+            enemy_index: self.enemy_index,
+            enemy_fleet_results: self
+                .enemy_fleet
+                .iter()
+                .map(|fs| ShipResult { hp: fs.result.hp })
+                .collect(),
+        }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct ShipResult {
-    hp_before: u16,
-    hp_after: u16,
+    hp: u16,
 }
 
 impl ShipResult {
     fn from(ship: &Ship) -> Self {
-        Self {
-            hp_before: ship.status.hp,
-            hp_after: ship.status.hp,
-        }
+        Self { hp: ship.status.hp }
     }
+}
+
+static INIT: std::sync::Once = std::sync::Once::new();
+
+fn initialize() {
+    INIT.call_once(|| {
+        utils::set_panic_hook();
+        wasm_logger::init(wasm_logger::Config::default()); // ロガー初期化
+        info!("Logger initialized");
+    });
 }
 
 #[wasm_bindgen]
 pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue {
-    utils::set_panic_hook(); // パニック時の詳細なエラーをコンソールに出力
+    initialize();
 
     info!("Simulation started");
 
@@ -264,10 +321,10 @@ fn battle_once(friend: &Fleet, enemy: &[EnemyFleet]) -> BattleResult {
         selected_enemy_index, enemy
     );
 
-    let mut result = BattleResult::init(friend, selected_enemy_index, enemy);
+    let mut battle = Battle::new(friend, selected_enemy_index, enemy);
 
-    let result = result.fire_phase1(friend, enemy);
+    battle.fire_phase1();
     debug!("Fire phase 1 finished");
 
-    result.clone()
+    battle.to_result()
 }
