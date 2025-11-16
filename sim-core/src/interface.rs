@@ -116,10 +116,21 @@ struct EquipmentStatus {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct BattleReport {
-    pub result: Option<u16>, // 0-6 SS, S, A, B, C, D, E
+    pub result: Option<BattleResult>,
     pub friend_fleet_results: Vec<ShipSnapshot>,
     pub enemy_index: usize,
     pub enemy_fleet_results: Vec<ShipSnapshot>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum BattleResult {
+    SS,
+    S,
+    A,
+    B,
+    C,
+    D,
+    E,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

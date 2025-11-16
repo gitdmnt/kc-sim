@@ -85,5 +85,6 @@ fn battle_once(
     battle.fire_phase1();
     debug!("Fire phase 1 finished");
 
+    battle.flush_logs_debug();
     battle.into()
 }
