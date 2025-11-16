@@ -3,9 +3,19 @@ interface StateProps {
   state: any;
 }
 
+type Formation =
+  | "line_ahead"
+  | "double_line"
+  | "diamond"
+  | "echelon"
+  | "line_abreast"
+  | "vanguard"
+  | undefined;
+
 // 艦隊全体の情報を表す型
 interface Fleet {
   ships: Ship[];
+  formation: Formation;
 }
 
 // 艦娘の情報を表す型
@@ -51,4 +61,5 @@ interface EnemyFleet {
   node: string;
   probability: number;
   ships: Ship[];
+  formation: Formation;
 }
