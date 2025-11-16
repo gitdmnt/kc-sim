@@ -8,7 +8,7 @@ interface BattleSimProps {
 }
 
 export const BattleSim = ({ friend, stage }: BattleSimProps) => {
-  const count = 1000;
+  const count = 1;
   const [results, setResults] = useState<BattleResult[]>([]);
   const [enemyFleets, setEnemyFleets] = useState<EnemyFleet[]>();
 
