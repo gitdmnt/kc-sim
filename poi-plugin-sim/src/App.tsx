@@ -4,6 +4,7 @@ import "../assets/styles.css";
 import { BattleSim } from "./BattleSim";
 import init from "../sim-core/pkg/sim_core";
 import { connect } from "react-redux";
+import { DebugMenu } from "./DebugMenu";
 
 /* @ts-ignore */
 import * as kcdb from "@kancolle/data";
@@ -32,6 +33,7 @@ const App = ({ state }: { state: any }) => {
 
   return (
     <div className="bg-gray-100 p-4 min-h-dvh flex flex-col gap-4">
+      <DebugMenu />
       <BattleSim friend={fleets} stage={""} />
     </div>
   );

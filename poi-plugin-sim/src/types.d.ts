@@ -42,8 +42,7 @@ interface BattleResult {
   enemyFleetResults: ShipResult[];
 }
 interface ShipResult {
-  hpBefore: number;
-  hpAfter: number;
+  hp: number;
 }
 
 interface EnemyFleet {

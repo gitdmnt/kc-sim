@@ -32,7 +32,7 @@ const BattleResultAvarage = ({
 }) => {
   const shipHpAfterLists: number[][] =
     fleetResults?.map((fleetResult: ShipResult[]) =>
-      fleetResult.map((shipResult: ShipResult) => shipResult.hpAfter)
+      fleetResult.map((shipResult: ShipResult) => shipResult.hp)
     ) ?? [];
 
   const calculateAveragesByIndex = (listOfLists: number[][]): number[] => {
