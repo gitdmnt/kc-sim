@@ -20,4 +20,24 @@
         font-size: 0.8rem;
         color: #888
     }
+
+    .panel {
+        @apply p-4 rounded shadow bg-white;
+    }
+
+    .board {
+        @apply p-2 rounded shadow bg-gray-200 text-gray-600;
+    }
+
+    .button {
+        @apply px-4 py-2 rounded-full shadow text-white bg-gray-500 transition-all duration-100;
+
+        &:hover {
+            @apply bg-gray-600 transition-all duration-100 scale-[1.05] shadow-lg ease-in;
+        }
+
+        &:active {
+            @apply bg-gray-700 transition-all duration-100 scale-[0.98] shadow-md ease-out;
+        }
+    }
 }

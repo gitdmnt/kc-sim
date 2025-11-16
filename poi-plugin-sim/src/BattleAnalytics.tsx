@@ -1,13 +1,38 @@
 import { connect } from "react-redux";
 
-const ResultRatioBar = ({ results }: { results: BattleReport[] }) => {
-  const resultLabels = ["SS", "S", "A", "B", "C", "D", "E"];
-  const resultCounts = [0, 0, 0, 0, 0, 0, 0];
-  results.forEach((res: any) => {
-    resultCounts[res.result]++;
+const battleResultToIndex = (result: BattleResult): number | undefined => {
+  switch (result) {
+    case "SS":
+      return 0;
+    case "S":
+      return 1;
+    case "A":
+      return 2;
+    case "B":
+      return 3;
+    case "C":
+      return 4;
+    case "D":
+      return 5;
+    case "E":
+      return 6;
+    default:
+      return undefined;
+  }
+};
+
+const ResultRatioBar = ({ reports }: { reports: BattleReport[] }) => {
+  const resultLabels: string[] = ["SS", "S", "A", "B", "C", "D", "E"];
+  const results: BattleResult[] = reports.map((res: any) => res.result);
+  const resultCounts: number[] = [0, 0, 0, 0, 0, 0, 0]; // SS, S, A, B, C, D, E
+  results.forEach((res: BattleResult) => {
+    const index = battleResultToIndex(res);
+    if (index !== undefined) {
+      resultCounts[index]++;
+    }
   });
-  const resultRatio = resultCounts.map(
-    (count) => (count / results.length) * 100
+  const resultRatio: number[] = resultCounts.map((count) =>
+    reports.length > 0 ? (count / reports.length) * 100 : 0
   );
 
   return (
@@ -74,19 +99,19 @@ const BattleResultAvarage = ({
 interface OwnProps {
   friend: Fleet;
   enemy: EnemyFleet[] | undefined;
-  results: BattleReport[];
+  reports: BattleReport[];
 }
 
 type Props = OwnProps & StateProps;
 
-const UnconnectedAnalytics = ({ state, friend, enemy, results }: Props) => {
+const UnconnectedAnalytics = ({ state, friend, enemy, reports }: Props) => {
   // 各試行の friendFleetResults から hpAfter のリストを作成
-  const friendFleetResults: ShipSnapshot[][] | undefined = results.map(
+  const friendFleetResults: ShipSnapshot[][] | undefined = reports.map(
     (res) => res.friendFleetResults
   );
 
   const enemyFleetResultsList: ShipSnapshot[][][] = [];
-  results.forEach((res: any) => {
+  reports.forEach((res: any) => {
     const enemyIndex = res.enemyIndex;
     if (!enemyFleetResultsList[enemyIndex]) {
       enemyFleetResultsList[enemyIndex] = [];
@@ -95,8 +120,8 @@ const UnconnectedAnalytics = ({ state, friend, enemy, results }: Props) => {
   }) ?? [];
 
   return (
-    <div className="p-4 bg-white rounded shadow flex flex-col gap-4">
-      <ResultRatioBar results={results} />
+    <div className="panel flex flex-col gap-4">
+      <ResultRatioBar reports={reports} />
       <div className="flex flex-row gap-4">
         <BattleResultAvarage
           fleetResults={friendFleetResults!}

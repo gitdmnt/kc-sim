@@ -22,8 +22,8 @@ export const Fleets = ({ fleets, state }: FleetsProps) => {
   return (
     <ul className="flex flex-row gap-4">
       {fleets.map((fleet: Fleet, index: number) => (
-        <li key={index} className="bg-gray-200 p-2 w-64 rounded">
-          <h2 className="p-2 text-gray-600">Fleet {index + 1}</h2>
+        <li key={index} className="board w-64">
+          <h2 className="p-2">Fleet {index + 1}</h2>
           <FleetDisplay fleet={fleet} state={state} />
         </li>
       ))}
@@ -91,10 +91,7 @@ const InputMap = ({
           ))}
         </select>
       </div>
-      <button
-        className="px-4 py-1 bg-gray-500 text-white rounded-full shadow hover:bg-gray-600 transition-colors duration-200"
-        onClick={() => setTrigger(!trigger)}
-      >
+      <button className="button py-1" onClick={() => setTrigger(!trigger)}>
         Load
       </button>
     </div>
@@ -255,7 +252,7 @@ const FleetDisplay = ({ fleet, state }: { fleet: Fleet; state: any }) => {
           className="bg-white p-2 rounded shadow transition-all duration-200 hover:shadow-lg hover:scale-[1.02]"
         >
           <div className="group">
-            <div className="px-1 text-md">
+            <div className="px-1 text-md text-gray-800">
               {getShipNameFromEugenId(ship.eugenId, state)}
             </div>
             <div className="flex flex-row gap-1 text-xs text-gray-600 p-1 rounded">
