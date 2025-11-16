@@ -223,7 +223,7 @@ impl Battle {
             // キャプチャしてから mutable borrow をドロップするためにスコープ内で処理
             let (target_idx, hp_before, hp_after) = {
                 let hp_before = target.hp();
-                target.damage(damage as u16);
+                target.apply_damage(damage as u16);
                 let hp_after = target.hp();
                 (target.index_in_fleet(), hp_before, hp_after)
             };

@@ -140,14 +140,20 @@ pub struct ShipSnapshot {
 }
 
 impl ShipSnapshot {
+    /// Create snapshot from current Ship status.
     pub fn from(ship: &Ship) -> Self {
         Self { hp: ship.status.hp }
     }
 
-    pub fn damage(&mut self, diff: u16) {
-        self.hp = self.hp.saturating_sub(diff);
+    /// Apply `amount` damage to this snapshot.
+    /// - `is_friend` が true のときは、撃沈を避けるため HP は最低 1 を維持する。
+    pub fn apply_damage(&mut self, is_friend: bool, amount: u16) {
+        let new_hp = self.hp.saturating_sub(amount);
+        // 味方は撃沈されない
+        self.hp = if is_friend && new_hp == 0 { 1 } else { new_hp };
     }
 
+    /// Read-only access to HP.
     pub fn hp(&self) -> u16 {
         self.hp
     }

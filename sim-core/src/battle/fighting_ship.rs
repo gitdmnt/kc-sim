@@ -42,7 +42,7 @@ impl FightingShip {
     pub fn is_alive(&self) -> bool {
         self.result.hp() > 0
     }
-    pub fn damage(&mut self, diff: u16) {
-        self.result.damage(diff);
+    pub fn apply_damage(&mut self, diff: u16) {
+        self.result.apply_damage(self.is_friend, diff);
     }
 }
