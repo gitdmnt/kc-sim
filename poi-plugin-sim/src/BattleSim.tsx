@@ -14,6 +14,8 @@ export const BattleSim = ({ friend, stage }: BattleSimProps) => {
   const [enemyFleets, setEnemyFleets] = useState<EnemyFleet[]>();
   const [simTrigger, setSimTrigger] = useState<boolean>(false);
 
+  console.log({ enemyFleets });
+
   useEffect(() => {
     const res: BattleReport[] = simulate(friend[0], enemyFleets, count);
     setResults(res);

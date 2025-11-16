@@ -145,7 +145,7 @@ const formationMap: { [key: string]: Formation } = {
 export const fetchMapFromKCNav = async (
   area: number,
   map: number
-): Promise<string[]> => {
+): Promise<[string, string][]> => {
   const useMockApi = localStorage.getItem("debug-useMockApi") === "true";
 
   const cacheKey = `kcnav-map-${area}-${map}`;
@@ -190,7 +190,7 @@ const callKCNavMapAPIMock = async (_area: number, _map: number) => {
   const rand = Math.random() * 100;
   const data = MapSample;
   const nodes = parseKCNavMapNodes(data);
-  nodes.push(rand.toFixed(2).toString());
+  nodes.push([rand.toFixed(2).toString(), "mock"]);
   return nodes;
 };
 
@@ -204,10 +204,57 @@ const callKCNavMapAPI = async (area: number, map: number) => {
   return nodes;
 };
 
-const parseKCNavMapNodes = (data: any): string[] => {
-  const nodes: string[] = Object.values(data.result.route)
-    .map((node: any) => node[1] as string)
-    .filter((node: string) => node !== "1");
-  const uniqueNodes = [...new Set(nodes)];
-  return uniqueNodes;
+/// [from, to, type of destination1, type of destination2]
+/// type1: 0=start, 4=normal, 5=boss, 10=airRaid, 90=noBattle, 91=noBattle(能動分岐)
+/// type2: 0=start, 4=normal(battle?), 5=boss, 6=noBattle,
+///
+/// (type1, type2) =
+/// (-1, -1): unreachable route
+/// (0, 0): start
+/// (2, 2): resource
+/// (8, 2): goal (7-4)
+/// (3, 3): whirlpool
+/// (4, 4): normal battle
+/// (7, 4): air warfare
+/// (10, 4): air raid battle
+/// (11, 4): night battle
+/// (15, 4): asw + air raid battle
+/// (5, 5): boss battle
+/// (90, 6): no battle
+/// (91, 6): no battle (active branching)
+/// (9, 7): air scout (6-3, g, h)
+/// (8, 8): goal (1-6)
+/// (6, 9): transport
+const parseKCNavMapNodes = (data: any): [string, string][] => {
+  const nodes: [string, string][] = Object.values(data.result.route)
+    .filter((node: any) => node[3] === 4 || node[3] === 5) // 修正: type1/type2 両方をチェック
+    .map((node: any) => [node[1], nodeType1Map(node[2], node[3])]);
+
+  const unique = new Map<string, string>();
+  for (const [id, type] of nodes) {
+    if (!unique.has(id)) {
+      unique.set(id, type); // 最初に出現した id を保持
+    }
+  }
+  return Array.from(unique.entries()) as [string, string][];
+};
+
+const nodeType1Map = (typeId1: number, typeId2: number): string => {
+  if (typeId1 === -1 && typeId2 === -1) return "unreachable";
+  if (typeId1 === 0 && typeId2 === 0) return "start";
+  if (typeId1 === 2 && typeId2 === 2) return "resource";
+  if (typeId1 === 8 && typeId2 === 2) return "goal";
+  if (typeId1 === 3 && typeId2 === 3) return "whirlpool";
+  if (typeId1 === 4 && typeId2 === 4) return "normal_battle";
+  if (typeId1 === 7 && typeId2 === 4) return "air_warfare";
+  if (typeId1 === 10 && typeId2 === 4) return "air_raid";
+  if (typeId1 === 11 && typeId2 === 4) return "night_battle";
+  if (typeId1 === 15 && typeId2 === 4) return "asw_air_raid_battle";
+  if (typeId1 === 5 && typeId2 === 5) return "boss_battle";
+  if (typeId1 === 90 && typeId2 === 6) return "no_enemy";
+  if (typeId1 === 91 && typeId2 === 6) return "no_enemy_active_branching";
+  if (typeId1 === 9 && typeId2 === 7) return "air_scout";
+  if (typeId1 === 8 && typeId2 === 8) return "goal";
+  if (typeId1 === 6 && typeId2 === 9) return "transport";
+  return "unknown";
 };

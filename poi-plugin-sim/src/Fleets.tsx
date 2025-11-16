@@ -43,21 +43,28 @@ const InputMap = ({
   const [area, setArea] = useState<number>(1);
   const [map, setMap] = useState<number>(1);
   const [node, setNode] = useState<string>("A");
-  const [trigger, setTrigger] = useState<boolean>(false);
+  const [mapTrigger, setMapTrigger] = useState<boolean>(false);
+  const [enemyTrigger, setEnemyTrigger] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const fetchedNodes = await fetchMapFromKCNav(area, map);
+      setNodes(fetchedNodes);
+    };
+    fetchData();
+  }, [mapTrigger]);
 
   useEffect(() => {
     const fetchData = async () => {
       const enemyFleets = await fetchEnemyFromKCNav(area, map, node);
       setEnemyFleets(enemyFleets);
-      const fetchedNodes = await fetchMapFromKCNav(area, map);
-      setNodes(fetchedNodes);
     };
     fetchData();
-  }, [trigger]);
+  }, [enemyTrigger]);
 
   const areas = getArea(state);
   const maps = getMapsInArea(state, area);
-  const [nodes, setNodes] = useState<string[]>([]);
+  const [nodes, setNodes] = useState<[string, string][]>([]);
 
   return (
     <div className="flex flex-col gap-4 bg-white text-gray-600 p-4 rounded shadow-inner shadow-gray-300 text-xs">
@@ -84,16 +91,27 @@ const InputMap = ({
           ))}
         </select>
         <select value={node} onChange={(e) => setNode(e.target.value)}>
-          {nodes.map((nodeStr) => (
+          {nodes.map(([nodeStr, nodeType]) => (
             <option key={nodeStr} value={nodeStr}>
-              {nodeStr}
+              {nodeStr} ({nodeType})
             </option>
           ))}
         </select>
       </div>
-      <button className="button py-1" onClick={() => setTrigger(!trigger)}>
-        Load
-      </button>
+      <div className="flex flex-row flex-wrap gap-2">
+        <button
+          className="button py-1"
+          onClick={() => setMapTrigger(!mapTrigger)}
+        >
+          Load Map
+        </button>
+        <button
+          className="button py-1"
+          onClick={() => setEnemyTrigger(!enemyTrigger)}
+        >
+          Load Enemies
+        </button>
+      </div>
     </div>
   );
 };
@@ -227,10 +245,7 @@ export const EnemyFleets = ({
           </button>
         </li>
       </ul>
-      <div
-        key={index}
-        className="flex flex-col gap-2 bg-gray-200 p-2 w-64 rounded transition-all duration-200 active:scale-[0.98] group-active:scale-[0.98]"
-      >
+      <div className="flex flex-col gap-2 bg-gray-200 p-2 w-64 rounded transition-all duration-200 active:scale-[0.98] group-active:scale-[0.98]">
         <InputMap setEnemyFleets={setEnemyFleets} state={state} />
         <div className="p-2 text-gray-600">
           敵艦隊 {index + 1} (確率:
