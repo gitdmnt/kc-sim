@@ -3,17 +3,16 @@ interface StateProps {
   state: any;
 }
 
-type Formation =
-  | "line_ahead"
-  | "double_line"
-  | "diamond"
-  | "echelon"
-  | "line_abreast"
-  | "vanguard"
-  | undefined;
-
 // 艦隊全体の情報を表す型
 interface Fleet {
+  ships: Ship[];
+  formation: Formation;
+}
+interface EnemyFleet {
+  area: number;
+  map: number;
+  node: string;
+  probability: number;
   ships: Ship[];
   formation: Formation;
 }
@@ -23,7 +22,7 @@ interface Ship {
   eugenId: number; // 艦娘の名前ごとの固有ID
   shipTypeId: number; // 艦種ID
   status: ShipStatus;
-  equips: Equip[];
+  equips: Equipment[];
 }
 
 // 艦娘のステータスを表す型
@@ -34,32 +33,44 @@ interface ShipStatus {
 }
 
 // 装備の情報を表す型
-interface Equip {
+interface Equipment {
   eugenId: number; // 装備の名前ごとの固有ID
   equipTypeId: number; // 装備種別ID
-  status: EquipStatus;
+  status: EquipmentStatus;
 }
 
 // 装備のステータスを表す型
-interface EquipStatus {
+interface EquipmentStatus {
   firepower: number; // 火力
 }
 
-interface BattleResult {
-  result: 0 | 1 | 2 | 3 | 4 | 5 | 6; // SS:0, S:1, A:2, B:3, C:4, D:5 E:6
-  friendFleetResults: ShipResult[];
+type Formation =
+  | "line_ahead"
+  | "double_line"
+  | "diamond"
+  | "echelon"
+  | "line_abreast"
+  | "vanguard"
+  | undefined;
+
+interface BattleReport {
+  result: BattleResult; // SS:0, S:1, A:2, B:3, C:4, D:5 E:6
+  friendFleetResults: ShipSnapshot[];
   enemyIndex: number;
-  enemyFleetResults: ShipResult[];
-}
-interface ShipResult {
-  hp: number;
+  enemyFleetResults: ShipSnapshot[];
 }
 
-interface EnemyFleet {
-  area: number;
-  map: number;
-  node: string;
-  probability: number;
-  ships: Ship[];
-  formation: Formation;
+enum BattleResult {
+  SS = "SS",
+  S = "S",
+  A = "A",
+  B = "B",
+  C = "C",
+  D = "D",
+  E = "E",
+  None = undefined,
+}
+
+interface ShipSnapshot {
+  hp: number;
 }

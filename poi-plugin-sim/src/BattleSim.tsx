@@ -9,11 +9,11 @@ interface BattleSimProps {
 
 export const BattleSim = ({ friend, stage }: BattleSimProps) => {
   const count = 1;
-  const [results, setResults] = useState<BattleResult[]>([]);
+  const [results, setResults] = useState<BattleReport[]>([]);
   const [enemyFleets, setEnemyFleets] = useState<EnemyFleet[]>();
 
   useEffect(() => {
-    const res: BattleResult[] = simulate(friend[0], enemyFleets, count);
+    const res: BattleReport[] = simulate(friend[0], enemyFleets, count);
     setResults(res);
   }, [friend, enemyFleets]);
 

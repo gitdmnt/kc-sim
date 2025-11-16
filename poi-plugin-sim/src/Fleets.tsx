@@ -270,7 +270,7 @@ const FleetDisplay = ({ fleet, state }: { fleet: Fleet; state: any }) => {
               transition-all ease-in-out duration-500
               group-hover:max-h-96 group-hover:opacity-100 group-hover:p-2"
             >
-              {ship.equips.map((equip: Equip, equipIndex: number) => (
+              {ship.equips.map((equip: Equipment, equipIndex: number) => (
                 <li key={equipIndex}>
                   <div className="flex flex-row justify-between">
                     <div>{getEquipNameFromEugenId(equip.eugenId, state)}</div>

@@ -1,6 +1,6 @@
 import { connect } from "react-redux";
 
-const ResultRatioBar = ({ results }: { results: BattleResult[] }) => {
+const ResultRatioBar = ({ results }: { results: BattleReport[] }) => {
   const resultLabels = ["SS", "S", "A", "B", "C", "D", "E"];
   const resultCounts = [0, 0, 0, 0, 0, 0, 0];
   results.forEach((res: any) => {
@@ -26,13 +26,13 @@ const BattleResultAvarage = ({
   fleet,
   state,
 }: {
-  fleetResults: ShipResult[][] | undefined;
+  fleetResults: ShipSnapshot[][] | undefined;
   fleet: Fleet;
   state: any;
 }) => {
   const shipHpAfterLists: number[][] =
-    fleetResults?.map((fleetResult: ShipResult[]) =>
-      fleetResult.map((shipResult: ShipResult) => shipResult.hp)
+    fleetResults?.map((fleetResult: ShipSnapshot[]) =>
+      fleetResult.map((shipResult: ShipSnapshot) => shipResult.hp)
     ) ?? [];
 
   const calculateAveragesByIndex = (listOfLists: number[][]): number[] => {
@@ -74,18 +74,18 @@ const BattleResultAvarage = ({
 interface OwnProps {
   friend: Fleet;
   enemy: EnemyFleet[] | undefined;
-  results: BattleResult[];
+  results: BattleReport[];
 }
 
 type Props = OwnProps & StateProps;
 
 const UnconnectedAnalytics = ({ state, friend, enemy, results }: Props) => {
   // 各試行の friendFleetResults から hpAfter のリストを作成
-  const friendFleetResults: ShipResult[][] | undefined = results.map(
+  const friendFleetResults: ShipSnapshot[][] | undefined = results.map(
     (res) => res.friendFleetResults
   );
 
-  const enemyFleetResultsList: ShipResult[][][] = [];
+  const enemyFleetResultsList: ShipSnapshot[][][] = [];
   results.forEach((res: any) => {
     const enemyIndex = res.enemyIndex;
     if (!enemyFleetResultsList[enemyIndex]) {
