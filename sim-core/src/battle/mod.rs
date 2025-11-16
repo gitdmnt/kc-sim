@@ -1,74 +1,13 @@
+mod battle_direction;
+mod fighting_ship;
+mod fp_calculation; // 追加
+
 use crate::interface;
+use battle_direction::BattleDirection;
+use fighting_ship::FightingShip;
 
-use log::{debug, error, info, warn};
+use log::debug;
 use rand::random_range;
-
-// 戦闘の陣形タイプを表す列挙型
-#[derive(Debug)]
-pub enum BattleDirection {
-    Same,
-    Against,
-    TAdvantage,
-    TDisadvantage,
-}
-impl BattleDirection {
-    fn correction_factor(&self) -> f64 {
-        match self {
-            BattleDirection::Same => 1.0,
-            BattleDirection::Against => 0.8,
-            BattleDirection::TAdvantage => 1.2,
-            BattleDirection::TDisadvantage => 0.6,
-        }
-    }
-}
-impl std::fmt::Display for BattleDirection {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            BattleDirection::Same => "同航戦",
-            BattleDirection::Against => "反航戦",
-            BattleDirection::TAdvantage => "Ｔ字有利",
-            BattleDirection::TDisadvantage => "Ｔ字不利",
-        };
-        write!(f, "{}", s)
-    }
-}
-
-// 戦闘中の艦船の状態を管理する構造体
-struct FightingShip {
-    ship: interface::Ship,
-    is_friend: bool,
-    index_in_fleet: usize,
-    result: interface::ShipResult,
-}
-
-impl FightingShip {
-    fn new(ship: interface::Ship, is_friend: bool, index_in_fleet: usize) -> Self {
-        let result = interface::ShipResult::from(&ship);
-        Self {
-            ship,
-            is_friend,
-            index_in_fleet,
-            result,
-        }
-    }
-
-    fn is_alive(&self) -> bool {
-        self.result.hp() > 0
-    }
-    fn damage(&mut self, diff: u16) {
-        self.result.damage(diff);
-    }
-
-    fn hp(&self) -> u16 {
-        self.result.hp()
-    }
-    fn firepower(&self) -> u16 {
-        self.ship.firepower()
-    }
-    fn armor(&self) -> u16 {
-        self.ship.armor()
-    }
-}
 
 // 戦闘の進行を管理する構造体
 pub struct Battle {
@@ -80,9 +19,9 @@ pub struct Battle {
 
 impl Battle {
     pub fn new(
-        friend: &dyn interface::FleetTrait,
+        friend: &dyn interface::FleetLike,
         enemy_index: usize,
-        enemy: &dyn interface::FleetTrait,
+        enemy: &dyn interface::FleetLike,
     ) -> Self {
         // -- 陣形決定 --
         let r = rand::random::<f64>();
@@ -144,13 +83,13 @@ impl Battle {
                 .iter()
                 .filter(|s| s.is_alive())
                 .nth(index_in_fleet)
-                .map(|s| s.ship.clone())
+                .map(|s| s.ship())
         } else {
             self.enemy_fleet
                 .iter()
                 .filter(|s| s.is_alive())
                 .nth(index_in_fleet)
-                .map(|s| s.ship.clone())
+                .map(|s| s.ship())
         }
     }
 
@@ -176,19 +115,6 @@ impl Battle {
                 .filter(|s| s.is_alive())
                 .nth(index_in_fleet)
         }
-    }
-
-    fn fp_precap_correction(&self, firepower: f64) -> f64 {
-        let direction_factor = &self.direction.correction_factor();
-        firepower * direction_factor
-    }
-
-    fn fp_capping(firepower: f64, cap: f64) -> f64 {
-        firepower.min(cap) + f64::floor(f64::sqrt((firepower - cap).max(0.0)))
-    }
-
-    fn fp_postcap_correction(firepower: f64) -> f64 {
-        firepower
     }
 
     // 砲撃戦1巡目
@@ -217,9 +143,11 @@ impl Battle {
 
             // 火力計算
             let firepower = actor.firepower() as f64;
-            let firepower = self.fp_precap_correction(firepower); // キャップ前補正
-            let firepower = Self::fp_capping(firepower, 220.0); // キャップ処理
-            let firepower = Self::fp_postcap_correction(firepower); // キャップ後補正
+            // 火力計算の呼び出しは外部関数へ
+            let firepower =
+                fp_calculation::fp_precap_correction(firepower, self.direction.correction_factor());
+            let firepower = fp_calculation::fp_capping(firepower, 220.0);
+            let firepower = fp_calculation::fp_postcap_correction(firepower);
 
             // --- ターゲットを取得 ---
             let target = self.get_target_mut(actor_is_friend);
@@ -256,7 +184,7 @@ impl Battle {
                 if actor_is_friend { "Friend" } else { "Enemy" },
                 actor_idx,
                 if actor_is_friend { "Enemy" } else { "Friend" },
-                target.index_in_fleet,
+                target.index_in_fleet(),
                 firepower,
                 armor,
                 damage,
@@ -271,17 +199,21 @@ impl Battle {
     }
 }
 
-impl From<Battle> for interface::BattleResult {
+impl From<Battle> for interface::BattleReport {
     fn from(battle: Battle) -> Self {
         Self {
             result: battle.calculate_result(),
             friend_fleet_results: battle
                 .friend_fleet
                 .into_iter()
-                .map(|fs| fs.result)
+                .map(|fs| fs.result())
                 .collect(),
             enemy_index: battle.enemy_index,
-            enemy_fleet_results: battle.enemy_fleet.into_iter().map(|fs| fs.result).collect(),
+            enemy_fleet_results: battle
+                .enemy_fleet
+                .into_iter()
+                .map(|fs| fs.result())
+                .collect(),
         }
     }
 }

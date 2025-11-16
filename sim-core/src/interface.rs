@@ -1,7 +1,7 @@
 use log::warn;
 use serde::{Deserialize, Serialize};
 
-pub trait FleetTrait {
+pub trait FleetLike {
     fn ships(&self) -> &[Ship];
     fn formation(&self) -> Option<Formation>;
     fn set_formation_default(&mut self);
@@ -22,7 +22,7 @@ pub trait FleetTrait {
     }
 }
 
-impl FleetTrait for Fleet {
+impl FleetLike for Fleet {
     fn ships(&self) -> &[Ship] {
         &self.ships
     }
@@ -33,7 +33,7 @@ impl FleetTrait for Fleet {
         self.formation = Some(Formation::LineAhead);
     }
 }
-impl FleetTrait for EnemyFleet {
+impl FleetLike for EnemyFleet {
     fn ships(&self) -> &[Ship] {
         &self.ships
     }
@@ -43,17 +43,6 @@ impl FleetTrait for EnemyFleet {
     fn set_formation_default(&mut self) {
         self.formation = Some(Formation::LineAhead);
     }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "snake_case")]
-pub enum Formation {
-    LineAhead,
-    DoubleLine,
-    Diamond,
-    Echelon,
-    LineAbreast,
-    Vanguard,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -75,12 +64,23 @@ pub struct EnemyFleet {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum Formation {
+    LineAhead,
+    DoubleLine,
+    Diamond,
+    Echelon,
+    LineAbreast,
+    Vanguard,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Ship {
     eugen_id: u16,
     ship_type_id: u16,
     status: ShipStatus,
-    equips: Vec<Equip>,
+    equips: Vec<Equipment>,
 }
 
 impl Ship {
@@ -102,33 +102,33 @@ struct ShipStatus {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct Equip {
+struct Equipment {
     eugen_id: u16,
     equip_type_id: u16,
-    status: EquipStatus,
+    status: EquipmentStatus,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct EquipStatus {
+struct EquipmentStatus {
     firepower: u16,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct BattleResult {
+pub struct BattleReport {
     pub result: Option<u16>, // 0-6 SS, S, A, B, C, D, E
-    pub friend_fleet_results: Vec<ShipResult>,
+    pub friend_fleet_results: Vec<ShipSnapshot>,
     pub enemy_index: usize,
-    pub enemy_fleet_results: Vec<ShipResult>,
+    pub enemy_fleet_results: Vec<ShipSnapshot>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct ShipResult {
+pub struct ShipSnapshot {
     hp: u16,
 }
 
-impl ShipResult {
+impl ShipSnapshot {
     pub fn from(ship: &Ship) -> Self {
         Self { hp: ship.status.hp }
     }

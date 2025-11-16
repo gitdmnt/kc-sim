@@ -5,7 +5,7 @@ mod battle;
 mod interface;
 mod utils;
 
-use crate::interface::FleetTrait;
+use crate::interface::FleetLike;
 
 static INIT: std::sync::Once = std::sync::Once::new();
 
@@ -29,11 +29,11 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
 
     let Some(friend) = &mut friend else {
         error!("Friend fleet is None");
-        return serde_wasm_bindgen::to_value(&Vec::<interface::BattleResult>::new()).unwrap();
+        return serde_wasm_bindgen::to_value(&Vec::<interface::BattleReport>::new()).unwrap();
     };
     let Some(enemy) = &mut enemy else {
         error!("Enemy fleet is None");
-        return serde_wasm_bindgen::to_value(&Vec::<interface::BattleResult>::new()).unwrap();
+        return serde_wasm_bindgen::to_value(&Vec::<interface::BattleReport>::new()).unwrap();
     };
 
     friend.validate();
@@ -61,7 +61,7 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
 fn battle_once(
     friend: &interface::Fleet,
     enemy: &[interface::EnemyFleet],
-) -> interface::BattleResult {
+) -> interface::BattleReport {
     let r = rand::random::<f64>();
     let mut cumulative_probability = 0.0;
     let mut selected_enemy_index = 0;
