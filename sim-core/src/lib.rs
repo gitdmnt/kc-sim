@@ -167,6 +167,11 @@ impl Battle {
 
             // 攻撃者が行動不能ならスキップ
             if !actor_fleet[actor_idx].is_alive() {
+                debug!(
+                    "{}-{} is sunk, skipping attack",
+                    if actor_is_friend { "Friend" } else { "Enemy" },
+                    actor_idx
+                );
                 continue;
             }
 
