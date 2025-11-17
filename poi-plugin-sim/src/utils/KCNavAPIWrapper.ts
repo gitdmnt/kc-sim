@@ -1,6 +1,7 @@
 import { Temporal } from "@js-temporal/polyfill";
 import EnemyCompsSample from "./KCNavEnemyCompsAPISampleResponse.json";
 import MapSample from "./KCNavMapAPISampleResponse.json";
+import { getShipConstFromEugenId, shipTypeGroupMap } from "./poiAPIWrapper";
 
 const CACHE_DURATION_MS = 31 * 24 * 60 * 60 * 1000; // 1 month
 
@@ -8,7 +9,8 @@ const CACHE_DURATION_MS = 31 * 24 * 60 * 60 * 1000; // 1 month
 export const fetchEnemyFromKCNav = async (
   area: number,
   map: number,
-  node: string
+  node: string,
+  state: any
 ): Promise<EnemyFleet[]> => {
   const useMockApi = localStorage.getItem("debug-useMockApi") === "true";
 
@@ -32,8 +34,8 @@ export const fetchEnemyFromKCNav = async (
   }
 
   const enemyFleets = useMockApi
-    ? await callKCNavEnemyCompsAPIMock(area, map, node)
-    : await callKCNavEnemyCompsAPI(area, map, node);
+    ? await callKCNavEnemyCompsAPIMock(area, map, node, state)
+    : await callKCNavEnemyCompsAPI(area, map, node, state);
 
   try {
     const itemToCache = {
@@ -51,7 +53,8 @@ export const fetchEnemyFromKCNav = async (
 const callKCNavEnemyCompsAPIMock = async (
   area: number,
   map: number,
-  _node: string
+  _node: string,
+  state: any
 ) => {
   console.log("Fetching enemy compositions from KCNav EnemyComps API Mock...");
   const rand = Math.random();
@@ -61,6 +64,7 @@ const callKCNavEnemyCompsAPIMock = async (
     shipTypeId: 0,
     shipTypeName: "Mock Ship Type",
     status: {
+      range: "none" as unknown as Range,
       hp: Math.floor(1000 * rand),
       firepower: 1000,
       armor: 1000,
@@ -72,7 +76,8 @@ const callKCNavEnemyCompsAPIMock = async (
     EnemyCompsSample,
     area,
     map,
-    _node
+    _node,
+    state
   ).map((fleet) => {
     fleet.ships = [mockShip, ...fleet.ships];
     return fleet;
@@ -83,7 +88,8 @@ const callKCNavEnemyCompsAPIMock = async (
 const callKCNavEnemyCompsAPI = async (
   area: number,
   map: number,
-  node: string
+  node: string,
+  state: any
 ) => {
   console.log("Fetching enemy compositions from KCNav API...");
   const date = Temporal.Now.plainDateISO().subtract({ months: 1 }).toString();
@@ -91,7 +97,7 @@ const callKCNavEnemyCompsAPI = async (
     `https://tsunkit.net/api/routing/maps/${area}-${map}/nodes/${node}/enemycomps?start=${date}`
   );
   const data = await response?.json();
-  const enemyFleets = parseKCNavEnemyComps(data, area, map, node);
+  const enemyFleets = parseKCNavEnemyComps(data, area, map, node, state);
   return enemyFleets;
 };
 
@@ -99,35 +105,46 @@ const parseKCNavEnemyComps = (
   data: any,
   area: number,
   map: number,
-  node: string
+  node: string,
+  state: any
 ): EnemyFleet[] => {
   const entries = data.result.entries;
   const totalCount = entries.reduce(
     (sum: number, entry: any) => sum + entry.count,
     0
   );
-  const enemyFleets = entries.map((entry: any) => {
+  const enemyFleets: EnemyFleet[] = entries.map((entry: any): EnemyFleet => {
     return {
       area,
       map,
       node,
       probability: entry.count / totalCount,
-      ships: entry.mainFleet.map((enemy: any) => ({
-        eugenId: enemy.id,
-        shipTypeId: 0, // You may want to fetch or calculate the shipTypeId based on eugenId
-        status: {
-          hp: enemy.hp ?? 0,
-          firepower: enemy.fp ?? 0,
-          armor: enemy.armor ?? 0,
-        },
-        equips: enemy.equips
-          .filter((id: number) => id !== -1)
-          .map((id: number) => ({
-            eugenId: id,
-            equipTypeId: 0, // You may want to fetch or calculate the equipTypeId based on eugenId
-            status: { firepower: 0 }, // You may want to fill in actual equip status
-          })),
-      })),
+      ships: entry.mainFleet.map((enemy: any): Ship => {
+        const id = enemy.id;
+        const shipConst = getShipConstFromEugenId(id, state);
+
+        return {
+          eugenId: enemy.id,
+          name: enemy.name,
+          shipTypeId: shipConst ? shipConst.api_stype : 0,
+          shipTypeName: shipConst
+            ? shipTypeGroupMap[shipConst.api_stype]?.shipTypeName
+            : "不明な艦種",
+          status: {
+            range: "none" as unknown as Range,
+            hp: enemy.hp ?? 0,
+            firepower: enemy.fp ?? 0,
+            armor: enemy.armor ?? 0,
+          },
+          equips: enemy.equips
+            .filter((id: number) => id !== -1)
+            .map((id: number) => ({
+              eugenId: id,
+              equipTypeId: 0, // You may want to fetch or calculate the equipTypeId based on eugenId
+              status: { firepower: 0 }, // You may want to fill in actual equip status
+            })),
+        };
+      }),
       formation: formationMap[entry.formation],
     };
   });

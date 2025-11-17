@@ -32,6 +32,15 @@ interface ShipStatus {
   hp: number; // 耐久
   firepower: number; // 火力
   armor: number; // 装甲
+  range: Range; // 射程
+}
+
+enum Range {
+  None = "none",
+  Short = "short",
+  Medium = "medium",
+  Long = "long",
+  VeryLong = "very_long",
 }
 
 // 装備の情報を表す型

@@ -46,7 +46,11 @@ const shipInfoFetcher = (shipId: number, state: any): Ship => {
 };
 
 const shipStatusFetcher = (shipData: any): ShipStatus => {
+  const range = ["none", "short", "medium", "long", "very_long"][
+    shipData.api_leng
+  ];
   return {
+    range: range as unknown as Range,
     hp: shipData.api_nowhp,
     firepower: shipData.api_karyoku[0],
     armor: shipData.api_soukou[0],
@@ -77,6 +81,10 @@ const equipsFetcher = (equipSlots: number[], state: any): Equipment[] => {
 
 export const getShipNameFromEugenId = (eugenId: number, state: any): string => {
   return state.const.$ships[eugenId]?.api_name || "不明な艦船";
+};
+
+export const getShipConstFromEugenId = (eugenId: number, state: any): any => {
+  return state.const.$ships[eugenId];
 };
 
 export const getShipTypeNameFromId = (

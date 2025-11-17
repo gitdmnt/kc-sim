@@ -101,7 +101,7 @@ const InputMap = ({
       if (area === undefined || map === undefined || node === undefined) {
         return;
       }
-      const enemyFleets = await fetchEnemyFromKCNav(area!, map!, node!);
+      const enemyFleets = await fetchEnemyFromKCNav(area!, map!, node!, state);
       setEnemyFleets(enemyFleets);
     };
     fetchData();
@@ -178,6 +178,7 @@ const AddShipButton = ({
           shipTypeId: enemy._type,
           shipTypeName: getShipTypeNameFromId(enemy._type, state),
           status: {
+            range: "none" as unknown as Range,
             hp: enemy._hp,
             firepower: enemy._firepower,
             armor: enemy._armor,
