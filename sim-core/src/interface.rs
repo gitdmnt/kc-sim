@@ -137,6 +137,7 @@ pub enum Range {
     Medium,
     Long,
     VeryLong,
+    VeryVeryLong,
 }
 
 impl std::fmt::Display for Range {
@@ -147,6 +148,7 @@ impl std::fmt::Display for Range {
             Range::Medium => "Medium",
             Range::Long => "Long",
             Range::VeryLong => "Very Long",
+            Range::VeryVeryLong => "Very Very Long",
         };
         write!(f, "{}", s)
     }
