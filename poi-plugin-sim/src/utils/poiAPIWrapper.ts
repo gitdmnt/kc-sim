@@ -32,7 +32,9 @@ const shipInfoFetcher = (instanceId: number, state: any): Ship => {
 
   const status: ShipStatus = shipStatusFetcher(allShipData[instanceId]);
 
-  const equipSlots = allShipData[instanceId].api_slot;
+  const equipSlots = allShipData[instanceId].api_slot.map(
+    (instanceId: number) => state.info.equips[instanceId]?.api_slotitem_id ?? -1
+  );
   const equips: Equipment[] = equipsFetcher(equipSlots, state);
 
   return {
