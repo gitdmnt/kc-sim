@@ -13,6 +13,10 @@ import {
 
 /* @ts-ignore */
 import { wiki } from "@kancolle/data";
+import {
+  completeEnemyStatusFromKanColleData,
+  enemyList,
+} from "./utils/KancolleDataWrapper";
 
 interface FleetsProps {
   fleets: Fleet[];
@@ -101,7 +105,12 @@ const InputMap = ({
       if (area === undefined || map === undefined || node === undefined) {
         return;
       }
-      const enemyFleets = await fetchEnemyFromKCNav(area!, map!, node!, state);
+      const enemyFleets = await fetchEnemyFromKCNav(area!, map!, node!);
+      enemyFleets.map((fleet) => {
+        fleet.ships = fleet.ships.map((ship) =>
+          completeEnemyStatusFromKanColleData(ship, state)
+        );
+      });
       setEnemyFleets(enemyFleets);
     };
     fetchData();
@@ -168,27 +177,7 @@ const AddShipButton = ({
   >;
   state: any;
 }) => {
-  // console.log(wiki.enemy);
-  const enemyOptions: [Ship, string][] = Object.values(wiki.enemy)
-    .map((enemy: any) => {
-      return [
-        {
-          eugenId: enemy._api_id,
-          name: getShipNameFromEugenId(enemy._api_id, state),
-          shipTypeId: enemy._type,
-          shipTypeName: getShipTypeNameFromId(enemy._type, state),
-          status: {
-            range: "none" as unknown as Range,
-            hp: enemy._hp,
-            firepower: enemy._firepower,
-            armor: enemy._armor,
-          },
-          equips: [],
-        },
-        enemy._japanese_name,
-      ] as [Ship, string];
-    })
-    .toSorted((a, b) => (a[0].eugenId < b[0].eugenId ? -1 : 1));
+  const enemyOptions = enemyList(state);
   return (
     <button className="p-2 bg-white shadow-inner overflow-hidden rounded w-full text-xs text-gray-600">
       <select
@@ -197,7 +186,7 @@ const AddShipButton = ({
         onChange={(e) => {
           const selectedEugenId = parseInt(e.target.value, 10);
           const selectedShip = enemyOptions.find(
-            (enemy) => enemy[0].eugenId === selectedEugenId
+            (enemy) => enemy.eugenId === selectedEugenId
           );
           if (selectedShip) {
             setEnemyFleets((prev) => {
@@ -208,7 +197,7 @@ const AddShipButton = ({
                 }
                 return {
                   ...fleet,
-                  ships: [...fleet.ships, selectedShip[0]],
+                  ships: [...fleet.ships, selectedShip],
                 };
               });
             });
@@ -217,8 +206,8 @@ const AddShipButton = ({
       >
         <option value="敵艦を追加">敵艦を追加</option>
         {enemyOptions.map((enemy) => (
-          <option key={enemy[0].eugenId} value={enemy[0].eugenId}>
-            {enemy[1]}
+          <option key={enemy.eugenId} value={enemy.eugenId}>
+            {enemy.name}
           </option>
         ))}
       </select>
@@ -311,16 +300,26 @@ export const EnemyFleets = ({
 const FleetDisplay = ({ fleet, state }: { fleet: Fleet; state: any }) => {
   return (
     <ul className="flex flex-col gap-2">
-      {fleet.ships.map((ship: any, shipIndex: number) => (
+      {fleet.ships.map((ship: Ship, shipIndex: number) => (
         <li key={shipIndex} className="card">
           <div className="">
             <div className="px-1 text-md text-gray-800">
               {getShipNameFromEugenId(ship.eugenId, state)}
             </div>
-            <div className="flex flex-row gap-1 text-xs text-gray-600 p-1 rounded">
-              <div>耐久 {ship.status.hp}</div>
+            <div className="flex flex-row flex-wrap gap-1 text-xs text-gray-600 p-1 rounded">
+              <div>
+                耐久 {ship.status.nowHp}/{ship.status.maxHp}
+              </div>
               <div>火力 {ship.status.firepower}</div>
               <div>装甲 {ship.status.armor}</div>
+              <div>雷装 {ship.status.torpedo}</div>
+              <div>回避 {ship.status.evasion ?? 0}</div>
+              <div>対空 {ship.status.antiAircraft}</div>
+              <div>対潜 {ship.status.antiSubmarineWarfare ?? 0}</div>
+              <div>速力 {ship.status.speed ?? 0}</div>
+              <div>索敵 {ship.status.scouting ?? 0}</div>
+              <div>射程 {ship.status.range?.toString() ?? "none"}</div>
+              <div>運 {ship.status.luck ?? 0}</div>
             </div>
             <ul
               className="
@@ -333,7 +332,7 @@ const FleetDisplay = ({ fleet, state }: { fleet: Fleet; state: any }) => {
                 <li key={equipIndex}>
                   <div className="flex flex-row justify-between">
                     <div>{getEquipNameFromEugenId(equip.eugenId, state)}</div>
-                    <div>火力 +{equip.status.firepower}</div>
+                    <div>火力 +{equip.status?.firepower}</div>
                   </div>
                 </li>
               ))}

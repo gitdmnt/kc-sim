@@ -1,16 +1,25 @@
 import { Temporal } from "@js-temporal/polyfill";
 import EnemyCompsSample from "./KCNavEnemyCompsAPISampleResponse.json";
 import MapSample from "./KCNavMapAPISampleResponse.json";
-import { getShipConstFromEugenId, shipTypeGroupMap } from "./poiAPIWrapper";
 
 const CACHE_DURATION_MS = 31 * 24 * 60 * 60 * 1000; // 1 month
 
-// Mock implementation of fetchEnemyFromKCNav for testing purposes
+///
+/// Fetch enemy fleet compositions from KCNav API.
+/// Enemy status is partially masked due to API limitations;
+/// - evasion
+/// - airplaneSlots
+/// - antiSubmarineWarfare
+/// - speed
+/// - scouting
+/// - range
+/// - luck
+///
+
 export const fetchEnemyFromKCNav = async (
   area: number,
   map: number,
-  node: string,
-  state: any
+  node: string
 ): Promise<EnemyFleet[]> => {
   const useMockApi = localStorage.getItem("debug-useMockApi") === "true";
 
@@ -34,8 +43,8 @@ export const fetchEnemyFromKCNav = async (
   }
 
   const enemyFleets = useMockApi
-    ? await callKCNavEnemyCompsAPIMock(area, map, node, state)
-    : await callKCNavEnemyCompsAPI(area, map, node, state);
+    ? await callKCNavEnemyCompsAPIMock(area, map, node)
+    : await callKCNavEnemyCompsAPI(area, map, node);
 
   try {
     const itemToCache = {
@@ -53,8 +62,7 @@ export const fetchEnemyFromKCNav = async (
 const callKCNavEnemyCompsAPIMock = async (
   area: number,
   map: number,
-  _node: string,
-  state: any
+  _node: string
 ) => {
   console.log("Fetching enemy compositions from KCNav EnemyComps API Mock...");
   const rand = Math.random();
@@ -64,10 +72,20 @@ const callKCNavEnemyCompsAPIMock = async (
     shipTypeId: 0,
     shipTypeName: "Mock Ship Type",
     status: {
-      range: "none" as unknown as Range,
-      hp: Math.floor(1000 * rand),
+      maxHp: Math.floor(1000 * rand),
+      nowHp: Math.floor(1000 * rand),
       firepower: 1000,
       armor: 1000,
+      torpedo: 500,
+      evasion: 200,
+      antiAircraft: 300,
+      airplaneSlots: [10, 10, 10],
+      antiSubmarineWarfare: 150,
+      speed: 10,
+      scouting: 5,
+      range: "none" as unknown as Range,
+      luck: 10,
+      condition: 49,
     },
     equips: [],
   };
@@ -76,8 +94,7 @@ const callKCNavEnemyCompsAPIMock = async (
     EnemyCompsSample,
     area,
     map,
-    _node,
-    state
+    _node
   ).map((fleet) => {
     fleet.ships = [mockShip, ...fleet.ships];
     return fleet;
@@ -88,8 +105,7 @@ const callKCNavEnemyCompsAPIMock = async (
 const callKCNavEnemyCompsAPI = async (
   area: number,
   map: number,
-  node: string,
-  state: any
+  node: string
 ) => {
   console.log("Fetching enemy compositions from KCNav API...");
   const date = Temporal.Now.plainDateISO().subtract({ months: 1 }).toString();
@@ -97,16 +113,58 @@ const callKCNavEnemyCompsAPI = async (
     `https://tsunkit.net/api/routing/maps/${area}-${map}/nodes/${node}/enemycomps?start=${date}`
   );
   const data = await response?.json();
-  const enemyFleets = parseKCNavEnemyComps(data, area, map, node, state);
+  const enemyFleets = parseKCNavEnemyComps(data, area, map, node);
   return enemyFleets;
 };
 
+const formationMap: { [key: string]: Formation } = {
+  1: "line_ahead",
+  2: "double_line",
+  3: "diamond",
+  4: "echelon",
+  5: "line_abreast",
+  6: "vanguard",
+  undefined: undefined,
+};
+
+interface KCNavEnemyCompsResponse {
+  result: {
+    entryCount: number;
+    entries: KCNavEnemyCompsEntry[];
+  };
+}
+
+interface KCNavEnemyCompsEntry {
+  map: string;
+  node: string;
+  mainFleet: KCNavEnemyShipData[];
+  escortFleet?: KCNavEnemyShipData[];
+  formation: number;
+  count: number;
+  airpower: number[];
+  lbasAirpower?: number[];
+  uncertainAirpowerItems?: number[];
+  diffiulty?: number;
+  masterId?: number;
+}
+
+interface KCNavEnemyShipData {
+  id: number;
+  name: string;
+  lvl: number;
+  hp: number;
+  fp: number;
+  torp: number;
+  aa: number;
+  armor: number;
+  equips: number[];
+}
+
 const parseKCNavEnemyComps = (
-  data: any,
+  data: KCNavEnemyCompsResponse,
   area: number,
   map: number,
-  node: string,
-  state: any
+  node: string
 ): EnemyFleet[] => {
   const entries = data.result.entries;
   const totalCount = entries.reduce(
@@ -120,46 +178,51 @@ const parseKCNavEnemyComps = (
       node,
       probability: entry.count / totalCount,
       ships: entry.mainFleet.map((enemy: any): Ship => {
-        const id = enemy.id;
-        const shipConst = getShipConstFromEugenId(id, state);
-
-        return {
-          eugenId: enemy.id,
-          name: enemy.name,
-          shipTypeId: shipConst ? shipConst.api_stype : 0,
-          shipTypeName: shipConst
-            ? shipTypeGroupMap[shipConst.api_stype]?.shipTypeName
-            : "不明な艦種",
-          status: {
-            range: "none" as unknown as Range,
-            hp: enemy.hp ?? 0,
-            firepower: enemy.fp ?? 0,
-            armor: enemy.armor ?? 0,
-          },
-          equips: enemy.equips
-            .filter((id: number) => id !== -1)
-            .map((id: number) => ({
-              eugenId: id,
-              equipTypeId: 0, // You may want to fetch or calculate the equipTypeId based on eugenId
-              status: { firepower: 0 }, // You may want to fill in actual equip status
-            })),
-        };
+        return parseKCNavEnemyDataToEnemyFleet(enemy);
       }),
+
       formation: formationMap[entry.formation],
     };
   });
   return enemyFleets;
 };
 
-const formationMap: { [key: string]: Formation } = {
-  1: "line_ahead",
-  2: "double_line",
-  3: "diamond",
-  4: "echelon",
-  5: "line_abreast",
-  6: "vanguard",
-  undefined: undefined,
+const parseKCNavEnemyDataToEnemyFleet = (data: KCNavEnemyShipData): Ship => {
+  return {
+    eugenId: data.id,
+    name: data.name,
+    shipTypeId: undefined,
+    shipTypeName: undefined,
+    status: {
+      maxHp: data.hp ?? 0,
+      nowHp: data.hp ?? 0,
+      firepower: data.fp ?? 0,
+      armor: data.armor ?? 0,
+      torpedo: data.torp ?? 0,
+      evasion: undefined,
+      antiAircraft: data.aa ?? 0,
+      airplaneSlots: undefined,
+      antiSubmarineWarfare: undefined,
+      speed: undefined,
+      scouting: undefined,
+      range: undefined,
+      luck: undefined,
+      condition: 49,
+    },
+    equips: data.equips.map((eugenId) => {
+      return {
+        eugenId,
+        name: undefined,
+        equipTypeId: undefined,
+        status: undefined,
+      };
+    }),
+  };
 };
+
+///
+/// Fetch map nodes from KCNav API
+///
 
 export const fetchMapFromKCNav = async (
   area: number,

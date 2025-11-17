@@ -50,41 +50,71 @@ const shipStatusFetcher = (shipData: any): ShipStatus => {
     shipData.api_leng
   ];
   return {
+    maxHp: shipData.api_maxhp ?? 0,
+    nowHp: shipData.api_nowhp ?? 0,
+    firepower: shipData.api_karyoku[0] ?? 0,
+    armor: shipData.api_soukou[0] ?? 0,
+    torpedo: shipData.api_raisou[0] ?? 0,
+    evasion: shipData.api_kaihi[0] ?? 0,
+    antiAircraft: shipData.api_taiku[0] ?? 0,
+    airplaneSlots: [...shipData.api_onslot!],
+    antiSubmarineWarfare: shipData.api_taisen[0] ?? 0,
+    speed: shipData.api_soku ?? 0,
+    scouting: shipData.api_sakuteki[0] ?? 0,
     range: range as unknown as Range,
-    hp: shipData.api_nowhp,
-    firepower: shipData.api_karyoku[0],
-    armor: shipData.api_soukou[0],
+    luck: shipData.api_lucky[0] ?? 0,
+    condition: shipData.api_cond ?? 49,
   };
 };
 
-const equipsFetcher = (equipSlots: number[], state: any): Equipment[] => {
-  const allEquipData = state.info.equips;
-  const equipConstData = state.const.$equips;
-
+export const equipsFetcher = (
+  equipSlots: number[],
+  state: any
+): Equipment[] => {
   return equipSlots
     .filter((equipId: number) => equipId !== -1) // 装備がないスロットを除外
-    .map((equipId: number) => allEquipData[equipId]) // 実際の装備データに変換
-    .map((equipData: any) => {
-      const eugenId = equipData.api_slotitem_id;
-      const equipTypeId = equipConstData[eugenId].api_type[2]; // 装備種別IDはapi_typeの3番目の要素
-
-      const firepower = equipConstData[eugenId].api_houg; // 火力ステータス
+    .map((id) => {
+      const e = getEquipConstFromEugenId(id, state);
+      if (!e) {
+        return {
+          eugenId: id,
+          name: "不明な装備",
+          equipTypeId: undefined,
+          status: undefined,
+        };
+      }
+      const name = e ? e.api_name : "不明な装備";
+      const eTypeId = e ? e.api_type : undefined;
+      const equipStatus: EquipmentStatus = {
+        firepower: e.api_houg ?? 0,
+        armor: e.api_souk ?? 0,
+        torpedo: e.api_raig ?? 0,
+        bombing: e.api_baku ?? 0,
+        aircraftCost: e.api_cost ?? 0,
+        aircraftRange: e.api_distance ?? 0,
+        evasion: e.api_kaihi ?? 0,
+        aiming: e.api_meich ?? 0,
+        range: e.api_range ?? 0,
+        scouting: e.api_sakuteki ?? 0,
+        speed: e.api_soku ?? 0,
+        antiSubmarineWarfare: e.api_tais ?? 0,
+        antiAircraft: e.api_taiku ?? 0,
+      };
       return {
-        eugenId,
-        equipTypeId,
-        status: {
-          firepower,
-        },
+        eugenId: id,
+        name: name,
+        equipTypeId: eTypeId,
+        status: equipStatus,
       };
     });
 };
 
-export const getShipNameFromEugenId = (eugenId: number, state: any): string => {
-  return state.const.$ships[eugenId]?.api_name || "不明な艦船";
-};
-
 export const getShipConstFromEugenId = (eugenId: number, state: any): any => {
   return state.const.$ships[eugenId];
+};
+
+export const getShipNameFromEugenId = (eugenId: number, state: any): string => {
+  return state.const.$ships[eugenId]?.api_name || "不明な艦船";
 };
 
 export const getShipTypeNameFromId = (
@@ -92,6 +122,10 @@ export const getShipTypeNameFromId = (
   state: any
 ): string => {
   return state.const.$shipTypes[shipTypeId]?.api_name || "不明な艦種";
+};
+
+export const getEquipConstFromEugenId = (eugenId: number, state: any): any => {
+  return state.const.$equips[eugenId];
 };
 
 export const getEquipNameFromEugenId = (

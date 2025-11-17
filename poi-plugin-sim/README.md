@@ -1,15 +1,34 @@
 # poi-plugin-sim
 
-To install dependencies:
+## feature
 
-```bash
-bun install
-```
-
-To run:
-
-```bash
-bun run src/index.ts
-```
-
-This project was created using `bun init` in bun v1.3.1. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+- [ ] 深海棲艦のマスクステータスがない
+  - [ ] DB を実装して戦闘データを集める
+- [ ] 戦闘の実装
+  - [ ] 戦闘フェーズの実装
+    - [ ] 索敵
+    - [ ] 噴式強襲
+    - [ ] 煙幕
+    - [ ] 基地航空隊
+    - [ ] 友軍艦隊 (機動部隊)
+    - [ ] 航空戦
+    - [ ] 制空権
+    - [ ] 触接
+    - [ ] 支援艦隊
+    - [ ] 先制対潜
+    - [ ] 開幕雷撃
+    - [ ] 交戦形態決定
+    - [ ] 砲撃戦
+      - [x] 1巡目
+      - [x] 2巡目
+      - [ ] 空母攻撃
+      - [ ] 水上爆撃機
+      - [ ] 対潜攻撃
+      - [x] 砲撃戦
+      - [ ] 射程の延長
+    - [ ] 雷撃戦
+    - [ ] 友軍艦隊
+    - [ ] 夜戦
+  - [ ] 補正の実装
+    - [ ] 損傷状態
+    - [ ] 
