@@ -30,8 +30,8 @@ impl Battle {
         // -- 編成情報ログ出力 --
         let friend_fleet = friend.ships();
         let enemy_fleet = enemy.ships();
-        logs.push(format!("Friend fleet ships: {friend_fleet:?}"));
-        logs.push(format!("Enemy fleet ships: {enemy_fleet:?}"));
+        // logs.push(format!("Friend fleet ships: {friend_fleet:?}"));
+        // logs.push(format!("Enemy fleet ships: {enemy_fleet:?}"));
 
         // -- 陣形決定 --
         let r = rand::random::<f64>();

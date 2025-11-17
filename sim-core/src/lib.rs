@@ -45,11 +45,11 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
 
     let mut results = Vec::new();
 
-    debug!("Friend fleet: {:?}", friend);
-    debug!("Enemy fleet: {:?}", enemy);
+    debug!("=== Friend fleet ===\n{:?}", friend);
+    debug!("=== Enemy fleets ===\n{:?}", enemy);
 
     for i in 0..count {
-        let logging = i < 10 || i % 100 == 0;
+        let logging = i < 1 || i % 100 == 0;
         let (idx, selected_enemy) = select_random_enemy(&enemy);
         let battle_result = battle_once(&friend, idx, selected_enemy, logging);
         results.push(battle_result);
