@@ -1,4 +1,4 @@
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use wasm_bindgen::prelude::*;
 
 mod battle;
@@ -44,10 +44,15 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
     debug!("Enemy fleet: {:?}", enemy);
 
     for i in 0..count {
-        if i < 10 || i % 100 == 0 {
+        let logging = if i < 10 || i % 100 == 0 {
             info!("Simulating battle {}/{}", i + 1, count);
-        }
-        let battle_result = battle_once(&friend, &enemy);
+            true
+        } else {
+            false
+        };
+
+        let selected_enemy = select_random_enemy(&enemy);
+        let battle_result = battle_once(&friend, selected_enemy, logging);
         results.push(battle_result);
     }
     info!("Simulation completed");
@@ -55,33 +60,35 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
     serde_wasm_bindgen::to_value(&results).unwrap()
 }
 
-fn battle_once(
-    friend: &interface::Fleet,
-    enemy: &[interface::EnemyFleet],
-) -> interface::BattleReport {
+fn select_random_enemy(enemy_fleets: &[interface::EnemyFleet]) -> &interface::EnemyFleet {
     let r = rand::random::<f64>();
     let mut cumulative_probability = 0.0;
-    let mut selected_enemy_index = 0;
-    for (index, enemy_fleet) in enemy.iter().enumerate() {
+    for enemy_fleet in enemy_fleets {
         cumulative_probability += enemy_fleet.probability;
         if r <= cumulative_probability {
-            selected_enemy_index = index;
-            break;
+            return enemy_fleet;
         }
     }
-    let enemy = &enemy[selected_enemy_index];
-    debug!(
-        "Selected enemy fleet index: {:?}, fleet: {:?}",
-        selected_enemy_index, enemy
-    );
+    enemy_fleets.last().unwrap()
+}
 
-    let mut battle = battle::Battle::new(friend, selected_enemy_index, enemy);
+fn battle_once(
+    friend: &interface::Fleet,
+    enemy: &interface::EnemyFleet,
+    logging: bool,
+) -> interface::BattleReport {
+    debug!("Selected enemy fleet: {:?}", enemy);
+
+    let mut battle = battle::Battle::new(friend, 0, enemy);
 
     debug!("Battle direction: {}", battle.direction);
 
     battle.fire_phase1();
     debug!("Fire phase 1 finished");
 
-    battle.flush_logs_debug();
+    if logging {
+        battle.flush_logs_debug();
+    }
+
     battle.into()
 }

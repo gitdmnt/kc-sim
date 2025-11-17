@@ -29,7 +29,14 @@ impl FightingShip {
         self.snapshot.clone()
     }
 
-    pub fn hp(&self) -> u16 {
+    pub fn name(&self) -> String {
+        self.ship.name()
+    }
+
+    pub fn hp_before(&self) -> u16 {
+        self.ship.hp()
+    }
+    pub fn hp_now(&self) -> u16 {
         self.snapshot.hp()
     }
     pub fn firepower(&self) -> u16 {
@@ -69,11 +76,11 @@ impl FightingShip {
         // 友軍の場合は轟沈ストッパー適用
         let diff = if self.is_friend && diff >= self.snapshot.hp() {
             if self.index_in_fleet == 0 {
-                let hp = self.hp() as f64;
+                let hp = self.hp_now() as f64;
                 let r: f64 = rand::random();
                 f64::floor(hp * 0.5 + f64::floor(hp * r) * 0.3) as u16
             } else {
-                self.hp() - 1
+                self.hp_now() - 1
             }
         } else {
             diff

@@ -74,7 +74,7 @@ pub enum Formation {
     Vanguard,
 }
 
-/// -- Baremetal Immutable Ship methods --
+/// -- Immutable Ship methods --
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Ship {
@@ -87,6 +87,10 @@ pub struct Ship {
 }
 
 impl Ship {
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
     pub fn hp(&self) -> u16 {
         self.status.hp
     }
@@ -104,13 +108,13 @@ impl Ship {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct ShipStatus {
-    hp: u16,
+    pub hp: u16,
     #[serde(default)] // undefined/null -> 0
-    firepower: u16,
+    pub firepower: u16,
     #[serde(default)] // undefined/null -> 0
-    armor: u16,
+    pub armor: u16,
 
-    range: Range,
+    pub range: Range,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -121,6 +125,19 @@ pub enum Range {
     Medium,
     Long,
     VeryLong,
+}
+
+impl std::fmt::Display for Range {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Range::None => "None",
+            Range::Short => "Short",
+            Range::Medium => "Medium",
+            Range::Long => "Long",
+            Range::VeryLong => "Very Long",
+        };
+        write!(f, "{}", s)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

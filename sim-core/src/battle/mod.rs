@@ -57,30 +57,39 @@ impl Battle {
 
     // -- ログ管理 --
     // バッファへイベント追加
+    pub fn push_log<T: ToString>(&mut self, log: T) {
+        self.logs.push(log.to_string());
+    }
     #[allow(clippy::too_many_arguments)]
     fn push_fire_log(
         &mut self,
         actor_is_friend: bool,
-        actor_idx: usize,
-        target_is_friend: bool,
-        target_idx: usize,
-        firepower: f64,
-        armor: f64,
+        actor_index: usize,
+        target_index: usize,
         damage: f64,
-        hp_before: u16,
-        hp_after: u16,
     ) {
+        let (actor, target) = if actor_is_friend {
+            (
+                &self.friend_fleet[actor_index],
+                &self.enemy_fleet[target_index],
+            )
+        } else {
+            (
+                &self.enemy_fleet[actor_index],
+                &self.friend_fleet[target_index],
+            )
+        };
+
+        let actor_range = actor.range();
+        let actor_name = actor.name();
+        let target_name = target.name();
+        let fp = actor.firepower() as f64;
+        let armor = target.armor() as f64;
+        let hp_before = target.hp_before();
+        let hp_after = target.hp_now();
+
         let s = format!(
-            "{}-{} -> {}-{} | fp={:.1} armor={:.1} dmg={:.1} hp {} -> {}",
-            if actor_is_friend { "Friend" } else { "Enemy" },
-            actor_idx,
-            if target_is_friend { "Friend" } else { "Enemy" },
-            target_idx,
-            firepower,
-            armor,
-            damage,
-            hp_before,
-            hp_after
+            "Range: {actor_range} \t| {actor_name} -> {target_name} \t| fp={fp:.1} armor={armor:.1} dmg={damage:} hp {hp_before} -> {hp_after}",
         );
         self.logs.push(s);
     }
@@ -163,6 +172,8 @@ impl Battle {
             return;
         }
 
+        self.push_log("=== Fire Phase 1 Start ===");
+
         // 砲撃順決定 (is_friend, index_in_fleet, key_for_sort)
         // TODO: 火力順になってるから射程順に修正する
         let fire_order = self.ordered_by_range();
@@ -209,7 +220,7 @@ impl Battle {
             // ダメージ計算
             let damage = {
                 let damage = f64::floor(firepower - armor);
-                let hp_now = target.hp() as f64;
+                let hp_now = target.hp_now() as f64;
                 if damage > 0.0 {
                     damage
                 } else {
@@ -220,26 +231,13 @@ impl Battle {
             };
 
             // ダメージ処理
-            // キャプチャしてから mutable borrow をドロップするためにスコープ内で処理
-            let (target_idx, hp_before, hp_after) = {
-                let hp_before = target.hp();
-                target.apply_damage(damage as u16);
-                let hp_after = target.hp();
-                (target.index_in_fleet(), hp_before, hp_after)
-            };
+            target.apply_damage(damage as u16);
+
+            let (actor_is_friend, actor_idx, target_idx) =
+                (actor_is_friend, actor_idx, target.index_in_fleet());
 
             // ログはバッファに追加（mutable borrow は既に解放済み）
-            self.push_fire_log(
-                actor_is_friend,
-                actor_idx,
-                !actor_is_friend,
-                target_idx,
-                firepower,
-                armor,
-                damage,
-                hp_before,
-                hp_after,
-            );
+            self.push_fire_log(actor_is_friend, actor_idx, target_idx, damage);
         }
     }
 
@@ -262,13 +260,13 @@ impl Battle {
         let total_damage_to_friend: u32 = self
             .friend_fleet
             .iter()
-            .map(|fs| (fs.ship().hp() - fs.hp()) as u32)
+            .map(|fs| (fs.hp_before() - fs.hp_now()) as u32)
             .sum();
 
         let total_damage_to_enemy: u32 = self
             .enemy_fleet
             .iter()
-            .map(|fs| (fs.ship().hp() - fs.hp()) as u32)
+            .map(|fs| (fs.hp_before() - fs.hp_now()) as u32)
             .sum();
         let total_friend_initial_hp: u32 = self
             .friend_fleet
