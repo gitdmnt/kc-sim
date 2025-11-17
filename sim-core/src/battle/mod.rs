@@ -94,7 +94,7 @@ impl Battle {
     }
 
     // -- 砲撃戦関連 --
-    fn fire_order(&self) -> Vec<(bool, usize)> {
+    fn ordered_by_range(&self) -> Vec<(bool, usize)> {
         let mut order = self
             .friend_fleet
             .iter()
@@ -165,7 +165,7 @@ impl Battle {
 
         // 砲撃順決定 (is_friend, index_in_fleet, key_for_sort)
         // TODO: 火力順になってるから射程順に修正する
-        let fire_order = self.fire_order();
+        let fire_order = self.ordered_by_range();
         debug!("Fire order: {:?}", fire_order);
 
         for (actor_is_friend, actor_idx) in fire_order.into_iter() {
