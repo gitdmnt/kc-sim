@@ -96,6 +96,9 @@ impl Ship {
     pub fn armor(&self) -> u16 {
         self.status.armor
     }
+    pub fn range(&self) -> Range {
+        self.status.range.clone()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -104,8 +107,20 @@ struct ShipStatus {
     hp: u16,
     #[serde(default)] // undefined/null -> 0
     firepower: u16,
-    #[serde(default)]
+    #[serde(default)] // undefined/null -> 0
     armor: u16,
+
+    range: Range,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+pub enum Range {
+    None,
+    Short,
+    Medium,
+    Long,
+    VeryLong,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

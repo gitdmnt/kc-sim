@@ -99,16 +99,16 @@ impl Battle {
             .friend_fleet
             .iter()
             .enumerate()
-            .map(|(i, fs)| (true, i, fs.firepower()))
+            .map(|(i, fs)| (true, i, fs.range()))
             .chain(
                 self.enemy_fleet
                     .iter()
                     .enumerate()
-                    .map(|(i, fs)| (false, i, fs.firepower())),
+                    .map(|(i, fs)| (false, i, fs.range())),
             )
             .collect::<Vec<_>>();
 
-        order.sort_by_key(|a| std::cmp::Reverse(a.2));
+        order.sort_by_key(|a| std::cmp::Reverse(a.2.clone()));
         let order = order
             .iter()
             .map(|(is_friend, i, _)| (*is_friend, *i))

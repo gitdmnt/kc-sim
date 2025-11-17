@@ -38,6 +38,9 @@ impl FightingShip {
     pub fn armor(&self) -> u16 {
         self.ship.armor()
     }
+    pub fn range(&self) -> interface::Range {
+        self.ship.range()
+    }
 
     pub fn is_alive(&self) -> bool {
         self.snapshot.hp() > 0
