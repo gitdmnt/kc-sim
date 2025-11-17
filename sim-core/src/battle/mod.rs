@@ -179,15 +179,22 @@ impl Battle {
         }
     }
 
-    // 砲撃戦1巡目
-    pub fn fire_phase1(&mut self) {
-        self.push_log("=== Fire Phase 1 Start ===");
+    fn is_include_battleship(&self) -> bool {
+        for fs in self.friend_fleet.iter() {
+            if fs.is_battleship() {
+                return true;
+            }
+        }
+        for fs in self.enemy_fleet.iter() {
+            if fs.is_battleship() {
+                return true;
+            }
+        }
+        false
+    }
 
-        // 砲撃順決定 (is_friend, index_in_fleet, key_for_sort)
-        // TODO: 火力順になってるから射程順に修正する
-        let fire_order = self.ordered_by_range();
-        self.push_log(format!("Fire order: {:?}", fire_order));
-
+    // 砲撃戦の共通処理
+    pub fn fire_phase(&mut self, fire_order: Vec<(bool, usize)>) {
         for (actor_is_friend, actor_idx) in fire_order.into_iter() {
             // --- 攻撃者の情報を取得 ---
             // actorの参照を保持し続けないように、必要な情報だけをコピーする
@@ -252,6 +259,58 @@ impl Battle {
             // ログはバッファに追加（mutable borrow は既に解放済み）
             self.push_fire_log(actor_is_friend, actor_idx, target_idx, damage);
         }
+    }
+
+    // 砲撃戦1巡目
+    pub fn fire_phase1(&mut self) {
+        self.push_log("=== Fire Phase 1 Start ===");
+
+        // 砲撃順決定 (is_friend, index_in_fleet)
+        let fire_order = self.ordered_by_range();
+        self.push_log(format!(
+            "Fire order: {:?}",
+            fire_order
+                .iter()
+                .map(|(b, i)| if *b {
+                    self.friend_fleet[*i].ship().name()
+                } else {
+                    self.enemy_fleet[*i].ship().name()
+                })
+                .collect::<Vec<_>>()
+        ));
+        self.fire_phase(fire_order);
+    }
+
+    // 砲撃戦2巡目
+    pub fn fire_phase2(&mut self) {
+        if !self.is_include_battleship() {
+            self.push_log("Battleship is not included, skipping Fire Phase 2");
+            return;
+        }
+
+        self.push_log("=== Fire Phase 2 Start ===");
+        let mut fire_order = Vec::new();
+        let length = self.friend_fleet.len().max(self.enemy_fleet.len());
+        for i in 0..length {
+            if i < self.friend_fleet.len() {
+                fire_order.push((true, i));
+            }
+            if i < self.enemy_fleet.len() {
+                fire_order.push((false, i));
+            }
+        }
+        self.push_log(format!(
+            "Fire order: {:?}",
+            fire_order
+                .iter()
+                .map(|(b, i)| if *b {
+                    self.friend_fleet[*i].ship().name()
+                } else {
+                    self.enemy_fleet[*i].ship().name()
+                })
+                .collect::<Vec<_>>()
+        ));
+        self.fire_phase(fire_order);
     }
 
     pub fn calculate_result(&mut self) -> Option<interface::BattleResult> {

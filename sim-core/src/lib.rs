@@ -76,6 +76,7 @@ fn battle_once(
     let mut battle = battle::Battle::new(friend, enemy_index, enemy);
 
     battle.fire_phase1();
+    battle.fire_phase2();
 
     if logging {
         battle.flush_logs_debug();

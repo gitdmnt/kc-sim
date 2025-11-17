@@ -52,6 +52,10 @@ impl FightingShip {
     pub fn is_alive(&self) -> bool {
         self.snapshot.hp() > 0
     }
+    pub fn is_battleship(&self) -> bool {
+        let id = self.ship.ship_type_id();
+        matches!(id, 8 | 9 | 10 | 12)
+    }
 
     /// Apply damage to the ship during battle.
     /// If the target ship is a friendly ship, damage will be reduced to avoid sinking.

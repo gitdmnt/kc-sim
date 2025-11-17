@@ -103,6 +103,9 @@ impl Ship {
     pub fn range(&self) -> Range {
         self.status.range.clone()
     }
+    pub fn ship_type_id(&self) -> u16 {
+        self.ship_type_id
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
