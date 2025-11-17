@@ -19,10 +19,10 @@ interface EnemyFleet {
 
 // 艦娘の情報を表す型
 interface Ship {
-  eugenId: number; // 艦娘の名前ごとの固有ID
+  id: number; // 艦娘の名前ごとの固有ID
   name: string;
-  shipTypeId: number | undefined; // 艦種ID
-  shipTypeName: string | undefined; // 艦種名
+  shipTypeId?: number; // 艦種ID
+  shipTypeName?: string; // 艦種名
   status: ShipStatus;
   equips: Equipment[];
 }
@@ -34,15 +34,15 @@ interface ShipStatus {
   firepower: number; // 火力
   armor: number; // 装甲
   torpedo: number; // 雷装
-  evasion: number | undefined; // 回避
   antiAircraft: number; // 対空
-  airplaneSlots: number[] | undefined; // 各スロットの搭載数
-  antiSubmarineWarfare: number | undefined; // 対潜
-  speed: number | undefined; // 速力
-  scouting: number | undefined; // 索敵
-  range: Range | undefined; // 射程
-  luck: number | undefined; // 運
   condition: number; // コンディション
+  evasion?: number; // 回避
+  airplaneSlots?: number[]; // 各スロットの搭載数
+  antiSubmarineWarfare?: number; // 対潜
+  speed?: number; // 速力
+  scouting?: number; // 索敵
+  range?: Range; // 射程
+  luck?: number; // 運
 }
 
 enum Range {
@@ -55,10 +55,10 @@ enum Range {
 
 // 装備の情報を表す型
 interface Equipment {
-  eugenId: number; // 装備の名前ごとの固有ID
-  name: string | undefined;
-  equipTypeId: number[] | undefined; // 装備種別ID
-  status: EquipmentStatus | undefined;
+  id: number; // 装備の名前ごとの固有ID
+  name?: string;
+  equipTypeId?: number[]; // 装備種別ID
+  status?: EquipmentStatus;
 }
 
 // 装備のステータスを表す型
@@ -71,7 +71,7 @@ interface EquipmentStatus {
   aircraftRange?: number; // 航空機の航続距離 (0)
   evasion: number; // 回避 または 迎撃 (局戦の場合)
   aiming: number; // 命中 または 対爆 (局戦の場合)
-  range: number; // 射程
+  range: Range; // 射程
   scouting: number; // 索敵
   speed: number; // 速力
   antiSubmarineWarfare: number; // 対潜

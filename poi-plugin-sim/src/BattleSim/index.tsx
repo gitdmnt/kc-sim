@@ -1,4 +1,4 @@
-import { simulate } from "../sim-core/pkg/sim_core";
+import { simulate } from "../../sim-core/pkg/sim_core";
 import { useEffect, useState } from "react";
 import { BattleDisplay } from "./BattleDisplay";
 import { BattleAnalytics } from "./BattleAnalytics";
@@ -14,7 +14,7 @@ export const BattleSim = ({ friend, stage }: BattleSimProps) => {
   const [enemyFleets, setEnemyFleets] = useState<EnemyFleet[]>();
   const [simTrigger, setSimTrigger] = useState<boolean>(false);
 
-  console.log({ enemyFleets });
+  console.log(enemyFleets?.[0]!);
 
   useEffect(() => {
     const res: BattleReport[] = simulate(friend[0], enemyFleets, count);

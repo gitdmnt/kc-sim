@@ -5,6 +5,7 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { execSync } from "child_process";
+import tsconfigPaths from "vite-tsconfig-paths";
 
 const DIST_DIR = "../node_modules/poi-plugin-sim-build";
 
@@ -23,7 +24,7 @@ export default defineConfig(({ command }) => {
   if (isServe) {
     console.log("Running vite dev server...");
     return {
-      plugins: [tailwindcss(), react(), wasm()],
+      plugins: [tsconfigPaths(), tailwindcss(), react(), wasm()],
       server: {
         open: false,
         watch: {},

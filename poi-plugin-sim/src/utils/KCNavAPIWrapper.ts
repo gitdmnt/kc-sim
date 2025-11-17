@@ -67,7 +67,7 @@ const callKCNavEnemyCompsAPIMock = async (
   console.log("Fetching enemy compositions from KCNav EnemyComps API Mock...");
   const rand = Math.random();
   const mockShip = {
-    eugenId: 1501 + 10 * (area - 1) + (map - 1),
+    id: 1501 + 10 * (area - 1) + (map - 1),
     name: "Mock Enemy Ship",
     shipTypeId: 0,
     shipTypeName: "Mock Ship Type",
@@ -189,7 +189,7 @@ const parseKCNavEnemyComps = (
 
 const parseKCNavEnemyDataToEnemyFleet = (data: KCNavEnemyShipData): Ship => {
   return {
-    eugenId: data.id,
+    id: data.id,
     name: data.name,
     shipTypeId: undefined,
     shipTypeName: undefined,
@@ -209,9 +209,9 @@ const parseKCNavEnemyDataToEnemyFleet = (data: KCNavEnemyShipData): Ship => {
       luck: undefined,
       condition: 49,
     },
-    equips: data.equips.map((eugenId) => {
+    equips: data.equips.map((id) => {
       return {
-        eugenId,
+        id,
         name: undefined,
         equipTypeId: undefined,
         status: undefined,

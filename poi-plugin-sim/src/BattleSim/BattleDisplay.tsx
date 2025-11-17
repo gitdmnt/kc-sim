@@ -1,5 +1,5 @@
 import { connect } from "react-redux";
-import { Fleets, EnemyFleets } from "./Fleets";
+import { Fleets, EnemyFleets } from "@/BattleSim/FleetBoard";
 
 interface OwnProps {
   friend: Fleet[];

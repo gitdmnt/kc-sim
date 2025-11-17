@@ -1,18 +1,18 @@
 /* @ts-ignore */
 import { wiki } from "@kancolle/data";
 import {
-  getShipConstFromEugenId,
-  getEquipConstFromEugenId,
+  getShipConstFromId,
   equipsFetcher,
+  shipTypeGroupMap,
 } from "./poiAPIWrapper";
 
 export const enemyList = (state: any): Ship[] => {
   const enemyOptions: Ship[] = Object.values(wiki.enemy)
     .map((enemy: any) => {
-      const data = getShipConstFromEugenId(enemy._api_id, state);
+      const data = getShipConstFromId(enemy._api_id, state);
       if (!data) return null;
       return {
-        eugenId: enemy._api_id,
+        id: enemy._api_id,
         name: enemy._japanese_name,
         shipTypeId: enemy._type,
         shipTypeName: data.api_stype,
@@ -38,7 +38,7 @@ export const enemyList = (state: any): Ship[] => {
       };
     })
     .filter((ship) => ship !== null)
-    .toSorted((a, b) => (a.eugenId < b.eugenId ? -1 : 1));
+    .toSorted((a, b) => (a.id < b.id ? -1 : 1));
   return enemyOptions;
 };
 
@@ -46,8 +46,11 @@ export const completeEnemyStatusFromKanColleData = (
   ship: Ship,
   state: any
 ): Ship => {
-  const enemyDataFromWiki = wiki.enemy[ship.eugenId];
-  const shipConstData = getShipConstFromEugenId(ship.eugenId, state);
+  const enemyDataFromWiki = wiki.enemy[ship.id];
+  const shipConstData = getShipConstFromId(ship.id, state);
+  const shipTypeId = shipConstData ? shipConstData.api_stype : undefined;
+  const shipTypeName =
+    shipTypeGroupMap[shipTypeId ?? 0]["shipTypeName"] ?? "不明な艦種";
   const updatedStatus: ShipStatus = {
     ...ship.status,
     evasion: enemyDataFromWiki?._evasion,
@@ -60,13 +63,13 @@ export const completeEnemyStatusFromKanColleData = (
     ] as unknown as Range,
   };
   const updatedEquips: Equipment[] = equipsFetcher(
-    ship.equips.map((e) => e.eugenId),
+    ship.equips.map((e) => e.id),
     state
   );
   return {
     ...ship,
-    shipTypeId: enemyDataFromWiki?._type,
-    shipTypeName: shipConstData ? shipConstData.api_stype : undefined,
+    shipTypeId: shipTypeId,
+    shipTypeName: shipTypeName,
     status: updatedStatus,
     equips: updatedEquips,
   };

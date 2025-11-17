@@ -12,31 +12,31 @@ export const getFleets = (state: any) => {
 const fleetInfoFetcher = (fleet: any, state: any): Fleet => {
   return {
     ships: fleet.api_ship
-      .filter((shipId: number) => shipId !== -1) // 配備されていないスロットを除外
-      .map((shipId: number) => shipInfoFetcher(shipId, state)),
+      .filter((instanceId: number) => instanceId !== -1) // 配備されていないスロットを除外
+      .map((instanceId: number) => shipInfoFetcher(instanceId, state)),
     formation: undefined,
   };
 };
 
 // storeのshipデータを整形、定数リストと照合してShip型に変換する関数
-const shipInfoFetcher = (shipId: number, state: any): Ship => {
+const shipInfoFetcher = (instanceId: number, state: any): Ship => {
   // storeから所持艦娘のデータと定数データを取得
   const allShipData = state.info.ships;
   const shipConstData = state.const.$ships;
   const shipTypeConstData = state.const.$shipTypes;
 
-  const eugenId = allShipData[shipId].api_ship_id;
-  const name = getShipNameFromEugenId(eugenId, state);
-  const shipTypeId = shipConstData[eugenId].api_stype;
+  const id = allShipData[instanceId].api_ship_id;
+  const name = getShipNameFromId(id, state);
+  const shipTypeId = shipConstData[id].api_stype;
   const shipTypeName = shipTypeConstData[shipTypeId].api_name;
 
-  const status: ShipStatus = shipStatusFetcher(allShipData[shipId]);
+  const status: ShipStatus = shipStatusFetcher(allShipData[instanceId]);
 
-  const equipSlots = allShipData[shipId].api_slot;
+  const equipSlots = allShipData[instanceId].api_slot;
   const equips: Equipment[] = equipsFetcher(equipSlots, state);
 
   return {
-    eugenId,
+    id,
     name,
     shipTypeId,
     shipTypeName,
@@ -74,10 +74,10 @@ export const equipsFetcher = (
   return equipSlots
     .filter((equipId: number) => equipId !== -1) // 装備がないスロットを除外
     .map((id) => {
-      const e = getEquipConstFromEugenId(id, state);
+      const e = getEquipConstFromId(id, state);
       if (!e) {
         return {
-          eugenId: id,
+          id,
           name: "不明な装備",
           equipTypeId: undefined,
           status: undefined,
@@ -94,14 +94,14 @@ export const equipsFetcher = (
         aircraftRange: e.api_distance ?? 0,
         evasion: e.api_kaihi ?? 0,
         aiming: e.api_meich ?? 0,
-        range: e.api_range ?? 0,
+        range: e.api_range ?? ("none" as unknown as Range),
         scouting: e.api_sakuteki ?? 0,
         speed: e.api_soku ?? 0,
         antiSubmarineWarfare: e.api_tais ?? 0,
         antiAircraft: e.api_taiku ?? 0,
       };
       return {
-        eugenId: id,
+        id,
         name: name,
         equipTypeId: eTypeId,
         status: equipStatus,
@@ -109,12 +109,12 @@ export const equipsFetcher = (
     });
 };
 
-export const getShipConstFromEugenId = (eugenId: number, state: any): any => {
-  return state.const.$ships[eugenId];
+export const getShipConstFromId = (shipId: number, state: any): any => {
+  return state.const.$ships[shipId];
 };
 
-export const getShipNameFromEugenId = (eugenId: number, state: any): string => {
-  return state.const.$ships[eugenId]?.api_name || "不明な艦船";
+export const getShipNameFromId = (shipId: number, state: any): string => {
+  return state.const.$ships[shipId]?.api_name || "不明な艦船";
 };
 
 export const getShipTypeNameFromId = (
@@ -124,15 +124,12 @@ export const getShipTypeNameFromId = (
   return state.const.$shipTypes[shipTypeId]?.api_name || "不明な艦種";
 };
 
-export const getEquipConstFromEugenId = (eugenId: number, state: any): any => {
-  return state.const.$equips[eugenId];
+export const getEquipConstFromId = (equipId: number, state: any): any => {
+  return state.const.$equips[equipId];
 };
 
-export const getEquipNameFromEugenId = (
-  eugenId: number,
-  state: any
-): string => {
-  return state.const.$equips[eugenId]?.api_name || "不明な装備";
+export const getEquipNameFromId = (equipId: number, state: any): string => {
+  return state.const.$equips[equipId]?.api_name || "不明な装備";
 };
 
 export const getArea = (state: any): { id: number; name: string }[] => {

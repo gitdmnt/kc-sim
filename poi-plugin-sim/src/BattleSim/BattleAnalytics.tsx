@@ -125,10 +125,11 @@ const BattleResultAvarage = ({
       {fleet.ships.map((ship: Ship, shipIndex: number) => (
         <li className="flex flex-col gap-1 card" key={shipIndex}>
           <div className="text-gray-800">
-            {state.const.$ships[ship.eugenId].api_name}
+            {state.const.$ships[ship.id].api_name}
           </div>
           <div className="text-xs text-gray-600">
-            {ship.status.hp} → {shipAverageHpAfterList[shipIndex]?.toFixed(2)}
+            {ship.status.nowHp} →{" "}
+            {shipAverageHpAfterList[shipIndex]?.toFixed(2)}
           </div>
         </li>
       ))}
