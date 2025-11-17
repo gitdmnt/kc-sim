@@ -51,6 +51,7 @@ enum Range {
   Medium = "medium",
   Long = "long",
   VeryLong = "very_long",
+  VeryVeryLong = "very_very_long",
 }
 
 // 装備の情報を表す型
