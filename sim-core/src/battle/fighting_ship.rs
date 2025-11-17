@@ -51,6 +51,12 @@ impl FightingShip {
     pub fn armor(&self) -> u16 {
         self.ship.armor()
     }
+    pub fn torpedo(&self) -> u16 {
+        self.ship.torpedo()
+    }
+    pub fn bombing(&self) -> u16 {
+        self.ship.bombing()
+    }
     pub fn range(&self) -> interface::Range {
         self.ship.range()
     }
@@ -77,9 +83,12 @@ impl FightingShip {
             DamagedLevel::NoDamage
         }
     }
-    pub fn is_battleship(&self) -> bool {
-        let id = self.ship.ship_type_id();
-        matches!(id, 8 | 9 | 10 | 12)
+    pub fn is_battleship_class(&self) -> bool {
+        self.ship.is_battleship_class()
+    }
+    pub fn has_available_attack_aircraft(&self) -> bool {
+        // TODO: 搭載数判定; 0だったら false を返す
+        self.ship.has_attack_aircraft()
     }
 
     ///
@@ -90,9 +99,23 @@ impl FightingShip {
         direction: &battle_direction::BattleDirection,
         cap: f64,
     ) -> f64 {
-        let precap_fp = self.fp_precap_correction(self.firepower() as f64, direction.fp_factor());
+        let basic_fp = self.basic_fp();
+        let precap_fp = self.fp_precap_correction(basic_fp, direction.fp_factor());
         let capped_fp = self.fp_capping(precap_fp, cap);
         self.fp_postcap_correction(capped_fp)
+    }
+
+    fn basic_fp(&self) -> f64 {
+        // TODO: 装備改修ボーナス
+        if self.has_available_attack_aircraft() {
+            // TODO: 航空要員ボーナス
+            let fp = self.firepower() as f64;
+            let torpedo_fp = self.torpedo() as f64;
+            let bomb_fp = self.bombing() as f64;
+            ((fp + torpedo_fp + bomb_fp) * 1.5).floor() + 55.0
+        } else {
+            self.firepower() as f64 + 5.0
+        }
     }
 
     fn fp_precap_correction(&self, firepower: f64, direction_factor: f64) -> f64 {
@@ -100,7 +123,7 @@ impl FightingShip {
     }
 
     fn fp_capping(&self, firepower: f64, cap: f64) -> f64 {
-        firepower.min(cap) + f64::floor(f64::sqrt((firepower - cap).max(0.0)))
+        firepower.min(cap) + (firepower - cap).max(0.0).sqrt().floor()
     }
 
     fn fp_postcap_correction(&self, firepower: f64) -> f64 {

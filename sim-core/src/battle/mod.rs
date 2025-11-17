@@ -64,6 +64,22 @@ impl Battle {
         }
     }
 
+    // -- API --
+    fn calculate_firepower(&self, ship: &FightingShip) -> f64 {
+        let cap = 220.0;
+        ship.calculate_firepower(&self.direction, cap)
+    }
+    fn apply_damage(&mut self, target_is_friend: bool, target_index: usize, damage: u16) {
+        let target_fleet = if target_is_friend {
+            &mut self.friend_fleet
+        } else {
+            &mut self.enemy_fleet
+        };
+        if let Some(target) = target_fleet.get_mut(target_index) {
+            target.apply_damage(damage);
+        }
+    }
+
     // -- ログ管理 --
     // バッファへイベント追加
     pub fn push_log<T: ToString>(&mut self, log: T) {
@@ -152,7 +168,7 @@ impl Battle {
     }
 
     // ランダムにターゲットを取得
-    fn get_target_mut(&mut self, actor_is_friend: bool) -> Option<&mut FightingShip> {
+    fn get_target(&self, actor_is_friend: bool) -> Option<&FightingShip> {
         let alive_count = if !actor_is_friend {
             self.friend_fleet.iter().filter(|s| s.is_alive()).count()
         } else {
@@ -165,25 +181,25 @@ impl Battle {
 
         if !actor_is_friend {
             self.friend_fleet
-                .iter_mut()
+                .iter()
                 .filter(|s| s.is_alive())
                 .nth(index_in_fleet)
         } else {
             self.enemy_fleet
-                .iter_mut()
+                .iter()
                 .filter(|s| s.is_alive())
                 .nth(index_in_fleet)
         }
     }
 
-    fn is_include_battleship(&self) -> bool {
+    fn includes_battleship_class(&self) -> bool {
         for fs in self.friend_fleet.iter() {
-            if fs.is_battleship() {
+            if fs.is_battleship_class() {
                 return true;
             }
         }
         for fs in self.enemy_fleet.iter() {
-            if fs.is_battleship() {
+            if fs.is_battleship_class() {
                 return true;
             }
         }
@@ -206,12 +222,9 @@ impl Battle {
                 actor.unwrap()
             };
 
-            // 火力計算
-            let firepower = actor.calculate_firepower(&self.direction, 150.0);
-
             // --- ターゲットを取得 ---
             let target = {
-                let target = self.get_target_mut(actor_is_friend);
+                let target = self.get_target(actor_is_friend);
                 if target.is_none() {
                     self.push_log(format!(
                         "No valid targets for actor {actor_idx} , skipping turn"
@@ -220,6 +233,9 @@ impl Battle {
                 }
                 target.unwrap()
             };
+
+            // 火力計算
+            let firepower = self.calculate_firepower(actor);
 
             // 防御力計算
             let armor = {
@@ -241,11 +257,10 @@ impl Battle {
                 }
             };
 
-            // ダメージ処理
-            target.apply_damage(damage as u16);
-
             let (actor_is_friend, actor_idx, target_idx) =
                 (actor_is_friend, actor_idx, target.index_in_fleet());
+
+            self.apply_damage(!actor_is_friend, target_idx, damage as u16);
 
             // ログはバッファに追加（mutable borrow は既に解放済み）
             self.push_fire_log(actor_is_friend, actor_idx, target_idx, damage);
@@ -274,7 +289,7 @@ impl Battle {
 
     // 砲撃戦2巡目
     pub fn fire_phase2(&mut self) {
-        if !self.is_include_battleship() {
+        if !self.includes_battleship_class() {
             self.push_log("Battleship is not included, skipping Fire Phase 2");
             return;
         }

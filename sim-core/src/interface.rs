@@ -99,16 +99,34 @@ impl Ship {
         self.status.now_hp
     }
     pub fn firepower(&self) -> u16 {
+        // Bare firepower + Equipment firepower + Equipment bonus
         self.status.firepower
     }
     pub fn armor(&self) -> u16 {
         self.status.armor
+    }
+    pub fn torpedo(&self) -> u16 {
+        self.status.torpedo
+    }
+    pub fn bombing(&self) -> u16 {
+        self.equips
+            .iter()
+            .map(|e| e.status.as_ref().map_or(0, |s| s.bombing))
+            .sum()
     }
     pub fn range(&self) -> Range {
         self.status.range.clone().unwrap_or_default()
     }
     pub fn ship_type_id(&self) -> u16 {
         self.ship_type_id.unwrap_or(0)
+    }
+
+    pub fn is_battleship_class(&self) -> bool {
+        let id = self.ship_type_id();
+        matches!(id, 8 | 9 | 10 | 12)
+    }
+    pub fn has_attack_aircraft(&self) -> bool {
+        self.equips.iter().any(|e| e.is_attack_aircraft())
     }
 }
 
@@ -166,6 +184,15 @@ struct Equipment {
     equip_type_id: Option<Vec<u16>>,
     status: Option<EquipmentStatus>,
 }
+impl Equipment {
+    fn is_attack_aircraft(&self) -> bool {
+        let Some(id) = &self.equip_type_id else {
+            return false;
+        };
+        matches!(id[2], 7 | 8)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase", default)]
 struct EquipmentStatus {
