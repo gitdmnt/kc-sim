@@ -1,6 +1,5 @@
 mod battle_direction;
 mod fighting_ship;
-mod fp_calculation; // 追加
 
 use crate::interface;
 use battle_direction::BattleDirection;
@@ -27,9 +26,9 @@ impl Battle {
         let mut logs = Vec::new();
         logs.push("=== Battle start ===".to_owned());
 
-        // -- 編成情報ログ出力 --
-        let friend_fleet = friend.ships();
-        let enemy_fleet = enemy.ships();
+        // -- 編成情報ログ出力 -- うるさい
+        // let friend_fleet = friend.ships();
+        // let enemy_fleet = enemy.ships();
         // logs.push(format!("Friend fleet ships: {friend_fleet:?}"));
         // logs.push(format!("Enemy fleet ships: {enemy_fleet:?}"));
 
@@ -138,19 +137,17 @@ impl Battle {
     }
 
     // 攻撃者の情報を取得
-    fn get_actor(&self, is_friend: bool, index_in_fleet: usize) -> Option<interface::Ship> {
+    fn get_actor(&self, is_friend: bool, index_in_fleet: usize) -> Option<&FightingShip> {
         if is_friend {
             self.friend_fleet
                 .iter()
                 .filter(|s| s.is_alive())
                 .nth(index_in_fleet)
-                .map(|s| s.ship())
         } else {
             self.enemy_fleet
                 .iter()
                 .filter(|s| s.is_alive())
                 .nth(index_in_fleet)
-                .map(|s| s.ship())
         }
     }
 
@@ -210,13 +207,7 @@ impl Battle {
             };
 
             // 火力計算
-            let firepower = {
-                let fp = actor.firepower() as f64;
-                let fp =
-                    fp_calculation::fp_precap_correction(fp, self.direction.correction_factor());
-                let fp = fp_calculation::fp_capping(fp, 220.0);
-                fp_calculation::fp_postcap_correction(fp)
-            };
+            let firepower = actor.calculate_firepower(&self.direction, 150.0);
 
             // --- ターゲットを取得 ---
             let target = {

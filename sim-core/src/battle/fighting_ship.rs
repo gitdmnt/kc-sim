@@ -1,14 +1,16 @@
+use crate::battle::battle_direction;
 use crate::interface;
 
 // 戦闘中の艦船の状態を管理する構造体
 pub struct FightingShip {
-    ship: interface::Ship,
+    ship: interface::Ship, // 元の艦船データ
     is_friend: bool,
     index_in_fleet: usize,
-    snapshot: interface::ShipSnapshot,
+    snapshot: interface::ShipSnapshot, // 戦闘中の状態を保持するスナップショット
 }
 
 impl FightingShip {
+    // 新しい FightingShip を作成する
     pub fn new(ship: interface::Ship, is_friend: bool, index_in_fleet: usize) -> Self {
         let snapshot = interface::ShipSnapshot::from(&ship);
         Self {
@@ -19,6 +21,9 @@ impl FightingShip {
         }
     }
 
+    //
+    // 各フィールドのゲッター
+    //
     pub fn ship(&self) -> interface::Ship {
         self.ship.clone()
     }
@@ -28,11 +33,12 @@ impl FightingShip {
     pub fn snapshot(&self) -> interface::ShipSnapshot {
         self.snapshot.clone()
     }
-
     pub fn name(&self) -> String {
         self.ship.name()
     }
-
+    //
+    // 各種ステータス取得
+    //
     pub fn hp_before(&self) -> u16 {
         self.ship.hp()
     }
@@ -49,12 +55,57 @@ impl FightingShip {
         self.ship.range()
     }
 
+    //
+    // 状態判定
+    //
     pub fn is_alive(&self) -> bool {
         self.snapshot.hp() > 0
+    }
+    pub fn damaged_level(&self) -> DamagedLevel {
+        let max_hp = self.ship.max_hp();
+        let now_hp = self.snapshot.hp();
+        let ratio = now_hp as f64 / max_hp as f64;
+        if now_hp == 0 {
+            DamagedLevel::Sunk
+        } else if ratio <= 0.25 {
+            DamagedLevel::Heavy
+        } else if ratio <= 0.5 {
+            DamagedLevel::Moderate
+        } else if ratio <= 0.75 {
+            DamagedLevel::Minor
+        } else {
+            DamagedLevel::NoDamage
+        }
     }
     pub fn is_battleship(&self) -> bool {
         let id = self.ship.ship_type_id();
         matches!(id, 8 | 9 | 10 | 12)
+    }
+
+    ///
+    /// 火力計算
+    ///
+    pub fn calculate_firepower(
+        &self,
+        direction: &battle_direction::BattleDirection,
+        cap: f64,
+    ) -> f64 {
+        let precap_fp = self.fp_precap_correction(self.firepower() as f64, direction.fp_factor());
+        let capped_fp = self.fp_capping(precap_fp, cap);
+        self.fp_postcap_correction(capped_fp)
+    }
+
+    fn fp_precap_correction(&self, firepower: f64, direction_factor: f64) -> f64 {
+        firepower * direction_factor * self.damaged_level().fp_factor()
+    }
+
+    fn fp_capping(&self, firepower: f64, cap: f64) -> f64 {
+        firepower.min(cap) + f64::floor(f64::sqrt((firepower - cap).max(0.0)))
+    }
+
+    fn fp_postcap_correction(&self, firepower: f64) -> f64 {
+        // 今後の調整をここで行える
+        firepower
     }
 
     /// Apply damage to the ship during battle.
@@ -91,5 +142,26 @@ impl FightingShip {
         };
 
         self.snapshot.apply_damage(diff);
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum DamagedLevel {
+    NoDamage,
+    Minor,
+    Moderate,
+    Heavy,
+    Sunk,
+}
+
+impl DamagedLevel {
+    fn fp_factor(&self) -> f64 {
+        match self {
+            DamagedLevel::NoDamage => 1.0,
+            DamagedLevel::Minor => 1.0,
+            DamagedLevel::Moderate => 0.7,
+            DamagedLevel::Heavy => 0.4,
+            DamagedLevel::Sunk => 0.0,
+        }
     }
 }

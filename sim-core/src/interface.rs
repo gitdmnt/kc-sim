@@ -91,6 +91,10 @@ impl Ship {
         self.name.clone()
     }
 
+    pub fn max_hp(&self) -> u16 {
+        self.status.max_hp
+    }
+
     pub fn hp(&self) -> u16 {
         self.status.now_hp
     }

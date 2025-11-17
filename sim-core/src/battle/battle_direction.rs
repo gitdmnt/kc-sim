@@ -7,7 +7,7 @@ pub enum BattleDirection {
     TDisadvantage,
 }
 impl BattleDirection {
-    pub fn correction_factor(&self) -> f64 {
+    pub fn fp_factor(&self) -> f64 {
         match self {
             BattleDirection::Same => 1.0,
             BattleDirection::Against => 0.8,
