@@ -44,47 +44,38 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
     debug!("Enemy fleet: {:?}", enemy);
 
     for i in 0..count {
-        let logging = if i < 10 || i % 100 == 0 {
-            info!("Simulating battle {}/{}", i + 1, count);
-            true
-        } else {
-            false
-        };
-
-        let selected_enemy = select_random_enemy(&enemy);
-        let battle_result = battle_once(&friend, selected_enemy, logging);
+        let logging = i < 10 || i % 100 == 0;
+        let (idx, selected_enemy) = select_random_enemy(&enemy);
+        let battle_result = battle_once(&friend, idx, selected_enemy, logging);
         results.push(battle_result);
     }
-    info!("Simulation completed");
-    debug!("Simulation result: {:?}", results);
     serde_wasm_bindgen::to_value(&results).unwrap()
 }
 
-fn select_random_enemy(enemy_fleets: &[interface::EnemyFleet]) -> &interface::EnemyFleet {
+fn select_random_enemy(enemy_fleets: &[interface::EnemyFleet]) -> (usize, &interface::EnemyFleet) {
     let r = rand::random::<f64>();
     let mut cumulative_probability = 0.0;
-    for enemy_fleet in enemy_fleets {
+    for (i, enemy_fleet) in enemy_fleets.iter().enumerate() {
         cumulative_probability += enemy_fleet.probability;
         if r <= cumulative_probability {
-            return enemy_fleet;
+            return (i, enemy_fleet);
         }
     }
-    enemy_fleets.last().unwrap()
+    enemy_fleets
+        .last()
+        .map(|ef| (enemy_fleets.len() - 1, ef))
+        .unwrap()
 }
 
 fn battle_once(
     friend: &interface::Fleet,
+    enemy_index: usize,
     enemy: &interface::EnemyFleet,
     logging: bool,
 ) -> interface::BattleReport {
-    debug!("Selected enemy fleet: {:?}", enemy);
-
-    let mut battle = battle::Battle::new(friend, 0, enemy);
-
-    debug!("Battle direction: {}", battle.direction);
+    let mut battle = battle::Battle::new(friend, enemy_index, enemy);
 
     battle.fire_phase1();
-    debug!("Fire phase 1 finished");
 
     if logging {
         battle.flush_logs_debug();

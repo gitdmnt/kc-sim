@@ -24,6 +24,15 @@ impl Battle {
         enemy_index: usize,
         enemy: &dyn interface::FleetLike,
     ) -> Self {
+        let mut logs = Vec::new();
+        logs.push("=== Battle start ===".to_owned());
+
+        // -- 編成情報ログ出力 --
+        let friend_fleet = friend.ships();
+        let enemy_fleet = enemy.ships();
+        logs.push(format!("Friend fleet ships: {friend_fleet:?}"));
+        logs.push(format!("Enemy fleet ships: {enemy_fleet:?}"));
+
         // -- 陣形決定 --
         let r = rand::random::<f64>();
         let direction = if r < 0.45 {
@@ -35,6 +44,7 @@ impl Battle {
         } else {
             BattleDirection::TDisadvantage // 10%
         };
+        logs.push(format!("-- Battle direction: {:?} --", direction));
 
         Self {
             direction,
@@ -51,7 +61,7 @@ impl Battle {
                 .map(|(i, ship)| FightingShip::new(ship.clone(), false, i))
                 .collect(),
             enemy_index,
-            logs: Vec::new(), // 初期化
+            logs,
         }
     }
 
@@ -60,7 +70,8 @@ impl Battle {
     pub fn push_log<T: ToString>(&mut self, log: T) {
         self.logs.push(log.to_string());
     }
-    #[allow(clippy::too_many_arguments)]
+
+    // 砲撃ログをフォーマットしてバッファに追加
     fn push_fire_log(
         &mut self,
         actor_is_friend: bool,
@@ -103,6 +114,7 @@ impl Battle {
     }
 
     // -- 砲撃戦関連 --
+    // 砲撃順を決定（射程順）
     fn ordered_by_range(&self) -> Vec<(bool, usize)> {
         let mut order = self
             .friend_fleet
@@ -125,6 +137,7 @@ impl Battle {
         order
     }
 
+    // 攻撃者の情報を取得
     fn get_actor(&self, is_friend: bool, index_in_fleet: usize) -> Option<interface::Ship> {
         if is_friend {
             self.friend_fleet
@@ -141,6 +154,7 @@ impl Battle {
         }
     }
 
+    // ランダムにターゲットを取得
     fn get_target_mut(&mut self, actor_is_friend: bool) -> Option<&mut FightingShip> {
         let alive_count = if !actor_is_friend {
             self.friend_fleet.iter().filter(|s| s.is_alive()).count()
@@ -167,17 +181,12 @@ impl Battle {
 
     // 砲撃戦1巡目
     pub fn fire_phase1(&mut self) {
-        if self.friend_fleet.is_empty() || self.enemy_fleet.is_empty() {
-            debug!("One of the fleets is empty, skipping fire phase 1");
-            return;
-        }
-
         self.push_log("=== Fire Phase 1 Start ===");
 
         // 砲撃順決定 (is_friend, index_in_fleet, key_for_sort)
         // TODO: 火力順になってるから射程順に修正する
         let fire_order = self.ordered_by_range();
-        debug!("Fire order: {:?}", fire_order);
+        self.push_log(format!("Fire order: {:?}", fire_order));
 
         for (actor_is_friend, actor_idx) in fire_order.into_iter() {
             // --- 攻撃者の情報を取得 ---
@@ -185,7 +194,9 @@ impl Battle {
             let actor = {
                 let actor = self.get_actor(actor_is_friend, actor_idx);
                 if actor.is_none() {
-                    debug!("Actor {actor_idx} is dead or does not exist, skipping turn");
+                    self.push_log(format!(
+                        "Actor {actor_idx} is dead or does not exist, skipping turn"
+                    ));
                     continue;
                 }
                 actor.unwrap()
@@ -204,7 +215,9 @@ impl Battle {
             let target = {
                 let target = self.get_target_mut(actor_is_friend);
                 if target.is_none() {
-                    debug!("No valid targets for actor {actor_idx} , skipping turn");
+                    self.push_log(format!(
+                        "No valid targets for actor {actor_idx} , skipping turn"
+                    ));
                     continue;
                 }
                 target.unwrap()
