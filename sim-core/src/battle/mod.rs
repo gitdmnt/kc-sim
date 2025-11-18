@@ -140,32 +140,41 @@ impl Battle {
         let mut fleet1 = self
             .friend_fleet
             .iter()
-            .filter(|s| s.is_alive() || s.has_available_attack_aircraft())
+            .enumerate()
+            .filter(|(_, s)| s.is_alive())
             .collect::<Vec<_>>();
-        fleet1.sort_by_key(|s| std::cmp::Reverse(s.range()));
+        fleet1.sort_by_key(|(_, s)| std::cmp::Reverse(s.range()));
         let mut fleet2 = self
             .enemy_fleet
             .iter()
-            .filter(|s| s.is_alive() || s.has_available_attack_aircraft())
+            .enumerate()
+            .filter(|(_, s)| s.is_alive())
             .collect::<Vec<_>>();
-        fleet2.sort_by_key(|s| std::cmp::Reverse(s.range()));
+        fleet2.sort_by_key(|(_, s)| std::cmp::Reverse(s.range()));
 
-        let (first, second) = if fleet1.first().unwrap().range() > fleet2.first().unwrap().range() {
-            (fleet1, fleet2)
-        } else {
-            (fleet2, fleet1)
-        };
+        let (first, second) =
+            if fleet1.first().unwrap().1.range() > fleet2.first().unwrap().1.range() {
+                (
+                    fleet1.into_iter().map(|e| e.0).collect::<Vec<_>>(),
+                    fleet2.into_iter().map(|e| e.0).collect::<Vec<_>>(),
+                )
+            } else {
+                (
+                    fleet2.into_iter().map(|e| e.0).collect::<Vec<_>>(),
+                    fleet1.into_iter().map(|e| e.0).collect::<Vec<_>>(),
+                )
+            };
 
         let mut result = Vec::new();
         let mut i = 0;
         let mut j = 0;
         while i < first.len() || j < second.len() {
             if i < first.len() {
-                result.push((true, i));
+                result.push((true, first[i]));
                 i += 1;
             }
             if j < second.len() {
-                result.push((false, j));
+                result.push((false, second[j]));
                 j += 1;
             }
         }
@@ -173,14 +182,29 @@ impl Battle {
     }
 
     fn ordered_by_index(&self) -> Vec<(bool, usize)> {
+        let friend = self
+            .friend_fleet
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.is_alive())
+            .map(|e| e.0)
+            .collect::<Vec<_>>();
+        let enemy = self
+            .enemy_fleet
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.is_alive())
+            .map(|e| e.0)
+            .collect::<Vec<_>>();
+
         let mut result = Vec::new();
-        let length = self.friend_fleet.len().max(self.enemy_fleet.len());
+        let length = friend.len().max(enemy.len());
         for i in 0..length {
-            if i < self.friend_fleet.len() {
-                result.push((true, i));
+            if i < friend.len() {
+                result.push((true, friend[i]));
             }
-            if i < self.enemy_fleet.len() {
-                result.push((false, i));
+            if i < enemy.len() {
+                result.push((false, enemy[i]));
             }
         }
         result
