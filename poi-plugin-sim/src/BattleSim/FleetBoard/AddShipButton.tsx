@@ -17,8 +17,9 @@ export const AddShipButton: React.FC<Props> = ({
   const enemyOptions = enemyList(state);
 
   return (
-    <button className="p-2 bg-white shadow-inner overflow-hidden rounded w-full text-xs text-gray-600">
+    <button className="py-3 px-6 bg-white shadow-inner overflow-hidden rounded w-full text-lg text-gray-600">
       <select
+        className="w-full"
         value={"敵艦を追加"}
         onChange={(e) => {
           const selectedShipId = parseInt(e.target.value, 10);

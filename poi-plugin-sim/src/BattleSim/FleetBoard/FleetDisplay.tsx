@@ -1,3 +1,4 @@
+import React from "react";
 import { getShipNameFromId, getEquipNameFromId } from "@utils/poiAPIWrapper";
 
 interface FleetDisplayProps {
@@ -7,14 +8,14 @@ interface FleetDisplayProps {
 
 export const FleetDisplay = ({ fleet, state }: FleetDisplayProps) => {
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col gap-4">
       {fleet.ships.map((ship: Ship, shipIndex: number) => (
-        <li key={shipIndex} className="card">
-          <div className="">
-            <div className="px-1 text-md text-gray-800">
+        <li key={shipIndex} className="sim_card">
+          <div className="flex flex-col gap-2">
+            <div className="pt-3 px-1 text-3xl text-gray-800">
               {getShipNameFromId(ship.id, state)}
             </div>
-            <div className="flex flex-row flex-wrap gap-1 text-xs text-gray-600 p-1 rounded">
+            <div className="flex flex-row flex-wrap gap-2 text-lg text-gray-600 p-2 rounded">
               <div>
                 耐久 {ship.status.nowHp}/{ship.status.maxHp}
               </div>
@@ -31,10 +32,10 @@ export const FleetDisplay = ({ fleet, state }: FleetDisplayProps) => {
             </div>
             <ul
               className="
-              flex flex-col gap-1 text-xs text-gray-600 bg-gray-200 rounded
+              flex flex-col gap-1 text-lg text-gray-600 bg-gray-200 rounded
               overflow-hidden max-h-0 opacity-0
               transition-all ease-in-out duration-500
-              group-hover:max-h-96 group-hover:opacity-100 group-hover:p-2"
+              group-hover:max-h-96 group-hover:opacity-100 group-hover:p-4"
             >
               {ship.equips.map((equip: Equipment, equipIndex: number) => (
                 <li key={equipIndex}>

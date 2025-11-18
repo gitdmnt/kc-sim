@@ -2,12 +2,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import wasm from "vite-plugin-wasm";
 import { viteStaticCopy } from "vite-plugin-static-copy";
-import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { execSync } from "child_process";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-const DIST_DIR = "../node_modules/poi-plugin-sim-build";
+const DIST_DIR = "../../node_modules/poi-plugin-sim-build";
 
 const devBuildConfig = {
   outDir: "dist-dev",
@@ -24,7 +23,7 @@ export default defineConfig(({ command }) => {
   if (isServe) {
     console.log("Running vite dev server...");
     return {
-      plugins: [tsconfigPaths(), tailwindcss(), react(), wasm()],
+      plugins: [tsconfigPaths(), react(), wasm()],
       server: {
         open: false,
         watch: {},
@@ -34,7 +33,7 @@ export default defineConfig(({ command }) => {
     console.log("Building for production...");
     return {
       plugins: [
-        tailwindcss(),
+        tsconfigPaths(),
         react({
           jsxRuntime: "classic",
         }),
@@ -93,6 +92,7 @@ export default defineConfig(({ command }) => {
         outDir: DIST_DIR,
         emptyOutDir: true,
         minify: false,
+        cssCodeSplit: false,
         lib: {
           entry: path.resolve(__dirname, "src/App.tsx"),
           formats: ["cjs"],

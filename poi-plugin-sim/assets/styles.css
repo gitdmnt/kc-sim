@@ -1,44 +1,45 @@
 @import "tailwindcss";
+@import "tailwindcss/preflight"layer(base);
 
-@layer components {
+@layer utilities {
     .fleet {
         display: flex;
         flex-direction: row;
-        gap: 1rem;
+        gap: 2rem;
     }
 
     .ship {
         border: 1px solid #ccc;
-        padding: 0.5rem;
-        border-radius: 0.25rem;
+        padding: 1rem;
+        border-radius: 0.5rem;
     }
 
     .equips {
         display: flex;
         flex-direction: column;
-        gap: 0.25rem;
-        font-size: 0.8rem;
+        gap: 0.5rem;
+        font-size: 1.6rem;
         color: #888
     }
 
-    .panel {
-        @apply p-4 rounded shadow bg-white;
+    .sim_panel {
+        @apply p-8 rounded shadow bg-white;
     }
 
-    .board {
-        @apply p-2 rounded shadow bg-gray-200 text-gray-600;
+    .sim_board {
+        @apply p-4 rounded shadow bg-gray-200 text-gray-600;
     }
 
-    .card {
-        @apply p-2 rounded shadow bg-white transition-all duration-200;
+    .sim_card {
+        @apply p-4 rounded shadow bg-white transition-all duration-200;
 
         &:hover {
             @apply shadow-lg scale-[1.02];
         }
     }
 
-    .button {
-        @apply px-4 py-2 rounded-full shadow text-white bg-gray-500 transition-all duration-100;
+    .sim_button {
+        @apply px-6 py-2 rounded-full shadow text-white bg-gray-500 transition-all duration-100;
 
         &:hover {
             @apply bg-gray-600 scale-[1.05] shadow-lg ease-in;

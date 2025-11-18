@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+/* @ts-ignore */
+import styles from "../assets/styles.css?inline";
+
 import { getFleets } from "./utils/poiAPIWrapper";
-import "../assets/styles.css";
 import { BattleSim } from "./BattleSim";
 import init from "../sim-core/pkg/sim_core";
 import { connect } from "react-redux";
@@ -32,10 +34,13 @@ const App = ({ state }: { state: any }) => {
   }
 
   return (
-    <div className="bg-gray-100 p-4 min-h-dvh flex flex-col gap-4">
-      <DebugMenu />
-      <BattleSim friend={fleets} stage={""} />
-    </div>
+    <>
+      <style>{styles}</style>
+      <div className="bg-gray-100 p-4 min-h-dvh flex flex-col gap-4 h-full overflow-auto">
+        <DebugMenu />
+        <BattleSim friend={fleets} stage={""} />
+      </div>
+    </>
   );
 };
 

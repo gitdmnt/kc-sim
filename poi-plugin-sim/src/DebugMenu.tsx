@@ -1,5 +1,7 @@
-import { ToggleButton } from "react-bootstrap";
+import React from "react";
 import { useEffect, useState } from "react";
+
+import { Button } from "@/components/Button";
 
 export const DebugMenu = () => {
   const [useMockApi, setUseMockApi] = useState(
@@ -15,29 +17,20 @@ export const DebugMenu = () => {
   }, [useMockApi]);
 
   return (
-    <div className="bg-white p-2 border border-gray-300 rounded">
-      <h2 className="text-lg font-bold mb-2">Debug Menu</h2>
-      <div className="flex flex-col gap-2 text-sm text-gray-600">
+    <div className="bg-white p-8 border border-gray-300 rounded">
+      <div className="text-4xl font-bold mb-2">Debug Menu</div>
+      <div className="flex flex-col gap-2 text-2xl text-gray-600">
         <div className="flex items-center gap-2">
-          <ToggleButton
-            id="use-mock-api"
+          <input
             type="checkbox"
-            variant="outline-secondary"
-            size="sm"
-            value={useMockApi ? "1" : "0"}
+            id="use-mock-api"
             checked={useMockApi}
             onChange={(e) => setUseMockApi(e.currentTarget.checked)}
-          >
-            Use Mock API
-          </ToggleButton>
+          />
+          <label htmlFor="use-mock-api">Use Mock API Data</label>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            className="bg-gray-500 text-white px-4 py-1 rounded-full hover:bg-gray-600"
-            onClick={clearCache}
-          >
-            Clear KCNav Cache
-          </button>
+          <Button onClick={clearCache}>Clear KCNav Cache</Button>
         </div>
       </div>
     </div>

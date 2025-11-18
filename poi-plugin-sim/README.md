@@ -1,6 +1,12 @@
 # poi-plugin-sim
 
-## feature
+## about
+
+A developing KanColle sortie simulator plugin for poi browser.
+
+This repository is only for its frontend development. For backend, see [another repository "sim-core"](https://github.com/gitdmnt/sim-core)
+
+## developing features
 
 - [ ] 不明事項 (DBを実装してデータを集めるべき？)
   - [ ] 深海棲艦のマスクステータス

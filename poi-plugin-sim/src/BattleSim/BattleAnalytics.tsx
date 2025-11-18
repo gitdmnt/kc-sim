@@ -1,3 +1,4 @@
+import React from "react";
 import { connect } from "react-redux";
 
 const battleResultToIndex = (result: BattleResult): number | undefined => {
@@ -37,7 +38,7 @@ const StackedRatioBar = ({ counts }: { counts: number[] }) => {
   const total = counts.reduce((s, c) => s + c, 0) || 1;
   return (
     // 親を relative にして overlay を上に置く
-    <div className="w-full h-6 rounded overflow-hidden flex border-gray-300 border">
+    <div className="w-full h-10 rounded overflow-hidden flex border-gray-300 border">
       {counts.map((count, i) => {
         const pct = (count / total) * 100;
         const label = RESULT_LABELS[i];
@@ -72,12 +73,12 @@ const ResultRatioBar = ({ reports }: { reports: BattleReport[] }) => {
   return (
     <>
       <StackedRatioBar counts={resultCounts} />
-      <div className="flex gap-2 text-xs mt-1">
+      <div className="flex gap-2 text-lg mt-1">
         {RESULT_LABELS.map((label, i) => (
-          <div key={label} className="flex items-center gap-1">
+          <div key={label} className="flex items-center gap-2">
             <span
               style={{ background: COLORS[label] }}
-              className="w-3 h-3 block"
+              className="w-6 h-6 block"
             />
             {label} {resultRatio[i].toFixed(1)}%
           </div>
@@ -121,13 +122,13 @@ const BattleResultAvarage = ({
   const shipAverageHpAfterList = calculateAveragesByIndex(shipHpAfterLists);
 
   return (
-    <ul className="flex flex-col gap-2 w-64 board">
+    <ul className="flex flex-col gap-4 w-100 sim_board">
       {fleet.ships.map((ship: Ship, shipIndex: number) => (
-        <li className="flex flex-col gap-1 card" key={shipIndex}>
-          <div className="text-gray-800">
+        <li className="flex flex-col gap-2 sim_card" key={shipIndex}>
+          <div className="text-gray-800 text-3xl">
             {state.const.$ships[ship.id].api_name}
           </div>
-          <div className="text-xs text-gray-600">
+          <div className="text-lg text-gray-600">
             {ship.status.nowHp} →{" "}
             {shipAverageHpAfterList[shipIndex]?.toFixed(2)}
           </div>
@@ -161,17 +162,17 @@ const UnconnectedAnalytics = ({ state, friend, enemy, reports }: Props) => {
   }) ?? [];
 
   return (
-    <div className="panel flex flex-col gap-4">
+    <div className="sim_panel flex flex-col gap-8">
       <ResultRatioBar reports={reports} />
-      <div className="flex flex-row gap-3">
-        <div className="w-68 p-2 shadow-inner rounded">
+      <div className="flex flex-row gap-6">
+        <div className="w-108 py-4 shadow-inner rounded">
           <BattleResultAvarage
             fleetResults={friendFleetResults!}
             fleet={friend}
             state={state}
           />
         </div>
-        <ul className="flex flex-row gap-4 overflow-scroll rounded shadow-inner p-2 bg-gray-500">
+        <ul className="flex flex-row gap-4 overflow-scroll rounded shadow-inner p-4 bg-gray-500">
           {enemy?.map((fleet: EnemyFleet, fleetIndex: number) => (
             <li key={fleetIndex}>
               <BattleResultAvarage

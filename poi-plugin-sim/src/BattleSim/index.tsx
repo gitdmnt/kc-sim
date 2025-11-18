@@ -1,3 +1,4 @@
+import React from "react";
 import { simulate } from "../../sim-core/pkg/sim_core";
 import { useEffect, useState } from "react";
 import { BattleDisplay } from "./BattleDisplay";

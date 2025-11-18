@@ -1,9 +1,12 @@
+import React from "react";
 import { useEffect, useState } from "react";
 import { getArea, getMapsInArea } from "@utils/poiAPIWrapper";
 import { fetchEnemyFromKCNav, fetchMapFromKCNav } from "@utils/KCNavAPIWrapper";
 /* @ts-ignore */
 import { wiki } from "@kancolle/data";
 import { completeEnemyStatusFromKanColleData } from "@utils/KancolleDataWrapper";
+
+import { Button } from "@/components/Button";
 
 export const MapInput = ({
   setEnemyFleets,
@@ -86,12 +89,12 @@ export const MapInput = ({
   }, [enemyTrigger]);
 
   return (
-    <div className="flex flex-col gap-4 bg-white text-gray-600 p-4 rounded shadow-inner shadow-gray-300 text-xs">
-      <div className="flex flex-row gap-2 items-center flex-wrap">
+    <div className="flex flex-col gap-8 bg-white text-gray-600 px-6 pt-10 pb-6 rounded shadow-inner shadow-gray-300 text-lg">
+      <div className="flex flex-row gap-4 items-center flex-wrap">
         <select
           value={area}
           onChange={(e) => setArea(parseInt(e.target.value, 10))}
-          className="mr-2"
+          className="w-full"
         >
           {areas.map((areaObj) => (
             <option key={areaObj.id} value={areaObj.id}>
@@ -117,19 +120,11 @@ export const MapInput = ({
           ))}
         </select>
       </div>
-      <div className="flex flex-row flex-wrap gap-2">
-        <button
-          className="button py-1"
-          onClick={() => setMapTrigger(!mapTrigger)}
-        >
-          Load Map
-        </button>
-        <button
-          className="button py-1"
-          onClick={() => setEnemyTrigger(!enemyTrigger)}
-        >
+      <div className="flex flex-row flex-wrap gap-2 place-content-evenly">
+        <Button onClick={() => setMapTrigger(!mapTrigger)}>Load Map</Button>
+        <Button onClick={() => setEnemyTrigger(!enemyTrigger)}>
           Load Enemies
-        </button>
+        </Button>
       </div>
     </div>
   );

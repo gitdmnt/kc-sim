@@ -1,3 +1,6 @@
+import { Button } from "@/components/Button";
+import React from "react";
+
 interface Props {
   count: number;
   setCount: React.Dispatch<React.SetStateAction<number>>;
@@ -10,9 +13,9 @@ export const BattleControlPanel = ({
   setSimTrigger,
 }: Props) => {
   return (
-    <div className="panel flex flex-col gap-2">
-      <div className="flex flex-row gap-2 items-center">
-        <label htmlFor="count" className="text-sm font-medium text-gray-700">
+    <div className="sim_panel flex flex-col gap-4">
+      <div className="flex flex-row gap-4 items-center">
+        <label htmlFor="count" className="text-xl font-medium text-gray-700">
           Count:
         </label>
         <input
@@ -20,12 +23,10 @@ export const BattleControlPanel = ({
           type="number"
           value={count}
           onChange={(e) => setCount(Number(e.target.value))}
-          className="border border-gray-300 rounded px-2 py-1 w-20"
+          className="border border-gray-300 rounded px-4 py-2 w-32"
         />
       </div>
-      <button onClick={() => setSimTrigger((prev) => !prev)} className="button">
-        Simulate
-      </button>
+      <Button onClick={() => setSimTrigger((prev) => !prev)}>Simulate</Button>
     </div>
   );
 };

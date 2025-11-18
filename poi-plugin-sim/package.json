@@ -4,7 +4,7 @@
   "type": "module",
   "main": "../poi-plugin-sim-build/index.js",
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.17",
+    "@tailwindcss/postcss": "^4.1.17",
     "@types/bun": "latest",
     "@types/fs-extra": "^11.0.4",
     "@types/react": "^19.2.4",
