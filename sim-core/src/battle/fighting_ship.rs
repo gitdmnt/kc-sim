@@ -2,6 +2,7 @@ use crate::battle::battle_direction;
 use crate::interface;
 
 // 戦闘中の艦船の状態を管理する構造体
+#[derive(Clone)]
 pub struct FightingShip {
     ship: interface::Ship, // 元の艦船データ
     is_friend: bool,
@@ -64,6 +65,9 @@ impl FightingShip {
     //
     // 状態判定
     //
+    pub fn is_friend(&self) -> bool {
+        self.is_friend
+    }
     pub fn is_alive(&self) -> bool {
         self.snapshot.hp() > 0
     }

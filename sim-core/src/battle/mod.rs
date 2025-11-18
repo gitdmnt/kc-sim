@@ -69,6 +69,12 @@ impl Battle {
         let cap = 220.0;
         ship.calculate_firepower(&self.direction, cap)
     }
+    fn calculate_armor(&self, ship: &FightingShip) -> f64 {
+        let armor = ship.armor() as f64;
+        let r: f64 = rand::random();
+        armor * 0.7 + (armor * r).floor() * 0.6
+    }
+
     fn apply_damage(&mut self, target_is_friend: bool, target_index: usize, damage: u16) {
         let target_fleet = if target_is_friend {
             &mut self.friend_fleet
@@ -131,25 +137,53 @@ impl Battle {
     // -- 砲撃戦関連 --
     // 砲撃順を決定（射程順）
     fn ordered_by_range(&self) -> Vec<(bool, usize)> {
-        let mut order = self
+        let mut fleet1 = self
             .friend_fleet
             .iter()
-            .enumerate()
-            .map(|(i, fs)| (true, i, fs.range()))
-            .chain(
-                self.enemy_fleet
-                    .iter()
-                    .enumerate()
-                    .map(|(i, fs)| (false, i, fs.range())),
-            )
+            .filter(|s| s.is_alive() || s.has_available_attack_aircraft())
             .collect::<Vec<_>>();
-
-        order.sort_by_key(|a| std::cmp::Reverse(a.2.clone()));
-        let order = order
+        fleet1.sort_by_key(|s| std::cmp::Reverse(s.range()));
+        let mut fleet2 = self
+            .enemy_fleet
             .iter()
-            .map(|(is_friend, i, _)| (*is_friend, *i))
+            .filter(|s| s.is_alive() || s.has_available_attack_aircraft())
             .collect::<Vec<_>>();
-        order
+        fleet2.sort_by_key(|s| std::cmp::Reverse(s.range()));
+
+        let (first, second) = if fleet1.first().unwrap().range() > fleet2.first().unwrap().range() {
+            (fleet1, fleet2)
+        } else {
+            (fleet2, fleet1)
+        };
+
+        let mut result = Vec::new();
+        let mut i = 0;
+        let mut j = 0;
+        while i < first.len() || j < second.len() {
+            if i < first.len() {
+                result.push((true, i));
+                i += 1;
+            }
+            if j < second.len() {
+                result.push((false, j));
+                j += 1;
+            }
+        }
+        result
+    }
+
+    fn ordered_by_index(&self) -> Vec<(bool, usize)> {
+        let mut result = Vec::new();
+        let length = self.friend_fleet.len().max(self.enemy_fleet.len());
+        for i in 0..length {
+            if i < self.friend_fleet.len() {
+                result.push((true, i));
+            }
+            if i < self.enemy_fleet.len() {
+                result.push((false, i));
+            }
+        }
+        result
     }
 
     // 攻撃者の情報を取得
@@ -206,20 +240,26 @@ impl Battle {
         false
     }
 
-    // 砲撃戦の共通処理
-    pub fn fire_phase(&mut self, fire_order: Vec<(bool, usize)>) {
-        for (actor_is_friend, actor_idx) in fire_order.into_iter() {
+    // 砲撃戦
+    pub fn fire_phase(&mut self) {
+        let fire_order = self.ordered_by_range();
+        self.fire_phase_helper(fire_order);
+
+        if self.includes_battleship_class() {
+            let fire_order = self.ordered_by_index();
+            self.fire_phase_helper(fire_order);
+        }
+    }
+
+    fn fire_phase_helper(&mut self, fire_order: Vec<(bool, usize)>) {
+        for (actor_is_friend, actor_index) in fire_order.into_iter() {
             // --- 攻撃者の情報を取得 ---
-            // actorの参照を保持し続けないように、必要な情報だけをコピーする
-            let actor = {
-                let actor = self.get_actor(actor_is_friend, actor_idx);
-                if actor.is_none() {
-                    self.push_log(format!(
-                        "Actor {actor_idx} is dead or does not exist, skipping turn"
-                    ));
-                    continue;
-                }
-                actor.unwrap()
+            let Some(actor) = self.get_actor(actor_is_friend, actor_index) else {
+                self.push_log(format!(
+                    "Actor at index {} is not available, skipping turn",
+                    actor_index
+                ));
+                continue;
             };
 
             // --- ターゲットを取得 ---
@@ -227,7 +267,8 @@ impl Battle {
                 let target = self.get_target(actor_is_friend);
                 if target.is_none() {
                     self.push_log(format!(
-                        "No valid targets for actor {actor_idx} , skipping turn"
+                        "No valid targets for {} , skipping turn",
+                        actor.name()
                     ));
                     continue;
                 }
@@ -238,11 +279,7 @@ impl Battle {
             let firepower = self.calculate_firepower(actor);
 
             // 防御力計算
-            let armor = {
-                let armor = target.armor() as f64;
-                let r: f64 = rand::random();
-                armor * 0.7 + f64::floor(armor * r) * 0.6
-            };
+            let armor = self.calculate_armor(target);
 
             // ダメージ計算
             let damage = {
@@ -257,66 +294,17 @@ impl Battle {
                 }
             };
 
-            let (actor_is_friend, actor_idx, target_idx) =
-                (actor_is_friend, actor_idx, target.index_in_fleet());
+            let (actor_is_friend, actor_idx, target_idx) = (
+                actor.is_friend(),
+                actor.index_in_fleet(),
+                target.index_in_fleet(),
+            );
 
             self.apply_damage(!actor_is_friend, target_idx, damage as u16);
 
             // ログはバッファに追加（mutable borrow は既に解放済み）
             self.push_fire_log(actor_is_friend, actor_idx, target_idx, damage);
         }
-    }
-
-    // 砲撃戦1巡目
-    pub fn fire_phase1(&mut self) {
-        self.push_log("=== Fire Phase 1 Start ===");
-
-        // 砲撃順決定 (is_friend, index_in_fleet)
-        let fire_order = self.ordered_by_range();
-        self.push_log(format!(
-            "Fire order: {:?}",
-            fire_order
-                .iter()
-                .map(|(b, i)| if *b {
-                    self.friend_fleet[*i].ship().name()
-                } else {
-                    self.enemy_fleet[*i].ship().name()
-                })
-                .collect::<Vec<_>>()
-        ));
-        self.fire_phase(fire_order);
-    }
-
-    // 砲撃戦2巡目
-    pub fn fire_phase2(&mut self) {
-        if !self.includes_battleship_class() {
-            self.push_log("Battleship is not included, skipping Fire Phase 2");
-            return;
-        }
-
-        self.push_log("=== Fire Phase 2 Start ===");
-        let mut fire_order = Vec::new();
-        let length = self.friend_fleet.len().max(self.enemy_fleet.len());
-        for i in 0..length {
-            if i < self.friend_fleet.len() {
-                fire_order.push((true, i));
-            }
-            if i < self.enemy_fleet.len() {
-                fire_order.push((false, i));
-            }
-        }
-        self.push_log(format!(
-            "Fire order: {:?}",
-            fire_order
-                .iter()
-                .map(|(b, i)| if *b {
-                    self.friend_fleet[*i].ship().name()
-                } else {
-                    self.enemy_fleet[*i].ship().name()
-                })
-                .collect::<Vec<_>>()
-        ));
-        self.fire_phase(fire_order);
     }
 
     pub fn calculate_result(&mut self) -> Option<interface::BattleResult> {
