@@ -211,57 +211,59 @@ impl Battle {
     }
 
     // 攻撃者の情報を取得
-    fn get_actor(&self, is_friend: bool, index_in_fleet: usize) -> Option<&FightingShip> {
-        if is_friend {
-            self.friend_fleet
-                .iter()
-                .filter(|s| s.is_alive())
-                .nth(index_in_fleet)
+    fn get_actor(&self, is_friend: bool, index_in_fleet: usize) -> Result<&FightingShip, String> {
+        let actor = if is_friend {
+            &self.friend_fleet[index_in_fleet]
         } else {
-            self.enemy_fleet
-                .iter()
-                .filter(|s| s.is_alive())
-                .nth(index_in_fleet)
+            &self.enemy_fleet[index_in_fleet]
+        };
+
+        // 攻撃順決定後に轟沈した場合はスキップ
+        if !actor.is_alive() {
+            return Err(format!(
+                "Actor at index {} is not alive, skipping turn",
+                index_in_fleet
+            ));
         }
+
+        // 空母系で中破以上の場合はスキップ
+        if actor.has_attack_aircraft()
+            && actor.damaged_level() >= fighting_ship::DamagedLevel::Moderate
+        {
+            return Err(format!(
+                "Actor at index {} is too damaged, skipping turn",
+                index_in_fleet
+            ));
+        }
+
+        Ok(actor)
     }
 
     // ランダムにターゲットを取得
     fn get_target(&self, actor_is_friend: bool) -> Option<&FightingShip> {
-        let alive_count = if !actor_is_friend {
-            self.friend_fleet.iter().filter(|s| s.is_alive()).count()
+        // どちらの艦隊を狙うか（攻撃者の反対側）
+        let target_fleet = if actor_is_friend {
+            &self.enemy_fleet
         } else {
-            self.enemy_fleet.iter().filter(|s| s.is_alive()).count()
+            &self.friend_fleet
         };
+
+        self.choose_random_alive(target_fleet)
+    }
+
+    // 生存している艦の中からランダムに1隻返す（内部で count と nth を使う）
+    fn choose_random_alive<'a>(&'a self, fleet: &'a [FightingShip]) -> Option<&'a FightingShip> {
+        let alive_count = fleet.iter().filter(|s| s.is_alive()).count();
         if alive_count == 0 {
             return None;
         }
-        let index_in_fleet = random_range(0..alive_count);
-
-        if !actor_is_friend {
-            self.friend_fleet
-                .iter()
-                .filter(|s| s.is_alive())
-                .nth(index_in_fleet)
-        } else {
-            self.enemy_fleet
-                .iter()
-                .filter(|s| s.is_alive())
-                .nth(index_in_fleet)
-        }
+        let idx = random_range(0..alive_count);
+        fleet.iter().filter(|s| s.is_alive()).nth(idx)
     }
 
     fn includes_battleship_class(&self) -> bool {
-        for fs in self.friend_fleet.iter() {
-            if fs.is_battleship_class() {
-                return true;
-            }
-        }
-        for fs in self.enemy_fleet.iter() {
-            if fs.is_battleship_class() {
-                return true;
-            }
-        }
-        false
+        self.friend_fleet.iter().any(|fs| fs.is_battleship_class())
+            || self.enemy_fleet.iter().any(|fs| fs.is_battleship_class())
     }
 
     // 砲撃戦
@@ -278,12 +280,13 @@ impl Battle {
     fn fire_phase_helper(&mut self, fire_order: Vec<(bool, usize)>) {
         for (actor_is_friend, actor_index) in fire_order.into_iter() {
             // --- 攻撃者の情報を取得 ---
-            let Some(actor) = self.get_actor(actor_is_friend, actor_index) else {
-                self.push_log(format!(
-                    "Actor at index {} is not available, skipping turn",
-                    actor_index
-                ));
-                continue;
+            let actor = match self.get_actor(actor_is_friend, actor_index) {
+                Ok(a) => a,
+
+                Err(e) => {
+                    self.push_log(e);
+                    continue;
+                }
             };
 
             // --- ターゲットを取得 ---

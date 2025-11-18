@@ -90,8 +90,7 @@ impl FightingShip {
     pub fn is_battleship_class(&self) -> bool {
         self.ship.is_battleship_class()
     }
-    pub fn has_available_attack_aircraft(&self) -> bool {
-        // TODO: 搭載数判定; 0だったら false を返す
+    pub fn has_attack_aircraft(&self) -> bool {
         self.ship.has_attack_aircraft()
     }
 
@@ -111,7 +110,7 @@ impl FightingShip {
 
     fn basic_fp(&self) -> f64 {
         // TODO: 装備改修ボーナス
-        if self.has_available_attack_aircraft() {
+        if self.has_attack_aircraft() {
             // TODO: 航空要員ボーナス
             let fp = self.firepower() as f64;
             let torpedo_fp = self.torpedo() as f64;
@@ -172,7 +171,7 @@ impl FightingShip {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum DamagedLevel {
     NoDamage,
     Minor,
