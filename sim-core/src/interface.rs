@@ -1,14 +1,31 @@
+/// フロントエンドとシミュレーションコア間のインターフェースを定義する。
+/// このモジュールで定義される構造体は、シリアライズ/デシリアライズ可能でなければならない。
+/// また、それらのメソッドは単なるゲッターに限定し、原則的にロジックを含めてはならない。
 use log::warn;
 use serde::{Deserialize, Serialize};
 
+/// `FleetLike`トレイトは、敵艦隊と味方艦隊に共通するインターフェースを定義、実装する。
 pub trait FleetLike {
+    // --- Required methods ---
+    /// 艦隊に所属する艦船のスライスを取得する。
     fn ships(&self) -> &[Ship];
+
+    /// 艦隊の陣形を取得する。
     fn formation(&self) -> Option<Formation>;
+
+    /// 艦隊の陣形が未設定の場合にデフォルトの陣形を設定する。 (これ必要？)
     fn set_formation_default(&mut self);
 
     fn is_empty(&self) -> bool {
         self.ships().is_empty()
     }
+
+    /// フロントエンドから受けとったデータの妥当性を検証し、必要に応じて修正する。
+    /// 修正可能な例外
+    /// - 陣形が未設定
+    ///
+    /// 修正不能な例外
+    /// - 艦隊が空
     fn validate(&mut self) -> bool {
         if self.is_empty() {
             warn!("Fleet is empty:  {:?}", self.ships());
@@ -45,6 +62,8 @@ impl FleetLike for EnemyFleet {
     }
 }
 
+/// 自分の艦隊を受け取る構造体。
+/// 子に艦娘のリストと陣形を持つ。
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Fleet {
@@ -52,6 +71,8 @@ pub struct Fleet {
     formation: Option<Formation>,
 }
 
+/// 敵艦隊を表す構造体。
+/// 子に深海棲艦のリスト、陣形、出現エリア情報、出現確率を持つ。
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct EnemyFleet {
@@ -63,6 +84,7 @@ pub struct EnemyFleet {
     formation: Option<Formation>,
 }
 
+/// 陣形の種類を表す列挙型。
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Formation {
@@ -74,7 +96,12 @@ pub enum Formation {
     Vanguard,
 }
 
-/// -- Immutable Ship methods --
+/// 艦娘や深海棲艦の情報を表す不変の構造体。
+/// 子に艦船固有ID、名前、艦種ID、艦種名、ステータス、装備のリストを持つ。
+/// 戦闘中に変化する情報は ShipSnapshot に分離されている。
+///
+/// 各種ステータスは、装備の補正を含む合計値として提供される。
+/// これより下位の状態はデシリアライズ時にNoneで補完される可能性があるため陰蔽されており、ゲッターメソッドを通じてのみアクセス可能。  
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Ship {
@@ -87,49 +114,80 @@ pub struct Ship {
 }
 
 impl Ship {
-    pub fn name(&self) -> String {
-        self.name.clone()
-    }
-
+    // status getters
+    /// 艦の全回復時HPを取得する。
     pub fn max_hp(&self) -> u16 {
         self.status.max_hp
     }
 
+    /// 戦闘突入時のHPを取得する。
     pub fn hp(&self) -> u16 {
         self.status.now_hp
     }
+
+    /// 火力ステータスを取得する。
+    /// この値には装備の火力が加算されているが、艦娘固有の装備ボーナスや改修ボーナスは含まれない。
+    /// 以下のゲッターも同様。
     pub fn firepower(&self) -> u16 {
-        // Bare firepower + Equipment firepower + Equipment bonus
         self.status.firepower
     }
+
+    /// 装甲ステータスを取得する。
     pub fn armor(&self) -> u16 {
         self.status.armor
     }
+
+    /// 雷装ステータスを取得する。
     pub fn torpedo(&self) -> u16 {
         self.status.torpedo
     }
+
+    /// 爆装ステータスを取得する。
     pub fn bombing(&self) -> u16 {
         self.equips
             .iter()
             .map(|e| e.status.as_ref().map_or(0, |s| s.bombing))
             .sum()
     }
+
+    /// 射程ステータスを取得する。
     pub fn range(&self) -> Range {
-        self.status.range.clone().unwrap_or_default()
+        let range = self.status.range.clone().unwrap_or_default();
+        let equip_range = self
+            .equips
+            .iter()
+            .map(|e| e.status.as_ref().map_or(Range::None, |s| s.range.clone()))
+            .max()
+            .unwrap_or(Range::None);
+        std::cmp::max(range, equip_range)
     }
+
+    // attributes getters
+    /// 艦名 (日本語) を取得する。
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+    /// 艦種IDを取得する。未設定の場合は0を返す。
     pub fn ship_type_id(&self) -> u16 {
         self.ship_type_id.unwrap_or(0)
     }
 
+    /// 戦艦系 (低速戦艦、高速戦艦、航空戦艦、超弩級戦艦) かどうかを判定する。
     pub fn is_battleship_class(&self) -> bool {
         let id = self.ship_type_id();
         matches!(id, 8 | 9 | 10 | 12)
     }
+
+    /// 攻撃可能な航空機を装備しているかどうかを判定する。
+    /// 空母系の艦種であっても、攻撃可能な航空機を装備していなければ false を返す。
+    /// 逆に、速吸改のような非空母系艦種であっても、攻撃可能な航空機を装備していれば true を返す。
     pub fn has_attack_aircraft(&self) -> bool {
         self.equips.iter().any(|e| e.is_attack_aircraft())
     }
 }
 
+/// 艦船の各種ステータスを表す構造体。
+/// フロントエンドからデータを受けとるためのコンテナであり、戦闘ロジック内で直接使用されることはない。
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct ShipStatus {
@@ -150,6 +208,7 @@ struct ShipStatus {
     pub luck: Option<u16>,
 }
 
+/// 射程の種類を表す列挙型。
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum Range {
@@ -176,6 +235,8 @@ impl std::fmt::Display for Range {
     }
 }
 
+/// 艦娘が装備している各装備品を表す構造体。
+/// 外部には公開されない。
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase", default)]
 struct Equipment {
@@ -185,6 +246,8 @@ struct Equipment {
     status: Option<EquipmentStatus>,
 }
 impl Equipment {
+    /// この装備が攻撃可能な航空機かどうかを判定する。
+    /// 外部には公開されない。
     fn is_attack_aircraft(&self) -> bool {
         let Some(id) = &self.equip_type_id else {
             return false;
@@ -193,6 +256,8 @@ impl Equipment {
     }
 }
 
+/// 装備品の各種ステータスを表す構造体。
+/// 外部には公開されない。
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase", default)]
 struct EquipmentStatus {
@@ -211,15 +276,19 @@ struct EquipmentStatus {
     aircraft_cost: u16,
 }
 
+/// 戦闘結果をフロントエンドに返すための構造体。
+/// 戦闘の評価、敵編成の何番かを表すインデックス、各艦の戦闘後のスナップショットを持つ。
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct BattleReport {
     pub result: Option<BattleResult>,
     pub friend_fleet_results: Vec<ShipSnapshot>,
+    /// 敵編成の何番目かを表すインデックス。
     pub enemy_index: usize,
     pub enemy_fleet_results: Vec<ShipSnapshot>,
 }
 
+/// 戦闘結果の評価を表す列挙型。
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum BattleResult {
     SS,
@@ -231,6 +300,7 @@ pub enum BattleResult {
     E,
 }
 
+/// 戦闘中の艦船の状態を保持するスナップショット構造体。
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ShipSnapshot {

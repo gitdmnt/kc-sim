@@ -110,6 +110,7 @@ impl FightingShip {
 
     fn basic_fp(&self) -> f64 {
         // TODO: 装備改修ボーナス
+        // TODO: 航空機を搭載していない空母系の場合の分岐が変
         if self.has_attack_aircraft() {
             // TODO: 航空要員ボーナス
             let fp = self.firepower() as f64;
