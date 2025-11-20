@@ -86,5 +86,5 @@ fn battle_once(
 
     battle.artillery_phase();
 
-    battle.to_battle_report()
+    battle.into_battle_report()
 }

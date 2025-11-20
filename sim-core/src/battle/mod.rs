@@ -4,7 +4,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 mod battle_log;
-pub use battle_log::{ActionLog, BattleLog, Phase, ShipSnapshot};
+pub use battle_log::{ActionLog, AttackLog, AttackType, BattleLog, Phase, ShipSnapshot};
 
 mod battle_setup;
 use battle_setup::BattleSetup;
@@ -95,16 +95,39 @@ impl Battle {
     }
 
     /// 指定された艦隊とインデックスに対応する艦への参照を取得します。
-    fn actor(&self, is_friend: bool, actor_idx: usize) -> &Ship {
-        if is_friend {
+    fn actor(
+        &self,
+        actor_is_friend: bool,
+        actor_idx: usize,
+    ) -> Result<(&Ship, &ShipSnapshot), String> {
+        let actor_snapshots = if actor_is_friend {
+            &self.log.enemy_snapshots
+        } else {
+            &self.log.friend_snapshots
+        };
+
+        let actor = if actor_is_friend {
             &self.setup.friend_fleet.ships()[actor_idx]
         } else {
             &self.setup.enemy_fleet.ships()[actor_idx]
+        };
+
+        let actor_snapshot = &actor_snapshots[actor_idx];
+
+        if !actor_snapshot.is_alive() {
+            return Err("Sunk".to_string());
         }
+
+        if actor.has_attack_aircraft(actor_snapshot)
+            && actor.damaged_level(actor_snapshot) >= DamagedLevel::Moderate
+        {
+            return Err("Flight Deck is too Damaged".to_string());
+        }
+        Ok((actor, actor_snapshot))
     }
 
     /// 指定された艦隊のランダムな艦への参照とそのスナップショットの可変参照を取得します。
-    fn get_target(&mut self, actor_is_friend: bool) -> (usize, &Ship, &mut ShipSnapshot) {
+    fn random_target(&mut self, actor_is_friend: bool) -> (usize, &Ship, &mut ShipSnapshot) {
         let (ships, snapshots) = if actor_is_friend {
             (
                 &self.setup.enemy_fleet.ships(),
@@ -133,34 +156,17 @@ impl Battle {
     pub fn artillery_phase_helper(&mut self, fire_order: Vec<(bool, usize)>) {
         for (actor_is_friend, actor_idx) in fire_order {
             // -- 行動者の火力を計算 --
-            let actor_snapshots = if actor_is_friend {
-                &self.log.enemy_snapshots
-            } else {
-                &self.log.friend_snapshots
+            let (actor, actor_snapshot) = match self.actor(actor_is_friend, actor_idx) {
+                Ok(a) => a,
+                Err(reason) => {
+                    self.log.push(ActionLog::TurnSkip {
+                        is_friend: actor_is_friend,
+                        ship_idx: actor_idx,
+                        reason,
+                    });
+                    continue;
+                }
             };
-
-            if !actor_snapshots[actor_idx].is_alive() {
-                self.log.push(ActionLog::TurnSkip {
-                    is_friend: actor_is_friend,
-                    ship_idx: actor_idx,
-                    reason: "Sunk".to_string(),
-                });
-                continue;
-            }
-
-            let actor = self.actor(actor_is_friend, actor_idx);
-            let actor_snapshot = &actor_snapshots[actor_idx];
-
-            if actor.has_attack_aircraft(actor_snapshot)
-                && actor.damaged_level(actor_snapshot) >= DamagedLevel::Moderate
-            {
-                self.log.push(ActionLog::TurnSkip {
-                    is_friend: actor_is_friend,
-                    ship_idx: actor_idx,
-                    reason: "Flight Deck is too Damaged".to_string(),
-                });
-                continue;
-            }
 
             let firepower = {
                 let cap = 220.0;
@@ -181,14 +187,14 @@ impl Battle {
                     * self.setup.direction().fp_factor()
                     * actor.damaged_level(actor_snapshot).fp_factor();
                 let capped_fp = precap_fp.min(cap) + (precap_fp - cap).max(0.0).sqrt().floor();
-                let postcap_fp = capped_fp * 1.0; // 今後の調整をここで行える
+                let postcap_fp = capped_fp * 1.0; // 今後の調整をここで行う
 
-                capped_fp
+                postcap_fp
             };
 
             // -- 攻撃対象の選定と防御力計算 --
 
-            let (target_idx, target, target_snapshot) = self.get_target(actor_is_friend);
+            let (target_idx, target, target_snapshot) = self.random_target(actor_is_friend);
 
             let armor = {
                 let armor = target.armor() as f64;
@@ -224,6 +230,18 @@ impl Battle {
             };
 
             target_snapshot.apply_damage(damage);
+            self.log.push(ActionLog::Attack(AttackLog {
+                to_enemy: !actor_is_friend,
+                actor_idx,
+                target_idx,
+                attack_type: AttackType::Artillery,
+                firepower: firepower as u16,
+                armor: armor as u16,
+                calculated_damage: damage,
+                applied_damage: damage,
+                is_critical: false,
+                is_miss: false,
+            }));
         }
     }
 
@@ -240,7 +258,7 @@ impl Battle {
         }
     }
 
-    pub fn to_battle_report(self) -> BattleReport {
+    pub fn into_battle_report(self) -> BattleReport {
         // Use this battle's setup and snapshot to build the report.
         // call calculate using the final state twice to keep the original signature expectations; adjust if calculate expects other types
         let result = battle_result::BattleResult::calculate(&self);

@@ -43,20 +43,20 @@ pub enum Phase {
 }
 
 pub struct AttackLog {
-    to_enemy: bool,
-    actor_idx: usize,
-    target_idx: usize,
-    attack_type: AttackType,
-    firepower: u16,
-    armor: u16,
-    calculated_damage: u16,
-    applied_damage: u16,
-    is_critical: bool,
-    is_miss: bool,
+    pub to_enemy: bool,
+    pub actor_idx: usize,
+    pub target_idx: usize,
+    pub attack_type: AttackType,
+    pub firepower: u16,
+    pub armor: u16,
+    pub calculated_damage: u16,
+    pub applied_damage: u16,
+    pub is_critical: bool,
+    pub is_miss: bool,
 }
 
-enum AttackType {
-    Shelling,
+pub enum AttackType {
+    Artillery,
     Torpedo,
     AirStrike,
 }
