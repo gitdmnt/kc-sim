@@ -23,20 +23,18 @@ export const BattleSim = ({ friend, stage }: BattleSimProps) => {
   }, [simTrigger]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-row gap-4">
-        <BattleDisplay
-          friend={friend.slice(0, 1)}
-          enemyFleets={enemyFleets}
-          setEnemyFleets={setEnemyFleets}
-          stage={stage}
-        />
-        <BattleControlPanel
-          count={count}
-          setCount={setCount}
-          setSimTrigger={setSimTrigger}
-        />
-      </div>
+    <div className="flex flex-row gap-4 flex-wrap">
+      <BattleDisplay
+        friend={friend.slice(0, 1)}
+        enemyFleets={enemyFleets}
+        setEnemyFleets={setEnemyFleets}
+        stage={stage}
+      />
+      <BattleControlPanel
+        count={count}
+        setCount={setCount}
+        setSimTrigger={setSimTrigger}
+      />
       {results.length > 0 ? (
         <BattleAnalytics
           friend={friend[0]}
