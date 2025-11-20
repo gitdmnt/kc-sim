@@ -1,4 +1,4 @@
-use crate::battle::battle_direction;
+use crate::battle_legacy::battle_direction;
 use crate::interface;
 
 // 戦闘中の艦船の状態を管理する構造体
@@ -91,7 +91,8 @@ impl FightingShip {
         self.ship.is_battleship_class()
     }
     pub fn has_attack_aircraft(&self) -> bool {
-        self.ship.has_attack_aircraft()
+        // self.ship.has_attack_aircraft()
+        unimplemented!()
     }
 
     ///

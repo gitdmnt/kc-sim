@@ -7,6 +7,19 @@ pub enum BattleDirection {
     TDisadvantage,
 }
 impl BattleDirection {
+    pub fn random() -> Self {
+        let r = rand::random::<f64>();
+        if r < 0.45 {
+            BattleDirection::Same // 45%
+        } else if r < 0.75 {
+            BattleDirection::Against // 30%
+        } else if r < 0.9 {
+            BattleDirection::TAdvantage // 15%
+        } else {
+            BattleDirection::TDisadvantage // 10%
+        }
+    }
+
     pub fn fp_factor(&self) -> f64 {
         match self {
             BattleDirection::Same => 1.0,

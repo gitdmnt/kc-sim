@@ -2,10 +2,12 @@ use log::{debug, error, info};
 use wasm_bindgen::prelude::*;
 
 mod battle;
+
+mod fleet;
 mod interface;
 mod utils;
 
-use crate::interface::FleetLike;
+use crate::fleet::FleetLike;
 
 static INIT: std::sync::Once = std::sync::Once::new();
 
@@ -18,7 +20,7 @@ fn initialize() {
 }
 
 #[wasm_bindgen]
-pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue {
+pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> Result<JsValue, JsValue> {
     initialize();
 
     info!("Simulation started");
@@ -27,14 +29,18 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
         Ok(f) => f,
         Err(err) => {
             error!("Failed to parse friend fleet: {:?}", err);
-            return serde_wasm_bindgen::to_value(&Vec::<interface::BattleReport>::new()).unwrap();
+            return Err(
+                serde_wasm_bindgen::to_value(&Vec::<interface::BattleReport>::new()).unwrap(),
+            );
         }
     };
     let mut enemy = match serde_wasm_bindgen::from_value::<Vec<interface::EnemyFleet>>(enemy_val) {
         Ok(e) => e,
         Err(err) => {
             error!("Failed to parse enemy fleets: {:?}", err);
-            return serde_wasm_bindgen::to_value(&Vec::<interface::BattleReport>::new()).unwrap();
+            return Err(
+                serde_wasm_bindgen::to_value(&Vec::<interface::BattleReport>::new()).unwrap(),
+            );
         }
     };
 
@@ -51,10 +57,10 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> JsValue 
     for i in 0..count {
         let logging = i < 1 || i % 100 == 0;
         let (idx, selected_enemy) = select_random_enemy(&enemy);
-        let battle_result = battle_once(&friend, idx, selected_enemy, logging);
+        let battle_result = battle_once(&friend, selected_enemy);
         results.push(battle_result);
     }
-    serde_wasm_bindgen::to_value(&results).unwrap()
+    Ok(serde_wasm_bindgen::to_value(&results).unwrap())
 }
 
 fn select_random_enemy(enemy_fleets: &[interface::EnemyFleet]) -> (usize, &interface::EnemyFleet) {
@@ -74,17 +80,11 @@ fn select_random_enemy(enemy_fleets: &[interface::EnemyFleet]) -> (usize, &inter
 
 fn battle_once(
     friend: &interface::Fleet,
-    enemy_index: usize,
     enemy: &interface::EnemyFleet,
-    logging: bool,
 ) -> interface::BattleReport {
-    let mut battle = battle::Battle::new(friend, enemy_index, enemy);
+    let mut battle = battle::Battle::new(friend, enemy);
 
-    battle.fire_phase();
+    battle.artillery_phase();
 
-    if logging {
-        battle.flush_logs_debug();
-    }
-
-    battle.into()
+    battle.to_battle_report()
 }
