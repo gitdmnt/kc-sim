@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::battle::ShipSnapshot;
+use crate::battle::{BattleDirection, DamagedLevel, Phase, ShipSnapshot};
+
 use crate::fleet::equipment::Equipment;
 use crate::fleet::status::Range;
 

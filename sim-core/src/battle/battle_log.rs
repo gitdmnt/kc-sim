@@ -72,6 +72,13 @@ impl ShipSnapshot {
     pub fn is_alive(&self) -> bool {
         self.hp > 0
     }
+    pub fn apply_damage(&mut self, damage: u16) {
+        if damage >= self.hp {
+            self.hp = 0;
+        } else {
+            self.hp -= damage;
+        }
+    }
 }
 
 impl From<&Ship> for ShipSnapshot {

@@ -1,4 +1,5 @@
 use crate::fleet::{EnemyFleet, Fleet, FleetLike, Ship};
+use itertools::Itertools;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
@@ -9,6 +10,7 @@ mod battle_setup;
 use battle_setup::BattleSetup;
 
 mod battle_direction;
+pub use battle_direction::BattleDirection;
 mod battle_result;
 pub use battle_result::BattleResult;
 
@@ -32,86 +34,68 @@ impl Battle {
         Self { setup, log }
     }
 
-    /// 射程順に行動順を決定します。
     /// reference: [戦闘について - 艦隊これくしょん -艦これ- 攻略 Wiki*](https://wikiwiki.jp/kancolle/%E6%88%A6%E9%97%98%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6#b7dbae4f)
-    /// 艦これの砲撃戦一巡目は次のルールで行動順が決定されます:
+    /// 艦これの砲撃戦1巡目は次のルールで行動順が決定されます:
     /// 1. 味方・敵双方の生存艦をそれぞれ抽出し、射程順にソートします。
     /// 2. それぞれの艦隊の最も射程の長い艦を比較し、射程の長い方の艦隊の艦をキューの最初に追加します。
     /// 3. 以降、両艦隊の艦を交互に行動させるよう、艦をキューに追加します。
     ///    味方艦の射程がそれぞれ`[長, 短]`, 敵艦が`[中, 中]`の場合、行動順は`[味方長, 敵中, 味方短, 敵中]`となります。
     /// 4. どちらかの艦隊の生存艦が尽きた場合、残った艦隊の艦をそのままキューに追加します。
-    /// 5. 一巡目中に艦が撃沈されても、行動順は再計算されず、撃沈された艦は単にスキップされます。
+    /// 5. 1巡目中に艦が撃沈されても、行動順は再計算されず、撃沈された艦は単にスキップされます。
     fn ordered_by_range(&self) -> Vec<(bool, usize)> {
-        fn filter_alive<'a>(
-            ships: &'a [Ship],
-            snapshots: &'a [ShipSnapshot],
-        ) -> Vec<(usize, &'a Ship)> {
-            ships
-                .iter()
-                .enumerate()
-                .filter(|(idx, _)| snapshots[*idx].is_alive())
-                .collect::<Vec<_>>()
-        }
-
         // 味方と敵の生存艦をそれぞれ取得し、射程順にソート
-        let mut friend = filter_alive(self.setup.friend_fleet.ships(), &self.log.friend_snapshots);
+        let mut friend =
+            Self::filter_alive(self.setup.friend_fleet.ships(), &self.log.friend_snapshots);
         friend.sort_by_key(|(_, s)| std::cmp::Reverse(s.range()));
-        let mut enemy = filter_alive(self.setup.enemy_fleet.ships(), &self.log.enemy_snapshots);
+        let mut enemy =
+            Self::filter_alive(self.setup.enemy_fleet.ships(), &self.log.enemy_snapshots);
         enemy.sort_by_key(|(_, s)| std::cmp::Reverse(s.range()));
 
         // 先に動き始める艦隊を決定
-        let (first, second) = if friend
-            .first()
-            .map_or(crate::fleet::Range::None, |(_, s)| s.range())
-            >= enemy
-                .first()
-                .map_or(crate::fleet::Range::None, |(_, s)| s.range())
-        {
-            (friend, enemy)
-        } else {
-            (enemy, friend)
-        };
-        let mut order = Vec::new();
-        let mut i = 0;
-        let mut j = 0;
-        while i < first.len() || j < second.len() {
-            if i < first.len() {
-                order.push((true, first[i].0));
-                i += 1;
-            }
-            if j < second.len() {
-                order.push((false, second[j].0));
-                j += 1;
-            }
-        }
+        let (first, second) =
+            if friend.first().map(|(_, s)| s.range()) >= enemy.first().map(|(_, s)| s.range()) {
+                (friend, enemy)
+            } else {
+                (enemy, friend)
+            };
+
+        // 交互にキューに追加; (艦隊識別子, 艦インデックス)
+        let order = first
+            .iter()
+            .map(|(idx, _)| (true, *idx))
+            .interleave(second.iter().map(|(idx, _)| (false, *idx)))
+            .collect::<Vec<_>>();
         order
     }
 
+    /// 2巡目の行動順決定はより単純で、艦隊内の艦をインデックス順に並べたものになります。
     fn ordered_by_index(&self) -> Vec<(bool, usize)> {
-        let mut order = Vec::new();
-        for (idx, _) in self
-            .log
-            .friend_snapshots
-            .iter()
-            .enumerate()
-            .filter(|(_, snap)| snap.is_alive())
-        {
-            order.push((true, idx));
-        }
-        for (idx, _) in self
-            .log
-            .enemy_snapshots
-            .iter()
-            .enumerate()
-            .filter(|(_, snap)| snap.is_alive())
-        {
-            order.push((false, idx));
-        }
+        let friend =
+            Self::filter_alive(self.setup.friend_fleet.ships(), &self.log.friend_snapshots);
+        let enemy = Self::filter_alive(self.setup.enemy_fleet.ships(), &self.log.enemy_snapshots);
 
+        let order = friend
+            .iter()
+            .map(|(idx, _)| (true, *idx))
+            .interleave(enemy.iter().map(|(idx, _)| (false, *idx)))
+            .collect::<Vec<_>>();
         order
     }
 
-    fn get_actor(&self, is_friend: bool, actor_idx: usize) -> &Ship {
+    /// 生存している艦の所属フラグとインデックスを抽出します。
+    fn filter_alive<'a>(
+        ships: &'a [Ship],
+        snapshots: &'a [ShipSnapshot],
+    ) -> Vec<(usize, &'a Ship)> {
+        ships
+            .iter()
+            .enumerate()
+            .filter(|(idx, _)| snapshots[*idx].is_alive())
+            .collect::<Vec<_>>()
+    }
+
+    /// 指定された艦隊とインデックスに対応する艦への参照を取得します。
+    fn actor(&self, is_friend: bool, actor_idx: usize) -> &Ship {
         if is_friend {
             &self.setup.friend_fleet.ships()[actor_idx]
         } else {
@@ -119,8 +103,9 @@ impl Battle {
         }
     }
 
-    fn get_target(&mut self, is_friend: bool) -> (&Ship, &mut ShipSnapshot) {
-        let (ships, snapshots) = if is_friend {
+    /// 指定された艦隊のランダムな艦への参照とそのスナップショットの可変参照を取得します。
+    fn get_target(&mut self, actor_is_friend: bool) -> (usize, &Ship, &mut ShipSnapshot) {
+        let (ships, snapshots) = if actor_is_friend {
             (
                 &self.setup.enemy_fleet.ships(),
                 &mut self.log.enemy_snapshots,
@@ -134,8 +119,7 @@ impl Battle {
         let alive_indices = snapshots
             .iter()
             .enumerate()
-            .filter(|(_, snap)| snap.is_alive())
-            .map(|(idx, _)| idx)
+            .filter_map(|(idx, snap)| snap.is_alive().then_some(idx))
             .collect::<Vec<usize>>();
         if alive_indices.is_empty() {
             panic!("No alive targets to choose from");
@@ -143,41 +127,103 @@ impl Battle {
         let mut rng = rand::rng();
         let target_idx = alive_indices[rng.random_range(0..alive_indices.len())];
 
-        (&ships[target_idx], &mut snapshots[target_idx])
+        (target_idx, &ships[target_idx], &mut snapshots[target_idx])
     }
 
     pub fn artillery_phase_helper(&mut self, fire_order: Vec<(bool, usize)>) {
-        for (is_friend, actor_idx) in fire_order {
-            let (actor_snapshots, target_snapshots) = if is_friend {
-                (&self.log.enemy_snapshots, &mut self.log.friend_snapshots)
+        for (actor_is_friend, actor_idx) in fire_order {
+            // -- 行動者の火力を計算 --
+            let actor_snapshots = if actor_is_friend {
+                &self.log.enemy_snapshots
             } else {
-                (&self.log.friend_snapshots, &mut self.log.enemy_snapshots)
+                &self.log.friend_snapshots
             };
 
             if !actor_snapshots[actor_idx].is_alive() {
                 self.log.push(ActionLog::TurnSkip {
-                    is_friend,
+                    is_friend: actor_is_friend,
                     ship_idx: actor_idx,
                     reason: "Sunk".to_string(),
                 });
                 continue;
             }
 
-            let actor = self.get_actor(is_friend, actor_idx);
+            let actor = self.actor(actor_is_friend, actor_idx);
             let actor_snapshot = &actor_snapshots[actor_idx];
 
             if actor.has_attack_aircraft(actor_snapshot)
                 && actor.damaged_level(actor_snapshot) >= DamagedLevel::Moderate
             {
                 self.log.push(ActionLog::TurnSkip {
-                    is_friend,
+                    is_friend: actor_is_friend,
                     ship_idx: actor_idx,
                     reason: "Flight Deck is too Damaged".to_string(),
                 });
                 continue;
             }
 
-            let (target, target_snapshot) = self.get_target(is_friend);
+            let firepower = {
+                let cap = 220.0;
+
+                // TODO: 装備改修ボーナス
+                // TODO: 航空機を搭載していない空母系の場合の分岐が変
+                let basic_fp = if actor.has_attack_aircraft(actor_snapshot) {
+                    // TODO: 航空要員ボーナス
+                    let fp = actor.firepower() as f64;
+                    let torpedo_fp = actor.torpedo() as f64;
+                    let bomb_fp = actor.bombing() as f64;
+                    ((fp + torpedo_fp + bomb_fp) * 1.5).floor() + 55.0
+                } else {
+                    actor.firepower() as f64 + 5.0
+                };
+
+                let precap_fp = basic_fp
+                    * self.setup.direction().fp_factor()
+                    * actor.damaged_level(actor_snapshot).fp_factor();
+                let capped_fp = precap_fp.min(cap) + (precap_fp - cap).max(0.0).sqrt().floor();
+                let postcap_fp = capped_fp * 1.0; // 今後の調整をここで行える
+
+                capped_fp
+            };
+
+            // -- 攻撃対象の選定と防御力計算 --
+
+            let (target_idx, target, target_snapshot) = self.get_target(actor_is_friend);
+
+            let armor = {
+                let armor = target.armor() as f64;
+                let r: f64 = rand::random();
+                armor * 0.7 + (armor * r).floor() * 0.6
+            };
+
+            // -- ダメージ計算と適用 --
+
+            let damage = {
+                let diff = (firepower - armor).floor();
+                let hp_now = target_snapshot.hp() as f64;
+                let calculated_damage = if diff > 0.0 {
+                    diff
+                } else {
+                    // カスダメ化
+                    let r = rand::random::<f64>();
+                    hp_now * 0.06 + f64::floor(hp_now * r) * 0.08
+                };
+
+                let adjusted_damage = if !actor_is_friend && calculated_damage >= hp_now {
+                    if target_idx == 0 {
+                        let r: f64 = rand::random();
+                        f64::floor(hp_now * 0.5 + f64::floor(hp_now * r) * 0.3) as u16
+                    } else {
+                        hp_now as u16 - 1
+                    }
+                } else {
+                    calculated_damage as u16
+                };
+
+                adjusted_damage
+            };
+
+            target_snapshot.apply_damage(damage);
         }
     }
 

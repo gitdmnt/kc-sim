@@ -25,4 +25,7 @@ impl BattleSetup {
                 .iter()
                 .any(|s| s.is_battleship_class())
     }
+    pub fn direction(&self) -> &BattleDirection {
+        &self.direction
+    }
 }

@@ -8,7 +8,7 @@ pub enum DamagedLevel {
 }
 
 impl DamagedLevel {
-    fn fp_factor(&self) -> f64 {
+    pub fn fp_factor(&self) -> f64 {
         match self {
             DamagedLevel::NoDamage => 1.0,
             DamagedLevel::Minor => 1.0,
