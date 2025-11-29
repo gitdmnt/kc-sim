@@ -57,8 +57,8 @@ pub fn simulate(friend_val: JsValue, enemy_val: JsValue, count: u32) -> Result<J
     for i in 0..count {
         let logging = i < 1 || i % 100 == 0;
         let (idx, selected_enemy) = select_random_enemy(&enemy);
-        let battle_result = battle_once(&friend, selected_enemy);
-        results.push(battle_result);
+        let battle_report = battle_once(&friend, selected_enemy);
+        results.push(battle_report);
     }
     Ok(serde_wasm_bindgen::to_value(&results).unwrap())
 }

@@ -108,6 +108,8 @@ pub struct EnemyFleet {
     area: u16,
     map: u16,
     node: String,
+    difficulty: u16,
+    index: u16,
     pub probability: f64,
     ships: Vec<Ship>,
     formation: Option<Formation>,
