@@ -35,28 +35,32 @@ impl Ship {
     }
 
     /// 火力ステータスを取得する。
-    /// この値には装備の火力が加算されているが、艦娘固有の装備ボーナスや改修ボーナスは含まれない。
-    /// 以下のゲッターも同様。
+    /// この値には装備の火力、艦娘固有の装備ボーナスが加算されているが、改修ボーナスは含まれない。
     pub fn firepower(&self) -> u16 {
         self.status.firepower
     }
 
     /// 装甲ステータスを取得する。
+    /// この値には装備の装甲、艦娘固有の装備ボーナスが加算されているが、改修ボーナスは含まれない。
     pub fn armor(&self) -> u16 {
         self.status.armor
     }
 
     /// 雷装ステータスを取得する。
+    /// この値には装備の雷装、艦娘固有の装備ボーナスが加算されているが、改修ボーナスは含まれない。
+    /// 艦攻の雷装ボーナスは計算され、加算されている。
     pub fn torpedo(&self) -> u16 {
         self.status.torpedo
     }
 
     /// 爆装ステータスを取得する。
+    /// この値には装備の爆装、艦娘固有の装備ボーナスが加算されているが、改修ボーナスは含まれない。
     pub fn bombing(&self) -> u16 {
         self.equips.iter().map(|e| e.bombing()).sum()
     }
 
     /// 射程ステータスを取得する。
+    /// この値には装備の射程が反映されている。
     pub fn range(&self) -> Range {
         let range = self.status.range.clone().unwrap_or_default();
         let equip_range = self

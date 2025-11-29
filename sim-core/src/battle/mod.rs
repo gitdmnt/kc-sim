@@ -153,6 +153,8 @@ impl Battle {
         (target_idx, &ships[target_idx], &mut snapshots[target_idx])
     }
 
+    /// 砲撃戦フェーズのヘルパー関数。
+    /// 指定された行動順に従って砲撃戦を実行します。
     pub fn artillery_phase_helper(&mut self, fire_order: Vec<(bool, usize)>) {
         for (actor_is_friend, actor_idx) in fire_order {
             // -- 行動者の火力を計算 --
