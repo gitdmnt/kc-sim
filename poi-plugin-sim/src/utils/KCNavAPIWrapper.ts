@@ -171,19 +171,23 @@ const parseKCNavEnemyComps = (
     (sum: number, entry: any) => sum + entry.count,
     0
   );
-  const enemyFleets: EnemyFleet[] = entries.map((entry: any): EnemyFleet => {
-    return {
-      area,
-      map,
-      node,
-      probability: entry.count / totalCount,
-      ships: entry.mainFleet.map((enemy: any): Ship => {
-        return parseKCNavEnemyDataToEnemyFleet(enemy);
-      }),
+  const enemyFleets: EnemyFleet[] = entries.map(
+    (entry: any, i: number): EnemyFleet => {
+      return {
+        area,
+        map,
+        node,
+        index: i,
+        difficulty: entry.difficulty ?? 0,
+        probability: entry.count / totalCount,
+        ships: entry.mainFleet.map((enemy: any): Ship => {
+          return parseKCNavEnemyDataToEnemyFleet(enemy);
+        }),
 
-      formation: formationMap[entry.formation],
-    };
-  });
+        formation: formationMap[entry.formation],
+      };
+    }
+  );
   return enemyFleets;
 };
 

@@ -12,6 +12,8 @@ interface EnemyFleet {
   area: number;
   map: number;
   node: string;
+  difficulty: number;
+  index: number;
   probability: number;
   ships: Ship[];
   formation: Formation;
@@ -120,9 +122,8 @@ type Formation =
 
 interface BattleReport {
   result: BattleResult; // SS:0, S:1, A:2, B:3, C:4, D:5 E:6
-  friendFleetResults: ShipSnapshot[];
-  enemyIndex: number;
-  enemyFleetResults: ShipSnapshot[];
+  friendFleet: Fleet;
+  enemyFleet: EnemyFleet;
 }
 
 enum BattleResult {
@@ -134,8 +135,4 @@ enum BattleResult {
   D = "D",
   E = "E",
   None = undefined,
-}
-
-interface ShipSnapshot {
-  hp: number;
 }
