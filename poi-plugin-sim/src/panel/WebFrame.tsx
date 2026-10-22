@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { EMBED_VERSION, serverOrigin } from "@shared/embed/protocol";
 import type { PoiState } from "@shared/embed/protocol";
 import { PresetStore } from "@web/fleet/presetStore";
-import { EmptyState } from "@web/ui";
+import { Button, EmptyState } from "@web/ui";
 import { STORAGE_PREFIX } from "../settings";
 import { EmbedBridge } from "./bridge";
 
@@ -31,7 +31,7 @@ const legacyPresetsJson = (): string | null => {
  * Web UI を iframe で開き、poi の state を postMessage で渡す。送り先は iframe のオリジンに固定し、
  * 受け取るのはその iframe から・そのオリジンのメッセージだけ。
  */
-export const WebFrame = ({ serverUrl, poiState }: { serverUrl: string; poiState: PoiState }) => {
+export const WebFrame = ({ serverUrl, poiState, onOpenSettings }: { serverUrl: string; poiState: PoiState; onOpenSettings: () => void }) => {
   const origin = serverOrigin(serverUrl);
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const bridgeRef = useRef<EmbedBridge | null>(null);
@@ -75,12 +75,9 @@ export const WebFrame = ({ serverUrl, poiState }: { serverUrl: string; poiState:
   return (
     <div ref={hostRef} className="flex min-h-0 flex-1 flex-col">
       {origin === null ? (
-        <EmptyState className="py-16" title="サーバ URL が正しくありません" />
+        <EmptyState className="py-16" title="サーバ URL が正しくありません" action={<Button onClick={onOpenSettings}>送信設定を開く</Button>} />
       ) : host !== null && !canEmbedIn(host) ? (
-        <EmptyState
-          className="py-16"
-          title="ウィンドウモードが必要です"
-        />
+        <EmptyState className="py-16" title="ウィンドウモードが必要です" />
       ) : (
         <>
           {webVersion !== null && webVersion > EMBED_VERSION && (

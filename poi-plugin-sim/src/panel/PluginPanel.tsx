@@ -17,6 +17,9 @@ const TABS: TabItem<PanelTab>[] = [
   { id: "upload", label: L.tabs.upload },
 ];
 
+// macOS のプラグインウィンドウはタイトルバーが無く、左上の信号ボタン (閉じる/最小化/拡大) がタブに重なるので避ける
+const IS_MAC = typeof navigator !== "undefined" && /Mac/.test(navigator.platform || navigator.userAgent);
+
 /**
  * プラグインのビュー。シミュレータ本体はサーバの Web UI を iframe で開き (WebFrame)、観測ログと送信設定は
  * キャプチャと同じ場所 (このプラグインの IndexedDB / localStorage) にあるのでここで描く。
@@ -32,10 +35,10 @@ export const PluginPanel = ({ poiState }: { poiState: PoiState }) => {
     <div className="kcsim">
       <div className="flex h-screen flex-col">
         <ToastProvider>
-          <Tabs tabs={TABS} value={tab} onChange={setTab} className="shrink-0 px-3" />
+          <Tabs tabs={TABS} value={tab} onChange={setTab} className={IS_MAC ? "shrink-0 pl-20 pr-3" : "shrink-0 px-3"} />
           {/* iframe は隠すだけで外さない (Web UI の状態と読み込みを保つ) */}
           <div className={tab === "sim" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-            <WebFrame serverUrl={serverUrl} poiState={poiState} />
+            <WebFrame serverUrl={serverUrl} poiState={poiState} onOpenSettings={() => setTab("upload")} />
           </div>
           {tab !== "sim" && (
             <main className="min-h-0 flex-1 overflow-auto p-4">
