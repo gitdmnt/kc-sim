@@ -1,8 +1,10 @@
 [package]
 name = "sim-core"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["gitdmnt <100859051+gitdmnt@users.noreply.github.com>"]
-edition = "2018"
+edition = "2021"
+description = "KanColle single-node battle engine (Monte-Carlo) compiled to wasm"
+license = "MIT OR Apache-2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -11,26 +13,16 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-wasm-bindgen = { version = "0.2.84" }
-
-# The `console_error_panic_hook` crate provides better debugging of panics by
-# logging them with `console.error`. This is great for development, but requires
-# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
-# code size when deploying.
-rand = "0.9.2"
-console_error_panic_hook = { version = "0.1.7", optional = true }
+wasm-bindgen = "0.2.129"
 serde = { version = "1.0.228", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
-getrandom = { version = "0.3.4", features = ["wasm_js"] }
-web-sys = { version = "0.3.82", features = ["console"] }
-log = { version = "0.4.28", features = ["max_level_trace"] }
-wasm-logger = "0.2.0"
+rand_core = "0.9"
+rand_xoshiro = "0.7"
 serde_json = "1.0.145"
-itertools = "0.14.0"
-
-[dev-dependencies]
-wasm-bindgen-test = "0.3.34"
+# Logs Rust panics with `console.error` in the browser.
+console_error_panic_hook = { version = "0.1.7", optional = true }
 
 [profile.release]
-# Tell `rustc` to optimize for small code size.
-opt-level = "s"
+opt-level = 3
+lto = true
+codegen-units = 1
