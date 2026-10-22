@@ -176,9 +176,10 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
                     </span>
                   </Td>
                   <Td>
+                    {/* battleRate も出撃あたり (到達のうち戦闘した分) */}
                     {n.battleRate > 0 ? (
                       <StackedBar
-                        parts={[...rankBar(n.rankRates, n.reachRate * n.battleRate), { label: "戦闘なし", value: n.reachRate * (1 - n.battleRate), color: "var(--color-ink-600)" }]}
+                        parts={[...rankBar(n.rankRates, n.battleRate), { label: "戦闘なし", value: Math.max(0, n.reachRate - n.battleRate), color: "var(--color-ink-600)" }]}
                       />
                     ) : (
                       <div className="h-0.5 rounded-full bg-ink-600" style={{ width: `${n.reachRate * 100}%` }} title={`到達 ${pct(n.reachRate)} (戦闘なし)`} />
