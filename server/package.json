@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "mkdir -p ../web/dist && wrangler dev --local --port 8787",
-    "build:web": "cd ../web && bun install && bun run build",
+    "build:web": "cd ../web && bun install --frozen-lockfile && bun run build",
     "migrate": "wrangler d1 migrations apply kc-sim --local",
     "migrate:remote": "wrangler d1 migrations apply kc-sim --remote --env production",
     "ingest": "bun scripts/ingest-all.ts",

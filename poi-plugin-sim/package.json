@@ -25,8 +25,11 @@
     "react-redux": "^9.2.0"
   },
   "scripts": {
+    "predev": "bun run deps:web",
     "dev": "vite",
+    "prebuild": "bun run deps:web",
     "build": "vite build",
+    "deps:web": "cd ../web && bun install --frozen-lockfile",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "screenshots": "bun scripts/screenshots.ts"

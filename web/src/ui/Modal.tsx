@@ -2,21 +2,24 @@ import React, { useEffect, useRef } from "react";
 import { cx } from "./cx";
 import { S } from "./strings";
 
-/** ダイアログ表示中は Esc で閉じ、開いた時にフォーカスを移し、閉じたら元の要素へ戻す。 */
-const useDialogFocus = (ref: React.RefObject<HTMLElement | null>) => {
+/**
+ * ダイアログ表示中は Esc で閉じ、開いた時にフォーカスを移し、閉じたら元の要素へ戻す。
+ * window / document はダイアログが置かれた側のものを使う (poi のプラグインウィンドウには、コードが動く
+ * メインウィンドウから portal で描かれるため、グローバルの window とは別のことがある)。
+ */
+const useDialog = (ref: React.RefObject<HTMLElement | null>, onClose: () => void) => {
   useEffect(() => {
-    const prev = document.activeElement as HTMLElement | null;
+    const doc = ref.current?.ownerDocument ?? document;
+    const prev = doc.activeElement as HTMLElement | null;
     ref.current?.focus();
     return () => prev?.focus?.();
   }, [ref]);
-};
-
-const useEscape = (onClose: () => void) => {
   useEffect(() => {
+    const win = ref.current?.ownerDocument.defaultView ?? window;
     const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
+    win.addEventListener("keydown", h);
+    return () => win.removeEventListener("keydown", h);
+  }, [ref, onClose]);
 };
 
 interface Props {
@@ -39,9 +42,8 @@ const CloseButton = ({ onClose }: { onClose: () => void }) => (
 );
 
 export const Modal = ({ title, onClose, footer, className, children }: Props) => {
-  useEscape(onClose);
   const ref = useRef<HTMLDivElement>(null);
-  useDialogFocus(ref);
+  useDialog(ref, onClose);
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/75 p-4 backdrop-blur-[2px]"
@@ -74,9 +76,8 @@ export const Modal = ({ title, onClose, footer, className, children }: Props) =>
 };
 
 export const Drawer = ({ title, onClose, className, children }: Omit<Props, "footer">) => {
-  useEscape(onClose);
   const ref = useRef<HTMLElement>(null);
-  useDialogFocus(ref);
+  useDialog(ref, onClose);
   return (
     <div
       className="fixed inset-0 z-50 flex justify-end bg-ink-950/65 backdrop-blur-[2px]"

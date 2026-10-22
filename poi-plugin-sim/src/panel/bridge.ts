@@ -17,11 +17,19 @@ export interface BridgeDeps {
   onWebVersion?: (v: number) => void;
 }
 
-/** info のうち Web UI が読む部分の参照。どれかが変わったら送り直す */
-const infoParts = (info: unknown): unknown[] => {
-  const p = projectInfo(info);
-  return [p.fleets, p.ships, p.equips, p.basic.api_level];
-};
+const field = (v: unknown, key: string): unknown =>
+  typeof v === "object" && v !== null ? (v as Record<string, unknown>)[key] : undefined;
+
+/**
+ * poi の info のうち Web UI に送る部分の参照 (projectInfo の元)。redux はスライスを不変に更新するので、
+ * どれかの参照が変わったときだけ射影して送り直す (資源や任務の更新では送らない)。
+ */
+const infoParts = (info: unknown): unknown[] => [
+  field(info, "fleets"),
+  field(info, "ships"),
+  field(info, "equips"),
+  field(field(info, "basic"), "api_level"),
+];
 
 export class EmbedBridge {
   private ready = false;
@@ -50,7 +58,8 @@ export class EmbedBridge {
       this.deps.onWebVersion?.(m.v);
       this.flush();
       this.sendPresets();
-    } else if (m.type === "presets-ack") {
+    } else if (m.type === "presets-ack" && m.persisted) {
+      // Web UI がメモリにしか置けなかったとき (persisted: false) は移行済みにせず、次の ready でまた送る
       this.deps.markPresetsDone();
     }
   }

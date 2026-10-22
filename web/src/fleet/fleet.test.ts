@@ -216,6 +216,12 @@ describe("PresetStore", () => {
     expect(other.list()).toHaveLength(2);
   });
 
+  test("persistent is false only for the in-memory fallback", () => {
+    expect(mk().store.persistent).toBe(false);
+    const fakeLocal = { length: 0, key: () => null, getItem: () => null, setItem: () => {}, removeItem: () => {} };
+    expect(new PresetStore({ storage: fakeLocal }).persistent).toBe(true);
+  });
+
   test("DeckBuilder via store", () => {
     const { store } = mk();
     const p = store.importDeckBuilder({ version: 4, f1: { s1: { id: 1, lv: 5, items: {} } } });

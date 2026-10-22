@@ -26,15 +26,18 @@ export class MemoryStorage implements KeyValueStorage {
   }
 }
 
-/** localStorage が使えない環境 (テスト等) ではメモリにフォールバックする。 */
+/** localStorage が使えない環境 (テスト、iframe でストレージが拒否されたとき等) ではメモリにフォールバックする。 */
 export const defaultStorage = (): KeyValueStorage => {
   try {
     if (typeof localStorage !== "undefined") return localStorage;
   } catch {
-    // アクセス拒否 (privacy 設定など)
+    // アクセス拒否 (privacy 設定、サードパーティのストレージのブロックなど)
   }
   return new MemoryStorage();
 };
+
+/** 再読み込み後も残るストレージか (メモリへのフォールバックでないか)。 */
+export const isPersistent = (s: KeyValueStorage): boolean => !(s instanceof MemoryStorage);
 
 /** この名前空間に属するキーを列挙する。 */
 export const keysWithPrefix = (s: KeyValueStorage, prefix: string): string[] => {

@@ -71,10 +71,29 @@ describe("EmbedBridge", () => {
     expect(sent.map((m) => m.type)).toEqual(["presets"]);
     bridge.onMessage(ready);
     expect(sent.map((m) => m.type)).toEqual(["presets", "presets"]);
-    bridge.onMessage({ src: "kcsim", v: 1, type: "presets-ack", imported: 0, skipped: 0 });
+    bridge.onMessage({ src: "kcsim", v: 1, type: "presets-ack", imported: 0, skipped: 0, persisted: true });
     expect(isDone()).toBe(true);
     bridge.onMessage(ready);
     expect(sent.map((m) => m.type)).toEqual(["presets", "presets"]);
+  });
+
+  test("an ack the web UI could only keep in memory does not finish the migration", () => {
+    const { bridge, sent, isDone } = setup('{"format":"kcsim-presets","version":1,"presets":[]}');
+    bridge.onMessage(ready);
+    bridge.onMessage({ src: "kcsim", v: 1, type: "presets-ack", imported: 1, skipped: 0, persisted: false });
+    expect(isDone()).toBe(false);
+    bridge.onMessage(ready);
+    expect(sent.map((m) => m.type)).toEqual(["presets", "presets"]);
+  });
+
+  test("fleet api_member_id and other unread fields are not posted", () => {
+    const { bridge, sent } = setup();
+    bridge.update({
+      info: { basic: { api_level: 1 }, fleets: [{ api_member_id: 42, api_id: 1, api_ship: [1] }], ships: {}, equips: {} },
+      const: master,
+    });
+    bridge.onMessage(ready);
+    expect(JSON.stringify(sent)).not.toContain("api_member_id");
   });
 
   test("no presets to migrate: nothing sent", () => {

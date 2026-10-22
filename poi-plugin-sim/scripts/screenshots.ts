@@ -42,9 +42,28 @@ const servers = [
 ];
 
 const browser = await chromium.launch({ executablePath: findChromium() });
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
-page.on("pageerror", (e) => console.error("[pageerror]", e.message));
-page.on("console", (m) => m.type() === "error" && console.error("[console.error]", m.text().slice(0, 300)));
+// 新しいコンテキストは localStorage / IndexedDB が空。旧プラグイン UI のプリセットを 1 件置いて、移行も通す
+const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+await context.addInitScript(() => {
+  if (location.port !== "5197" || localStorage.getItem("kcsim:plugin") !== null) return;
+  const preset = {
+    id: "legacy1", name: "旧プラグインの編成", createdAt: 1, updatedAt: 1, fleetType: "single", formation: "line_ahead",
+    ships: [{ masterId: 1, level: 99, luckMod: 0, hpMod: 0, aswMod: 0, morale: 49, equips: [] }], source: "manual",
+  };
+  localStorage.setItem("kcsim:preset:legacy1", JSON.stringify(preset));
+});
+const main = await context.newPage();
+for (const p of [main]) {
+  p.on("pageerror", (e) => console.error("[pageerror]", e.message));
+  p.on("console", (m) => m.type() === "error" && console.error("[console.error]", m.text().slice(0, 300)));
+}
+
+// poi のウィンドウモードと同じく、開発用ページ (= メインウィンドウ) が子ウィンドウを開いてビューを portal する
+const popupOpened = context.waitForEvent("page");
+await main.goto(`http://localhost:${PLUGIN_PORT}/?server=${encodeURIComponent(`http://localhost:${WEB_PORT}/`)}`);
+const page = await popupOpened;
+await page.setViewportSize({ width: 1440, height: 1000 });
+page.on("pageerror", (e) => console.error("[pageerror:plugin window]", e.message));
 
 const shot = async (name: string) => {
   await page.screenshot({ path: join(OUT, `${name}.png`) });
@@ -53,24 +72,21 @@ const shot = async (name: string) => {
 const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).click();
 
 try {
-  await page.goto(`http://localhost:${PLUGIN_PORT}/?server=${encodeURIComponent(`http://localhost:${WEB_PORT}/`)}`);
-  await page.evaluate(async () => {
-    localStorage.clear();
-    const dbs = await indexedDB.databases();
-    await Promise.all(dbs.map((d) => new Promise((r) => { const q = indexedDB.deleteDatabase(d.name!); q.onsuccess = q.onerror = q.onblocked = () => r(null); })));
-  });
-  await page.reload();
-
-  // 埋め込んだ Web UI に poi の state (開発用ページではサンプル) が届くと「poi 接続中」になる
+  // 埋め込んだ Web UI に poi の state (開発用ページではサンプル) が届くと「poi 接続中」になる。
+  // postMessage の送り元は子ウィンドウでなくメインウィンドウ (= 親の opener) で、実機の poi と同じ経路
   const web = page.frameLocator("iframe[title=kc-sim]");
   await web.getByText("poi 接続中").waitFor({ timeout: 30_000 });
+  // 旧プラグイン UI のプリセットが移行されている
+  await web.getByText("旧プラグインの編成").waitFor({ timeout: 10_000 });
+  const migrated = await main.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("kcsim:presetsMigrated:")));
+  console.log("presets migrated:", migrated);
   await web.getByTitle("第1艦隊").click();
   await web.getByText("第1艦隊を取り込みました").waitFor();
   await page.waitForTimeout(300);
   await shot("19-plugin-embedded");
 
   // 観測ログ: 戦闘を流し込んでから表示
-  await page.evaluate(async () => {
+  await main.evaluate(async () => {
     // dev/main.tsx が公開する開発用の口
     const { capture: cap, captureFixtures: fx, importFromPoi, sampleState: state } = Reflect.get(window, "__kcsimDev");
     const db = new cap.ObservationDb();

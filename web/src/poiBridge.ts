@@ -52,20 +52,45 @@ const postToParent = (m: WebMessage) => {
 const importPresets = (json: string) => {
   let total = 0;
   let imported = 0;
+  const store = getPresetStore();
   try {
     const data = JSON.parse(json);
     total = Array.isArray(data?.presets) ? data.presets.length : 1;
-    imported = getPresetStore().importJSON(json, { skipExisting: true }).length;
+    imported = store.importJSON(json, { skipExisting: true }).length;
   } catch (e) {
     console.error("[kcsim] presets from the poi plugin could not be imported", e);
     return;
   }
   if (imported > 0) notifyPresetsChanged();
-  postToParent({ src: EMBED_SOURCE, v: EMBED_VERSION, type: "presets-ack", imported, skipped: total - imported });
+  // localStorage が使えずメモリに置いただけなら persisted: false。プラグインは移行済みにせず、次回また送る
+  postToParent({
+    src: EMBED_SOURCE,
+    v: EMBED_VERSION,
+    type: "presets-ack",
+    imported,
+    skipped: total - imported,
+    persisted: store.persistent,
+  });
+};
+
+/**
+ * プラグインからのメッセージか。poi のウィンドウモードでは、プラグインのコードはメインウィンドウで動き、
+ * ビューだけがプラグインウィンドウ (= この iframe の親) に portal で描かれる。postMessage の source は
+ * 呼び出したスクリプトのウィンドウなので、メインウィンドウ = 親の opener になる。
+ */
+const fromPlugin = (source: MessageEventSource | null): boolean => {
+  const parent = window.parent;
+  if (source === parent) return true;
+  try {
+    return source !== null && source === parent.opener;
+  } catch {
+    // 親が別オリジンなら opener は読めない
+    return false;
+  }
 };
 
 const onMessage = (e: MessageEvent) => {
-  if (e.source !== window.parent || !isAllowedParentOrigin(e.origin, import.meta.env.DEV)) return;
+  if (!fromPlugin(e.source) || !isAllowedParentOrigin(e.origin, import.meta.env.DEV)) return;
   const env = readEnvelope(e.data);
   if (!env) return;
   if (env.v < EMBED_MIN_VERSION || env.v > EMBED_VERSION) {

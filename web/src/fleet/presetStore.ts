@@ -1,7 +1,7 @@
 import { parseDeckBuilder, toDeckBuilder } from "./deckbuilder";
 import type { DeckBuilderData, DeckBuilderImportOptions } from "./deckbuilder";
 import { normalizePreset } from "./normalize";
-import { defaultStorage, keysWithPrefix } from "./storage";
+import { defaultStorage, isPersistent, keysWithPrefix } from "./storage";
 import type { KeyValueStorage } from "./storage";
 import type { MasterData, Preset } from "@shared/fleet/types";
 
@@ -26,6 +26,11 @@ export class PresetStore {
     this.genId =
       opts.genId ??
       (() => `p_${this.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`);
+  }
+
+  /** 保存先が再読み込み後も残るか (localStorage が使えずメモリに置いているなら false)。 */
+  get persistent(): boolean {
+    return isPersistent(this.storage);
   }
 
   private key(id: string) {

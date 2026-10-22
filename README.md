@@ -134,7 +134,7 @@ poi なしのブラウザでは poi のデータが無いので、設定タブ�
 ```sh
 cd poi-plugin-sim
 bun install
-bun run build         # vite → ../poi-plugin-sim-build (wasm は含まない)
+bun run build         # 先に ../web の依存を入れ (prebuild: bun install --frozen-lockfile)、vite → ../poi-plugin-sim-build (wasm は含まない)
 ```
 
 poi のプラグインディレクトリにビルド出力をリンクします (macOS の例。他 OS は [poi-plugin-sim/README.md](poi-plugin-sim/README.md))。

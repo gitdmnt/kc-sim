@@ -19,8 +19,12 @@ Requirements: [bun](https://bun.sh) ≥ 1.3.
 ```sh
 cd poi-plugin-sim
 bun install
-bun run build
+bun run build        # prebuild: (cd ../web && bun install --frozen-lockfile)
 ```
+
+The plugin's views use the web UI's parts and stylesheet (`../web/src`), whose Tailwind CSS resolves from
+`../web/node_modules`; `bun run build` and `bun run dev` therefore install `../web`'s dependencies first
+(`bun run deps:web`).
 
 Output (`../poi-plugin-sim-build`): `index.es`, `package.json` (`main: index.es`), `views/index.js` (capture, upload,
 the plugin's views and their CSS scoped to `.kcsim`), `i18n/`. No wasm and no worker: the simulation runs in the web UI.
@@ -36,12 +40,16 @@ writes `docs/screenshots/{05-log-list,06-log-detail,08-plugin-upload,19-plugin-e
 | `src/panel/PluginPanel.tsx` | The plugin's view: シミュレータ (iframe) / 観測ログ / 送信設定 |
 | `src/panel/WebFrame.tsx`, `src/panel/bridge.ts` | The iframe and the plugin side of the embed protocol |
 | `src/panel/log/`, `src/panel/UploadSettings.tsx` | Observation log and upload settings (UI parts from `@web/*` = `../web/src`) |
-| `src/settings.ts` | Plugin settings (`kcsim:plugin`: server URL, auto upload) |
+| `src/settings.ts` | Plugin settings (`kcsim:plugin`: server URL, auto upload) and the one-time upgrade from the old in-plugin UI |
 | `src/capture/` | Packet capture, IndexedDB, upload client, auto upload |
 | `dev/` | Dev page: the plugin's view without poi (`bun run dev`, http://localhost:5174) |
 
-`bun run dev` serves `dev/index.html` with vite. It renders the plugin's view with the web UI's sample state and embeds
-the web UI from `?server=` (default `http://localhost:5173/`, i.e. `cd ../web && bun run dev`).
+`bun run dev` serves `dev/index.html` with vite and reproduces poi's window mode: the page plays poi's main window
+(the plugin's React tree and its `postMessage` calls run there) and renders the view with `createPortal` into a child
+window it opens with `window.open`, flagged `isWindowMode = true` (allow pop-ups for localhost, or use the button on
+the page). `?mode=tab` renders the view in the page itself, like poi's tab mode (the iframe is refused). The poi state
+is the web UI's sample state; the iframe opens `?server=` (default `http://localhost:5173/`, i.e.
+`cd ../web && bun run dev`).
 
 ## Install into poi
 
@@ -62,6 +70,13 @@ The server URL (default `https://kc-sim.lumpoler.workers.dev/`) is set in the �
 observations are uploaded to its origin. Only `https://` URLs are accepted, plus `http://` on `localhost`, `127.0.0.1`
 and `[::1]` (a local `cd ../server && bun run dev` is `http://127.0.0.1:8787/` after `cd ../web && bun run build`).
 
+**Upgrading from the in-plugin UI** (first start, `src/settings.ts`): a fresh install uploads automatically. An upgrade
+whose old API base was the old production worker (`kc-sim-data.lumpoler.workers.dev`) or already the new one keeps
+its auto-upload setting, and its registration is moved to the new origin (same D1, so the client id stays valid).
+Every other upgrade (the old default `http://127.0.0.1:8787`, or any other server) starts with auto upload **off**, so
+nothing is sent to production without the user turning it on. The old UI's keys (`kcsim:settings`, `kcsim:cache:*`,
+`kcsim:tab`, `kcsim:map`, `kcsim:selectedPreset`) are removed; presets, registration and upload state are kept.
+
 ## Embedding the web UI
 
 Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every message is
@@ -72,32 +87,45 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
 | web → plugin | `ready` | `v` = the web UI's protocol version | once the web UI listens |
 | plugin → web | `state` | `info`, `const?` | after every `ready` (with `const`), then when the parts below change (coalesced, 250 ms); `const` only when it changes |
 | plugin → web | `presets` | `json` (`kcsim-presets` export) | after `ready`, until acknowledged once for that origin |
-| web → plugin | `presets-ack` | `imported`, `skipped` | after the import |
+| web → plugin | `presets-ack` | `imported`, `skipped`, `persisted` | after the import |
 
-- **Data:** the plugin sends only what the web UI reads: `info.{basic.api_level, fleets, ships, equips}` and
-  `const.{$ships, $equips, $shipTypes, $equipTypes, $mapareas}` (no admiral name, member id, resources or quests).
-  It goes to the iframe and nowhere else; the web UI never uploads it.
-- **Origins:** the plugin posts with the server URL's origin as the target and accepts messages only from the iframe's
-  window with that origin. The web UI accepts messages only from `window.parent` with origin `file://` (poi's plugin
-  window; `null` is accepted too, and `http://localhost` only in the web UI's dev server), validates the shape and
-  ignores unknown types. Its own messages to the parent carry no data beyond counts and use target `*` (a `file://`
-  page cannot be targeted by origin).
+- **Data:** the plugin sends only what the web UI reads (shared/fleet/poiImport.ts, the catalog, the map tab):
+  `info.basic.api_level`; `info.fleets[]` as `{api_id, api_name, api_ship}`; per ship instance `api_id, api_ship_id,
+  api_lv, api_slot, api_onslot, api_slotnum, api_slot_ex, api_kyouka, api_maxhp, api_nowhp, api_karyoku, api_raisou,
+  api_taiku, api_soukou, api_kaihi, api_taisen, api_sakuteki, api_lucky, api_leng, api_soku, api_cond`; per equipment
+  instance `api_id, api_slotitem_id, api_level, api_alv`; and `const.{$ships, $equips, $shipTypes, $equipTypes,
+  $mapareas}`. Everything else (the admiral's name and member id, including `api_member_id` on each fleet, missions,
+  resources, quests) is dropped, by the plugin before posting and again by the web UI on receipt. It goes to the iframe
+  and nowhere else; the web UI never uploads it.
+- **Origins and senders:** the plugin posts with the server URL's origin as the target and accepts messages only from
+  the iframe's window with that origin. In poi's window mode the plugin's code runs in poi's main window and its view is
+  portaled into the plugin window, so the sender the iframe sees is the main window, i.e. `window.parent.opener`. The
+  web UI therefore accepts messages from `window.parent` or `window.parent.opener`, only with origin `file://` (poi's
+  plugin window; `null` is still accepted until a real poi confirms which string it reports, then it should go;
+  `http://localhost` only in the web UI's dev server), validates the shape and ignores unknown types. Its own messages
+  to the parent carry no data beyond counts and use target `*` (a `file://` page cannot be targeted by origin).
 - **Versions:** `v` is the sender's protocol version. Adding an optional field keeps it; any other change bumps it. The
   web UI is deployed at once and keeps accepting the previous version for at least one plugin release; a plugin
   version it does not accept shows "プラグインを更新してください". A newer web UI makes the plugin show a short notice.
 - **Preset migration:** presets saved by the old in-plugin UI (`kcsim:preset:*` in the plugin's localStorage) are sent
   once per server origin. The web UI imports them without overwriting or duplicating (`importJSON(…, { skipExisting })`)
-  and acknowledges; the plugin then records `kcsim:presetsMigrated:<origin>`. The plugin's copies are kept.
-- **iframe:** `sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"`
-  (no top navigation), `allow="clipboard-write"` (copy buttons), `referrerpolicy="no-referrer"`.
+  and acknowledges with `persisted`: whether its preset store is real localStorage (it falls back to memory when the
+  iframe's storage is blocked). Only a `persisted: true` ack makes the plugin record `kcsim:presetsMigrated:<origin>`;
+  otherwise the presets are sent again on the next `ready`. The plugin's copies are kept.
+- **iframe:** `sandbox="allow-scripts allow-same-origin"` (no forms, pop-ups, downloads or top navigation; the web UI
+  uses none), `allow="clipboard-write"` (copy buttons), `referrerpolicy="no-referrer"`.
 
 ## Notes for poi
 
-- **Window mode only.** poi 12's main window runs with `nodeIntegration` and `nodeIntegrationInSubFrames` (`app.js`),
-  so an iframe there could get Node.js. Plugin windows (window mode) are created with `nodeIntegration: false`
-  (`lib/webcontent-utils.js`). The plugin embeds the web UI only when the window hosting its view has no Node.js
-  (`require` / `process.versions.node`); in poi's tab mode it shows 「ウィンドウモードで開いてください」 instead. The log
-  and upload tabs work in both modes.
+- **Window mode only.** poi 12's main window runs with `nodeIntegration` and `nodeIntegrationInSubFrames`
+  (`app.ts`), so an iframe there could get Node.js. Plugin windows (window mode) are created with
+  `nodeIntegration: false` (`lib/webcontent-utils.ts`), and poi sets `window.isWindowMode = true` on them. The plugin
+  embeds the web UI only when the window hosting its view has `isWindowMode === true` and no Node.js (`require` /
+  `process.versions.node`), so any other window is refused; in poi's tab mode it shows 「ウィンドウモードで開いてください」
+  instead. The log and upload tabs work in both modes.
+- **Portal.** Code that touches `window` / `document` from the plugin's views must use the view's own window
+  (`element.ownerDocument.defaultView`): the global `window` is poi's main window. The dialogs (`web/src/ui/Modal.tsx`)
+  do this for Esc and focus.
 - **CSP.** poi's plugin window has `script-src https://www.google-analytics.com 'self' file://* 'unsafe-inline'` and no
   `default-src` / `frame-src`, so an https iframe is not blocked. The embedder's CSP does not apply inside the
   cross-origin frame (the web UI's worker and wasm load from its own origin).
@@ -111,6 +139,8 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
 
 ## Verification notes
 
-The embedding (window-mode detection, the iframe's lack of Node.js, `file://` as the message origin, storage that
-survives a poi restart) has been exercised only in a browser with the dev page, not yet in a real poi window.
+The embedding path (the main-window sender seen as `parent.opener`, the portal into a child window with
+`isWindowMode`, Esc in the portaled log drawer, the tab-mode refusal) is exercised in a browser with the dev page.
+Not yet checked in a real poi window: whether the iframe has no Node.js, the origin string poi reports (`file://` or
+`null`), and whether the iframe's storage survives a poi restart.
 Previously checked with poi 12.0.1 (macOS) on 2026-10-22 using an isolated profile (`--user-data-dir`), not logged in.

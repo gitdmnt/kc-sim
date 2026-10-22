@@ -10,13 +10,15 @@ import { EmbedBridge } from "./bridge";
 const COALESCE_MS = 250;
 
 /**
- * Node.js が使えるウィンドウか。poi のメインウィンドウは nodeIntegration と nodeIntegrationInSubFrames が有効で、
- * そこに置いた iframe (= 外部のページ) にも Node.js が入りうる。プラグインをタブ表示にするとビューがメインウィンドウに
- * 描かれるので、その場合は埋め込まない (ウィンドウモードのプラグインウィンドウは nodeIntegration: false)。
+ * 外部のページ (サーバの Web UI) を埋め込んでよいウィンドウか。poi のメインウィンドウは nodeIntegration と
+ * nodeIntegrationInSubFrames が有効で、そこに置いた iframe にも Node.js が入りうる (タブ表示ではビューがメインウィンドウに
+ * 描かれる)。ウィンドウモードのプラグインウィンドウは nodeIntegration: false で、poi が `window.isWindowMode = true` を
+ * 立てる。その印があり、かつ Node.js が見えないウィンドウだけを許し、分からないウィンドウは拒む。
  */
-const hasNode = (w: Window): boolean => {
-  const g = w as Window & { require?: unknown; process?: { versions?: { node?: unknown } } };
-  return typeof g.require === "function" || typeof g.process?.versions?.node === "string";
+const canEmbedIn = (w: Window): boolean => {
+  const g = w as Window & { isWindowMode?: unknown; require?: unknown; process?: { versions?: { node?: unknown } } };
+  const hasNode = typeof g.require === "function" || typeof g.process?.versions?.node === "string";
+  return g.isWindowMode === true && !hasNode;
 };
 
 /** 旧 UI (プラグイン内) のプリセット。無ければ null */
@@ -38,7 +40,7 @@ export const WebFrame = ({ serverUrl, poiState }: { serverUrl: string; poiState:
 
   // ウィンドウモードでは DOM はプラグインウィンドウ (別の window) にあり、message もそちらに届く
   const hostRef = useCallback((el: HTMLDivElement | null) => setHost(el?.ownerDocument.defaultView ?? null), []);
-  const embeddable = host !== null && origin !== null && !hasNode(host);
+  const embeddable = host !== null && origin !== null && canEmbedIn(host);
 
   useEffect(() => {
     if (!embeddable || !host || !origin) return;
@@ -74,7 +76,7 @@ export const WebFrame = ({ serverUrl, poiState }: { serverUrl: string; poiState:
     <div ref={hostRef} className="flex min-h-0 flex-1 flex-col">
       {origin === null ? (
         <EmptyState className="py-16" title="サーバ URL が正しくありません" description="送信設定タブで https の URL を設定してください。" />
-      ) : host !== null && hasNode(host) ? (
+      ) : host !== null && !canEmbedIn(host) ? (
         <EmptyState
           className="py-16"
           title="ウィンドウモードで開いてください"
@@ -94,7 +96,7 @@ export const WebFrame = ({ serverUrl, poiState }: { serverUrl: string; poiState:
               src={serverUrl.trim()}
               title="kc-sim"
               className="min-h-0 w-full flex-1 border-0"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
+              sandbox="allow-scripts allow-same-origin"
               allow="clipboard-write"
               referrerPolicy="no-referrer"
             />

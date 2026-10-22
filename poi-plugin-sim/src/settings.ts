@@ -20,10 +20,22 @@ export const DEFAULT_SERVER_URL = "https://kc-sim.lumpoler.workers.dev/";
 const DEFAULTS: PluginSettings = { serverUrl: DEFAULT_SERVER_URL, autoUpload: true };
 
 const KEY = `${STORAGE_PREFIX}plugin`;
-/** UI がプラグインにあった頃の設定 (apiBase, autoUpload, …)。autoUpload だけ引き継ぐ */
+/** UI がプラグインにあった頃の設定 (apiBase, autoUpload, …) */
 const LEGACY_KEY = `${STORAGE_PREFIX}settings`;
-/** UI が Web に移って使われなくなったキー (データキャッシュ・選択中のタブ/プリセット) */
-const OBSOLETE_PREFIXES = [`${STORAGE_PREFIX}cache:`, `${STORAGE_PREFIX}tab`, `${STORAGE_PREFIX}selectedPreset`, LEGACY_KEY];
+/** UI が Web に移って使われなくなったキー。`:` で終わるものは接頭辞 (データキャッシュ)、他は完全一致 */
+const OBSOLETE_KEYS = [
+  `${STORAGE_PREFIX}cache:`,
+  `${STORAGE_PREFIX}tab`,
+  `${STORAGE_PREFIX}map`,
+  `${STORAGE_PREFIX}selectedPreset`,
+  LEGACY_KEY,
+];
+/** 旧プラグインの既定の送信先 (手元の wrangler dev)。旧設定に apiBase が無ければこれだった */
+const LEGACY_DEFAULT_API = "http://127.0.0.1:8787";
+/** 改名前の本番 Worker。同じ D1 を使う今の本番 (DEFAULT_SERVER_URL) に引き継ぐ */
+const LEGACY_PROD_ORIGIN = "https://kc-sim-data.lumpoler.workers.dev";
+/** capture/uploadClient.ts の CREDENTIALS_KEY (あちらがこのファイルを読むので import すると循環する) */
+const CREDENTIALS_KEY = `${STORAGE_PREFIX}auth`;
 
 const listeners = new Set<() => void>();
 
@@ -50,27 +62,47 @@ const fromStored = (v: Record<string, unknown>): PluginSettings => ({
 });
 
 /**
- * 初回: 旧設定の autoUpload (送信をオフにしていた人はオフのまま) を引き継いで保存し、使われなくなったキーを消す。
- * 旧 apiBase は引き継がない (127.0.0.1 や廃止した kc-sim-data の URL を指していることがある)。
+ * 初回 (`kcsim:plugin` が無いとき) の設定を決め、使われなくなったキーを消す。
+ *
+ * - 新規インストール (`kcsim:` のキーが 1 つも無い): 既定値 (自動送信オン、本番サーバ)。
+ * - 旧版からの更新で、旧送信先が改名前の本番 (kc-sim-data): 旧 autoUpload を引き継ぎ、登録情報の送信先を新しい本番の
+ *   オリジンに書き換える (同じ D1 なので clientId とトークンはそのまま使える)。
+ * - それ以外の更新 (旧既定の 127.0.0.1 など、手元にしか送っていなかった): 黙って本番へ送り始めないよう自動送信をオフにする。
  */
-const migrate = (s: Storage) => {
+export const migrateLegacySettings = (s: Pick<Storage, "length" | "key" | "getItem" | "setItem" | "removeItem">) => {
   if (s.getItem(KEY) !== null) return;
-  const legacy = parse(s.getItem(LEGACY_KEY));
-  const initial = { ...DEFAULTS, ...(typeof legacy.autoUpload === "boolean" ? { autoUpload: legacy.autoUpload } : {}) };
-  s.setItem(KEY, JSON.stringify(initial));
-  const obsolete: string[] = [];
+  const keys: string[] = [];
   for (let i = 0; i < s.length; i++) {
     const k = s.key(i);
-    if (k !== null && OBSOLETE_PREFIXES.some((p) => k === p || (p.endsWith(":") && k.startsWith(p)))) obsolete.push(k);
+    if (k !== null && k.startsWith(STORAGE_PREFIX)) keys.push(k);
   }
-  obsolete.forEach((k) => s.removeItem(k));
+  let initial = DEFAULTS;
+  if (keys.length > 0) {
+    const legacy = parse(s.getItem(LEGACY_KEY));
+    const oldOrigin = serverOrigin(typeof legacy.apiBase === "string" ? legacy.apiBase : LEGACY_DEFAULT_API);
+    const newOrigin = serverOrigin(DEFAULT_SERVER_URL);
+    // 旧版で本番 (改名前か改名後) を送信先にしていた人は、本番への送信に同意済み
+    if (oldOrigin === LEGACY_PROD_ORIGIN || oldOrigin === newOrigin) {
+      initial = { ...DEFAULTS, autoUpload: typeof legacy.autoUpload === "boolean" ? legacy.autoUpload : true };
+      const creds = parse(s.getItem(CREDENTIALS_KEY));
+      if (typeof creds.apiBase === "string" && serverOrigin(creds.apiBase) === LEGACY_PROD_ORIGIN && newOrigin) {
+        s.setItem(CREDENTIALS_KEY, JSON.stringify({ ...creds, apiBase: newOrigin }));
+      }
+    } else {
+      initial = { ...DEFAULTS, autoUpload: false };
+    }
+  }
+  s.setItem(KEY, JSON.stringify(initial));
+  for (const k of keys) {
+    if (OBSOLETE_KEYS.some((p) => k === p || (p.endsWith(":") && k.startsWith(p)))) s.removeItem(k);
+  }
 };
 
 const read = (): PluginSettings => {
   const s = storage();
   if (!s) return { ...DEFAULTS };
   try {
-    migrate(s);
+    migrateLegacySettings(s);
   } catch {
     // 保存できなくても既定値で動く
   }
