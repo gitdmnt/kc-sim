@@ -85,14 +85,14 @@ fn retreat_policy() {
 #[test]
 fn gauges() {
     let mut input = sortie_1_5(fleet_1_5());
-    input.gauge = Some(GaugeInput { kind: GaugeKind::Kill, remaining: 4.0, final_comps: None, final_threshold: None, runs: None, max_sorties: None });
+    input.gauge = Some(GaugeInput { kind: GaugeKind::Kill, remaining: 4.0, final_comps: None, final_threshold: None, runs: None, max_sorties: None, morale: None });
     let s = simulate_sortie(&input, 2000, 3).unwrap();
     let g = s.gauge.as_ref().unwrap();
     let expected = 4.0 / s.boss.kill_rate;
     assert!((g.expected_sorties.unwrap() - expected).abs() < 0.15 * expected, "{g:?} vs {expected}");
     assert!(g.p50_sorties.unwrap() <= g.p90_sorties.unwrap());
     // HP gauge: 300 HP with the boss comps as final form.
-    input.gauge = Some(GaugeInput { kind: GaugeKind::Hp, remaining: 300.0, final_comps: None, final_threshold: None, runs: Some(100), max_sorties: None });
+    input.gauge = Some(GaugeInput { kind: GaugeKind::Hp, remaining: 300.0, final_comps: None, final_threshold: None, runs: Some(100), max_sorties: None, morale: None });
     let s = simulate_sortie(&input, 500, 4).unwrap();
     let g = s.gauge.as_ref().unwrap();
     println!("hp gauge: {g:?}, flagship damage mean {:.1}", s.boss.flagship_damage_mean);
@@ -163,4 +163,83 @@ fn max_nodes_guard() {
     let s = simulate_sortie(&input, 10, 1).unwrap();
     assert_eq!(s.nodes_mean, 7.0);
     assert!(s.warnings.iter().any(|w| w.contains("maxNodes")));
+}
+
+fn single_node_input(kind: &str, extra: serde_json::Value, friend: FleetInput) -> SortieInput {
+    let routing = json!({
+        "map": "9-9", "sources": [{ "id": "t", "note": "test" }],
+        "nodes": { "Start": { "rules": [{ "to": "A" }] }, "A": { "end": true } }
+    });
+    let mut a = json!({ "kind": kind });
+    a.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+    serde_json::from_value(json!({
+        "friend": friend, "hqLevel": 100,
+        "map": { "routing": routing, "nodes": { "Start": { "kind": "start" }, "A": a } },
+    }))
+    .unwrap()
+}
+
+#[test]
+fn married_ships_pay_85_percent_resupply() {
+    let comp = json!({ "comps": [{ "weight": 1.0, "fleet": enemy_fleet() }] });
+    let run = |level: f64| {
+        let mut f = friend_fleet();
+        f.ships[4].level = Some(level);
+        f.ships[4].fuel_max = Some(100);
+        simulate_sortie(&single_node_input("battle", comp.clone(), f), 20, 1).unwrap().friend[4].fuel_used_mean
+    };
+    // 20% of 100 fuel per day battle, 17 when married (floor(0.85 × 20)).
+    assert_eq!(run(99.0), 20.0);
+    assert_eq!(run(100.0), 17.0);
+}
+
+#[test]
+fn bauxite_and_repair_from_a_battle() {
+    let mut f = FleetInput { ships: vec![friend_cv(), friend_dd()], formation: Some(Formation::LineAhead) };
+    f.ships[0].fuel_max = Some(100);
+    let comp = json!({ "comps": [{ "weight": 1.0, "fleet": enemy_fleet() }] });
+    let s = simulate_sortie(&single_node_input("battle", comp, f), 200, 2).unwrap();
+    assert!(s.friend[0].bauxite_mean > 0.0);
+    assert!((s.bauxite_mean - s.friend[0].bauxite_mean - s.friend[1].bauxite_mean).abs() < 1e-9);
+    // Damaged ships cost docking resources and time; undamaged ones none.
+    assert!(s.repair.time_sec.mean > 0.0 && s.repair.time_sec.p90 >= s.repair.time_sec.p50);
+    assert!(s.repair.time_sec_total.mean >= s.repair.time_sec.mean);
+    assert!(s.repair.steel.mean >= s.repair.fuel.mean);
+}
+
+#[test]
+fn node_effects_gain_and_maelstrom() {
+    let mut f = friend_fleet();
+    for s in f.ships.iter_mut() {
+        s.fuel_max = Some(100);
+    }
+    let gain = single_node_input("resource", json!({ "resource": { "fuel": 120.0, "steel": 40.0 } }), f.clone());
+    let s = simulate_sortie(&gain, 10, 1).unwrap();
+    let e = s.effects.unwrap();
+    assert_eq!((e.gained_mean.fuel, e.gained_mean.steel, e.gained_mean.ammo), (120.0, 40.0, 0.0));
+    // 30% of 100 fuel; the two heavy cruisers carry radars → 2 radar ships → 18%.
+    let mael = single_node_input("maelstrom", json!({ "maelstrom": { "resource": "fuel", "rate": 0.3 } }), f.clone());
+    let s = simulate_sortie(&mael, 10, 1).unwrap();
+    assert_eq!(s.friend[4].fuel_used_mean, 18.0);
+    let no_radar = single_node_input("maelstrom", json!({ "maelstrom": { "resource": "fuel", "rate": 0.3, "radarReducible": false } }), f);
+    assert_eq!(simulate_sortie(&no_radar, 10, 1).unwrap().friend[4].fuel_used_mean, 30.0);
+    // No rate → no loss, with a warning.
+    let bad = single_node_input("maelstrom", json!({ "maelstrom": { "resource": "ammo" } }), friend_fleet());
+    let s = simulate_sortie(&bad, 5, 1).unwrap();
+    assert_eq!(s.ammo_used_mean, 0.0);
+    assert!(s.warnings.iter().any(|w| w.contains("maelstrom has no rate")));
+}
+
+#[test]
+fn gauge_morale_carries_and_reports_waiting() {
+    let mut input = sortie_1_5(fleet_1_5());
+    input.gauge = Some(GaugeInput { kind: GaugeKind::Kill, remaining: 3.0, final_comps: None, final_threshold: None, runs: Some(50), max_sorties: None, morale: None });
+    let base = simulate_sortie(&input, 300, 3).unwrap();
+    assert!(base.gauge.as_ref().unwrap().expected_wait_minutes.is_none());
+    input.gauge.as_mut().unwrap().morale = Some(GaugeMorale { wait_minutes: None, until_morale: Some(49) });
+    let s = simulate_sortie(&input, 300, 3).unwrap();
+    let g = s.gauge.unwrap();
+    assert!(g.expected_wait_minutes.unwrap() >= 0.0);
+    assert!(g.p90_wait_minutes.unwrap() >= g.p50_wait_minutes.unwrap());
+    assert_eq!(s.count, base.count);
 }

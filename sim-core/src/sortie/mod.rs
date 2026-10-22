@@ -2,6 +2,7 @@
 //! retreat policy, aggregation and gauge estimation. Contract: docs/SIM_INTERFACE.md "Sortie".
 
 pub mod model;
+pub mod resource;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -11,6 +12,7 @@ use crate::rng::Rng;
 use crate::routing::{RouteConfig, RouteCtx, RouteEquip, RouteShip, Router};
 use crate::ship::ShipState;
 use model::*;
+use resource::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum NodeBattle {
@@ -66,7 +68,15 @@ impl CompSet {
     }
 }
 
+enum Effect {
+    None,
+    Gain(ResourceAmounts),
+    Maelstrom(Maelstrom),
+    Anchorage,
+}
+
 struct NodeInfo {
+    effect: Effect,
     battle: Option<(NodeBattle, CompSet)>,
     boss: bool,
     formation: Formation,
@@ -86,6 +96,12 @@ pub struct Sortie {
     night: NightPolicy,
     retreat: RetreatPolicy,
     warnings: Vec<String>,
+    stypes: Vec<u32>,
+    married: Vec<bool>,
+    radar: Vec<bool>,
+    /// Anchorage repair ships: (ship index, heal rate, covered fleet positions).
+    repairers: Vec<(usize, f64, Vec<usize>)>,
+    has_effects: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -107,6 +123,11 @@ struct ShipRec {
     fuel: f64,
     ammo: f64,
     damecon: u32,
+    bauxite: f64,
+    prof_lost: f64,
+    rep_fuel: Vec<f64>,
+    rep_steel: Vec<f64>,
+    rep_time: Vec<f64>,
 }
 
 #[derive(Default)]
@@ -129,6 +150,15 @@ struct Rec {
     battles: u64,
     nodes: u64,
     ships: Vec<ShipRec>,
+    fleet_fuel: Vec<f64>,
+    fleet_steel: Vec<f64>,
+    fleet_time_max: Vec<f64>,
+    fleet_time_sum: Vec<f64>,
+    gain: [f64; 4],
+    mael_fuel: f64,
+    mael_ammo: f64,
+    anchorage_hp: f64,
+    anchorage_mat: f64,
     warnings: BTreeSet<String>,
 }
 
@@ -189,6 +219,7 @@ impl Sortie {
             let mut warning = None;
             let mut battle = None;
             let mut boss = false;
+            let mut effect = Effect::None;
             match input.map.nodes.get(&letter) {
                 None => {
                     if !letter.starts_with("Start") {
@@ -197,6 +228,24 @@ impl Sortie {
                 }
                 Some(n) => {
                     boss = n.boss.unwrap_or(false) || n.kind == Some(NodeKind::Boss);
+                    match n.kind {
+                        Some(NodeKind::Resource | NodeKind::Landing) => {
+                            if let Some(r) = n.resource {
+                                effect = Effect::Gain(r);
+                            }
+                        }
+                        Some(NodeKind::Maelstrom) => {
+                            if let Some(m) = &n.maelstrom {
+                                if m.rate.is_none() {
+                                    warning = Some(format!("node {letter}: maelstrom has no rate; no loss applied"));
+                                } else {
+                                    effect = Effect::Maelstrom(m.clone());
+                                }
+                            }
+                        }
+                        Some(NodeKind::AnchorageRepair) => effect = Effect::Anchorage,
+                        _ => {}
+                    }
                     let has_comps = n.comps.as_ref().is_some_and(|c| !c.is_empty());
                     let kind = match n.kind {
                         Some(NodeKind::Battle | NodeKind::Boss) => Some(NodeBattle::Day),
@@ -233,7 +282,7 @@ impl Sortie {
                 None if battle.as_ref().is_some_and(|(_, cs)| cs.all_subs()) => Formation::LineAbreast,
                 None => Formation::LineAhead,
             };
-            nodes.push(NodeInfo { battle, boss, formation, warning });
+            nodes.push(NodeInfo { effect, battle, boss, formation, warning });
         }
 
         let (friend, init) = FleetCore::build(&input.friend, true);
@@ -242,7 +291,32 @@ impl Sortie {
                 warnings.push(format!("friend ship #{i} has no speed; routing assumes fast (10)"));
             }
         }
+        let radar: Vec<bool> = input.friend.ships.iter().map(|s| s.slots.iter().flatten().chain(s.ex_slot.iter()).any(|e| matches!(e.types.get(2), Some(12 | 13)))).collect();
+        let mut repairers = Vec::new();
+        for (i, s) in input.friend.ships.iter().enumerate() {
+            // Akashi Kai 187 heals 30%, Akitsushima Kai 450 25% (kcwiki 修船 紧急泊地修理); facility in slot k covers positions 3k..3k+3.
+            let rate = match s.id {
+                Some(187) => 0.30,
+                Some(450) => 0.25,
+                _ => continue,
+            };
+            let covered: Vec<usize> = s.slots.iter().take(2).enumerate().filter(|(_, e)| e.as_ref().is_some_and(|e| e.types.get(2) == Some(&31))).flat_map(|(k, _)| 3 * k..3 * k + 3).collect();
+            if !covered.is_empty() {
+                repairers.push((i, rate, covered));
+            }
+        }
+        let has_effects = nodes.iter().any(|n| !matches!(n.effect, Effect::None));
+        for (i, s) in input.friend.ships.iter().enumerate() {
+            if s.level.is_none() || s.fuel_max.is_none() {
+                warnings.push(format!("friend ship #{i} has no level/fuelMax; docking cost and time assume Lv1 / fuelMax 100"));
+            }
+        }
         Ok(Sortie {
+            stypes: input.friend.ships.iter().map(|s| s.ship_type).collect(),
+            married: friend.ships.iter().map(|c| c.level >= MARRIED_LEVEL).collect(),
+            radar,
+            repairers,
+            has_effects,
             router,
             nodes,
             friend,
@@ -300,8 +374,13 @@ impl Sortie {
     }
 
     /// One sortie. `boss_override`: comps and flagship HP for boss battles (HP-gauge final form).
-    fn run_one(&self, rng: &mut Rng, boss_override: Option<(&CompSet, Option<i32>)>, mut rec: Option<&mut Rec>) -> Option<BossResult> {
+    fn run_one(&self, rng: &mut Rng, boss_override: Option<(&CompSet, Option<i32>)>, mut rec: Option<&mut Rec>, morale: Option<&mut Vec<i32>>) -> Option<BossResult> {
         let mut st = self.init.clone();
+        if let Some(m) = morale.as_deref() {
+            for (s, &v) in st.iter_mut().zip(m) {
+                s.morale = v;
+            }
+        }
         let mut node = self.start_node(rng);
         let mut path: Vec<usize> = vec![node];
         let mut boss_result = None;
@@ -324,6 +403,34 @@ impl Sortie {
             }
             if info.boss {
                 boss_reached = true;
+            }
+            match &info.effect {
+                Effect::None => {}
+                Effect::Gain(g) => {
+                    if let Some(r) = rec.as_deref_mut() {
+                        r.gain[0] += g.fuel;
+                        r.gain[1] += g.ammo;
+                        r.gain[2] += g.steel;
+                        r.gain[3] += g.bauxite;
+                    }
+                }
+                Effect::Maelstrom(m) => {
+                    let (fuel, total) = self.maelstrom(m, &mut st, rng);
+                    if let Some(r) = rec.as_deref_mut() {
+                        if fuel {
+                            r.mael_fuel += total;
+                        } else {
+                            r.mael_ammo += total;
+                        }
+                    }
+                }
+                Effect::Anchorage => {
+                    let (hp, used) = self.anchorage(&mut st);
+                    if let Some(r) = rec.as_deref_mut() {
+                        r.anchorage_hp += hp;
+                        r.anchorage_mat += used;
+                    }
+                }
             }
             let mut fought = false;
             if let Some((nb, comps)) = &info.battle {
@@ -409,6 +516,7 @@ impl Sortie {
                 r.flag_damage += dmg as f64;
             }
             let mut any_sunk = false;
+            let (mut fleet_f, mut fleet_s, mut fleet_tmax, mut fleet_tsum) = (0.0, 0.0, 0.0f64, 0.0);
             for (i, (s, s0)) in st.iter().zip(&self.init).enumerate() {
                 let max = self.friend.ships[i].max_hp;
                 let sr = &mut r.ships[i];
@@ -425,21 +533,99 @@ impl Sortie {
                 }
                 sr.damage_taken += (s0.hp - s.hp) as f64;
                 sr.hp_missing += (max - s.hp.max(0)) as f64;
-                sr.fuel += (s0.fuel - s.fuel) as f64;
-                sr.ammo += (s0.ammo - s.ammo) as f64;
+                sr.fuel += resupply_cost(s0.fuel - s.fuel, self.married[i]) as f64;
+                sr.ammo += resupply_cost(s0.ammo - s.ammo, self.married[i]) as f64;
                 if s.damecon_slots != s0.damecon_slots {
                     sr.damecon += 1;
                 }
+                let lost: i32 = s0.planes.iter().zip(&s.planes).map(|(a, b)| (a - b).max(0)).sum();
+                sr.bauxite += 5.0 * lost as f64;
+                sr.prof_lost += s0.planes.iter().zip(&s.planes).zip(s0.exp.iter().zip(&s.exp)).filter(|((p0, p1), (e0, e1))| **p0 > 0 && **p1 <= 0 && **e0 > 0.0 && **e1 <= 0.0).count() as f64;
+                let missing = if s.hp > 0 { max - s.hp } else { 0 };
+                let (f, t) = repair_cost(s.fuel_max, missing);
+                let secs = repair_time_sec(self.stypes[i], self.friend.ships[i].level, missing);
+                sr.rep_fuel.push(f as f64);
+                sr.rep_steel.push(t as f64);
+                sr.rep_time.push(secs as f64);
+                fleet_f += f as f64;
+                fleet_s += t as f64;
+                fleet_tmax = fleet_tmax.max(secs as f64);
+                fleet_tsum += secs as f64;
             }
+            r.fleet_fuel.push(fleet_f);
+            r.fleet_steel.push(fleet_s);
+            r.fleet_time_max.push(fleet_tmax);
+            r.fleet_time_sum.push(fleet_tsum);
             if any_sunk {
                 r.sunk_any += 1;
+            }
+        }
+        if let Some(m) = morale {
+            for (i, v) in m.iter_mut().enumerate() {
+                *v = if st[i].hp <= 0 { self.init[i].morale } else { st[i].morale };
             }
         }
         boss_result
     }
 
+    /// Applies a maelstrom to the fleet; returns (is fuel, total lost).
+    fn maelstrom(&self, m: &Maelstrom, st: &mut [ShipState], rng: &mut Rng) -> (bool, f64) {
+        let fuel = m.resource == MaelstromResource::Fuel;
+        let mut rate = m.rate.unwrap_or(0.0);
+        if let (Some(h), Some(c)) = (m.rate_high, m.high_chance) {
+            if c > 0.0 && rng.chance(c) {
+                rate = h;
+            }
+        }
+        let radars = st.iter().zip(&self.radar).filter(|(s, &r)| s.hp > 0 && r).count();
+        let mut total = 0.0;
+        for s in st.iter_mut().filter(|s| s.hp > 0) {
+            let have = if fuel { &mut s.fuel } else { &mut s.ammo };
+            let loss = maelstrom_loss(*have, rate, m.max, radars, m.radar_reducible.unwrap_or(true));
+            *have -= loss;
+            total += loss as f64;
+        }
+        (fuel, total)
+    }
+
+    /// Anchorage repair (kcwiki 紧急泊地修理): heal ceil(rate × max HP) of covered ships above 25% HP, +7 morale,
+    /// by a repair ship above 50% HP. Returns (HP restored, materials used).
+    fn anchorage(&self, st: &mut [ShipState]) -> (f64, f64) {
+        let mut healed = 0.0;
+        let mut used = 0.0;
+        for (i, rate, covered) in &self.repairers {
+            let max_i = self.friend.ships[*i].max_hp;
+            if st[*i].hp <= 0 || st[*i].hp_ratio(max_i) <= 0.5 {
+                continue;
+            }
+            let mut any = false;
+            for &k in covered {
+                let Some(core) = self.friend.ships.get(k) else { continue };
+                let s = &mut st[k];
+                if s.hp <= 0 || s.hp >= core.max_hp || s.hp_ratio(core.max_hp) <= 0.25 {
+                    continue;
+                }
+                let new = (s.hp + (core.max_hp as f64 * rate).ceil() as i32).min(core.max_hp);
+                healed += (new - s.hp) as f64;
+                s.hp = new;
+                s.morale = (s.morale + 7).min(100);
+                any = true;
+            }
+            if any {
+                used += 1.0;
+                break;
+            }
+        }
+        (healed, used)
+    }
+
     fn summarize(&self, rec: Rec, count: u32, top: usize) -> SortieSummary {
         let n = count as f64;
+        let dist = |v: &[f64]| {
+            let mut sorted = v.to_vec();
+            sorted.sort_by(|a, b| a.total_cmp(b));
+            Dist { mean: if v.is_empty() { 0.0 } else { v.iter().sum::<f64>() / v.len() as f64 }, p50: percentile(&sorted, 0.5), p90: percentile(&sorted, 0.9) }
+        };
         let rate = |x: u32| if count > 0 { x as f64 / n } else { 0.0 };
         let mean = |x: f64| if count > 0 { x / n } else { 0.0 };
         let mut paths: Vec<(Vec<u16>, u32)> = rec.paths.into_iter().collect();
@@ -487,6 +673,20 @@ impl Sortie {
             nodes_mean: mean(rec.nodes as f64),
             fuel_used_mean: mean(rec.ships.iter().map(|s| s.fuel).sum()),
             ammo_used_mean: mean(rec.ships.iter().map(|s| s.ammo).sum()),
+            bauxite_mean: mean(rec.ships.iter().map(|s| s.bauxite).sum()),
+            repair: FleetRepairSummary {
+                fuel: dist(&rec.fleet_fuel),
+                steel: dist(&rec.fleet_steel),
+                time_sec: dist(&rec.fleet_time_max),
+                time_sec_total: dist(&rec.fleet_time_sum),
+            },
+            effects: self.has_effects.then(|| NodeEffectsSummary {
+                gained_mean: ResourceAmounts { fuel: mean(rec.gain[0]), ammo: mean(rec.gain[1]), steel: mean(rec.gain[2]), bauxite: mean(rec.gain[3]) },
+                maelstrom_fuel_mean: mean(rec.mael_fuel),
+                maelstrom_ammo_mean: mean(rec.mael_ammo),
+                anchorage_hp_mean: mean(rec.anchorage_hp),
+                anchorage_materials_mean: mean(rec.anchorage_mat),
+            }),
             friend: rec
                 .ships
                 .iter()
@@ -498,6 +698,9 @@ impl Sortie {
                     hp_missing_mean: mean(s.hp_missing),
                     fuel_used_mean: mean(s.fuel),
                     ammo_used_mean: mean(s.ammo),
+                    bauxite_mean: mean(s.bauxite),
+                    proficiency_lost_mean: mean(s.prof_lost),
+                    repair: RepairSummary { fuel: dist(&s.rep_fuel), steel: dist(&s.rep_steel), time_sec: dist(&s.rep_time) },
                     damecon: DameconSummary { used_rate: rate(s.damecon) },
                 })
                 .collect(),
@@ -525,9 +728,24 @@ impl Sortie {
     pub fn simulate(&self, count: u32, rng: &mut Rng, top_paths: usize) -> SortieSummary {
         let mut rec = self.new_rec();
         for _ in 0..count {
-            self.run_one(rng, None, Some(&mut rec));
+            self.run_one(rng, None, Some(&mut rec), None);
         }
         self.summarize(rec, count, top_paths)
+    }
+
+    /// Waits between sorties per `cfg` and recovers morale +3 per 3 minutes up to 49 (kcwiki 士气); returns minutes.
+    fn wait_recover(m: &mut [i32], cfg: &GaugeMorale) -> f64 {
+        let mut minutes = cfg.wait_minutes.unwrap_or(0.0).max(0.0);
+        if let Some(t) = cfg.until_morale {
+            let t = t.min(49);
+            let ticks = m.iter().filter(|&&v| v < t).map(|&v| (t - v + 2) / 3).max().unwrap_or(0);
+            minutes = minutes.max(3.0 * ticks as f64);
+        }
+        let ticks = (minutes / 3.0).floor() as i32;
+        for v in m.iter_mut().filter(|v| **v < 49) {
+            *v = (*v + 3 * ticks).min(49);
+        }
+        minutes
     }
 
     fn gauge(&self, g: &GaugeInput, kill_rate: f64, rng: &mut Rng) -> Result<(GaugeSummary, Option<String>), String> {
@@ -535,10 +753,13 @@ impl Sortie {
         let has_boss = self.nodes.iter().any(|n| n.boss && n.battle.is_some());
         let mut warning = None;
         let mut sorties: Vec<u32> = Vec::new();
+        let mut waits: Vec<f64> = Vec::new();
         let mut capped = 0u32;
         let runs;
+        let init_morale: Vec<i32> = self.init.iter().map(|s| s.morale).collect();
+        let full_kill = g.kind == GaugeKind::Kill && g.morale.is_some();
         match g.kind {
-            GaugeKind::Kill => {
+            GaugeKind::Kill if !full_kill => {
                 runs = g.runs.unwrap_or(2000);
                 let need = g.remaining.ceil().max(0.0) as u32;
                 for _ in 0..runs {
@@ -556,38 +777,50 @@ impl Sortie {
                     }
                 }
             }
-            GaugeKind::Hp => {
+            _ if !has_boss => {
                 runs = g.runs.unwrap_or(200);
-                if !has_boss {
-                    warning = Some("gauge: no boss battle node in the map; nothing to estimate".to_string());
-                    capped = runs;
-                } else {
-                    let final_set = match &g.final_comps {
-                        Some(c) => Some(CompSet::new("gauge.finalComps", c)?),
-                        None => None,
+                warning = Some("gauge: no boss battle node in the map; nothing to estimate".to_string());
+                capped = runs;
+            }
+            _ => {
+                runs = g.runs.unwrap_or(200);
+                let final_set = match &g.final_comps {
+                    Some(c) if g.kind == GaugeKind::Hp => Some(CompSet::new("gauge.finalComps", c)?),
+                    _ => None,
+                };
+                let threshold = g.final_threshold.unwrap_or_else(|| {
+                    let sets: Vec<&CompSet> = match &final_set {
+                        Some(s) => vec![s],
+                        None => self.nodes.iter().filter(|n| n.boss).filter_map(|n| n.battle.as_ref().map(|b| &b.1)).collect(),
                     };
-                    let threshold = g.final_threshold.unwrap_or_else(|| {
-                        let sets: Vec<&CompSet> = match &final_set {
-                            Some(s) => vec![s],
-                            None => self.nodes.iter().filter(|n| n.boss).filter_map(|n| n.battle.as_ref().map(|b| &b.1)).collect(),
-                        };
-                        sets.iter().flat_map(|s| s.comps.iter().map(|c| c.flagship_max_hp)).max().unwrap_or(0) as f64
-                    });
-                    for _ in 0..runs {
-                        let mut remaining = g.remaining;
-                        let mut s = 0;
-                        let mut cleared = remaining <= 0.0;
-                        while !cleared && s < max_sorties {
-                            s += 1;
+                    sets.iter().flat_map(|s| s.comps.iter().map(|c| c.flagship_max_hp)).max().unwrap_or(0) as f64
+                });
+                for _ in 0..runs {
+                    let mut remaining = g.remaining;
+                    let mut s = 0;
+                    let mut wait = 0.0;
+                    let mut m = init_morale.clone();
+                    let mut cleared = if g.kind == GaugeKind::Kill { remaining.ceil() <= 0.0 } else { remaining <= 0.0 };
+                    while !cleared && s < max_sorties {
+                        s += 1;
+                        let mor = g.morale.as_ref().map(|_| &mut m);
+                        if g.kind == GaugeKind::Kill {
+                            if let Some((rank, _, _)) = self.run_one(rng, None, None, mor) {
+                                if rank <= Rank::A {
+                                    remaining -= 1.0;
+                                }
+                            }
+                            cleared = remaining.ceil() <= 0.0;
+                        } else {
                             let is_final = remaining <= threshold;
                             let hp = remaining.ceil() as i32;
                             let result = if is_final {
                                 match &final_set {
-                                    Some(set) => self.run_one(rng, Some((set, Some(hp))), None),
-                                    None => self.run_final_default(rng, hp),
+                                    Some(set) => self.run_one(rng, Some((set, Some(hp))), None, mor),
+                                    None => self.run_final_default(rng, hp, mor),
                                 }
                             } else {
-                                self.run_one(rng, None, None)
+                                self.run_one(rng, None, None, mor)
                             };
                             if let Some((_, sunk, dmg)) = result {
                                 if is_final && sunk {
@@ -603,11 +836,17 @@ impl Sortie {
                                 }
                             }
                         }
-                        if cleared {
-                            sorties.push(s);
-                        } else {
-                            capped += 1;
+                        if !cleared {
+                            if let Some(cfg) = &g.morale {
+                                wait += Self::wait_recover(&mut m, cfg);
+                            }
                         }
+                    }
+                    if cleared {
+                        sorties.push(s);
+                        waits.push(wait);
+                    } else {
+                        capped += 1;
                     }
                 }
             }
@@ -622,6 +861,8 @@ impl Sortie {
             }
         };
         let expected = if sorties.is_empty() { None } else { Some(sorties.iter().map(|&s| s as f64).sum::<f64>() / sorties.len() as f64) };
+        waits.sort_by(|a, b| a.total_cmp(b));
+        let waiting = g.morale.is_some() && !waits.is_empty();
         Ok((
             GaugeSummary {
                 kind: g.kind,
@@ -629,6 +870,9 @@ impl Sortie {
                 expected_sorties: expected,
                 p50_sorties: pct(0.5),
                 p90_sorties: pct(0.9),
+                expected_wait_minutes: waiting.then(|| waits.iter().sum::<f64>() / waits.len() as f64),
+                p50_wait_minutes: waiting.then(|| percentile(&waits, 0.5)),
+                p90_wait_minutes: waiting.then(|| percentile(&waits, 0.9)),
                 capped_rate: if runs > 0 { capped as f64 / runs as f64 } else { 0.0 },
                 runs,
             },
@@ -637,10 +881,10 @@ impl Sortie {
     }
 
     /// Final form with the boss node's own comps: run with an HP override only.
-    fn run_final_default(&self, rng: &mut Rng, hp: i32) -> Option<BossResult> {
+    fn run_final_default(&self, rng: &mut Rng, hp: i32, morale: Option<&mut Vec<i32>>) -> Option<BossResult> {
         // The boss node's comps are used; the override set is looked up per boss node.
         let boss_set = self.nodes.iter().find(|n| n.boss).and_then(|n| n.battle.as_ref().map(|b| &b.1))?;
-        self.run_one(rng, Some((boss_set, Some(hp))), None)
+        self.run_one(rng, Some((boss_set, Some(hp))), None, morale)
     }
 }
 

@@ -49,6 +49,46 @@ pub struct SortieNode {
     pub kind: Option<NodeKind>,
     pub boss: Option<bool>,
     pub comps: Option<Vec<EnemyComp>>,
+    /// Expected gain per visit (resource / landing nodes).
+    pub resource: Option<ResourceAmounts>,
+    pub maelstrom: Option<Maelstrom>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ResourceAmounts {
+    pub fuel: f64,
+    pub ammo: f64,
+    pub steel: f64,
+    pub bauxite: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum MaelstromResource {
+    Fuel,
+    Ammo,
+}
+
+/// Maelstrom node: per-ship loss `min(max, floor(have × rate × (1 − radar reduction)))`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Maelstrom {
+    pub resource: MaelstromResource,
+    /// Loss rate. Without it the node causes no loss (warned).
+    #[serde(default)]
+    pub rate: Option<f64>,
+    /// Per-ship cap.
+    #[serde(default)]
+    pub max: Option<i32>,
+    /// Rate used with probability `highChance` (strong maelstrom).
+    #[serde(default)]
+    pub rate_high: Option<f64>,
+    #[serde(default)]
+    pub high_chance: Option<f64>,
+    /// Radar ships reduce the loss. Default true.
+    #[serde(default)]
+    pub radar_reducible: Option<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -123,6 +163,17 @@ pub struct GaugeInput {
     pub runs: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_sorties: Option<u32>,
+    /// Carry morale between the sorties of a run (absent: every sortie starts from the input morale).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub morale: Option<GaugeMorale>,
+}
+
+/// Wait between sorties: at least `waitMinutes`, and until every ship reaches `untilMorale` (≤ 49).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct GaugeMorale {
+    pub wait_minutes: Option<f64>,
+    pub until_morale: Option<i32>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -179,7 +230,50 @@ pub struct SortieShipSummary {
     pub hp_missing_mean: f64,
     pub fuel_used_mean: f64,
     pub ammo_used_mean: f64,
+    pub bauxite_mean: f64,
+    /// Aircraft slots that lost their proficiency (wiped to 0 planes), mean per sortie.
+    pub proficiency_lost_mean: f64,
+    pub repair: RepairSummary,
     pub damecon: DameconSummary,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Dist {
+    pub mean: f64,
+    pub p50: f64,
+    pub p90: f64,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepairSummary {
+    pub fuel: Dist,
+    pub steel: Dist,
+    pub time_sec: Dist,
+}
+
+/// Fleet docking need: costs summed over ships, `timeSec` = slowest ship (parallel docks),
+/// `timeSecTotal` = sum (one dock).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FleetRepairSummary {
+    pub fuel: Dist,
+    pub steel: Dist,
+    pub time_sec: Dist,
+    pub time_sec_total: Dist,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeEffectsSummary {
+    /// Mean gain per sortie from resource / landing nodes.
+    pub gained_mean: ResourceAmounts,
+    /// Mean total maelstrom loss per sortie (already inside `fuelUsedMean` / `ammoUsedMean`).
+    pub maelstrom_fuel_mean: f64,
+    pub maelstrom_ammo_mean: f64,
+    /// Mean HP restored per sortie by anchorage repair, and mean repair materials used.
+    pub anchorage_hp_mean: f64,
+    pub anchorage_materials_mean: f64,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -200,6 +294,13 @@ pub struct GaugeSummary {
     pub expected_sorties: Option<f64>,
     pub p50_sorties: Option<f64>,
     pub p90_sorties: Option<f64>,
+    /// Waiting between sorties per cleared run (only with `GaugeInput.morale`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected_wait_minutes: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub p50_wait_minutes: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub p90_wait_minutes: Option<f64>,
     pub capped_rate: f64,
     pub runs: u32,
 }
@@ -218,6 +319,10 @@ pub struct SortieSummary {
     pub nodes_mean: f64,
     pub fuel_used_mean: f64,
     pub ammo_used_mean: f64,
+    pub bauxite_mean: f64,
+    pub repair: FleetRepairSummary,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effects: Option<NodeEffectsSummary>,
     pub friend: Vec<SortieShipSummary>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gauge: Option<GaugeSummary>,
