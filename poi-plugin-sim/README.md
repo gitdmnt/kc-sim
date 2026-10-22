@@ -7,8 +7,8 @@ is the web app in [`../web`](../web), served by the data API's Cloudflare Worker
   them in IndexedDB (`kcsim`),
 - **uploads** them to the server automatically (debounced after each battle result and on returning to port, with
   periodic retry and exponential backoff; one request per 60 s, per-install bearer token),
-- shows the **観測ログ** (observation log) and **送信設定** (server URL, auto upload, registration) tabs, and
-- **embeds the web UI** (シミュレータ tab) in an iframe and hands it poi's fleets and master data with `postMessage`.
+- shows the **観測ログ** (observation log) and **送信設定** (server URL, auto upload, registration) views, and
+- **embeds the web UI** (the simulator) in an iframe and hands it poi's fleets and master data with `postMessage`.
 
 The Rust engine lives in `../sim-core` (used by the web UI); the server in `../server`.
 

@@ -126,7 +126,7 @@ bun install
 bun run dev           # http://localhost:5173 (/api は 127.0.0.1:8787 に中継。変更は HMR で反映)
 ```
 
-poi なしのブラウザでは poi のデータが無いので、出撃タブの「内蔵サンプルデータを使う」で同梱の艦・装備を使えます
+poi なしのブラウザでは poi のデータが無いので、設定タブの「内蔵サンプルデータを使う」で同梱の艦・装備を使えます
 (開発サーバでは `web/myState.json` (poi の state のダンプ) か同梱サンプルを poi の代わりに読みます)。
 データ API と同じ Worker から配る形は `cd web && bun run build` → `cd server && bun run dev` → http://127.0.0.1:8787/ 。
 
@@ -148,7 +148,7 @@ ln -s /絶対パス/kc-sim/poi-plugin-sim-build node_modules/poi-plugin-sim-buil
 ```
 
 poi を再起動すると、プラグイン一覧に「シミュ」が現れます。**ウィンドウモードで開いてください** (タブ表示では Web UI を埋め込みません)。
-サーバ URL (既定 `https://kc-sim.udama.net/`) は送信設定タブで変更できます。手元のサーバなら `http://127.0.0.1:8787/`。
+サーバ URL (既定 `https://kc-sim.udama.net/`) は送信設定 (Web UI のヘッダ) で変更できます。手元のサーバなら `http://127.0.0.1:8787/`。
 
 ### テスト
 
