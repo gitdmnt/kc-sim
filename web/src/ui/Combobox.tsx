@@ -20,6 +20,8 @@ interface Props {
   typeToSearch?: boolean;
   className?: string;
   menuClassName?: string;
+  /** トリガーボタンへの追加クラス (高さなど) */
+  buttonClassName?: string;
   "aria-label"?: string;
 }
 
@@ -41,6 +43,7 @@ export const Combobox = ({
   typeToSearch,
   className,
   menuClassName,
+  buttonClassName,
   ...rest
 }: Props) => {
   const [open, setOpen] = useState(false);
@@ -112,7 +115,8 @@ export const Combobox = ({
         className={cx(
           "flex h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-ink-600 bg-ink-950/70 px-2.5 text-left text-sm transition-colors",
           "hover:border-ink-500 focus-visible:outline-2 focus-visible:outline-accent-400 disabled:opacity-50",
-          open && "border-accent-500 ring-2 ring-accent-500/25"
+          open && "border-accent-500 ring-2 ring-accent-500/25",
+          buttonClassName
         )}
         {...rest}
       >

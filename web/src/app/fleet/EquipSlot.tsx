@@ -62,7 +62,7 @@ const Chip = ({ value, max, text, title, onChange }: ChipProps) => {
         e.preventDefault();
       }}
       className={cx(
-        "h-8 w-9 shrink-0 cursor-pointer rounded-md border border-ink-600 bg-ink-900 text-xs tabular-nums transition-colors",
+        "h-7 w-9 shrink-0 cursor-pointer rounded-md border border-ink-600 bg-ink-900 text-xs tabular-nums transition-colors",
         "hover:border-ink-500 focus-visible:outline-2 focus-visible:outline-accent-400",
         value === 0 ? "text-ink-400" : "text-amber-300"
       )}
@@ -103,6 +103,7 @@ export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, shipMaste
       <Combobox
         className="flex-1"
         menuClassName="min-w-80"
+        buttonClassName="h-7! px-2 text-sm"
         options={picker.options}
         value={equip?.masterId ?? null}
         selectedKey={selectedEquipKey(picker, equip)}
@@ -134,7 +135,7 @@ export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, shipMaste
       )}
       {equip && aircraft && !noSlotSize && (
         <NumberInput
-          className={cx("w-10 px-1!", slotSize === 0 && "text-ink-400!")}
+          className={cx("h-7! w-10 px-1!", slotSize === 0 && "text-ink-400!")}
           min={0}
           max={99}
           value={slotSize}
