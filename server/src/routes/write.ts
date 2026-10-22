@@ -4,9 +4,7 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { claimPostSlot, issueClient, limitWritesPerIp, requestIpHash, requireClient, type ClientVars } from "../auth/clients";
-import { Budget, COST } from "../budget";
 import { MAX_BODY_BYTES, MAX_OBSERVATIONS_PER_REQUEST, stageUpload } from "../ingest/upload";
-import { runIngest } from "../jobs";
 
 export interface WriteDeps { now: () => number }
 
@@ -67,16 +65,10 @@ export function writeRoutes(deps: WriteDeps) {
       const message = `expected an array of 1–${MAX_OBSERVATIONS_PER_REQUEST} observations, got ${r.observations ?? "none"}`;
       return c.json({ error: "validation failed", issues: [{ path: "observations", message }] }, 400);
     }
-    // Validation, storage and aggregation run in the cron (src/jobs.ts); this invocation spends what its budget
-    // has left on that queue after answering. Rejections land in observation_rejections.
-    const budget = new Budget();
-    budget.charge(COST.uploadRequest + COST.uploadKb * text.length / 1024, 4);
-    const jobs = runIngest(c.env, now, budget).catch((e) => console.error(e));
-    try {
-      c.executionCtx.waitUntil(jobs);
-    } catch {
-      await jobs; // no execution context (tests)
-    }
+    // Validation, storage and aggregation run in the cron (src/jobs.ts); rejections land in observation_rejections.
+    // The request does not ingest itself: uploads mostly land on fresh isolates, where the first ingest also pays
+    // V8's compilation of the whole validation path (cold uploads measured 30 ms with it, 9 ms without, docs/DEPLOY.md
+    // §10), while the cron's isolate is reused every minute and pays it once.
     return c.json({ queued: r.queued, duplicates: r.duplicates, pending: r.pending }, 202);
   });
 

@@ -2,8 +2,7 @@
 // minute runs the stages below under one cost-model budget (src/budget.ts) and one lease; each stage stops when
 // its next unit would not fit, and its queue keeps the rest for the next minute:
 //   ingest (staged uploads → observations, ≤ 40 %), aggregation (≤ 30 %), estimator (the rest).
-// An upload request runs ingest + aggregation with what its own budget has left (routes/write.ts), so stored
-// observations appear within the request when the queue is short.
+// Upload requests only stage (routes/write.ts); stored observations appear with the next cron run.
 import type { GridFn } from "../../shared/estimate/forward";
 import { Budget, COST, TARGET_MS } from "./budget";
 import type { Env } from "./env";
@@ -96,7 +95,7 @@ export async function runScheduled(env: Env, deps: JobDeps, budgetMs: number = T
   return done(budget, { busy: r === null, ...r });
 }
 
-/** Ingest + aggregation (no estimator) under `budget`: after an upload, and POST /admin/ingest/run. */
+/** Ingest + aggregation (no estimator) under `budget`: POST /admin/ingest/run. */
 export async function runIngest(env: Env, now: number, budget: Budget): Promise<JobsResult> {
   const r = await withJobsLease(env.DB, now, budget, () => storeStages(env.DB, budget, now, 0.6));
   return done(budget, { busy: r === null, ...r });

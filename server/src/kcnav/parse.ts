@@ -1,5 +1,5 @@
 // Pure parsers for KCNav (tsunkit.net) responses. Shapes: docs/DATA_SOURCES.md §1.
-import { z } from "zod";
+import * as z from "zod";
 import { nodeTypeFromEvent, normalizeLetter } from "../maps";
 
 const opt = <T extends z.ZodType>(t: T) => t.nullish();

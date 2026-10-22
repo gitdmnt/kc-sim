@@ -1,5 +1,5 @@
 // zod validation for write / admin request bodies (docs/API.md §3, §4).
-import { z } from "zod";
+import * as z from "zod";
 import { parseMapKey } from "./maps";
 
 const mapRef = z.union([z.int().positive(), z.string()]).transform((v, ctx) => {

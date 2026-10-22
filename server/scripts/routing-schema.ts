@@ -1,5 +1,5 @@
 // Emits seed/routing/routing.schema.json from the zod schema (single source of truth).
-import { z } from "zod";
+import * as z from "zod";
 import { routingDoc } from "../src/routing/schema";
 
 const schema = z.toJSONSchema(routingDoc, { target: "draft-2020-12" });

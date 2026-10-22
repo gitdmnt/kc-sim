@@ -6,7 +6,7 @@
 // Aggregates key on raw cell numbers; letters are resolved through `edges` (edge_id = destination cell)
 // only when the map's poi-observed comp sets are materialised, so a stale letter is fixed by re-aggregating.
 // Quarantined observations (ingest/validate.ts) are never folded in.
-import { z } from "zod";
+import * as z from "zod";
 import { BACKLOG_COUNT_CAP, COST, type Budget } from "../budget";
 import { bumpDataVersion, PUBLISH_EVERY_MS } from "../cache";
 import type { SortieRecord } from "../schemas";

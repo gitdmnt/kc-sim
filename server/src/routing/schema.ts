@@ -1,6 +1,6 @@
 // Routing rule DSL (docs/ROUTING_DSL.md). This zod schema is the single source of truth;
 // `bun scripts/routing-schema.ts` emits the JSON Schema used by the Rust evaluator's tests.
-import { z } from "zod";
+import * as z from "zod";
 
 /** Base ship types (api_mst_stype ids in ROUTING_DSL.md §3). */
 export const SHIP_TYPES = {

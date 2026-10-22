@@ -50,6 +50,7 @@ if (!process.argv.includes("--no-workerd")) {
   for (let k = 0; k < 3; k++) {
     const fresh = await startBenchWorker();
     try {
+      await fresh.once("/import"); // the worker's global scope (bench/cold.ts), not part of sim-core's first use
       const first = await once();
       const warm: number[] = [];
       for (let i = 0; i < 5; i++) warm.push(await once());

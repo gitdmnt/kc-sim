@@ -17,12 +17,6 @@ export const COST = {
   /** per KB of D1 request/response payload (JSON.stringify of params, JSON.parse of rows; measured 0.0007–0.0009) */
   d1Kb: 0.002,
 
-  // ---- upload request (routes/write.ts) ----
-  /** auth (SHA-256, HMAC), limiter, post slot, staging batch */
-  uploadRequest: 0.3,
-  /** per KB of request body (read, decode, bound once as a D1 parameter) */
-  uploadKb: 0.004,
-
   // ---- ingest (upload_items -> observations) ----
   /** per staged observation: JSON.parse, schema, re-derivation, validation, insert rows; and per KB of it */
   ingestItem: 0.03,

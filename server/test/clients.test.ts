@@ -2,7 +2,7 @@
 // the per-IP write limiter, body caps and CORS (src/auth/clients.ts, src/routes/write.ts).
 import { beforeEach, describe, expect, test } from "bun:test";
 import { hashIp, sha256Hex } from "../src/auth/clients";
-import { battleResponse, fleet, harness, LAYOUT_15, seedBasic, uploadAndProcess, type Harness } from "./helpers";
+import { battleResponse, drainJobs, fleet, harness, LAYOUT_15, seedBasic, uploadAndProcess, type Harness } from "./helpers";
 
 let h: Harness;
 beforeEach(async () => {
@@ -77,6 +77,7 @@ describe("bearer auth and ban", () => {
   test("clientId in the body is ignored: the token decides", async () => {
     const { clientId, token } = await h.register();
     expect((await upload(token, [obs()], { clientId: "someone-else" })).json).toMatchObject({ queued: 1, duplicates: 0 });
+    await drainJobs(h);
     expect((await h.db.prepare("SELECT DISTINCT client_id FROM observations").all()).results).toEqual([{ client_id: clientId }]);
   });
 });
@@ -97,6 +98,7 @@ describe("1 POST per 60 s per token", () => {
     expect((await upload(b.token, [obs()])).status).toBe(202);
     h.clock.t += 15_000;
     expect((await upload(a.token, [obs()])).status).toBe(202);
+    await drainJobs(h);
     expect((await h.db.prepare("SELECT COUNT(*) AS n FROM observations").first())).toEqual({ n: 3 });
   });
 

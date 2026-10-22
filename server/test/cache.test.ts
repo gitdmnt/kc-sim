@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { cacheKey, dataVersion } from "../src/cache";
-import { battleResponse, fleet, harness, LAYOUT_15, seedBasic, type Harness } from "./helpers";
+import { battleResponse, drainJobs, fleet, harness, LAYOUT_15, seedBasic, type Harness } from "./helpers";
 
 /** Cache API double (caches.default): stores responses by URL. */
 class FakeCache implements Cache {
@@ -82,8 +82,9 @@ describe("versioned GET cache", () => {
       }), result: null },
     };
     expect((await h.call("POST", "/api/v1/observations", { token, body: { observations: [ob] } })).status).toBe(202);
+    await drainJobs(h);
     const v1 = await v();
-    expect(v1).toBeGreaterThan(v0); // the request's leftover budget ingested it and aggregation materialised map 1-5
+    expect(v1).toBeGreaterThan(v0); // the jobs ingested it and aggregation materialised map 1-5
     await h.call("POST", "/admin/estimate/run", { body: { budgetMs: 100 } });
     const v2 = await v();
     expect(v2).toBeGreaterThan(v1); // posteriors written

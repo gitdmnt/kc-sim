@@ -11,12 +11,14 @@ export interface BenchWorker {
   /** ms per repetition of `path?…&reps=` (the path gets `reps` appended) */
   perRep(path: string, reps: number): Promise<number>;
   post(path: string, body: string): Promise<string>;
+  /** client ms of one POST `path`, as is (bench/cold.ts: first invocations) */
+  once(path: string): Promise<number>;
   stop(): Promise<void>;
 }
 
-export async function startBenchWorker(): Promise<BenchWorker> {
+/** `worker`: the bench worker to run (bench/cold.ts --worker runs another checkout's, for before/after). */
+export async function startBenchWorker(worker = new URL("./worker.ts", import.meta.url).pathname): Promise<BenchWorker> {
   const dir = mkdtempSync(join(tmpdir(), "kcsim-bench-"));
-  const worker = new URL("./worker.ts", import.meta.url).pathname;
   writeFileSync(join(dir, "wrangler.toml"), `name = "kcsim-bench"\nmain = "${worker}"\ncompatibility_date = "2026-10-01"\n`);
   const bin = new URL("../node_modules/.bin/wrangler", import.meta.url).pathname;
   const proc = Bun.spawn([bin, "dev", "--port", String(BENCH_PORT), "--inspector-port", "9330", "--local", "--persist-to", join(dir, "state")], {
@@ -31,13 +33,14 @@ export async function startBenchWorker(): Promise<BenchWorker> {
       await Bun.sleep(100);
     }
   }
-  const time = async (path: string, reps: number) => {
+  const once = async (path: string) => {
     const t = performance.now();
-    const res = await fetch(`${base}${path}${path.includes("?") ? "&" : "?"}reps=${reps}`, { method: "POST" });
+    const res = await fetch(`${base}${path}`, { method: "POST" });
     const text = await res.text();
     if (!res.ok) throw new Error(`${path}: ${text}`);
     return performance.now() - t;
   };
+  const time = (path: string, reps: number) => once(`${path}${path.includes("?") ? "&" : "?"}reps=${reps}`);
   return {
     perRep: async (path, reps) => {
       await time(path, Math.min(reps, 3)); // warm-up
@@ -51,6 +54,7 @@ export async function startBenchWorker(): Promise<BenchWorker> {
       if (!res.ok) throw new Error(`${path}: ${text}`);
       return text;
     },
+    once,
     stop: async () => {
       proc.kill();
       await proc.exited;
