@@ -1,0 +1,38 @@
+{
+  "name": "poi-plugin-sim",
+  "type": "module",
+  "main": "../poi-plugin-sim-build/index.es",
+  "devDependencies": {
+    "@kancolle/data": "^0.230101.0",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/bun": "latest",
+    "@types/react": "^19.2.4",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "fake-indexeddb": "^6.2.6",
+    "playwright-core": "^1.64.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17",
+    "vite": "^7.2.2",
+    "vite-plugin-static-copy": "^3.1.4",
+    "vite-tsconfig-paths": "^5.1.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.10.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-redux": "^9.2.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:wasm": "cd ../sim-core && wasm-pack build --target web",
+    "sample": "bun scripts/gen-sample-state.ts",
+    "screenshots": "bun scripts/screenshots.ts",
+    "test": "bun test",
+    "audit": "bun scripts/audit.ts"
+  }
+}

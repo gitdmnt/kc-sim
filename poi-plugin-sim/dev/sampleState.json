@@ -1,0 +1,11262 @@
+{
+ "info": {
+  "basic": {
+   "api_level": 120,
+   "api_nickname": "sample"
+  },
+  "fleets": [
+   {
+    "api_id": 1,
+    "api_name": "第1艦隊",
+    "api_ship": [
+     100,
+     101,
+     102,
+     103,
+     104,
+     105
+    ]
+   },
+   {
+    "api_id": 2,
+    "api_name": "第2艦隊",
+    "api_ship": [
+     106,
+     107,
+     108,
+     109,
+     110,
+     111
+    ]
+   },
+   {
+    "api_id": 3,
+    "api_name": "第3艦隊",
+    "api_ship": [
+     112,
+     113,
+     114,
+     115,
+     -1,
+     -1
+    ]
+   },
+   {
+    "api_id": 4,
+    "api_name": "第4艦隊",
+    "api_ship": [
+     116,
+     117,
+     118,
+     119,
+     120,
+     121
+    ]
+   },
+   {
+    "api_id": 5,
+    "api_name": "第5艦隊",
+    "api_ship": [
+     122,
+     123,
+     124,
+     125,
+     126,
+     127
+    ]
+   }
+  ],
+  "ships": {
+   "100": {
+    "api_id": 100,
+    "api_ship_id": 911,
+    "api_lv": 99,
+    "api_cond": 49,
+    "api_maxhp": 110,
+    "api_nowhp": 110,
+    "api_karyoku": [
+     197,
+     144
+    ],
+    "api_raisou": [
+     0,
+     0
+    ],
+    "api_taiku": [
+     123,
+     108
+    ],
+    "api_soukou": [
+     122,
+     122
+    ],
+    "api_kaihi": [
+     40,
+     60
+    ],
+    "api_taisen": [
+     2,
+     30
+    ],
+    "api_sakuteki": [
+     32,
+     45
+    ],
+    "api_lucky": [
+     28,
+     108
+    ],
+    "api_leng": 4,
+    "api_soku": 10,
+    "api_slotnum": 5,
+    "api_slot": [
+     5000,
+     5001,
+     5002,
+     5003,
+     -1
+    ],
+    "api_onslot": [
+     4,
+     4,
+     4,
+     8,
+     2
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "101": {
+    "api_id": 101,
+    "api_ship_id": 546,
+    "api_lv": 99,
+    "api_cond": 50,
+    "api_maxhp": 110,
+    "api_nowhp": 110,
+    "api_karyoku": [
+     206,
+     145
+    ],
+    "api_raisou": [
+     0,
+     0
+    ],
+    "api_taiku": [
+     115,
+     105
+    ],
+    "api_soukou": [
+     125,
+     125
+    ],
+    "api_kaihi": [
+     35,
+     55
+    ],
+    "api_taisen": [
+     2,
+     30
+    ],
+    "api_sakuteki": [
+     32,
+     45
+    ],
+    "api_lucky": [
+     20,
+     88
+    ],
+    "api_leng": 4,
+    "api_soku": 5,
+    "api_slotnum": 5,
+    "api_slot": [
+     5004,
+     5005,
+     5006,
+     5007,
+     -1
+    ],
+    "api_onslot": [
+     5,
+     5,
+     5,
+     8,
+     5
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "102": {
+    "api_id": 102,
+    "api_ship_id": 594,
+    "api_lv": 99,
+    "api_cond": 51,
+    "api_maxhp": 97,
+    "api_nowhp": 97,
+    "api_karyoku": [
+     60,
+     60
+    ],
+    "api_raisou": [
+     10,
+     0
+    ],
+    "api_taiku": [
+     107,
+     85
+    ],
+    "api_soukou": [
+     81,
+     81
+    ],
+    "api_kaihi": [
+     43,
+     60
+    ],
+    "api_taisen": [
+     4,
+     30
+    ],
+    "api_sakuteki": [
+     50,
+     60
+    ],
+    "api_lucky": [
+     30,
+     77
+    ],
+    "api_leng": 2,
+    "api_soku": 10,
+    "api_slotnum": 5,
+    "api_slot": [
+     5008,
+     5009,
+     5010,
+     5011,
+     -1
+    ],
+    "api_onslot": [
+     21,
+     21,
+     32,
+     12,
+     4
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "103": {
+    "api_id": 103,
+    "api_ship_id": 698,
+    "api_lv": 99,
+    "api_cond": 52,
+    "api_maxhp": 98,
+    "api_nowhp": 98,
+    "api_karyoku": [
+     56,
+     56
+    ],
+    "api_raisou": [
+     7,
+     0
+    ],
+    "api_taiku": [
+     102,
+     84
+    ],
+    "api_soukou": [
+     80,
+     80
+    ],
+    "api_kaihi": [
+     40,
+     60
+    ],
+    "api_taisen": [
+     6,
+     30
+    ],
+    "api_sakuteki": [
+     41,
+     60
+    ],
+    "api_lucky": [
+     28,
+     74
+    ],
+    "api_leng": 2,
+    "api_soku": 10,
+    "api_slotnum": 5,
+    "api_slot": [
+     5012,
+     5013,
+     5014,
+     5015,
+     -1
+    ],
+    "api_onslot": [
+     20,
+     20,
+     44,
+     12,
+     3
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "104": {
+    "api_id": 104,
+    "api_ship_id": 321,
+    "api_lv": 99,
+    "api_cond": 53,
+    "api_maxhp": 64,
+    "api_nowhp": 64,
+    "api_karyoku": [
+     77,
+     70
+    ],
+    "api_raisou": [
+     49,
+     49
+    ],
+    "api_taiku": [
+     83,
+     74
+    ],
+    "api_soukou": [
+     68,
+     68
+    ],
+    "api_kaihi": [
+     60,
+     80
+    ],
+    "api_taisen": [
+     72,
+     100
+    ],
+    "api_sakuteki": [
+     41,
+     52
+    ],
+    "api_lucky": [
+     40,
+     79
+    ],
+    "api_leng": 2,
+    "api_soku": 10,
+    "api_slotnum": 4,
+    "api_slot": [
+     5016,
+     5017,
+     5018,
+     -1
+    ],
+    "api_onslot": [
+     0,
+     6,
+     6,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "105": {
+    "api_id": 105,
+    "api_ship_id": 50,
+    "api_lv": 99,
+    "api_cond": 49,
+    "api_maxhp": 39,
+    "api_nowhp": 39,
+    "api_karyoku": [
+     29,
+     29
+    ],
+    "api_raisou": [
+     113,
+     89
+    ],
+    "api_taiku": [
+     49,
+     49
+    ],
+    "api_soukou": [
+     29,
+     29
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     70,
+     100
+    ],
+    "api_sakuteki": [
+     22,
+     42
+    ],
+    "api_lucky": [
+     20,
+     49
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 2,
+    "api_slot": [
+     5019,
+     5020
+    ],
+    "api_onslot": [
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "106": {
+    "api_id": 106,
+    "api_ship_id": 145,
+    "api_lv": 99,
+    "api_cond": 50,
+    "api_maxhp": 49,
+    "api_nowhp": 49,
+    "api_karyoku": [
+     65,
+     62
+    ],
+    "api_raisou": [
+     89,
+     89
+    ],
+    "api_taiku": [
+     74,
+     72
+    ],
+    "api_soukou": [
+     52,
+     52
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     88,
+     100
+    ],
+    "api_sakuteki": [
+     22,
+     42
+    ],
+    "api_lucky": [
+     60,
+     88
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 3,
+    "api_slot": [
+     5021,
+     5022,
+     5023
+    ],
+    "api_onslot": [
+     0,
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "107": {
+    "api_id": 107,
+    "api_ship_id": 656,
+    "api_lv": 99,
+    "api_cond": 51,
+    "api_maxhp": 55,
+    "api_nowhp": 55,
+    "api_karyoku": [
+     69,
+     66
+    ],
+    "api_raisou": [
+     90,
+     90
+    ],
+    "api_taiku": [
+     87,
+     85
+    ],
+    "api_soukou": [
+     60,
+     60
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     88,
+     100
+    ],
+    "api_sakuteki": [
+     22,
+     42
+    ],
+    "api_lucky": [
+     73,
+     120
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 3,
+    "api_slot": [
+     5024,
+     5025,
+     5026
+    ],
+    "api_onslot": [
+     0,
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "108": {
+    "api_id": 108,
+    "api_ship_id": 352,
+    "api_lv": 99,
+    "api_cond": 52,
+    "api_maxhp": 50,
+    "api_nowhp": 50,
+    "api_karyoku": [
+     36,
+     36
+    ],
+    "api_raisou": [
+     0,
+     0
+    ],
+    "api_taiku": [
+     48,
+     48
+    ],
+    "api_soukou": [
+     19,
+     19
+    ],
+    "api_kaihi": [
+     40,
+     60
+    ],
+    "api_taisen": [
+     0,
+     30
+    ],
+    "api_sakuteki": [
+     30,
+     50
+    ],
+    "api_lucky": [
+     18,
+     44
+    ],
+    "api_leng": 1,
+    "api_soku": 5,
+    "api_slotnum": 3,
+    "api_slot": [
+     5027,
+     5028,
+     5029
+    ],
+    "api_onslot": [
+     6,
+     3,
+     1
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "109": {
+    "api_id": 109,
+    "api_ship_id": 591,
+    "api_lv": 99,
+    "api_cond": 53,
+    "api_maxhp": 99,
+    "api_nowhp": 99,
+    "api_karyoku": [
+     140,
+     99
+    ],
+    "api_raisou": [
+     44,
+     44
+    ],
+    "api_taiku": [
+     97,
+     89
+    ],
+    "api_soukou": [
+     91,
+     91
+    ],
+    "api_kaihi": [
+     40,
+     60
+    ],
+    "api_taisen": [
+     2,
+     30
+    ],
+    "api_sakuteki": [
+     32,
+     45
+    ],
+    "api_lucky": [
+     28,
+     98
+    ],
+    "api_leng": 3,
+    "api_soku": 10,
+    "api_slotnum": 4,
+    "api_slot": [
+     5030,
+     5031,
+     5032,
+     -1
+    ],
+    "api_onslot": [
+     2,
+     2,
+     3,
+     6
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "110": {
+    "api_id": 110,
+    "api_ship_id": 434,
+    "api_lv": 99,
+    "api_cond": 49,
+    "api_maxhp": 43,
+    "api_nowhp": 43,
+    "api_karyoku": [
+     45,
+     45
+    ],
+    "api_raisou": [
+     79,
+     79
+    ],
+    "api_taiku": [
+     56,
+     56
+    ],
+    "api_soukou": [
+     43,
+     43
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     70,
+     100
+    ],
+    "api_sakuteki": [
+     22,
+     42
+    ],
+    "api_lucky": [
+     24,
+     64
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 3,
+    "api_slot": [
+     -1,
+     -1,
+     -1
+    ],
+    "api_onslot": [
+     0,
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "111": {
+    "api_id": 111,
+    "api_ship_id": 144,
+    "api_lv": 99,
+    "api_cond": 50,
+    "api_maxhp": 58,
+    "api_nowhp": 58,
+    "api_karyoku": [
+     76,
+     73
+    ],
+    "api_raisou": [
+     93,
+     93
+    ],
+    "api_taiku": [
+     61,
+     59
+    ],
+    "api_soukou": [
+     52,
+     52
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     88,
+     100
+    ],
+    "api_sakuteki": [
+     22,
+     42
+    ],
+    "api_lucky": [
+     30,
+     59
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 3,
+    "api_slot": [
+     5033,
+     5034,
+     5035
+    ],
+    "api_onslot": [
+     0,
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "112": {
+    "api_id": 112,
+    "api_ship_id": 141,
+    "api_lv": 99,
+    "api_cond": 51,
+    "api_maxhp": 59,
+    "api_nowhp": 59,
+    "api_karyoku": [
+     64,
+     62
+    ],
+    "api_raisou": [
+     79,
+     79
+    ],
+    "api_taiku": [
+     85,
+     85
+    ],
+    "api_soukou": [
+     69,
+     69
+    ],
+    "api_kaihi": [
+     60,
+     80
+    ],
+    "api_taisen": [
+     88,
+     100
+    ],
+    "api_sakuteki": [
+     32,
+     52
+    ],
+    "api_lucky": [
+     23,
+     70
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 3,
+    "api_slot": [
+     5036,
+     5037,
+     5038
+    ],
+    "api_onslot": [
+     0,
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "113": {
+    "api_id": 113,
+    "api_ship_id": 145,
+    "api_lv": 99,
+    "api_cond": 52,
+    "api_maxhp": 49,
+    "api_nowhp": 49,
+    "api_karyoku": [
+     65,
+     62
+    ],
+    "api_raisou": [
+     89,
+     89
+    ],
+    "api_taiku": [
+     74,
+     72
+    ],
+    "api_soukou": [
+     52,
+     52
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     88,
+     100
+    ],
+    "api_sakuteki": [
+     22,
+     42
+    ],
+    "api_lucky": [
+     60,
+     88
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 3,
+    "api_slot": [
+     5039,
+     5040,
+     5041
+    ],
+    "api_onslot": [
+     0,
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "114": {
+    "api_id": 114,
+    "api_ship_id": 656,
+    "api_lv": 99,
+    "api_cond": 53,
+    "api_maxhp": 55,
+    "api_nowhp": 55,
+    "api_karyoku": [
+     69,
+     66
+    ],
+    "api_raisou": [
+     90,
+     90
+    ],
+    "api_taiku": [
+     87,
+     85
+    ],
+    "api_soukou": [
+     60,
+     60
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     88,
+     100
+    ],
+    "api_sakuteki": [
+     22,
+     42
+    ],
+    "api_lucky": [
+     73,
+     120
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 3,
+    "api_slot": [
+     5042,
+     5043,
+     5044
+    ],
+    "api_onslot": [
+     0,
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "115": {
+    "api_id": 115,
+    "api_ship_id": 144,
+    "api_lv": 99,
+    "api_cond": 49,
+    "api_maxhp": 58,
+    "api_nowhp": 58,
+    "api_karyoku": [
+     76,
+     73
+    ],
+    "api_raisou": [
+     93,
+     93
+    ],
+    "api_taiku": [
+     61,
+     59
+    ],
+    "api_soukou": [
+     52,
+     52
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     88,
+     100
+    ],
+    "api_sakuteki": [
+     22,
+     42
+    ],
+    "api_lucky": [
+     30,
+     59
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 3,
+    "api_slot": [
+     5045,
+     5046,
+     5047
+    ],
+    "api_onslot": [
+     0,
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "116": {
+    "api_id": 116,
+    "api_ship_id": 594,
+    "api_lv": 99,
+    "api_cond": 50,
+    "api_maxhp": 97,
+    "api_nowhp": 97,
+    "api_karyoku": [
+     60,
+     60
+    ],
+    "api_raisou": [
+     10,
+     0
+    ],
+    "api_taiku": [
+     104,
+     85
+    ],
+    "api_soukou": [
+     81,
+     81
+    ],
+    "api_kaihi": [
+     40,
+     60
+    ],
+    "api_taisen": [
+     4,
+     30
+    ],
+    "api_sakuteki": [
+     50,
+     60
+    ],
+    "api_lucky": [
+     30,
+     77
+    ],
+    "api_leng": 2,
+    "api_soku": 10,
+    "api_slotnum": 5,
+    "api_slot": [
+     5048,
+     5049,
+     5050,
+     5051,
+     -1
+    ],
+    "api_onslot": [
+     21,
+     21,
+     32,
+     12,
+     4
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "117": {
+    "api_id": 117,
+    "api_ship_id": 157,
+    "api_lv": 99,
+    "api_cond": 51,
+    "api_maxhp": 72,
+    "api_nowhp": 72,
+    "api_karyoku": [
+     40,
+     40
+    ],
+    "api_raisou": [
+     7,
+     0
+    ],
+    "api_taiku": [
+     60,
+     48
+    ],
+    "api_soukou": [
+     62,
+     62
+    ],
+    "api_kaihi": [
+     50,
+     70
+    ],
+    "api_taisen": [
+     43,
+     70
+    ],
+    "api_sakuteki": [
+     48,
+     60
+    ],
+    "api_lucky": [
+     25,
+     59
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 4,
+    "api_slot": [
+     5052,
+     5053,
+     5054,
+     5055
+    ],
+    "api_onslot": [
+     18,
+     28,
+     6,
+     3
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "118": {
+    "api_id": 118,
+    "api_ship_id": 159,
+    "api_lv": 99,
+    "api_cond": 52,
+    "api_maxhp": 63,
+    "api_nowhp": 63,
+    "api_karyoku": [
+     75,
+     73
+    ],
+    "api_raisou": [
+     98,
+     98
+    ],
+    "api_taiku": [
+     69,
+     68
+    ],
+    "api_soukou": [
+     69,
+     69
+    ],
+    "api_kaihi": [
+     60,
+     80
+    ],
+    "api_taisen": [
+     72,
+     100
+    ],
+    "api_sakuteki": [
+     42,
+     52
+    ],
+    "api_lucky": [
+     23,
+     79
+    ],
+    "api_leng": 2,
+    "api_soku": 10,
+    "api_slotnum": 3,
+    "api_slot": [
+     5056,
+     5057,
+     5058
+    ],
+    "api_onslot": [
+     1,
+     1,
+     1
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "119": {
+    "api_id": 119,
+    "api_ship_id": 145,
+    "api_lv": 99,
+    "api_cond": 53,
+    "api_maxhp": 49,
+    "api_nowhp": 49,
+    "api_karyoku": [
+     65,
+     62
+    ],
+    "api_raisou": [
+     101,
+     89
+    ],
+    "api_taiku": [
+     74,
+     72
+    ],
+    "api_soukou": [
+     52,
+     52
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     70,
+     100
+    ],
+    "api_sakuteki": [
+     27,
+     42
+    ],
+    "api_lucky": [
+     60,
+     88
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 3,
+    "api_slot": [
+     5059,
+     5060,
+     5061
+    ],
+    "api_onslot": [
+     0,
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "120": {
+    "api_id": 120,
+    "api_ship_id": 656,
+    "api_lv": 99,
+    "api_cond": 49,
+    "api_maxhp": 55,
+    "api_nowhp": 55,
+    "api_karyoku": [
+     69,
+     66
+    ],
+    "api_raisou": [
+     102,
+     90
+    ],
+    "api_taiku": [
+     87,
+     85
+    ],
+    "api_soukou": [
+     60,
+     60
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     70,
+     100
+    ],
+    "api_sakuteki": [
+     27,
+     42
+    ],
+    "api_lucky": [
+     73,
+     120
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 3,
+    "api_slot": [
+     5062,
+     5063,
+     5064
+    ],
+    "api_onslot": [
+     0,
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "121": {
+    "api_id": 121,
+    "api_ship_id": 50,
+    "api_lv": 99,
+    "api_cond": 50,
+    "api_maxhp": 39,
+    "api_nowhp": 39,
+    "api_karyoku": [
+     29,
+     29
+    ],
+    "api_raisou": [
+     113,
+     89
+    ],
+    "api_taiku": [
+     49,
+     49
+    ],
+    "api_soukou": [
+     29,
+     29
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     70,
+     100
+    ],
+    "api_sakuteki": [
+     22,
+     42
+    ],
+    "api_lucky": [
+     20,
+     49
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 2,
+    "api_slot": [
+     5065,
+     5066
+    ],
+    "api_onslot": [
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "122": {
+    "api_id": 122,
+    "api_ship_id": 591,
+    "api_lv": 99,
+    "api_cond": 51,
+    "api_maxhp": 99,
+    "api_nowhp": 99,
+    "api_karyoku": [
+     139,
+     99
+    ],
+    "api_raisou": [
+     44,
+     44
+    ],
+    "api_taiku": [
+     99,
+     89
+    ],
+    "api_soukou": [
+     91,
+     91
+    ],
+    "api_kaihi": [
+     40,
+     60
+    ],
+    "api_taisen": [
+     4,
+     30
+    ],
+    "api_sakuteki": [
+     41,
+     45
+    ],
+    "api_lucky": [
+     28,
+     98
+    ],
+    "api_leng": 3,
+    "api_soku": 10,
+    "api_slotnum": 4,
+    "api_slot": [
+     5067,
+     5068,
+     5069,
+     5070
+    ],
+    "api_onslot": [
+     2,
+     2,
+     3,
+     6
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "123": {
+    "api_id": 123,
+    "api_ship_id": 151,
+    "api_lv": 99,
+    "api_cond": 52,
+    "api_maxhp": 99,
+    "api_nowhp": 99,
+    "api_karyoku": [
+     136,
+     96
+    ],
+    "api_raisou": [
+     0,
+     0
+    ],
+    "api_taiku": [
+     101,
+     92
+    ],
+    "api_soukou": [
+     93,
+     93
+    ],
+    "api_kaihi": [
+     40,
+     60
+    ],
+    "api_taisen": [
+     2,
+     30
+    ],
+    "api_sakuteki": [
+     40,
+     45
+    ],
+    "api_lucky": [
+     51,
+     93
+    ],
+    "api_leng": 3,
+    "api_soku": 10,
+    "api_slotnum": 4,
+    "api_slot": [
+     5071,
+     5072,
+     5073,
+     5074
+    ],
+    "api_onslot": [
+     3,
+     3,
+     3,
+     3
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "124": {
+    "api_id": 124,
+    "api_ship_id": 466,
+    "api_lv": 99,
+    "api_cond": 53,
+    "api_maxhp": 94,
+    "api_nowhp": 94,
+    "api_karyoku": [
+     70,
+     70
+    ],
+    "api_raisou": [
+     10,
+     0
+    ],
+    "api_taiku": [
+     107,
+     88
+    ],
+    "api_soukou": [
+     83,
+     83
+    ],
+    "api_kaihi": [
+     40,
+     60
+    ],
+    "api_taisen": [
+     4,
+     30
+    ],
+    "api_sakuteki": [
+     50,
+     60
+    ],
+    "api_lucky": [
+     30,
+     97
+    ],
+    "api_leng": 2,
+    "api_soku": 10,
+    "api_slotnum": 4,
+    "api_slot": [
+     5075,
+     5076,
+     5077,
+     5078
+    ],
+    "api_onslot": [
+     34,
+     21,
+     12,
+     9
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "125": {
+    "api_id": 125,
+    "api_ship_id": 330,
+    "api_lv": 99,
+    "api_cond": 49,
+    "api_maxhp": 57,
+    "api_nowhp": 57,
+    "api_karyoku": [
+     61,
+     57
+    ],
+    "api_raisou": [
+     54,
+     54
+    ],
+    "api_taiku": [
+     132,
+     116
+    ],
+    "api_soukou": [
+     53,
+     53
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     70,
+     100
+    ],
+    "api_sakuteki": [
+     25,
+     42
+    ],
+    "api_lucky": [
+     22,
+     69
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 3,
+    "api_slot": [
+     5079,
+     5080,
+     5081
+    ],
+    "api_onslot": [
+     0,
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "126": {
+    "api_id": 126,
+    "api_ship_id": 50,
+    "api_lv": 99,
+    "api_cond": 50,
+    "api_maxhp": 39,
+    "api_nowhp": 39,
+    "api_karyoku": [
+     32,
+     29
+    ],
+    "api_raisou": [
+     101,
+     89
+    ],
+    "api_taiku": [
+     51,
+     49
+    ],
+    "api_soukou": [
+     29,
+     29
+    ],
+    "api_kaihi": [
+     85,
+     105
+    ],
+    "api_taisen": [
+     70,
+     100
+    ],
+    "api_sakuteki": [
+     22,
+     42
+    ],
+    "api_lucky": [
+     20,
+     49
+    ],
+    "api_leng": 1,
+    "api_soku": 10,
+    "api_slotnum": 2,
+    "api_slot": [
+     5082,
+     5083
+    ],
+    "api_onslot": [
+     0,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   },
+   "127": {
+    "api_id": 127,
+    "api_ship_id": 321,
+    "api_lv": 99,
+    "api_cond": 51,
+    "api_maxhp": 64,
+    "api_nowhp": 64,
+    "api_karyoku": [
+     77,
+     70
+    ],
+    "api_raisou": [
+     49,
+     49
+    ],
+    "api_taiku": [
+     81,
+     74
+    ],
+    "api_soukou": [
+     68,
+     68
+    ],
+    "api_kaihi": [
+     60,
+     80
+    ],
+    "api_taisen": [
+     76,
+     100
+    ],
+    "api_sakuteki": [
+     53,
+     52
+    ],
+    "api_lucky": [
+     40,
+     79
+    ],
+    "api_leng": 2,
+    "api_soku": 10,
+    "api_slotnum": 4,
+    "api_slot": [
+     5084,
+     5085,
+     5086,
+     5087
+    ],
+    "api_onslot": [
+     0,
+     6,
+     6,
+     0
+    ],
+    "api_slot_ex": -1,
+    "api_kyouka": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     2,
+     0
+    ]
+   }
+  },
+  "equips": {
+   "5000": {
+    "api_id": 5000,
+    "api_slotitem_id": 9,
+    "api_level": 10,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5001": {
+    "api_id": 5001,
+    "api_slotitem_id": 9,
+    "api_level": 7,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5002": {
+    "api_id": 5002,
+    "api_slotitem_id": 35,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5003": {
+    "api_id": 5003,
+    "api_slotitem_id": 240,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5004": {
+    "api_id": 5004,
+    "api_slotitem_id": 9,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5005": {
+    "api_id": 5005,
+    "api_slotitem_id": 9,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5006": {
+    "api_id": 5006,
+    "api_slotitem_id": 36,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5007": {
+    "api_id": 5007,
+    "api_slotitem_id": 240,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5008": {
+    "api_id": 5008,
+    "api_slotitem_id": 53,
+    "api_level": 10,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5009": {
+    "api_id": 5009,
+    "api_slotitem_id": 55,
+    "api_level": 4,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5010": {
+    "api_id": 5010,
+    "api_slotitem_id": 18,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5011": {
+    "api_id": 5011,
+    "api_slotitem_id": 54,
+    "api_level": 6,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5012": {
+    "api_id": 5012,
+    "api_slotitem_id": 21,
+    "api_level": 7,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5013": {
+    "api_id": 5013,
+    "api_slotitem_id": 53,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5014": {
+    "api_id": 5014,
+    "api_slotitem_id": 24,
+    "api_level": 0,
+    "api_alv": 5,
+    "api_locked": 0
+   },
+   "5015": {
+    "api_id": 5015,
+    "api_slotitem_id": 17,
+    "api_level": 0,
+    "api_alv": 3,
+    "api_locked": 0
+   },
+   "5016": {
+    "api_id": 5016,
+    "api_slotitem_id": 25,
+    "api_level": 4,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5017": {
+    "api_id": 5017,
+    "api_slotitem_id": 30,
+    "api_level": 2,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5018": {
+    "api_id": 5018,
+    "api_slotitem_id": 5,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5019": {
+    "api_id": 5019,
+    "api_slotitem_id": 58,
+    "api_level": 10,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5020": {
+    "api_id": 5020,
+    "api_slotitem_id": 58,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5021": {
+    "api_id": 5021,
+    "api_slotitem_id": 63,
+    "api_level": 7,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5022": {
+    "api_id": 5022,
+    "api_slotitem_id": 47,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5023": {
+    "api_id": 5023,
+    "api_slotitem_id": 45,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5024": {
+    "api_id": 5024,
+    "api_slotitem_id": 63,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5025": {
+    "api_id": 5025,
+    "api_slotitem_id": 47,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5026": {
+    "api_id": 5026,
+    "api_slotitem_id": 45,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5027": {
+    "api_id": 5027,
+    "api_slotitem_id": 75,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5028": {
+    "api_id": 5028,
+    "api_slotitem_id": 75,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5029": {
+    "api_id": 5029,
+    "api_slotitem_id": 75,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5030": {
+    "api_id": 5030,
+    "api_slotitem_id": 8,
+    "api_level": 5,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5031": {
+    "api_id": 5031,
+    "api_slotitem_id": 8,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5032": {
+    "api_id": 5032,
+    "api_slotitem_id": 240,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5033": {
+    "api_id": 5033,
+    "api_slotitem_id": 63,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5034": {
+    "api_id": 5034,
+    "api_slotitem_id": 47,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5035": {
+    "api_id": 5035,
+    "api_slotitem_id": 45,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5036": {
+    "api_id": 5036,
+    "api_slotitem_id": 4,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5037": {
+    "api_id": 5037,
+    "api_slotitem_id": 47,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5038": {
+    "api_id": 5038,
+    "api_slotitem_id": 45,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5039": {
+    "api_id": 5039,
+    "api_slotitem_id": 63,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5040": {
+    "api_id": 5040,
+    "api_slotitem_id": 47,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5041": {
+    "api_id": 5041,
+    "api_slotitem_id": 45,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5042": {
+    "api_id": 5042,
+    "api_slotitem_id": 63,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5043": {
+    "api_id": 5043,
+    "api_slotitem_id": 47,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5044": {
+    "api_id": 5044,
+    "api_slotitem_id": 45,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5045": {
+    "api_id": 5045,
+    "api_slotitem_id": 63,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5046": {
+    "api_id": 5046,
+    "api_slotitem_id": 47,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5047": {
+    "api_id": 5047,
+    "api_slotitem_id": 45,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5048": {
+    "api_id": 5048,
+    "api_slotitem_id": 53,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5049": {
+    "api_id": 5049,
+    "api_slotitem_id": 21,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5050": {
+    "api_id": 5050,
+    "api_slotitem_id": 18,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5051": {
+    "api_id": 5051,
+    "api_slotitem_id": 54,
+    "api_level": 10,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5052": {
+    "api_id": 5052,
+    "api_slotitem_id": 21,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5053": {
+    "api_id": 5053,
+    "api_slotitem_id": 20,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5054": {
+    "api_id": 5054,
+    "api_slotitem_id": 17,
+    "api_level": 0,
+    "api_alv": 3,
+    "api_locked": 0
+   },
+   "5055": {
+    "api_id": 5055,
+    "api_slotitem_id": 61,
+    "api_level": 10,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5056": {
+    "api_id": 5056,
+    "api_slotitem_id": 25,
+    "api_level": 10,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5057": {
+    "api_id": 5057,
+    "api_slotitem_id": 4,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5058": {
+    "api_id": 5058,
+    "api_slotitem_id": 28,
+    "api_level": 10,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5059": {
+    "api_id": 5059,
+    "api_slotitem_id": 63,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5060": {
+    "api_id": 5060,
+    "api_slotitem_id": 58,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5061": {
+    "api_id": 5061,
+    "api_slotitem_id": 28,
+    "api_level": 10,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5062": {
+    "api_id": 5062,
+    "api_slotitem_id": 63,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5063": {
+    "api_id": 5063,
+    "api_slotitem_id": 58,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5064": {
+    "api_id": 5064,
+    "api_slotitem_id": 28,
+    "api_level": 10,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5065": {
+    "api_id": 5065,
+    "api_slotitem_id": 58,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5066": {
+    "api_id": 5066,
+    "api_slotitem_id": 58,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5067": {
+    "api_id": 5067,
+    "api_slotitem_id": 8,
+    "api_level": 4,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5068": {
+    "api_id": 5068,
+    "api_slotitem_id": 8,
+    "api_level": 4,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5069": {
+    "api_id": 5069,
+    "api_slotitem_id": 31,
+    "api_level": 4,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5070": {
+    "api_id": 5070,
+    "api_slotitem_id": 59,
+    "api_level": 4,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5071": {
+    "api_id": 5071,
+    "api_slotitem_id": 8,
+    "api_level": 4,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5072": {
+    "api_id": 5072,
+    "api_slotitem_id": 8,
+    "api_level": 4,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5073": {
+    "api_id": 5073,
+    "api_slotitem_id": 31,
+    "api_level": 4,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5074": {
+    "api_id": 5074,
+    "api_slotitem_id": 25,
+    "api_level": 4,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5075": {
+    "api_id": 5075,
+    "api_slotitem_id": 53,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5076": {
+    "api_id": 5076,
+    "api_slotitem_id": 21,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5077": {
+    "api_id": 5077,
+    "api_slotitem_id": 18,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5078": {
+    "api_id": 5078,
+    "api_slotitem_id": 54,
+    "api_level": 6,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5079": {
+    "api_id": 5079,
+    "api_slotitem_id": 3,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5080": {
+    "api_id": 5080,
+    "api_slotitem_id": 3,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5081": {
+    "api_id": 5081,
+    "api_slotitem_id": 27,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5082": {
+    "api_id": 5082,
+    "api_slotitem_id": 63,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5083": {
+    "api_id": 5083,
+    "api_slotitem_id": 58,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5084": {
+    "api_id": 5084,
+    "api_slotitem_id": 25,
+    "api_level": 4,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5085": {
+    "api_id": 5085,
+    "api_slotitem_id": 59,
+    "api_level": 4,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5086": {
+    "api_id": 5086,
+    "api_slotitem_id": 31,
+    "api_level": 4,
+    "api_alv": 0,
+    "api_locked": 0
+   },
+   "5087": {
+    "api_id": 5087,
+    "api_slotitem_id": 5,
+    "api_level": 0,
+    "api_alv": 0,
+    "api_locked": 0
+   }
+  }
+ },
+ "const": {
+  "$ships": {
+   "1": {
+    "api_afterbull": 100,
+    "api_afterfuel": 100,
+    "api_afterlv": 20,
+    "api_aftershipid": "254",
+    "api_backs": 3,
+    "api_broken": [
+     1,
+     1,
+     4,
+     0
+    ],
+    "api_buildtime": 18,
+    "api_bull_max": 15,
+    "api_ctype": 28,
+    "api_fuel_max": 15,
+    "api_getmes": "睦月です。<br>はりきって、まいりましょー！",
+    "api_houg": [
+     6,
+     29
+    ],
+    "api_id": 1,
+    "api_leng": 1,
+    "api_luck": [
+     12,
+     49
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "睦月",
+    "api_powup": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "api_raig": [
+     18,
+     59
+    ],
+    "api_slot_num": 2,
+    "api_soku": 10,
+    "api_sort_id": 13251,
+    "api_sortno": 31,
+    "api_souk": [
+     5,
+     18
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     13,
+     24
+    ],
+    "api_tyku": [
+     7,
+     29
+    ],
+    "api_voicef": 0,
+    "api_yomi": "むつき"
+   },
+   "50": {
+    "api_afterbull": 100,
+    "api_afterfuel": 120,
+    "api_afterlv": 20,
+    "api_aftershipid": "229",
+    "api_backs": 6,
+    "api_broken": [
+     1,
+     1,
+     5,
+     0
+    ],
+    "api_buildtime": 30,
+    "api_bull_max": 25,
+    "api_ctype": 22,
+    "api_fuel_max": 20,
+    "api_getmes": "駆逐艦島風です。スピードなら誰にも負けません。<br>速きこと、島風の如し、です！",
+    "api_houg": [
+     12,
+     29
+    ],
+    "api_id": 50,
+    "api_leng": 1,
+    "api_luck": [
+     10,
+     49
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "島風",
+    "api_powup": [
+     0,
+     2,
+     1,
+     1
+    ],
+    "api_raig": [
+     45,
+     89
+    ],
+    "api_slot_num": 2,
+    "api_soku": 10,
+    "api_sort_id": 18011,
+    "api_sortno": 10,
+    "api_souk": [
+     8,
+     29
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     19,
+     39
+    ],
+    "api_tyku": [
+     14,
+     49
+    ],
+    "api_voicef": 0,
+    "api_yomi": "しまかぜ"
+   },
+   "141": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 5,
+    "api_broken": [
+     2,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 60,
+    "api_bull_max": 30,
+    "api_ctype": 20,
+    "api_fuel_max": 25,
+    "api_getmes": "<br>",
+    "api_houg": [
+     18,
+     62
+    ],
+    "api_id": 141,
+    "api_leng": 1,
+    "api_luck": [
+     13,
+     70
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "五十鈴改二",
+    "api_powup": [
+     1,
+     2,
+     4,
+     2
+    ],
+    "api_raig": [
+     24,
+     79
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 10096,
+    "api_sortno": 141,
+    "api_souk": [
+     30,
+     69
+    ],
+    "api_stype": 3,
+    "api_taik": [
+     44,
+     59
+    ],
+    "api_tyku": [
+     45,
+     85
+    ],
+    "api_voicef": 1,
+    "api_yomi": "いすず"
+   },
+   "144": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 22,
+    "api_bull_max": 20,
+    "api_ctype": 23,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     17,
+     73
+    ],
+    "api_id": 144,
+    "api_leng": 1,
+    "api_luck": [
+     20,
+     59
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "夕立改二",
+    "api_powup": [
+     2,
+     2,
+     1,
+     1
+    ],
+    "api_raig": [
+     37,
+     93
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 15106,
+    "api_sortno": 144,
+    "api_souk": [
+     14,
+     52
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     31,
+     58
+    ],
+    "api_tyku": [
+     16,
+     59
+    ],
+    "api_voicef": 3,
+    "api_yomi": "ゆうだち"
+   },
+   "145": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 22,
+    "api_bull_max": 20,
+    "api_ctype": 23,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     13,
+     62
+    ],
+    "api_id": 145,
+    "api_leng": 1,
+    "api_luck": [
+     50,
+     88
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "時雨改二",
+    "api_powup": [
+     2,
+     2,
+     1,
+     1
+    ],
+    "api_raig": [
+     28,
+     89
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 15086,
+    "api_sortno": 145,
+    "api_souk": [
+     14,
+     52
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     31,
+     49
+    ],
+    "api_tyku": [
+     24,
+     72
+    ],
+    "api_voicef": 3,
+    "api_yomi": "しぐれ"
+   },
+   "151": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     10,
+     14,
+     33,
+     3
+    ],
+    "api_buildtime": 240,
+    "api_bull_max": 125,
+    "api_ctype": 6,
+    "api_fuel_max": 100,
+    "api_getmes": "<br>",
+    "api_houg": [
+     75,
+     96
+    ],
+    "api_id": 151,
+    "api_leng": 3,
+    "api_luck": [
+     41,
+     93
+    ],
+    "api_maxeq": [
+     3,
+     3,
+     3,
+     3,
+     0
+    ],
+    "api_name": "榛名改二",
+    "api_powup": [
+     4,
+     0,
+     2,
+     4
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 1036,
+    "api_sortno": 151,
+    "api_souk": [
+     70,
+     93
+    ],
+    "api_stype": 8,
+    "api_taik": [
+     81,
+     99
+    ],
+    "api_tyku": [
+     41,
+     92
+    ],
+    "api_voicef": 3,
+    "api_yomi": "はるな"
+   },
+   "152": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     10,
+     14,
+     33,
+     3
+    ],
+    "api_buildtime": 240,
+    "api_bull_max": 125,
+    "api_ctype": 6,
+    "api_fuel_max": 100,
+    "api_getmes": "<br>",
+    "api_houg": [
+     78,
+     104
+    ],
+    "api_id": 152,
+    "api_leng": 3,
+    "api_luck": [
+     14,
+     84
+    ],
+    "api_maxeq": [
+     3,
+     3,
+     3,
+     3,
+     0
+    ],
+    "api_name": "霧島改二",
+    "api_powup": [
+     4,
+     0,
+     2,
+     4
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 1046,
+    "api_sortno": 152,
+    "api_souk": [
+     70,
+     92
+    ],
+    "api_stype": 8,
+    "api_taik": [
+     82,
+     99
+    ],
+    "api_tyku": [
+     30,
+     82
+    ],
+    "api_voicef": 3,
+    "api_yomi": "きりしま"
+   },
+   "157": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     4,
+     12,
+     22,
+     6
+    ],
+    "api_buildtime": 170,
+    "api_bull_max": 45,
+    "api_ctype": 32,
+    "api_fuel_max": 40,
+    "api_getmes": "<br>",
+    "api_houg": [
+     0,
+     40
+    ],
+    "api_id": 157,
+    "api_leng": 1,
+    "api_luck": [
+     15,
+     59
+    ],
+    "api_maxeq": [
+     18,
+     28,
+     6,
+     3,
+     0
+    ],
+    "api_name": "龍驤改二",
+    "api_powup": [
+     0,
+     0,
+     3,
+     3
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 4026,
+    "api_sortno": 157,
+    "api_souk": [
+     28,
+     62
+    ],
+    "api_stype": 7,
+    "api_taik": [
+     50,
+     72
+    ],
+    "api_tyku": [
+     24,
+     48
+    ],
+    "api_voicef": 1,
+    "api_yomi": "りゅうじょう"
+   },
+   "159": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     2,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 60,
+    "api_bull_max": 35,
+    "api_ctype": 16,
+    "api_fuel_max": 25,
+    "api_getmes": "<br>",
+    "api_houg": [
+     27,
+     73
+    ],
+    "api_id": 159,
+    "api_leng": 2,
+    "api_luck": [
+     13,
+     79
+    ],
+    "api_maxeq": [
+     1,
+     1,
+     1,
+     0,
+     0
+    ],
+    "api_name": "神通改二",
+    "api_powup": [
+     1,
+     1,
+     1,
+     2
+    ],
+    "api_raig": [
+     38,
+     98
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 10156,
+    "api_sortno": 159,
+    "api_souk": [
+     29,
+     69
+    ],
+    "api_stype": 3,
+    "api_taik": [
+     51,
+     63
+    ],
+    "api_tyku": [
+     18,
+     68
+    ],
+    "api_voicef": 3,
+    "api_yomi": "じんつう"
+   },
+   "160": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     2,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 60,
+    "api_bull_max": 35,
+    "api_ctype": 16,
+    "api_fuel_max": 25,
+    "api_getmes": "<br>",
+    "api_houg": [
+     22,
+     69
+    ],
+    "api_id": 160,
+    "api_leng": 2,
+    "api_luck": [
+     13,
+     84
+    ],
+    "api_maxeq": [
+     1,
+     1,
+     1,
+     0,
+     0
+    ],
+    "api_name": "那珂改二",
+    "api_powup": [
+     1,
+     1,
+     1,
+     2
+    ],
+    "api_raig": [
+     28,
+     84
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 10166,
+    "api_sortno": 160,
+    "api_souk": [
+     29,
+     68
+    ],
+    "api_stype": 3,
+    "api_taik": [
+     48,
+     62
+    ],
+    "api_tyku": [
+     24,
+     75
+    ],
+    "api_voicef": 3,
+    "api_yomi": "なか"
+   },
+   "178": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     12,
+     20,
+     42,
+     4
+    ],
+    "api_buildtime": 300,
+    "api_bull_max": 155,
+    "api_ctype": 47,
+    "api_fuel_max": 110,
+    "api_getmes": "<br>",
+    "api_houg": [
+     74,
+     99
+    ],
+    "api_id": 178,
+    "api_leng": 3,
+    "api_luck": [
+     22,
+     84
+    ],
+    "api_maxeq": [
+     4,
+     4,
+     4,
+     4,
+     0
+    ],
+    "api_name": "Bismarck drei",
+    "api_powup": [
+     4,
+     1,
+     2,
+     4
+    ],
+    "api_raig": [
+     16,
+     36
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 30019,
+    "api_sortno": 178,
+    "api_souk": [
+     82,
+     95
+    ],
+    "api_stype": 8,
+    "api_taik": [
+     96,
+     99
+    ],
+    "api_tyku": [
+     35,
+     70
+    ],
+    "api_voicef": 3,
+    "api_yomi": "ビスマルク"
+   },
+   "187": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     3,
+     2,
+     16,
+     3
+    ],
+    "api_buildtime": 150,
+    "api_bull_max": 15,
+    "api_ctype": 49,
+    "api_fuel_max": 55,
+    "api_getmes": "<br>",
+    "api_houg": [
+     6,
+     24
+    ],
+    "api_id": 187,
+    "api_leng": 1,
+    "api_luck": [
+     12,
+     49
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "明石改",
+    "api_powup": [
+     0,
+     0,
+     1,
+     1
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 5,
+    "api_sort_id": 7212,
+    "api_sortno": 187,
+    "api_souk": [
+     9,
+     27
+    ],
+    "api_stype": 19,
+    "api_taik": [
+     45,
+     58
+    ],
+    "api_tyku": [
+     16,
+     36
+    ],
+    "api_voicef": 3,
+    "api_yomi": "あかし"
+   },
+   "188": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     5,
+     8,
+     18,
+     5
+    ],
+    "api_buildtime": 90,
+    "api_bull_max": 65,
+    "api_ctype": 31,
+    "api_fuel_max": 50,
+    "api_getmes": "<br>",
+    "api_houg": [
+     46,
+     77
+    ],
+    "api_id": 188,
+    "api_leng": 2,
+    "api_luck": [
+     15,
+     74
+    ],
+    "api_maxeq": [
+     2,
+     2,
+     9,
+     5,
+     0
+    ],
+    "api_name": "利根改二",
+    "api_powup": [
+     3,
+     1,
+     3,
+     2
+    ],
+    "api_raig": [
+     32,
+     82
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 9056,
+    "api_sortno": 188,
+    "api_souk": [
+     48,
+     79
+    ],
+    "api_stype": 6,
+    "api_taik": [
+     59,
+     72
+    ],
+    "api_tyku": [
+     32,
+     84
+    ],
+    "api_voicef": 1,
+    "api_yomi": "とね"
+   },
+   "189": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     5,
+     8,
+     18,
+     5
+    ],
+    "api_buildtime": 90,
+    "api_bull_max": 65,
+    "api_ctype": 31,
+    "api_fuel_max": 50,
+    "api_getmes": "<br>",
+    "api_houg": [
+     46,
+     77
+    ],
+    "api_id": 189,
+    "api_leng": 2,
+    "api_luck": [
+     14,
+     70
+    ],
+    "api_maxeq": [
+     2,
+     2,
+     9,
+     5,
+     0
+    ],
+    "api_name": "筑摩改二",
+    "api_powup": [
+     3,
+     1,
+     3,
+     2
+    ],
+    "api_raig": [
+     33,
+     83
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 9066,
+    "api_sortno": 189,
+    "api_souk": [
+     48,
+     79
+    ],
+    "api_stype": 6,
+    "api_taik": [
+     58,
+     72
+    ],
+    "api_tyku": [
+     33,
+     85
+    ],
+    "api_voicef": 1,
+    "api_yomi": "ちくま"
+   },
+   "194": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 5,
+    "api_broken": [
+     4,
+     7,
+     20,
+     2
+    ],
+    "api_buildtime": 80,
+    "api_bull_max": 75,
+    "api_ctype": 29,
+    "api_fuel_max": 45,
+    "api_getmes": "<br>",
+    "api_houg": [
+     52,
+     84
+    ],
+    "api_id": 194,
+    "api_leng": 2,
+    "api_luck": [
+     19,
+     74
+    ],
+    "api_maxeq": [
+     2,
+     2,
+     4,
+     4,
+     0
+    ],
+    "api_name": "羽黒改二",
+    "api_powup": [
+     3,
+     1,
+     2,
+     2
+    ],
+    "api_raig": [
+     34,
+     84
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 8086,
+    "api_sortno": 194,
+    "api_souk": [
+     47,
+     78
+    ],
+    "api_stype": 5,
+    "api_taik": [
+     57,
+     71
+    ],
+    "api_tyku": [
+     24,
+     76
+    ],
+    "api_voicef": 1,
+    "api_yomi": "はぐろ"
+   },
+   "196": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     10,
+     14,
+     32,
+     11
+    ],
+    "api_buildtime": 250,
+    "api_bull_max": 75,
+    "api_ctype": 25,
+    "api_fuel_max": 70,
+    "api_getmes": "<br>",
+    "api_houg": [
+     0,
+     67
+    ],
+    "api_id": 196,
+    "api_leng": 1,
+    "api_luck": [
+     50,
+     93
+    ],
+    "api_maxeq": [
+     18,
+     36,
+     23,
+     4,
+     0
+    ],
+    "api_name": "飛龍改二",
+    "api_powup": [
+     0,
+     0,
+     4,
+     5
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 2046,
+    "api_sortno": 196,
+    "api_souk": [
+     37,
+     76
+    ],
+    "api_stype": 11,
+    "api_taik": [
+     67,
+     89
+    ],
+    "api_tyku": [
+     33,
+     82
+    ],
+    "api_voicef": 3,
+    "api_yomi": "ひりゅう"
+   },
+   "197": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     10,
+     14,
+     32,
+     11
+    ],
+    "api_buildtime": 250,
+    "api_bull_max": 75,
+    "api_ctype": 17,
+    "api_fuel_max": 70,
+    "api_getmes": "<br>",
+    "api_houg": [
+     0,
+     63
+    ],
+    "api_id": 197,
+    "api_leng": 1,
+    "api_luck": [
+     15,
+     60
+    ],
+    "api_maxeq": [
+     18,
+     35,
+     21,
+     7,
+     0
+    ],
+    "api_name": "蒼龍改二",
+    "api_powup": [
+     0,
+     0,
+     4,
+     5
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 2036,
+    "api_sortno": 197,
+    "api_souk": [
+     36,
+     75
+    ],
+    "api_stype": 11,
+    "api_taik": [
+     67,
+     89
+    ],
+    "api_tyku": [
+     34,
+     84
+    ],
+    "api_voicef": 3,
+    "api_yomi": "そうりゅう"
+   },
+   "198": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 22,
+    "api_bull_max": 20,
+    "api_ctype": 18,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     16,
+     66
+    ],
+    "api_id": 198,
+    "api_leng": 1,
+    "api_luck": [
+     15,
+     68
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "霰改二",
+    "api_powup": [
+     2,
+     2,
+     1,
+     1
+    ],
+    "api_raig": [
+     32,
+     87
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 15256,
+    "api_sortno": 198,
+    "api_souk": [
+     14,
+     53
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     31,
+     53
+    ],
+    "api_tyku": [
+     20,
+     63
+    ],
+    "api_voicef": 1,
+    "api_yomi": "あられ"
+   },
+   "199": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 22,
+    "api_bull_max": 20,
+    "api_ctype": 18,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     17,
+     67
+    ],
+    "api_id": 199,
+    "api_leng": 1,
+    "api_luck": [
+     17,
+     69
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "大潮改二",
+    "api_powup": [
+     2,
+     2,
+     1,
+     1
+    ],
+    "api_raig": [
+     33,
+     90
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 15186,
+    "api_sortno": 199,
+    "api_souk": [
+     14,
+     51
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     31,
+     53
+    ],
+    "api_tyku": [
+     20,
+     62
+    ],
+    "api_voicef": 1,
+    "api_yomi": "おおしお"
+   },
+   "200": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     2,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 75,
+    "api_bull_max": 35,
+    "api_ctype": 20,
+    "api_fuel_max": 25,
+    "api_getmes": "<br>",
+    "api_houg": [
+     16,
+     56
+    ],
+    "api_id": 200,
+    "api_leng": 1,
+    "api_luck": [
+     20,
+     74
+    ],
+    "api_maxeq": [
+     1,
+     1,
+     1,
+     0,
+     0
+    ],
+    "api_name": "阿武隈改二",
+    "api_powup": [
+     1,
+     2,
+     2,
+     2
+    ],
+    "api_raig": [
+     34,
+     94
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 10136,
+    "api_sortno": 200,
+    "api_souk": [
+     29,
+     68
+    ],
+    "api_stype": 3,
+    "api_taik": [
+     45,
+     61
+    ],
+    "api_tyku": [
+     35,
+     78
+    ],
+    "api_voicef": 3,
+    "api_yomi": "あぶくま"
+   },
+   "202": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 4,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 20,
+    "api_bull_max": 20,
+    "api_ctype": 12,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     12,
+     49
+    ],
+    "api_id": 202,
+    "api_leng": 1,
+    "api_luck": [
+     12,
+     49
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "白雪改",
+    "api_powup": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "api_raig": [
+     28,
+     79
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 14022,
+    "api_sortno": 1302,
+    "api_souk": [
+     13,
+     49
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     30,
+     49
+    ],
+    "api_tyku": [
+     15,
+     49
+    ],
+    "api_voicef": 1,
+    "api_yomi": "しらゆき"
+   },
+   "218": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 5,
+    "api_broken": [
+     2,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 60,
+    "api_bull_max": 30,
+    "api_ctype": 20,
+    "api_fuel_max": 25,
+    "api_getmes": "<br>",
+    "api_houg": [
+     20,
+     69
+    ],
+    "api_id": 218,
+    "api_leng": 2,
+    "api_luck": [
+     12,
+     59
+    ],
+    "api_maxeq": [
+     1,
+     1,
+     1,
+     0,
+     0
+    ],
+    "api_name": "長良改",
+    "api_powup": [
+     2,
+     1,
+     1,
+     2
+    ],
+    "api_raig": [
+     24,
+     89
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 10082,
+    "api_sortno": 1318,
+    "api_souk": [
+     29,
+     69
+    ],
+    "api_stype": 3,
+    "api_taik": [
+     43,
+     59
+    ],
+    "api_tyku": [
+     15,
+     69
+    ],
+    "api_voicef": 1,
+    "api_yomi": "ながら"
+   },
+   "269": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 5,
+    "api_broken": [
+     4,
+     7,
+     20,
+     2
+    ],
+    "api_buildtime": 85,
+    "api_bull_max": 70,
+    "api_ctype": 8,
+    "api_fuel_max": 40,
+    "api_getmes": "<br>",
+    "api_houg": [
+     48,
+     77
+    ],
+    "api_id": 269,
+    "api_leng": 2,
+    "api_luck": [
+     10,
+     63
+    ],
+    "api_maxeq": [
+     2,
+     2,
+     2,
+     2,
+     0
+    ],
+    "api_name": "高雄改",
+    "api_powup": [
+     3,
+     1,
+     1,
+     2
+    ],
+    "api_raig": [
+     24,
+     79
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 8092,
+    "api_sortno": 1369,
+    "api_souk": [
+     45,
+     75
+    ],
+    "api_stype": 5,
+    "api_taik": [
+     57,
+     69
+    ],
+    "api_tyku": [
+     20,
+     69
+    ],
+    "api_voicef": 1,
+    "api_yomi": "たかお"
+   },
+   "270": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 5,
+    "api_broken": [
+     4,
+     7,
+     20,
+     2
+    ],
+    "api_buildtime": 85,
+    "api_bull_max": 70,
+    "api_ctype": 8,
+    "api_fuel_max": 40,
+    "api_getmes": "<br>",
+    "api_houg": [
+     48,
+     77
+    ],
+    "api_id": 270,
+    "api_leng": 2,
+    "api_luck": [
+     10,
+     59
+    ],
+    "api_maxeq": [
+     2,
+     2,
+     2,
+     2,
+     0
+    ],
+    "api_name": "愛宕改",
+    "api_powup": [
+     3,
+     1,
+     1,
+     2
+    ],
+    "api_raig": [
+     24,
+     79
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 8102,
+    "api_sortno": 1370,
+    "api_souk": [
+     45,
+     75
+    ],
+    "api_stype": 5,
+    "api_taik": [
+     57,
+     69
+    ],
+    "api_tyku": [
+     20,
+     69
+    ],
+    "api_voicef": 1,
+    "api_yomi": "あたご"
+   },
+   "285": {
+    "api_afterbull": 560,
+    "api_afterfuel": 800,
+    "api_afterlv": 91,
+    "api_aftershipid": "894",
+    "api_backs": 4,
+    "api_broken": [
+     3,
+     4,
+     15,
+     4
+    ],
+    "api_buildtime": 120,
+    "api_bull_max": 30,
+    "api_ctype": 27,
+    "api_fuel_max": 30,
+    "api_getmes": "<br>",
+    "api_houg": [
+     0,
+     29
+    ],
+    "api_id": 285,
+    "api_leng": 1,
+    "api_luck": [
+     30,
+     79
+    ],
+    "api_maxeq": [
+     14,
+     16,
+     12,
+     0,
+     0
+    ],
+    "api_name": "鳳翔改",
+    "api_powup": [
+     0,
+     0,
+     2,
+     2
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 3,
+    "api_soku": 5,
+    "api_sort_id": 4012,
+    "api_sortno": 1385,
+    "api_souk": [
+     25,
+     49
+    ],
+    "api_stype": 7,
+    "api_taik": [
+     40,
+     59
+    ],
+    "api_tyku": [
+     15,
+     39
+    ],
+    "api_voicef": 1,
+    "api_yomi": "ほうしょう"
+   },
+   "300": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 5,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 24,
+    "api_bull_max": 20,
+    "api_ctype": 30,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     12,
+     49
+    ],
+    "api_id": 300,
+    "api_leng": 1,
+    "api_luck": [
+     12,
+     59
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "初風改",
+    "api_powup": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "api_raig": [
+     28,
+     79
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 16072,
+    "api_sortno": 1396,
+    "api_souk": [
+     14,
+     49
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     32,
+     49
+    ],
+    "api_tyku": [
+     16,
+     49
+    ],
+    "api_voicef": 3,
+    "api_yomi": "はつかぜ"
+   },
+   "316": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 24,
+    "api_bull_max": 20,
+    "api_ctype": 30,
+    "api_fuel_max": 20,
+    "api_getmes": "<br>",
+    "api_houg": [
+     12,
+     49
+    ],
+    "api_id": 316,
+    "api_leng": 1,
+    "api_luck": [
+     17,
+     69
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "天津風改",
+    "api_powup": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "api_raig": [
+     32,
+     84
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 16092,
+    "api_sortno": 1411,
+    "api_souk": [
+     14,
+     61
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     34,
+     54
+    ],
+    "api_tyku": [
+     23,
+     63
+    ],
+    "api_voicef": 3,
+    "api_yomi": "あまつかぜ"
+   },
+   "319": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     4,
+     7,
+     20,
+     2
+    ],
+    "api_buildtime": 80,
+    "api_bull_max": 75,
+    "api_ctype": 29,
+    "api_fuel_max": 45,
+    "api_getmes": "<br>",
+    "api_houg": [
+     50,
+     81
+    ],
+    "api_id": 319,
+    "api_leng": 2,
+    "api_luck": [
+     32,
+     80
+    ],
+    "api_maxeq": [
+     2,
+     2,
+     4,
+     4,
+     0
+    ],
+    "api_name": "妙高改二",
+    "api_powup": [
+     3,
+     1,
+     2,
+     2
+    ],
+    "api_raig": [
+     36,
+     88
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 8056,
+    "api_sortno": 191,
+    "api_souk": [
+     47,
+     79
+    ],
+    "api_stype": 5,
+    "api_taik": [
+     56,
+     71
+    ],
+    "api_tyku": [
+     28,
+     80
+    ],
+    "api_voicef": 3,
+    "api_yomi": "みょうこう"
+   },
+   "321": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     4,
+     3,
+     14,
+     3
+    ],
+    "api_buildtime": 80,
+    "api_bull_max": 35,
+    "api_ctype": 52,
+    "api_fuel_max": 35,
+    "api_getmes": "<br>",
+    "api_houg": [
+     32,
+     70
+    ],
+    "api_id": 321,
+    "api_leng": 2,
+    "api_luck": [
+     30,
+     79
+    ],
+    "api_maxeq": [
+     0,
+     6,
+     6,
+     0,
+     0
+    ],
+    "api_name": "大淀改",
+    "api_powup": [
+     2,
+     0,
+     2,
+     2
+    ],
+    "api_raig": [
+     0,
+     49
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 11052,
+    "api_sortno": 1414,
+    "api_souk": [
+     32,
+     68
+    ],
+    "api_stype": 3,
+    "api_taik": [
+     47,
+     64
+    ],
+    "api_tyku": [
+     22,
+     74
+    ],
+    "api_voicef": 3,
+    "api_yomi": "おおよど"
+   },
+   "325": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 5,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 24,
+    "api_bull_max": 20,
+    "api_ctype": 38,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     12,
+     51
+    ],
+    "api_id": 325,
+    "api_leng": 1,
+    "api_luck": [
+     13,
+     59
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "清霜改",
+    "api_powup": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "api_raig": [
+     28,
+     80
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 16382,
+    "api_sortno": 1418,
+    "api_souk": [
+     14,
+     49
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     32,
+     49
+    ],
+    "api_tyku": [
+     16,
+     50
+    ],
+    "api_voicef": 3,
+    "api_yomi": "きよしも"
+   },
+   "330": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     1,
+     2,
+     13,
+     1
+    ],
+    "api_buildtime": 30,
+    "api_bull_max": 25,
+    "api_ctype": 54,
+    "api_fuel_max": 20,
+    "api_getmes": "<br>",
+    "api_houg": [
+     24,
+     57
+    ],
+    "api_id": 330,
+    "api_leng": 1,
+    "api_luck": [
+     12,
+     69
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "秋月改",
+    "api_powup": [
+     1,
+     1,
+     3,
+     1
+    ],
+    "api_raig": [
+     24,
+     54
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 17012,
+    "api_sortno": 1422,
+    "api_souk": [
+     16,
+     53
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     37,
+     57
+    ],
+    "api_tyku": [
+     80,
+     116
+    ],
+    "api_voicef": 3,
+    "api_yomi": "あきづき"
+   },
+   "344": {
+    "api_afterbull": 390,
+    "api_afterfuel": 370,
+    "api_afterlv": 77,
+    "api_aftershipid": "578",
+    "api_backs": 5,
+    "api_broken": [
+     1,
+     3,
+     10,
+     1
+    ],
+    "api_buildtime": 24,
+    "api_bull_max": 20,
+    "api_ctype": 38,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     12,
+     50
+    ],
+    "api_id": 344,
+    "api_leng": 1,
+    "api_luck": [
+     18,
+     74
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "朝霜改",
+    "api_powup": [
+     0,
+     1,
+     1,
+     1
+    ],
+    "api_raig": [
+     28,
+     78
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 16352,
+    "api_sortno": 1424,
+    "api_souk": [
+     14,
+     51
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     33,
+     49
+    ],
+    "api_tyku": [
+     22,
+     62
+    ],
+    "api_voicef": 3,
+    "api_yomi": "あさしも"
+   },
+   "348": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 5,
+    "api_broken": [
+     3,
+     3,
+     15,
+     5
+    ],
+    "api_buildtime": 140,
+    "api_bull_max": 45,
+    "api_ctype": 62,
+    "api_fuel_max": 40,
+    "api_getmes": "<br>",
+    "api_houg": [
+     18,
+     45
+    ],
+    "api_id": 348,
+    "api_leng": 1,
+    "api_luck": [
+     10,
+     54
+    ],
+    "api_maxeq": [
+     12,
+     12,
+     8,
+     0,
+     0
+    ],
+    "api_name": "瑞穂改",
+    "api_powup": [
+     1,
+     2,
+     1,
+     2
+    ],
+    "api_raig": [
+     15,
+     72
+    ],
+    "api_slot_num": 3,
+    "api_soku": 5,
+    "api_sort_id": 6052,
+    "api_sortno": 1428,
+    "api_souk": [
+     24,
+     48
+    ],
+    "api_stype": 16,
+    "api_taik": [
+     42,
+     62
+    ],
+    "api_tyku": [
+     18,
+     44
+    ],
+    "api_voicef": 3,
+    "api_yomi": "みずほ"
+   },
+   "352": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     8,
+     1,
+     20,
+     1
+    ],
+    "api_buildtime": 220,
+    "api_bull_max": 20,
+    "api_ctype": 60,
+    "api_fuel_max": 120,
+    "api_getmes": "<br>",
+    "api_houg": [
+     8,
+     36
+    ],
+    "api_id": 352,
+    "api_leng": 1,
+    "api_luck": [
+     8,
+     44
+    ],
+    "api_maxeq": [
+     6,
+     3,
+     1,
+     0,
+     0
+    ],
+    "api_name": "速吸改",
+    "api_powup": [
+     1,
+     1,
+     2,
+     1
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 3,
+    "api_soku": 5,
+    "api_sort_id": 7112,
+    "api_sortno": 1432,
+    "api_souk": [
+     6,
+     19
+    ],
+    "api_stype": 22,
+    "api_taik": [
+     48,
+     50
+    ],
+    "api_tyku": [
+     20,
+     48
+    ],
+    "api_voicef": 3,
+    "api_yomi": "はやすい"
+   },
+   "360": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     32,
+     45,
+     100,
+     40
+    ],
+    "api_buildtime": 500,
+    "api_bull_max": 275,
+    "api_ctype": 65,
+    "api_fuel_max": 200,
+    "api_getmes": "<br>",
+    "api_houg": [
+     90,
+     116
+    ],
+    "api_id": 360,
+    "api_leng": 3,
+    "api_luck": [
+     40,
+     99
+    ],
+    "api_maxeq": [
+     4,
+     4,
+     4,
+     4,
+     0
+    ],
+    "api_name": "Iowa改",
+    "api_powup": [
+     6,
+     0,
+     3,
+     5
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 32092,
+    "api_sortno": 1440,
+    "api_souk": [
+     89,
+     107
+    ],
+    "api_stype": 8,
+    "api_taik": [
+     92,
+     103
+    ],
+    "api_tyku": [
+     82,
+     120
+    ],
+    "api_voicef": 3,
+    "api_yomi": "アイオワ"
+   },
+   "364": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     19,
+     28,
+     46,
+     12
+    ],
+    "api_buildtime": 280,
+    "api_bull_max": 110,
+    "api_ctype": 67,
+    "api_fuel_max": 90,
+    "api_getmes": "<br>",
+    "api_houg": [
+     86,
+     107
+    ],
+    "api_id": 364,
+    "api_leng": 3,
+    "api_luck": [
+     70,
+     117
+    ],
+    "api_maxeq": [
+     3,
+     3,
+     3,
+     3,
+     0
+    ],
+    "api_name": "Warspite改",
+    "api_powup": [
+     4,
+     0,
+     2,
+     4
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 5,
+    "api_sort_id": 33012,
+    "api_sortno": 1444,
+    "api_souk": [
+     78,
+     93
+    ],
+    "api_stype": 9,
+    "api_taik": [
+     82,
+     92
+    ],
+    "api_tyku": [
+     48,
+     98
+    ],
+    "api_voicef": 3,
+    "api_yomi": "ウォースパイト"
+   },
+   "398": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 4,
+    "api_broken": [
+     1,
+     2,
+     2,
+     1
+    ],
+    "api_buildtime": 22,
+    "api_bull_max": 20,
+    "api_ctype": 35,
+    "api_fuel_max": 10,
+    "api_getmes": "<br>",
+    "api_houg": [
+     3,
+     11
+    ],
+    "api_id": 398,
+    "api_leng": 1,
+    "api_luck": [
+     10,
+     49
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "伊168改",
+    "api_powup": [
+     0,
+     2,
+     0,
+     0
+    ],
+    "api_raig": [
+     30,
+     69
+    ],
+    "api_slot_num": 2,
+    "api_soku": 5,
+    "api_sort_id": 22212,
+    "api_sortno": 1498,
+    "api_souk": [
+     5,
+     18
+    ],
+    "api_stype": 13,
+    "api_taik": [
+     15,
+     19
+    ],
+    "api_tyku": [
+     0,
+     0
+    ],
+    "api_voicef": 3,
+    "api_yomi": "い168"
+   },
+   "401": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 5,
+    "api_broken": [
+     1,
+     2,
+     2,
+     2
+    ],
+    "api_buildtime": 22,
+    "api_bull_max": 25,
+    "api_ctype": 39,
+    "api_fuel_max": 10,
+    "api_getmes": "<br>",
+    "api_houg": [
+     3,
+     12
+    ],
+    "api_id": 401,
+    "api_leng": 1,
+    "api_luck": [
+     13,
+     59
+    ],
+    "api_maxeq": [
+     1,
+     1,
+     0,
+     0,
+     0
+    ],
+    "api_name": "伊19改",
+    "api_powup": [
+     0,
+     2,
+     1,
+     0
+    ],
+    "api_raig": [
+     42,
+     89
+    ],
+    "api_slot_num": 2,
+    "api_soku": 5,
+    "api_sort_id": 22232,
+    "api_sortno": 1501,
+    "api_souk": [
+     5,
+     19
+    ],
+    "api_stype": 14,
+    "api_taik": [
+     18,
+     24
+    ],
+    "api_tyku": [
+     0,
+     0
+    ],
+    "api_voicef": 3,
+    "api_yomi": "い19"
+   },
+   "411": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     12,
+     15,
+     38,
+     5
+    ],
+    "api_buildtime": 260,
+    "api_bull_max": 140,
+    "api_ctype": 26,
+    "api_fuel_max": 105,
+    "api_getmes": "<br>",
+    "api_houg": [
+     80,
+     99
+    ],
+    "api_id": 411,
+    "api_leng": 3,
+    "api_luck": [
+     13,
+     69
+    ],
+    "api_maxeq": [
+     4,
+     4,
+     9,
+     23,
+     0
+    ],
+    "api_name": "扶桑改二",
+    "api_powup": [
+     5,
+     0,
+     3,
+     4
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 5,
+    "api_sort_id": 1056,
+    "api_sortno": 211,
+    "api_souk": [
+     72,
+     90
+    ],
+    "api_stype": 10,
+    "api_taik": [
+     77,
+     94
+    ],
+    "api_tyku": [
+     44,
+     88
+    ],
+    "api_voicef": 1,
+    "api_yomi": "ふそう"
+   },
+   "412": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     12,
+     15,
+     38,
+     5
+    ],
+    "api_buildtime": 260,
+    "api_bull_max": 140,
+    "api_ctype": 26,
+    "api_fuel_max": 105,
+    "api_getmes": "<br>",
+    "api_houg": [
+     80,
+     98
+    ],
+    "api_id": 412,
+    "api_leng": 3,
+    "api_luck": [
+     14,
+     70
+    ],
+    "api_maxeq": [
+     4,
+     4,
+     9,
+     23,
+     0
+    ],
+    "api_name": "山城改二",
+    "api_powup": [
+     5,
+     0,
+     3,
+     4
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 5,
+    "api_sort_id": 1066,
+    "api_sortno": 212,
+    "api_souk": [
+     73,
+     91
+    ],
+    "api_stype": 10,
+    "api_taik": [
+     77,
+     94
+    ],
+    "api_tyku": [
+     43,
+     87
+    ],
+    "api_voicef": 1,
+    "api_yomi": "やましろ"
+   },
+   "416": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     3,
+     7,
+     16,
+     1
+    ],
+    "api_buildtime": 60,
+    "api_bull_max": 65,
+    "api_ctype": 7,
+    "api_fuel_max": 35,
+    "api_getmes": "<br>",
+    "api_houg": [
+     39,
+     77
+    ],
+    "api_id": 416,
+    "api_leng": 2,
+    "api_luck": [
+     14,
+     64
+    ],
+    "api_maxeq": [
+     2,
+     2,
+     2,
+     2,
+     0
+    ],
+    "api_name": "古鷹改二",
+    "api_powup": [
+     2,
+     1,
+     1,
+     2
+    ],
+    "api_raig": [
+     24,
+     75
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 8016,
+    "api_sortno": 216,
+    "api_souk": [
+     34,
+     72
+    ],
+    "api_stype": 5,
+    "api_taik": [
+     53,
+     65
+    ],
+    "api_tyku": [
+     22,
+     64
+    ],
+    "api_voicef": 1,
+    "api_yomi": "ふるたか"
+   },
+   "417": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     3,
+     7,
+     16,
+     1
+    ],
+    "api_buildtime": 60,
+    "api_bull_max": 65,
+    "api_ctype": 7,
+    "api_fuel_max": 35,
+    "api_getmes": "<br>",
+    "api_houg": [
+     40,
+     78
+    ],
+    "api_id": 417,
+    "api_leng": 2,
+    "api_luck": [
+     12,
+     62
+    ],
+    "api_maxeq": [
+     2,
+     2,
+     2,
+     2,
+     0
+    ],
+    "api_name": "加古改二",
+    "api_powup": [
+     2,
+     1,
+     1,
+     2
+    ],
+    "api_raig": [
+     25,
+     77
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 8026,
+    "api_sortno": 217,
+    "api_souk": [
+     33,
+     72
+    ],
+    "api_stype": 5,
+    "api_taik": [
+     52,
+     64
+    ],
+    "api_tyku": [
+     24,
+     65
+    ],
+    "api_voicef": 1,
+    "api_yomi": "かこ"
+   },
+   "426": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 20,
+    "api_bull_max": 20,
+    "api_ctype": 12,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     15,
+     59
+    ],
+    "api_id": 426,
+    "api_leng": 1,
+    "api_luck": [
+     18,
+     79
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "吹雪改二",
+    "api_powup": [
+     2,
+     2,
+     1,
+     1
+    ],
+    "api_raig": [
+     30,
+     88
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 14016,
+    "api_sortno": 226,
+    "api_souk": [
+     14,
+     51
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     31,
+     49
+    ],
+    "api_tyku": [
+     35,
+     78
+    ],
+    "api_voicef": 3,
+    "api_yomi": "ふぶき"
+   },
+   "434": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     1,
+     2,
+     7,
+     0
+    ],
+    "api_buildtime": 18,
+    "api_bull_max": 15,
+    "api_ctype": 28,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     10,
+     45
+    ],
+    "api_id": 434,
+    "api_leng": 1,
+    "api_luck": [
+     14,
+     64
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "睦月改二",
+    "api_powup": [
+     1,
+     2,
+     1,
+     0
+    ],
+    "api_raig": [
+     28,
+     79
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 13256,
+    "api_sortno": 234,
+    "api_souk": [
+     12,
+     43
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     27,
+     43
+    ],
+    "api_tyku": [
+     16,
+     56
+    ],
+    "api_voicef": 1,
+    "api_yomi": "むつき"
+   },
+   "435": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     1,
+     2,
+     7,
+     0
+    ],
+    "api_buildtime": 18,
+    "api_bull_max": 15,
+    "api_ctype": 28,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     10,
+     46
+    ],
+    "api_id": 435,
+    "api_leng": 1,
+    "api_luck": [
+     13,
+     60
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "如月改二",
+    "api_powup": [
+     1,
+     2,
+     1,
+     0
+    ],
+    "api_raig": [
+     28,
+     80
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 13266,
+    "api_sortno": 235,
+    "api_souk": [
+     12,
+     43
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     27,
+     43
+    ],
+    "api_tyku": [
+     18,
+     57
+    ],
+    "api_voicef": 1,
+    "api_yomi": "きさらぎ"
+   },
+   "450": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     3,
+     1,
+     7,
+     6
+    ],
+    "api_buildtime": 70,
+    "api_bull_max": 15,
+    "api_ctype": 59,
+    "api_fuel_max": 60,
+    "api_getmes": "<br>",
+    "api_houg": [
+     8,
+     28
+    ],
+    "api_id": 450,
+    "api_leng": 1,
+    "api_luck": [
+     14,
+     72
+    ],
+    "api_maxeq": [
+     1,
+     1,
+     1,
+     0,
+     0
+    ],
+    "api_name": "秋津洲改",
+    "api_powup": [
+     0,
+     0,
+     2,
+     1
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 3,
+    "api_soku": 5,
+    "api_sort_id": 6072,
+    "api_sortno": 250,
+    "api_souk": [
+     13,
+     42
+    ],
+    "api_stype": 16,
+    "api_taik": [
+     36,
+     48
+    ],
+    "api_tyku": [
+     16,
+     44
+    ],
+    "api_voicef": 3,
+    "api_yomi": "あきつしま"
+   },
+   "463": {
+    "api_afterbull": 390,
+    "api_afterfuel": 360,
+    "api_afterlv": 85,
+    "api_aftershipid": "468",
+    "api_backs": 6,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 22,
+    "api_bull_max": 20,
+    "api_ctype": 18,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     18,
+     68
+    ],
+    "api_id": 463,
+    "api_leng": 1,
+    "api_luck": [
+     17,
+     70
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "朝潮改二",
+    "api_powup": [
+     2,
+     2,
+     1,
+     1
+    ],
+    "api_raig": [
+     36,
+     92
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 15176,
+    "api_sortno": 263,
+    "api_souk": [
+     14,
+     52
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     31,
+     53
+    ],
+    "api_tyku": [
+     22,
+     60
+    ],
+    "api_voicef": 3,
+    "api_yomi": "あさしお"
+   },
+   "464": {
+    "api_afterbull": 390,
+    "api_afterfuel": 300,
+    "api_afterlv": 88,
+    "api_aftershipid": "470",
+    "api_backs": 6,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 22,
+    "api_bull_max": 20,
+    "api_ctype": 18,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     16,
+     65
+    ],
+    "api_id": 464,
+    "api_leng": 1,
+    "api_luck": [
+     37,
+     97
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "霞改二",
+    "api_powup": [
+     2,
+     2,
+     1,
+     1
+    ],
+    "api_raig": [
+     33,
+     92
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 15266,
+    "api_sortno": 264,
+    "api_souk": [
+     14,
+     52
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     31,
+     53
+    ],
+    "api_tyku": [
+     24,
+     72
+    ],
+    "api_voicef": 1,
+    "api_yomi": "かすみ"
+   },
+   "466": {
+    "api_afterbull": 1200,
+    "api_afterfuel": 4500,
+    "api_afterlv": 88,
+    "api_aftershipid": "461",
+    "api_backs": 8,
+    "api_broken": [
+     12,
+     16,
+     40,
+     16
+    ],
+    "api_buildtime": 360,
+    "api_bull_max": 85,
+    "api_ctype": 33,
+    "api_fuel_max": 100,
+    "api_getmes": "<br>",
+    "api_houg": [
+     0,
+     70
+    ],
+    "api_id": 466,
+    "api_leng": 2,
+    "api_luck": [
+     20,
+     97
+    ],
+    "api_maxeq": [
+     34,
+     21,
+     12,
+     9,
+     0
+    ],
+    "api_name": "翔鶴改二甲",
+    "api_powup": [
+     0,
+     0,
+     5,
+     6
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 2057,
+    "api_sortno": 266,
+    "api_souk": [
+     49,
+     83
+    ],
+    "api_stype": 18,
+    "api_taik": [
+     78,
+     94
+    ],
+    "api_tyku": [
+     48,
+     88
+    ],
+    "api_voicef": 3,
+    "api_yomi": "しょうかく"
+   },
+   "467": {
+    "api_afterbull": 1200,
+    "api_afterfuel": 4550,
+    "api_afterlv": 90,
+    "api_aftershipid": "462",
+    "api_backs": 8,
+    "api_broken": [
+     12,
+     16,
+     40,
+     16
+    ],
+    "api_buildtime": 360,
+    "api_bull_max": 85,
+    "api_ctype": 33,
+    "api_fuel_max": 100,
+    "api_getmes": "<br>",
+    "api_houg": [
+     0,
+     65
+    ],
+    "api_id": 467,
+    "api_leng": 2,
+    "api_luck": [
+     50,
+     99
+    ],
+    "api_maxeq": [
+     34,
+     24,
+     12,
+     6,
+     0
+    ],
+    "api_name": "瑞鶴改二甲",
+    "api_powup": [
+     0,
+     0,
+     5,
+     6
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 2067,
+    "api_sortno": 267,
+    "api_souk": [
+     49,
+     84
+    ],
+    "api_stype": 18,
+    "api_taik": [
+     79,
+     94
+    ],
+    "api_tyku": [
+     54,
+     90
+    ],
+    "api_voicef": 3,
+    "api_yomi": "ずいかく"
+   },
+   "487": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     2,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 75,
+    "api_bull_max": 30,
+    "api_ctype": 20,
+    "api_fuel_max": 25,
+    "api_getmes": "<br>",
+    "api_houg": [
+     15,
+     58
+    ],
+    "api_id": 487,
+    "api_leng": 1,
+    "api_luck": [
+     17,
+     72
+    ],
+    "api_maxeq": [
+     1,
+     1,
+     1,
+     0,
+     0
+    ],
+    "api_name": "鬼怒改二",
+    "api_powup": [
+     1,
+     2,
+     2,
+     2
+    ],
+    "api_raig": [
+     28,
+     84
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 10126,
+    "api_sortno": 287,
+    "api_souk": [
+     29,
+     68
+    ],
+    "api_stype": 3,
+    "api_taik": [
+     45,
+     61
+    ],
+    "api_tyku": [
+     41,
+     86
+    ],
+    "api_voicef": 3,
+    "api_yomi": "きぬ"
+   },
+   "488": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     2,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 75,
+    "api_bull_max": 30,
+    "api_ctype": 20,
+    "api_fuel_max": 25,
+    "api_getmes": "<br>",
+    "api_houg": [
+     14,
+     57
+    ],
+    "api_id": 488,
+    "api_leng": 1,
+    "api_luck": [
+     16,
+     71
+    ],
+    "api_maxeq": [
+     1,
+     2,
+     1,
+     0,
+     0
+    ],
+    "api_name": "由良改二",
+    "api_powup": [
+     1,
+     2,
+     2,
+     2
+    ],
+    "api_raig": [
+     26,
+     83
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 10116,
+    "api_sortno": 288,
+    "api_souk": [
+     29,
+     67
+    ],
+    "api_stype": 3,
+    "api_taik": [
+     45,
+     61
+    ],
+    "api_tyku": [
+     36,
+     88
+    ],
+    "api_voicef": 3,
+    "api_yomi": "ゆら"
+   },
+   "489": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 7,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 22,
+    "api_bull_max": 20,
+    "api_ctype": 18,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     19,
+     69
+    ],
+    "api_id": 489,
+    "api_leng": 1,
+    "api_luck": [
+     18,
+     77
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "満潮改二",
+    "api_powup": [
+     2,
+     2,
+     1,
+     1
+    ],
+    "api_raig": [
+     32,
+     89
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 15196,
+    "api_sortno": 289,
+    "api_souk": [
+     15,
+     54
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     31,
+     54
+    ],
+    "api_tyku": [
+     20,
+     65
+    ],
+    "api_voicef": 1,
+    "api_yomi": "みちしお"
+   },
+   "490": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 4,
+    "api_broken": [
+     1,
+     2,
+     10,
+     0
+    ],
+    "api_buildtime": 22,
+    "api_bull_max": 20,
+    "api_ctype": 18,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     19,
+     69
+    ],
+    "api_id": 490,
+    "api_leng": 1,
+    "api_luck": [
+     17,
+     71
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "荒潮改二",
+    "api_powup": [
+     2,
+     2,
+     1,
+     1
+    ],
+    "api_raig": [
+     33,
+     88
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 15206,
+    "api_sortno": 290,
+    "api_souk": [
+     14,
+     52
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     31,
+     54
+    ],
+    "api_tyku": [
+     22,
+     70
+    ],
+    "api_voicef": 1,
+    "api_yomi": "あらしお"
+   },
+   "500": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 6,
+    "api_broken": [
+     3,
+     0,
+     10,
+     3
+    ],
+    "api_buildtime": 140,
+    "api_bull_max": 20,
+    "api_ctype": 72,
+    "api_fuel_max": 30,
+    "api_getmes": "<br>",
+    "api_houg": [
+     7,
+     25
+    ],
+    "api_id": 500,
+    "api_leng": 2,
+    "api_luck": [
+     20,
+     79
+    ],
+    "api_maxeq": [
+     1,
+     1,
+     1,
+     0,
+     0
+    ],
+    "api_name": "神威改母",
+    "api_powup": [
+     0,
+     0,
+     2,
+     1
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 3,
+    "api_soku": 5,
+    "api_sort_id": 6023,
+    "api_sortno": 300,
+    "api_souk": [
+     17,
+     33
+    ],
+    "api_stype": 22,
+    "api_taik": [
+     39,
+     51
+    ],
+    "api_tyku": [
+     14,
+     34
+    ],
+    "api_voicef": 3,
+    "api_yomi": "かもい"
+   },
+   "541": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     30,
+     38,
+     88,
+     18
+    ],
+    "api_buildtime": 300,
+    "api_bull_max": 225,
+    "api_ctype": 19,
+    "api_fuel_max": 180,
+    "api_getmes": "<br>",
+    "api_houg": [
+     91,
+     118
+    ],
+    "api_id": 541,
+    "api_leng": 3,
+    "api_luck": [
+     40,
+     108
+    ],
+    "api_maxeq": [
+     3,
+     3,
+     6,
+     3,
+     0
+    ],
+    "api_name": "長門改二",
+    "api_powup": [
+     6,
+     0,
+     2,
+     6
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 5,
+    "api_sort_id": 1096,
+    "api_sortno": 341,
+    "api_souk": [
+     88,
+     110
+    ],
+    "api_stype": 9,
+    "api_taik": [
+     91,
+     99
+    ],
+    "api_tyku": [
+     40,
+     100
+    ],
+    "api_voicef": 3,
+    "api_yomi": "ながと"
+   },
+   "546": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     38,
+     55,
+     115,
+     24
+    ],
+    "api_buildtime": 480,
+    "api_bull_max": 350,
+    "api_ctype": 37,
+    "api_fuel_max": 275,
+    "api_getmes": "<br>",
+    "api_houg": [
+     100,
+     145
+    ],
+    "api_id": 546,
+    "api_leng": 4,
+    "api_luck": [
+     10,
+     88
+    ],
+    "api_maxeq": [
+     5,
+     5,
+     5,
+     8,
+     5
+    ],
+    "api_name": "武蔵改二",
+    "api_powup": [
+     7,
+     0,
+     4,
+     7
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 5,
+    "api_soku": 5,
+    "api_sort_id": 1126,
+    "api_sortno": 346,
+    "api_souk": [
+     95,
+     125
+    ],
+    "api_stype": 9,
+    "api_taik": [
+     99,
+     110
+    ],
+    "api_tyku": [
+     65,
+     105
+    ],
+    "api_voicef": 7,
+    "api_yomi": "むさし"
+   },
+   "553": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     12,
+     18,
+     40,
+     6
+    ],
+    "api_buildtime": 270,
+    "api_bull_max": 145,
+    "api_ctype": 2,
+    "api_fuel_max": 110,
+    "api_getmes": "<br>",
+    "api_houg": [
+     60,
+     88
+    ],
+    "api_id": 553,
+    "api_leng": 2,
+    "api_luck": [
+     40,
+     92
+    ],
+    "api_maxeq": [
+     2,
+     2,
+     22,
+     22,
+     9
+    ],
+    "api_name": "伊勢改二",
+    "api_powup": [
+     4,
+     0,
+     5,
+     4
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 5,
+    "api_soku": 5,
+    "api_sort_id": 1076,
+    "api_sortno": 353,
+    "api_souk": [
+     75,
+     94
+    ],
+    "api_stype": 10,
+    "api_taik": [
+     78,
+     96
+    ],
+    "api_tyku": [
+     48,
+     85
+    ],
+    "api_voicef": 0,
+    "api_yomi": "いせ"
+   },
+   "554": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     12,
+     18,
+     40,
+     6
+    ],
+    "api_buildtime": 270,
+    "api_bull_max": 140,
+    "api_ctype": 2,
+    "api_fuel_max": 115,
+    "api_getmes": "<br>",
+    "api_houg": [
+     58,
+     86
+    ],
+    "api_id": 554,
+    "api_leng": 2,
+    "api_luck": [
+     40,
+     93
+    ],
+    "api_maxeq": [
+     2,
+     8,
+     24,
+     12,
+     11
+    ],
+    "api_name": "日向改二",
+    "api_powup": [
+     4,
+     0,
+     5,
+     4
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 5,
+    "api_soku": 5,
+    "api_sort_id": 1086,
+    "api_sortno": 354,
+    "api_souk": [
+     73,
+     94
+    ],
+    "api_stype": 10,
+    "api_taik": [
+     78,
+     96
+    ],
+    "api_tyku": [
+     46,
+     84
+    ],
+    "api_voicef": 1,
+    "api_yomi": "ひゅうが"
+   },
+   "573": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     30,
+     38,
+     88,
+     18
+    ],
+    "api_buildtime": 300,
+    "api_bull_max": 225,
+    "api_ctype": 19,
+    "api_fuel_max": 180,
+    "api_getmes": "<br>",
+    "api_houg": [
+     91,
+     118
+    ],
+    "api_id": 573,
+    "api_leng": 3,
+    "api_luck": [
+     16,
+     88
+    ],
+    "api_maxeq": [
+     2,
+     3,
+     3,
+     7,
+     0
+    ],
+    "api_name": "陸奥改二",
+    "api_powup": [
+     6,
+     0,
+     2,
+     6
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 4,
+    "api_soku": 5,
+    "api_sort_id": 1106,
+    "api_sortno": 373,
+    "api_souk": [
+     86,
+     109
+    ],
+    "api_stype": 9,
+    "api_taik": [
+     91,
+     99
+    ],
+    "api_tyku": [
+     38,
+     102
+    ],
+    "api_voicef": 3,
+    "api_yomi": "むつ"
+   },
+   "591": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     14,
+     19,
+     38,
+     4
+    ],
+    "api_buildtime": 240,
+    "api_bull_max": 160,
+    "api_ctype": 6,
+    "api_fuel_max": 100,
+    "api_getmes": "<br>",
+    "api_houg": [
+     76,
+     99
+    ],
+    "api_id": 591,
+    "api_leng": 3,
+    "api_luck": [
+     18,
+     98
+    ],
+    "api_maxeq": [
+     2,
+     2,
+     3,
+     6,
+     0
+    ],
+    "api_name": "金剛改二丙",
+    "api_powup": [
+     4,
+     1,
+     2,
+     4
+    ],
+    "api_raig": [
+     20,
+     44
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 1017,
+    "api_sortno": 391,
+    "api_souk": [
+     72,
+     91
+    ],
+    "api_stype": 8,
+    "api_taik": [
+     86,
+     99
+    ],
+    "api_tyku": [
+     32,
+     89
+    ],
+    "api_voicef": 3,
+    "api_yomi": "こんごう"
+   },
+   "592": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     14,
+     19,
+     38,
+     4
+    ],
+    "api_buildtime": 240,
+    "api_bull_max": 160,
+    "api_ctype": 6,
+    "api_fuel_max": 100,
+    "api_getmes": "<br>",
+    "api_houg": [
+     76,
+     98
+    ],
+    "api_id": 592,
+    "api_leng": 3,
+    "api_luck": [
+     15,
+     88
+    ],
+    "api_maxeq": [
+     2,
+     2,
+     2,
+     2,
+     0
+    ],
+    "api_name": "比叡改二丙",
+    "api_powup": [
+     4,
+     1,
+     2,
+     4
+    ],
+    "api_raig": [
+     18,
+     47
+    ],
+    "api_slot_num": 4,
+    "api_soku": 10,
+    "api_sort_id": 1027,
+    "api_sortno": 392,
+    "api_souk": [
+     71,
+     90
+    ],
+    "api_stype": 8,
+    "api_taik": [
+     86,
+     99
+    ],
+    "api_tyku": [
+     31,
+     85
+    ],
+    "api_voicef": 3,
+    "api_yomi": "ひえい"
+   },
+   "594": {
+    "api_afterbull": 2000,
+    "api_afterfuel": 2800,
+    "api_afterlv": 92,
+    "api_aftershipid": "599",
+    "api_backs": 8,
+    "api_broken": [
+     13,
+     17,
+     40,
+     15
+    ],
+    "api_buildtime": 270,
+    "api_bull_max": 90,
+    "api_ctype": 14,
+    "api_fuel_max": 95,
+    "api_getmes": "<br>",
+    "api_houg": [
+     0,
+     60
+    ],
+    "api_id": 594,
+    "api_leng": 2,
+    "api_luck": [
+     20,
+     77
+    ],
+    "api_maxeq": [
+     21,
+     21,
+     32,
+     12,
+     4
+    ],
+    "api_name": "赤城改二",
+    "api_powup": [
+     0,
+     0,
+     6,
+     5
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 5,
+    "api_soku": 10,
+    "api_sort_id": 2016,
+    "api_sortno": 404,
+    "api_souk": [
+     42,
+     81
+    ],
+    "api_stype": 11,
+    "api_taik": [
+     81,
+     97
+    ],
+    "api_tyku": [
+     40,
+     85
+    ],
+    "api_voicef": 1,
+    "api_yomi": "あかぎ"
+   },
+   "622": {
+    "api_afterbull": 180,
+    "api_afterfuel": 630,
+    "api_afterlv": 86,
+    "api_aftershipid": "623",
+    "api_backs": 7,
+    "api_broken": [
+     2,
+     3,
+     8,
+     1
+    ],
+    "api_buildtime": 82,
+    "api_bull_max": 40,
+    "api_ctype": 34,
+    "api_fuel_max": 30,
+    "api_getmes": "<br>",
+    "api_houg": [
+     14,
+     56
+    ],
+    "api_id": 622,
+    "api_leng": 1,
+    "api_luck": [
+     30,
+     88
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "夕張改二",
+    "api_powup": [
+     1,
+     2,
+     2,
+     1
+    ],
+    "api_raig": [
+     50,
+     80
+    ],
+    "api_slot_num": 5,
+    "api_soku": 10,
+    "api_sort_id": 10176,
+    "api_sortno": 422,
+    "api_souk": [
+     35,
+     65
+    ],
+    "api_stype": 3,
+    "api_taik": [
+     41,
+     55
+    ],
+    "api_tyku": [
+     58,
+     88
+    ],
+    "api_voicef": 3,
+    "api_yomi": "ゆうばり"
+   },
+   "656": {
+    "api_afterbull": 0,
+    "api_afterfuel": 0,
+    "api_afterlv": 0,
+    "api_aftershipid": "0",
+    "api_backs": 8,
+    "api_broken": [
+     2,
+     4,
+     10,
+     2
+    ],
+    "api_buildtime": 24,
+    "api_bull_max": 25,
+    "api_ctype": 30,
+    "api_fuel_max": 15,
+    "api_getmes": "<br>",
+    "api_houg": [
+     17,
+     66
+    ],
+    "api_id": 656,
+    "api_leng": 1,
+    "api_luck": [
+     63,
+     120
+    ],
+    "api_maxeq": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_name": "雪風改二",
+    "api_powup": [
+     2,
+     2,
+     3,
+     2
+    ],
+    "api_raig": [
+     32,
+     90
+    ],
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 16086,
+    "api_sortno": 456,
+    "api_souk": [
+     16,
+     60
+    ],
+    "api_stype": 2,
+    "api_taik": [
+     35,
+     55
+    ],
+    "api_tyku": [
+     32,
+     85
+    ],
+    "api_voicef": 1,
+    "api_yomi": "ゆきかぜ"
+   },
+   "698": {
+    "api_afterbull": 1900,
+    "api_afterfuel": 2900,
+    "api_afterlv": 82,
+    "api_aftershipid": "610",
+    "api_backs": 8,
+    "api_broken": [
+     14,
+     19,
+     43,
+     17
+    ],
+    "api_buildtime": 260,
+    "api_bull_max": 95,
+    "api_ctype": 3,
+    "api_fuel_max": 100,
+    "api_getmes": "<br>",
+    "api_houg": [
+     0,
+     56
+    ],
+    "api_id": 698,
+    "api_leng": 2,
+    "api_luck": [
+     18,
+     74
+    ],
+    "api_maxeq": [
+     20,
+     20,
+     44,
+     12,
+     3
+    ],
+    "api_name": "加賀改二",
+    "api_powup": [
+     0,
+     0,
+     6,
+     5
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 5,
+    "api_soku": 10,
+    "api_sort_id": 2026,
+    "api_sortno": 405,
+    "api_souk": [
+     41,
+     80
+    ],
+    "api_stype": 11,
+    "api_taik": [
+     84,
+     98
+    ],
+    "api_tyku": [
+     36,
+     84
+    ],
+    "api_voicef": 3,
+    "api_yomi": "かが"
+   },
+   "911": {
+    "api_afterbull": 3600,
+    "api_afterfuel": 3300,
+    "api_afterlv": 93,
+    "api_aftershipid": "916",
+    "api_backs": 8,
+    "api_broken": [
+     40,
+     55,
+     115,
+     24
+    ],
+    "api_buildtime": 480,
+    "api_bull_max": 350,
+    "api_ctype": 37,
+    "api_fuel_max": 290,
+    "api_getmes": "<br>",
+    "api_houg": [
+     100,
+     144
+    ],
+    "api_id": 911,
+    "api_leng": 4,
+    "api_luck": [
+     18,
+     108
+    ],
+    "api_maxeq": [
+     4,
+     4,
+     4,
+     8,
+     2
+    ],
+    "api_name": "大和改二",
+    "api_powup": [
+     7,
+     0,
+     4,
+     7
+    ],
+    "api_raig": [
+     0,
+     0
+    ],
+    "api_slot_num": 5,
+    "api_soku": 10,
+    "api_sort_id": 1116,
+    "api_sortno": 511,
+    "api_souk": [
+     92,
+     122
+    ],
+    "api_stype": 8,
+    "api_taik": [
+     98,
+     110
+    ],
+    "api_tyku": [
+     65,
+     108
+    ],
+    "api_voicef": 3,
+    "api_yomi": "やまと"
+   },
+   "1501": {
+    "api_ctype": 1,
+    "api_id": 1501,
+    "api_name": "駆逐イ級",
+    "api_slot_num": 2,
+    "api_soku": 10,
+    "api_sort_id": 0,
+    "api_stype": 2,
+    "api_yomi": "-"
+   },
+   "1502": {
+    "api_ctype": 1,
+    "api_id": 1502,
+    "api_name": "駆逐ロ級",
+    "api_slot_num": 2,
+    "api_soku": 10,
+    "api_sort_id": 0,
+    "api_stype": 2,
+    "api_yomi": "-"
+   },
+   "1503": {
+    "api_ctype": 1,
+    "api_id": 1503,
+    "api_name": "駆逐ハ級",
+    "api_slot_num": 2,
+    "api_soku": 10,
+    "api_sort_id": 0,
+    "api_stype": 2,
+    "api_yomi": "-"
+   },
+   "1504": {
+    "api_ctype": 1,
+    "api_id": 1504,
+    "api_name": "駆逐ニ級",
+    "api_slot_num": 2,
+    "api_soku": 10,
+    "api_sort_id": 0,
+    "api_stype": 2,
+    "api_yomi": "-"
+   },
+   "1505": {
+    "api_ctype": 1,
+    "api_id": 1505,
+    "api_name": "軽巡ホ級",
+    "api_slot_num": 2,
+    "api_soku": 10,
+    "api_sort_id": 0,
+    "api_stype": 3,
+    "api_yomi": "-"
+   },
+   "1510": {
+    "api_ctype": 1,
+    "api_id": 1510,
+    "api_name": "軽母ヌ級",
+    "api_slot_num": 3,
+    "api_soku": 5,
+    "api_sort_id": 0,
+    "api_stype": 7,
+    "api_yomi": "-"
+   },
+   "1511": {
+    "api_ctype": 1,
+    "api_id": 1511,
+    "api_name": "戦艦ル級",
+    "api_slot_num": 3,
+    "api_soku": 5,
+    "api_sort_id": 0,
+    "api_stype": 9,
+    "api_yomi": "-"
+   },
+   "1528": {
+    "api_ctype": 1,
+    "api_id": 1528,
+    "api_name": "空母ヲ級",
+    "api_slot_num": 3,
+    "api_soku": 10,
+    "api_sort_id": 0,
+    "api_stype": 11,
+    "api_yomi": "flagship"
+   },
+   "1529": {
+    "api_ctype": 1,
+    "api_id": 1529,
+    "api_name": "戦艦ル級",
+    "api_slot_num": 4,
+    "api_soku": 5,
+    "api_sort_id": 0,
+    "api_stype": 9,
+    "api_yomi": "flagship"
+   },
+   "1530": {
+    "api_ctype": 1,
+    "api_id": 1530,
+    "api_name": "潜水カ級",
+    "api_slot_num": 2,
+    "api_soku": 5,
+    "api_sort_id": 0,
+    "api_stype": 13,
+    "api_yomi": ""
+   }
+  },
+  "$equips": {
+   "1": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     1,
+     1,
+     0
+    ],
+    "api_houg": 1,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 1,
+    "api_leng": 1,
+    "api_luck": 0,
+    "api_name": "12cm単装砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 1,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 1,
+    "api_type": [
+     1,
+     1,
+     1,
+     1,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "2": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     1,
+     2,
+     0
+    ],
+    "api_houg": 2,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 2,
+    "api_leng": 1,
+    "api_luck": 0,
+    "api_name": "12.7cm連装砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 2,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 2,
+    "api_type": [
+     1,
+     1,
+     1,
+     1,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "3": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     1,
+     3,
+     0
+    ],
+    "api_houg": 2,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 3,
+    "api_leng": 1,
+    "api_luck": 0,
+    "api_name": "10cm連装高角砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 3,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 7,
+    "api_type": [
+     1,
+     1,
+     1,
+     16,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "4": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     2,
+     1,
+     0
+    ],
+    "api_houg": 2,
+    "api_houk": 0,
+    "api_houm": 1,
+    "api_id": 4,
+    "api_leng": 2,
+    "api_luck": 0,
+    "api_name": "14cm単装砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 4,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     1,
+     1,
+     2,
+     2,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "5": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     2,
+     5,
+     0
+    ],
+    "api_houg": 7,
+    "api_houk": 0,
+    "api_houm": 1,
+    "api_id": 5,
+    "api_leng": 2,
+    "api_luck": 0,
+    "api_name": "15.5cm三連装砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 5,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 4,
+    "api_type": [
+     1,
+     1,
+     2,
+     2,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "6": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     3,
+     4,
+     0
+    ],
+    "api_houg": 8,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 6,
+    "api_leng": 2,
+    "api_luck": 0,
+    "api_name": "20.3cm連装砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 6,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 3,
+    "api_type": [
+     1,
+     1,
+     2,
+     2,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "7": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     10,
+     15,
+     0
+    ],
+    "api_houg": 15,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 7,
+    "api_leng": 3,
+    "api_luck": 0,
+    "api_name": "35.6cm連装砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 7,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 4,
+    "api_type": [
+     1,
+     1,
+     3,
+     3,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "8": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     12,
+     20,
+     0
+    ],
+    "api_houg": 20,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 8,
+    "api_leng": 3,
+    "api_luck": 0,
+    "api_name": "41cm連装砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 8,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 4,
+    "api_type": [
+     1,
+     1,
+     3,
+     3,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "9": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     24,
+     25,
+     0
+    ],
+    "api_houg": 26,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 9,
+    "api_leng": 4,
+    "api_luck": 0,
+    "api_name": "46cm三連装砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 2,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 9,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 5,
+    "api_type": [
+     1,
+     1,
+     3,
+     3,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "10": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     2,
+     2,
+     0
+    ],
+    "api_houg": 2,
+    "api_houk": 0,
+    "api_houm": 1,
+    "api_id": 10,
+    "api_leng": 1,
+    "api_luck": 0,
+    "api_name": "12.7cm連装高角砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 10,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 4,
+    "api_type": [
+     1,
+     2,
+     4,
+     16,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 3
+   },
+   "13": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     1,
+     1,
+     1,
+     0
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 13,
+    "api_leng": 1,
+    "api_luck": 0,
+    "api_name": "61cm三連装魚雷",
+    "api_raig": 5,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 13,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     2,
+     3,
+     5,
+     5,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "15": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     2,
+     2,
+     2,
+     0
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 15,
+    "api_leng": 1,
+    "api_luck": 0,
+    "api_name": "61cm四連装(酸素)魚雷",
+    "api_raig": 10,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 15,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     2,
+     3,
+     5,
+     5,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "16": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     1,
+     1,
+     0,
+     2
+    ],
+    "api_cost": 5,
+    "api_distance": 4,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 16,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "九七式艦攻",
+    "api_raig": 5,
+    "api_raik": 0,
+    "api_raim": 16,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 1,
+    "api_soku": 0,
+    "api_sortno": 16,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 4,
+    "api_tyku": 0,
+    "api_type": [
+     3,
+     5,
+     8,
+     8,
+     1
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "17": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     2,
+     4,
+     0,
+     4
+    ],
+    "api_cost": 6,
+    "api_distance": 5,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 17,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "天山",
+    "api_raig": 7,
+    "api_raik": 0,
+    "api_raim": 24,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 1,
+    "api_soku": 0,
+    "api_sortno": 17,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 3,
+    "api_tyku": 0,
+    "api_type": [
+     3,
+     5,
+     8,
+     8,
+     1
+    ],
+    "api_usebull": "0",
+    "api_version": 3
+   },
+   "18": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     2,
+     5,
+     0,
+     10
+    ],
+    "api_cost": 7,
+    "api_distance": 6,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 18,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "流星",
+    "api_raig": 10,
+    "api_raik": 0,
+    "api_raim": 56,
+    "api_rare": 2,
+    "api_sakb": 0,
+    "api_saku": 1,
+    "api_soku": 0,
+    "api_sortno": 18,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 4,
+    "api_tyku": 1,
+    "api_type": [
+     3,
+     5,
+     8,
+     8,
+     33
+    ],
+    "api_usebull": "0",
+    "api_version": 3
+   },
+   "19": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     1,
+     1,
+     0,
+     1
+    ],
+    "api_cost": 3,
+    "api_distance": 3,
+    "api_houg": 0,
+    "api_houk": 1,
+    "api_houm": 0,
+    "api_id": 19,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "九六式艦戦",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 19,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 3,
+    "api_type": [
+     3,
+     5,
+     6,
+     6,
+     11
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "20": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     1,
+     1,
+     0,
+     2
+    ],
+    "api_cost": 4,
+    "api_distance": 7,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 20,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "零式艦戦21型",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 20,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 5,
+    "api_type": [
+     3,
+     5,
+     6,
+     6,
+     11
+    ],
+    "api_usebull": "0"
+   },
+   "21": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     1,
+     2,
+     0,
+     3
+    ],
+    "api_cost": 5,
+    "api_distance": 6,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 21,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "零式艦戦52型",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 21,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 6,
+    "api_type": [
+     3,
+     5,
+     6,
+     6,
+     12
+    ],
+    "api_usebull": "0"
+   },
+   "23": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 5,
+    "api_broken": [
+     1,
+     1,
+     0,
+     2
+    ],
+    "api_cost": 4,
+    "api_distance": 4,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 23,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "九九式艦爆",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 23,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 3,
+    "api_tyku": 0,
+    "api_type": [
+     3,
+     5,
+     7,
+     7,
+     15
+    ],
+    "api_usebull": "0",
+    "api_version": 3
+   },
+   "24": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 8,
+    "api_broken": [
+     2,
+     3,
+     0,
+     3
+    ],
+    "api_cost": 5,
+    "api_distance": 4,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 24,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "彗星",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 24,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 3,
+    "api_tyku": 0,
+    "api_type": [
+     3,
+     5,
+     7,
+     7,
+     16
+    ],
+    "api_usebull": "0",
+    "api_version": 3
+   },
+   "25": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 1,
+    "api_broken": [
+     1,
+     1,
+     0,
+     2
+    ],
+    "api_cost": 5,
+    "api_distance": 7,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 1,
+    "api_id": 25,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "零式水上偵察機",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 10,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 5,
+    "api_soku": 0,
+    "api_sortno": 25,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 2,
+    "api_tyku": 1,
+    "api_type": [
+     5,
+     7,
+     10,
+     10,
+     2
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "26": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 4,
+    "api_broken": [
+     2,
+     3,
+     0,
+     5
+    ],
+    "api_cost": 6,
+    "api_distance": 5,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 1,
+    "api_id": 26,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "瑞雲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 13,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 6,
+    "api_soku": 0,
+    "api_sortno": 26,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 4,
+    "api_tyku": 2,
+    "api_type": [
+     5,
+     43,
+     11,
+     10,
+     32
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "27": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     0,
+     10,
+     10
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 1,
+    "api_id": 27,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "13号対空電探",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 3,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 3,
+    "api_soku": 0,
+    "api_sortno": 27,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 2,
+    "api_type": [
+     5,
+     8,
+     12,
+     11,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "28": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     0,
+     15,
+     15
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 3,
+    "api_id": 28,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "22号対水上電探",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 10,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 5,
+    "api_soku": 0,
+    "api_sortno": 28,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     5,
+     8,
+     12,
+     11,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "30": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     0,
+     20,
+     20
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 2,
+    "api_id": 30,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "21号対空電探",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 3,
+    "api_rare": 2,
+    "api_sakb": 0,
+    "api_saku": 4,
+    "api_soku": 0,
+    "api_sortno": 30,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 4,
+    "api_type": [
+     5,
+     8,
+     13,
+     11,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "31": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     0,
+     20,
+     25
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 8,
+    "api_id": 31,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "32号対水上電探",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 15,
+    "api_rare": 3,
+    "api_sakb": 0,
+    "api_saku": 10,
+    "api_soku": 0,
+    "api_sortno": 31,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     5,
+     8,
+     13,
+     11,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "35": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     9,
+     6,
+     3
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 35,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "三式弾",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 35,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 5,
+    "api_type": [
+     4,
+     28,
+     18,
+     12,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "36": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     3,
+     9,
+     0
+    ],
+    "api_houg": 8,
+    "api_houk": 0,
+    "api_houm": 1,
+    "api_id": 36,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "九一式徹甲弾",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 36,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     4,
+     25,
+     19,
+     13,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "39": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     2,
+     1,
+     0
+    ],
+    "api_houg": 0,
+    "api_houk": 1,
+    "api_houm": 0,
+    "api_id": 39,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "25mm連装機銃",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 39,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 5,
+    "api_type": [
+     4,
+     6,
+     21,
+     15,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "40": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     3,
+     1,
+     0
+    ],
+    "api_houg": 0,
+    "api_houk": 1,
+    "api_houm": 0,
+    "api_id": 40,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "25mm三連装機銃",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 40,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 6,
+    "api_type": [
+     4,
+     6,
+     21,
+     15,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "41": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     7,
+     7,
+     0
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 41,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "甲標的 甲型",
+    "api_raig": 12,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 41,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     2,
+     4,
+     22,
+     5,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "42": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     0,
+     1,
+     0
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 42,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "応急修理要員",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 42,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     6,
+     30,
+     23,
+     14,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "45": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     3,
+     1,
+     1
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 45,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "三式爆雷投射機",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 2,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 45,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 8,
+    "api_tyku": 0,
+    "api_type": [
+     7,
+     32,
+     15,
+     17,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "46": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     0,
+     1,
+     1
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 1,
+    "api_id": 46,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "九三式水中聴音機",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 46,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 6,
+    "api_tyku": 0,
+    "api_type": [
+     7,
+     10,
+     14,
+     18,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "47": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     0,
+     1,
+     2
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 2,
+    "api_id": 47,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "三式水中探信儀",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 2,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 47,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 10,
+    "api_tyku": 0,
+    "api_type": [
+     7,
+     10,
+     14,
+     18,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "53": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     2,
+     2,
+     0,
+     10
+    ],
+    "api_cost": 8,
+    "api_distance": 5,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 53,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "烈風 一一型",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 4,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 53,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 12,
+    "api_type": [
+     3,
+     5,
+     6,
+     6,
+     13
+    ],
+    "api_usebull": "0",
+    "api_version": 3
+   },
+   "54": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     2,
+     0,
+     0,
+     11
+    ],
+    "api_cost": 9,
+    "api_distance": 8,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 2,
+    "api_id": 54,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "彩雲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 2,
+    "api_sakb": 0,
+    "api_saku": 9,
+    "api_soku": 0,
+    "api_sortno": 54,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     5,
+     7,
+     9,
+     9,
+     1
+    ],
+    "api_usebull": "0"
+   },
+   "55": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     2,
+     2,
+     0,
+     7
+    ],
+    "api_cost": 6,
+    "api_distance": 3,
+    "api_houg": 0,
+    "api_houk": 3,
+    "api_houm": 0,
+    "api_id": 55,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "紫電改二",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 2,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 55,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 9,
+    "api_type": [
+     3,
+     5,
+     6,
+     6,
+     12
+    ],
+    "api_usebull": "0"
+   },
+   "58": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     2,
+     3,
+     2,
+     0
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 1,
+    "api_id": 58,
+    "api_leng": 1,
+    "api_luck": 0,
+    "api_name": "61cm五連装(酸素)魚雷",
+    "api_raig": 12,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 2,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 58,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     2,
+     3,
+     5,
+     5,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "59": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 1,
+    "api_broken": [
+     1,
+     1,
+     0,
+     2
+    ],
+    "api_cost": 6,
+    "api_distance": 3,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 2,
+    "api_id": 59,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "零式水上観測機",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 6,
+    "api_soku": 0,
+    "api_sortno": 59,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 4,
+    "api_tyku": 2,
+    "api_type": [
+     5,
+     7,
+     10,
+     10,
+     2
+    ],
+    "api_usebull": "0"
+   },
+   "61": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     3,
+     1,
+     0,
+     13
+    ],
+    "api_cost": 6,
+    "api_distance": 5,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 3,
+    "api_id": 61,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "二式艦上偵察機",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 7,
+    "api_soku": 0,
+    "api_sortno": 61,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 1,
+    "api_type": [
+     5,
+     7,
+     9,
+     9,
+     1
+    ],
+    "api_usebull": "0"
+   },
+   "62": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 11,
+    "api_broken": [
+     4,
+     5,
+     0,
+     20
+    ],
+    "api_cost": 10,
+    "api_distance": 4,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 1,
+    "api_id": 62,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "試製晴嵐",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 4,
+    "api_sakb": 0,
+    "api_saku": 6,
+    "api_soku": 0,
+    "api_sortno": 62,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 6,
+    "api_tyku": 0,
+    "api_type": [
+     5,
+     43,
+     11,
+     10,
+     2
+    ],
+    "api_usebull": "0"
+   },
+   "63": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     1,
+     2,
+     0
+    ],
+    "api_houg": 3,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 63,
+    "api_leng": 1,
+    "api_luck": 0,
+    "api_name": "12.7cm連装砲B型改二",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 63,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 2,
+    "api_type": [
+     1,
+     1,
+     1,
+     1,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "68": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     1,
+     1,
+     0,
+     1
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 68,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "大発動艇",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 68,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     8,
+     14,
+     24,
+     20,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "74": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     0,
+     1,
+     1
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 74,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "探照灯",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 2,
+    "api_soku": 0,
+    "api_sortno": 74,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     8,
+     18,
+     29,
+     24,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "75": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     0,
+     1,
+     0
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 75,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "ドラム缶(輸送用)",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 0,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 75,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     9,
+     19,
+     30,
+     25,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "90": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     3,
+     4,
+     0
+    ],
+    "api_houg": 9,
+    "api_houk": 0,
+    "api_houm": 1,
+    "api_id": 90,
+    "api_leng": 2,
+    "api_luck": 0,
+    "api_name": "20.3cm(2号)連装砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 90,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 3,
+    "api_type": [
+     1,
+     1,
+     2,
+     2,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "101": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     2,
+     1,
+     1
+    ],
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 101,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "照明弾",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 101,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     11,
+     21,
+     33,
+     27,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "131": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     5,
+     2,
+     1
+    ],
+    "api_houg": 0,
+    "api_houk": 1,
+    "api_houm": 0,
+    "api_id": 131,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "25mm三連装機銃 集中配備",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 3,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 131,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 9,
+    "api_type": [
+     4,
+     6,
+     21,
+     15,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "164": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     1,
+     1,
+     0,
+     2
+    ],
+    "api_cost": 4,
+    "api_distance": 3,
+    "api_houg": 0,
+    "api_houk": 2,
+    "api_houm": 1,
+    "api_id": 164,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "Ro.44水上戦闘機",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 3,
+    "api_sakb": 0,
+    "api_saku": 2,
+    "api_soku": 0,
+    "api_sortno": 164,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 1,
+    "api_tyku": 2,
+    "api_type": [
+     5,
+     36,
+     45,
+     43,
+     25
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "217": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     1,
+     1,
+     0,
+     6
+    ],
+    "api_cost": 6,
+    "api_distance": 3,
+    "api_houg": 0,
+    "api_houk": 3,
+    "api_houm": 0,
+    "api_id": 217,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "強風改",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 3,
+    "api_sakb": 0,
+    "api_saku": 1,
+    "api_soku": 0,
+    "api_sortno": 217,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 5,
+    "api_type": [
+     5,
+     36,
+     45,
+     43,
+     26
+    ],
+    "api_usebull": "0"
+   },
+   "238": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     1,
+     2,
+     0,
+     3
+    ],
+    "api_cost": 5,
+    "api_distance": 7,
+    "api_houg": 1,
+    "api_houk": 0,
+    "api_houm": 2,
+    "api_id": 238,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "零式水上偵察機11型乙",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 3,
+    "api_sakb": 0,
+    "api_saku": 6,
+    "api_soku": 0,
+    "api_sortno": 238,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 7,
+    "api_tyku": 1,
+    "api_type": [
+     5,
+     7,
+     10,
+     10,
+     2
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "240": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     0,
+     16,
+     17
+    ],
+    "api_houg": 1,
+    "api_houk": 0,
+    "api_houm": 9,
+    "api_id": 240,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "22号対水上電探改四(後期調整型)",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 4,
+    "api_sakb": 0,
+    "api_saku": 7,
+    "api_soku": 0,
+    "api_sortno": 240,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 2,
+    "api_tyku": 0,
+    "api_type": [
+     5,
+     8,
+     12,
+     11,
+     0
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "247": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     2,
+     5,
+     0
+    ],
+    "api_houg": 6,
+    "api_houk": 0,
+    "api_houm": 3,
+    "api_id": 247,
+    "api_leng": 2,
+    "api_luck": 0,
+    "api_name": "15.2cm三連装砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 3,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 247,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 1,
+    "api_type": [
+     1,
+     2,
+     4,
+     4,
+     0
+    ],
+    "api_usebull": "0"
+   },
+   "320": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 11,
+    "api_broken": [
+     2,
+     6,
+     0,
+     5
+    ],
+    "api_cost": 6,
+    "api_distance": 5,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 5,
+    "api_id": 320,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "彗星一二型(三一号光電管爆弾搭載機)",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 4,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 320,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 0,
+    "api_type": [
+     3,
+     5,
+     7,
+     7,
+     16
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "333": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     2,
+     4,
+     0,
+     9
+    ],
+    "api_cost": 9,
+    "api_distance": 4,
+    "api_houg": 0,
+    "api_houk": 2,
+    "api_houm": 6,
+    "api_id": 333,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "烈風改",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 4,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 333,
+    "api_souk": 1,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 10,
+    "api_type": [
+     22,
+     39,
+     48,
+     38,
+     34
+    ],
+    "api_usebull": "0"
+   },
+   "1509": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_houg": 20,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 1509,
+    "api_leng": 3,
+    "api_luck": 0,
+    "api_name": "16inch三連装砲",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 10,
+    "api_rare": 2,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 0,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 5,
+    "api_type": [
+     1,
+     1,
+     3,
+     3,
+     0
+    ],
+    "api_usebull": "0"
+   }
+  },
+  "$shipTypes": {
+   "2": {
+    "api_equip_type": {
+     "1": 1,
+     "2": 0,
+     "3": 0,
+     "4": 0,
+     "5": 1,
+     "6": 0,
+     "7": 0,
+     "8": 0,
+     "9": 0,
+     "10": 0,
+     "11": 0,
+     "12": 1,
+     "13": 0,
+     "14": 1,
+     "15": 1,
+     "16": 0,
+     "17": 1,
+     "18": 0,
+     "19": 0,
+     "20": 1,
+     "21": 1,
+     "22": 0,
+     "23": 1,
+     "24": 0,
+     "25": 0,
+     "26": 0,
+     "27": 0,
+     "28": 0,
+     "29": 1,
+     "30": 1,
+     "31": 0,
+     "32": 0,
+     "33": 1,
+     "34": 0,
+     "35": 0,
+     "36": 1,
+     "37": 1,
+     "38": 0,
+     "39": 1,
+     "40": 0,
+     "41": 0,
+     "42": 0,
+     "43": 1,
+     "44": 0,
+     "45": 0,
+     "46": 0,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 0,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 0,
+     "94": 0,
+     "95": 0
+    },
+    "api_id": 2,
+    "api_kcnt": 3,
+    "api_name": "駆逐艦",
+    "api_scnt": 2,
+    "api_sortno": 2
+   },
+   "3": {
+    "api_equip_type": {
+     "1": 1,
+     "2": 1,
+     "3": 0,
+     "4": 1,
+     "5": 1,
+     "6": 0,
+     "7": 0,
+     "8": 0,
+     "9": 0,
+     "10": 1,
+     "11": 0,
+     "12": 1,
+     "13": 1,
+     "14": 1,
+     "15": 1,
+     "16": 0,
+     "17": 1,
+     "18": 0,
+     "19": 0,
+     "20": 1,
+     "21": 1,
+     "22": 0,
+     "23": 1,
+     "24": 0,
+     "25": 0,
+     "26": 0,
+     "27": 0,
+     "28": 0,
+     "29": 1,
+     "30": 1,
+     "31": 0,
+     "32": 0,
+     "33": 1,
+     "34": 1,
+     "35": 0,
+     "36": 1,
+     "37": 1,
+     "38": 0,
+     "39": 1,
+     "40": 0,
+     "41": 0,
+     "42": 0,
+     "43": 1,
+     "44": 0,
+     "45": 0,
+     "46": 0,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 0,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 0,
+     "94": 0,
+     "95": 0
+    },
+    "api_id": 3,
+    "api_kcnt": 3,
+    "api_name": "軽巡洋艦",
+    "api_scnt": 2,
+    "api_sortno": 3
+   },
+   "5": {
+    "api_equip_type": {
+     "1": 0,
+     "2": 1,
+     "3": 0,
+     "4": 1,
+     "5": 1,
+     "6": 0,
+     "7": 0,
+     "8": 0,
+     "9": 0,
+     "10": 1,
+     "11": 0,
+     "12": 1,
+     "13": 1,
+     "14": 0,
+     "15": 0,
+     "16": 1,
+     "17": 1,
+     "18": 1,
+     "19": 0,
+     "20": 1,
+     "21": 1,
+     "22": 0,
+     "23": 1,
+     "24": 0,
+     "25": 0,
+     "26": 0,
+     "27": 1,
+     "28": 0,
+     "29": 1,
+     "30": 0,
+     "31": 0,
+     "32": 0,
+     "33": 1,
+     "34": 1,
+     "35": 0,
+     "36": 1,
+     "37": 0,
+     "38": 0,
+     "39": 1,
+     "40": 1,
+     "41": 0,
+     "42": 0,
+     "43": 1,
+     "44": 0,
+     "45": 0,
+     "46": 0,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 0,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 0,
+     "94": 0,
+     "95": 1
+    },
+    "api_id": 5,
+    "api_kcnt": 4,
+    "api_name": "重巡洋艦",
+    "api_scnt": 3,
+    "api_sortno": 5
+   },
+   "6": {
+    "api_equip_type": {
+     "1": 0,
+     "2": 1,
+     "3": 0,
+     "4": 1,
+     "5": 1,
+     "6": 0,
+     "7": 0,
+     "8": 0,
+     "9": 0,
+     "10": 1,
+     "11": 1,
+     "12": 1,
+     "13": 1,
+     "14": 0,
+     "15": 0,
+     "16": 1,
+     "17": 1,
+     "18": 1,
+     "19": 0,
+     "20": 1,
+     "21": 1,
+     "22": 0,
+     "23": 1,
+     "24": 0,
+     "25": 1,
+     "26": 0,
+     "27": 1,
+     "28": 0,
+     "29": 1,
+     "30": 1,
+     "31": 0,
+     "32": 0,
+     "33": 1,
+     "34": 1,
+     "35": 1,
+     "36": 1,
+     "37": 1,
+     "38": 0,
+     "39": 1,
+     "40": 1,
+     "41": 0,
+     "42": 0,
+     "43": 1,
+     "44": 0,
+     "45": 1,
+     "46": 0,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 1,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 0,
+     "94": 0,
+     "95": 0
+    },
+    "api_id": 6,
+    "api_kcnt": 4,
+    "api_name": "航空巡洋艦",
+    "api_scnt": 3,
+    "api_sortno": 6
+   },
+   "7": {
+    "api_equip_type": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 1,
+     "5": 0,
+     "6": 1,
+     "7": 1,
+     "8": 1,
+     "9": 1,
+     "10": 0,
+     "11": 0,
+     "12": 1,
+     "13": 1,
+     "14": 0,
+     "15": 0,
+     "16": 1,
+     "17": 1,
+     "18": 0,
+     "19": 0,
+     "20": 1,
+     "21": 1,
+     "22": 0,
+     "23": 1,
+     "24": 0,
+     "25": 1,
+     "26": 1,
+     "27": 1,
+     "28": 0,
+     "29": 0,
+     "30": 0,
+     "31": 0,
+     "32": 0,
+     "33": 0,
+     "34": 1,
+     "35": 1,
+     "36": 1,
+     "37": 0,
+     "38": 0,
+     "39": 0,
+     "40": 1,
+     "41": 0,
+     "42": 0,
+     "43": 1,
+     "44": 0,
+     "45": 0,
+     "46": 0,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 1,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 0,
+     "94": 0,
+     "95": 0
+    },
+    "api_id": 7,
+    "api_kcnt": 4,
+    "api_name": "軽空母",
+    "api_scnt": 3,
+    "api_sortno": 7
+   },
+   "8": {
+    "api_equip_type": {
+     "1": 0,
+     "2": 0,
+     "3": 1,
+     "4": 1,
+     "5": 0,
+     "6": 0,
+     "7": 0,
+     "8": 0,
+     "9": 0,
+     "10": 1,
+     "11": 0,
+     "12": 1,
+     "13": 1,
+     "14": 0,
+     "15": 0,
+     "16": 1,
+     "17": 1,
+     "18": 1,
+     "19": 1,
+     "20": 1,
+     "21": 1,
+     "22": 0,
+     "23": 1,
+     "24": 0,
+     "25": 0,
+     "26": 0,
+     "27": 0,
+     "28": 1,
+     "29": 1,
+     "30": 0,
+     "31": 0,
+     "32": 0,
+     "33": 1,
+     "34": 1,
+     "35": 0,
+     "36": 1,
+     "37": 0,
+     "38": 0,
+     "39": 1,
+     "40": 1,
+     "41": 0,
+     "42": 1,
+     "43": 1,
+     "44": 0,
+     "45": 0,
+     "46": 0,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 0,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 1,
+     "94": 0,
+     "95": 1
+    },
+    "api_id": 8,
+    "api_kcnt": 4,
+    "api_name": "戦艦",
+    "api_scnt": 3,
+    "api_sortno": 8
+   },
+   "9": {
+    "api_equip_type": {
+     "1": 0,
+     "2": 1,
+     "3": 1,
+     "4": 1,
+     "5": 0,
+     "6": 0,
+     "7": 0,
+     "8": 0,
+     "9": 0,
+     "10": 1,
+     "11": 0,
+     "12": 1,
+     "13": 1,
+     "14": 0,
+     "15": 0,
+     "16": 1,
+     "17": 1,
+     "18": 1,
+     "19": 1,
+     "20": 1,
+     "21": 1,
+     "22": 0,
+     "23": 1,
+     "24": 0,
+     "25": 0,
+     "26": 0,
+     "27": 0,
+     "28": 1,
+     "29": 1,
+     "30": 0,
+     "31": 0,
+     "32": 0,
+     "33": 1,
+     "34": 1,
+     "35": 0,
+     "36": 1,
+     "37": 0,
+     "38": 0,
+     "39": 1,
+     "40": 1,
+     "41": 0,
+     "42": 1,
+     "43": 1,
+     "44": 0,
+     "45": 0,
+     "46": 0,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 0,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 1,
+     "94": 0,
+     "95": 1
+    },
+    "api_id": 9,
+    "api_kcnt": 5,
+    "api_name": "戦艦",
+    "api_scnt": 4,
+    "api_sortno": 9
+   },
+   "10": {
+    "api_equip_type": {
+     "1": 0,
+     "2": 1,
+     "3": 1,
+     "4": 1,
+     "5": 0,
+     "6": 0,
+     "7": 0,
+     "8": 0,
+     "9": 0,
+     "10": 1,
+     "11": 1,
+     "12": 1,
+     "13": 1,
+     "14": 0,
+     "15": 0,
+     "16": 1,
+     "17": 1,
+     "18": 1,
+     "19": 1,
+     "20": 1,
+     "21": 1,
+     "22": 0,
+     "23": 1,
+     "24": 0,
+     "25": 1,
+     "26": 0,
+     "27": 0,
+     "28": 1,
+     "29": 1,
+     "30": 0,
+     "31": 0,
+     "32": 0,
+     "33": 1,
+     "34": 1,
+     "35": 1,
+     "36": 1,
+     "37": 1,
+     "38": 0,
+     "39": 1,
+     "40": 1,
+     "41": 0,
+     "42": 1,
+     "43": 1,
+     "44": 0,
+     "45": 1,
+     "46": 0,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 1,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 1,
+     "94": 0,
+     "95": 1
+    },
+    "api_id": 10,
+    "api_kcnt": 5,
+    "api_name": "航空戦艦",
+    "api_scnt": 4,
+    "api_sortno": 10
+   },
+   "11": {
+    "api_equip_type": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 1,
+     "5": 0,
+     "6": 1,
+     "7": 1,
+     "8": 1,
+     "9": 1,
+     "10": 0,
+     "11": 0,
+     "12": 1,
+     "13": 1,
+     "14": 0,
+     "15": 0,
+     "16": 1,
+     "17": 1,
+     "18": 0,
+     "19": 0,
+     "20": 1,
+     "21": 1,
+     "22": 0,
+     "23": 1,
+     "24": 0,
+     "25": 0,
+     "26": 0,
+     "27": 0,
+     "28": 1,
+     "29": 0,
+     "30": 0,
+     "31": 0,
+     "32": 0,
+     "33": 0,
+     "34": 1,
+     "35": 1,
+     "36": 1,
+     "37": 0,
+     "38": 0,
+     "39": 0,
+     "40": 1,
+     "41": 0,
+     "42": 0,
+     "43": 1,
+     "44": 0,
+     "45": 0,
+     "46": 0,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 1,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 0,
+     "94": 0,
+     "95": 1
+    },
+    "api_id": 11,
+    "api_kcnt": 5,
+    "api_name": "正規空母",
+    "api_scnt": 4,
+    "api_sortno": 11
+   },
+   "13": {
+    "api_equip_type": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 0,
+     "5": 1,
+     "6": 0,
+     "7": 0,
+     "8": 0,
+     "9": 0,
+     "10": 0,
+     "11": 0,
+     "12": 0,
+     "13": 0,
+     "14": 1,
+     "15": 0,
+     "16": 0,
+     "17": 1,
+     "18": 0,
+     "19": 0,
+     "20": 0,
+     "21": 0,
+     "22": 1,
+     "23": 1,
+     "24": 0,
+     "25": 0,
+     "26": 0,
+     "27": 0,
+     "28": 0,
+     "29": 0,
+     "30": 0,
+     "31": 0,
+     "32": 1,
+     "33": 0,
+     "34": 0,
+     "35": 0,
+     "36": 0,
+     "37": 1,
+     "38": 0,
+     "39": 0,
+     "40": 0,
+     "41": 0,
+     "42": 0,
+     "43": 1,
+     "44": 0,
+     "45": 0,
+     "46": 1,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 0,
+     "51": 1,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 0,
+     "94": 0,
+     "95": 0
+    },
+    "api_id": 13,
+    "api_kcnt": 3,
+    "api_name": "潜水艦",
+    "api_scnt": 1,
+    "api_sortno": 13
+   },
+   "14": {
+    "api_equip_type": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 0,
+     "5": 1,
+     "6": 0,
+     "7": 0,
+     "8": 0,
+     "9": 0,
+     "10": 1,
+     "11": 1,
+     "12": 0,
+     "13": 0,
+     "14": 1,
+     "15": 0,
+     "16": 0,
+     "17": 1,
+     "18": 0,
+     "19": 0,
+     "20": 0,
+     "21": 0,
+     "22": 1,
+     "23": 1,
+     "24": 0,
+     "25": 0,
+     "26": 0,
+     "27": 0,
+     "28": 0,
+     "29": 0,
+     "30": 0,
+     "31": 0,
+     "32": 1,
+     "33": 0,
+     "34": 0,
+     "35": 0,
+     "36": 0,
+     "37": 1,
+     "38": 0,
+     "39": 0,
+     "40": 0,
+     "41": 0,
+     "42": 0,
+     "43": 1,
+     "44": 0,
+     "45": 1,
+     "46": 1,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 1,
+     "51": 1,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 0,
+     "94": 0,
+     "95": 0
+    },
+    "api_id": 14,
+    "api_kcnt": 5,
+    "api_name": "潜水空母",
+    "api_scnt": 2,
+    "api_sortno": 14
+   },
+   "16": {
+    "api_equip_type": {
+     "1": 1,
+     "2": 0,
+     "3": 0,
+     "4": 1,
+     "5": 0,
+     "6": 0,
+     "7": 0,
+     "8": 0,
+     "9": 0,
+     "10": 1,
+     "11": 1,
+     "12": 1,
+     "13": 1,
+     "14": 0,
+     "15": 1,
+     "16": 1,
+     "17": 1,
+     "18": 0,
+     "19": 0,
+     "20": 1,
+     "21": 1,
+     "22": 1,
+     "23": 1,
+     "24": 1,
+     "25": 0,
+     "26": 0,
+     "27": 1,
+     "28": 0,
+     "29": 1,
+     "30": 1,
+     "31": 0,
+     "32": 0,
+     "33": 1,
+     "34": 1,
+     "35": 0,
+     "36": 1,
+     "37": 1,
+     "38": 0,
+     "39": 1,
+     "40": 1,
+     "41": 0,
+     "42": 0,
+     "43": 1,
+     "44": 0,
+     "45": 1,
+     "46": 1,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 1,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 0,
+     "94": 0,
+     "95": 0
+    },
+    "api_id": 16,
+    "api_kcnt": 3,
+    "api_name": "水上機母艦",
+    "api_scnt": 2,
+    "api_sortno": 16
+   },
+   "18": {
+    "api_equip_type": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 1,
+     "5": 0,
+     "6": 1,
+     "7": 1,
+     "8": 1,
+     "9": 1,
+     "10": 0,
+     "11": 0,
+     "12": 1,
+     "13": 1,
+     "14": 0,
+     "15": 0,
+     "16": 1,
+     "17": 1,
+     "18": 0,
+     "19": 0,
+     "20": 1,
+     "21": 1,
+     "22": 0,
+     "23": 1,
+     "24": 0,
+     "25": 0,
+     "26": 0,
+     "27": 0,
+     "28": 1,
+     "29": 0,
+     "30": 0,
+     "31": 0,
+     "32": 0,
+     "33": 0,
+     "34": 1,
+     "35": 1,
+     "36": 1,
+     "37": 0,
+     "38": 0,
+     "39": 0,
+     "40": 1,
+     "41": 0,
+     "42": 0,
+     "43": 1,
+     "44": 0,
+     "45": 0,
+     "46": 0,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 1,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 0,
+     "94": 1,
+     "95": 1
+    },
+    "api_id": 18,
+    "api_kcnt": 5,
+    "api_name": "装甲空母",
+    "api_scnt": 4,
+    "api_sortno": 18
+   },
+   "19": {
+    "api_equip_type": {
+     "1": 1,
+     "2": 0,
+     "3": 0,
+     "4": 1,
+     "5": 0,
+     "6": 0,
+     "7": 0,
+     "8": 0,
+     "9": 0,
+     "10": 0,
+     "11": 0,
+     "12": 1,
+     "13": 0,
+     "14": 0,
+     "15": 0,
+     "16": 0,
+     "17": 1,
+     "18": 0,
+     "19": 0,
+     "20": 1,
+     "21": 1,
+     "22": 0,
+     "23": 1,
+     "24": 0,
+     "25": 1,
+     "26": 0,
+     "27": 1,
+     "28": 0,
+     "29": 0,
+     "30": 0,
+     "31": 1,
+     "32": 0,
+     "33": 1,
+     "34": 0,
+     "35": 0,
+     "36": 1,
+     "37": 0,
+     "38": 0,
+     "39": 0,
+     "40": 0,
+     "41": 0,
+     "42": 0,
+     "43": 1,
+     "44": 0,
+     "45": 0,
+     "46": 0,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 1,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 0,
+     "94": 0,
+     "95": 0
+    },
+    "api_id": 19,
+    "api_kcnt": 5,
+    "api_name": "工作艦",
+    "api_scnt": 4,
+    "api_sortno": 19
+   },
+   "22": {
+    "api_equip_type": {
+     "1": 1,
+     "2": 0,
+     "3": 0,
+     "4": 0,
+     "5": 0,
+     "6": 0,
+     "7": 0,
+     "8": 0,
+     "9": 0,
+     "10": 1,
+     "11": 1,
+     "12": 1,
+     "13": 0,
+     "14": 0,
+     "15": 0,
+     "16": 0,
+     "17": 1,
+     "18": 0,
+     "19": 0,
+     "20": 1,
+     "21": 1,
+     "22": 0,
+     "23": 1,
+     "24": 0,
+     "25": 1,
+     "26": 0,
+     "27": 0,
+     "28": 0,
+     "29": 0,
+     "30": 1,
+     "31": 0,
+     "32": 0,
+     "33": 0,
+     "34": 0,
+     "35": 1,
+     "36": 1,
+     "37": 0,
+     "38": 0,
+     "39": 0,
+     "40": 0,
+     "41": 0,
+     "42": 0,
+     "43": 1,
+     "44": 1,
+     "45": 1,
+     "46": 0,
+     "47": 0,
+     "48": 0,
+     "49": 0,
+     "50": 0,
+     "51": 0,
+     "52": 0,
+     "53": 0,
+     "54": 0,
+     "55": 0,
+     "56": 0,
+     "57": 0,
+     "58": 0,
+     "59": 0,
+     "60": 0,
+     "61": 0,
+     "62": 0,
+     "63": 0,
+     "64": 0,
+     "65": 0,
+     "66": 0,
+     "67": 0,
+     "68": 0,
+     "69": 0,
+     "70": 0,
+     "71": 0,
+     "72": 0,
+     "73": 0,
+     "74": 0,
+     "75": 0,
+     "76": 0,
+     "77": 0,
+     "78": 0,
+     "79": 0,
+     "80": 0,
+     "81": 0,
+     "82": 0,
+     "83": 0,
+     "84": 0,
+     "85": 0,
+     "86": 0,
+     "87": 0,
+     "88": 0,
+     "89": 0,
+     "90": 0,
+     "91": 0,
+     "92": 0,
+     "93": 0,
+     "94": 0,
+     "95": 0
+    },
+    "api_id": 22,
+    "api_kcnt": 3,
+    "api_name": "補給艦",
+    "api_scnt": 2,
+    "api_sortno": 22
+   }
+  },
+  "$equipTypes": {
+   "1": {
+    "api_id": 1,
+    "api_name": "小口径主砲",
+    "api_show_flg": 1
+   },
+   "2": {
+    "api_id": 2,
+    "api_name": "中口径主砲",
+    "api_show_flg": 1
+   },
+   "3": {
+    "api_id": 3,
+    "api_name": "大口径主砲",
+    "api_show_flg": 1
+   },
+   "4": {
+    "api_id": 4,
+    "api_name": "副砲",
+    "api_show_flg": 1
+   },
+   "5": {
+    "api_id": 5,
+    "api_name": "魚雷",
+    "api_show_flg": 1
+   },
+   "6": {
+    "api_id": 6,
+    "api_name": "艦上戦闘機",
+    "api_show_flg": 1
+   },
+   "7": {
+    "api_id": 7,
+    "api_name": "艦上爆撃機",
+    "api_show_flg": 1
+   },
+   "8": {
+    "api_id": 8,
+    "api_name": "艦上攻撃機",
+    "api_show_flg": 1
+   },
+   "9": {
+    "api_id": 9,
+    "api_name": "艦上偵察機",
+    "api_show_flg": 1
+   },
+   "10": {
+    "api_id": 10,
+    "api_name": "水上偵察機",
+    "api_show_flg": 1
+   },
+   "11": {
+    "api_id": 11,
+    "api_name": "水上爆撃機",
+    "api_show_flg": 1
+   },
+   "12": {
+    "api_id": 12,
+    "api_name": "小型電探",
+    "api_show_flg": 1
+   },
+   "13": {
+    "api_id": 13,
+    "api_name": "大型電探",
+    "api_show_flg": 1
+   },
+   "14": {
+    "api_id": 14,
+    "api_name": "ソナー",
+    "api_show_flg": 1
+   },
+   "15": {
+    "api_id": 15,
+    "api_name": "爆雷",
+    "api_show_flg": 1
+   },
+   "18": {
+    "api_id": 18,
+    "api_name": "対空強化弾",
+    "api_show_flg": 1
+   },
+   "19": {
+    "api_id": 19,
+    "api_name": "対艦強化弾",
+    "api_show_flg": 1
+   },
+   "21": {
+    "api_id": 21,
+    "api_name": "対空機銃",
+    "api_show_flg": 1
+   },
+   "22": {
+    "api_id": 22,
+    "api_name": "特殊潜航艇",
+    "api_show_flg": 1
+   },
+   "23": {
+    "api_id": 23,
+    "api_name": "応急修理要員",
+    "api_show_flg": 1
+   },
+   "24": {
+    "api_id": 24,
+    "api_name": "上陸用舟艇",
+    "api_show_flg": 1
+   },
+   "29": {
+    "api_id": 29,
+    "api_name": "探照灯",
+    "api_show_flg": 0
+   },
+   "30": {
+    "api_id": 30,
+    "api_name": "簡易輸送部材",
+    "api_show_flg": 1
+   },
+   "33": {
+    "api_id": 33,
+    "api_name": "照明弾",
+    "api_show_flg": 0
+   },
+   "45": {
+    "api_id": 45,
+    "api_name": "水上戦闘機",
+    "api_show_flg": 0
+   },
+   "48": {
+    "api_id": 48,
+    "api_name": "局地戦闘機",
+    "api_show_flg": 0
+   }
+  },
+  "$mapareas": {
+   "1": {
+    "api_id": 1,
+    "api_name": "鎮守府海域",
+    "api_type": 0
+   },
+   "2": {
+    "api_id": 2,
+    "api_name": "南西諸島海域",
+    "api_type": 0
+   },
+   "3": {
+    "api_id": 3,
+    "api_name": "北方海域",
+    "api_type": 0
+   },
+   "4": {
+    "api_id": 4,
+    "api_name": "西方海域",
+    "api_type": 0
+   },
+   "5": {
+    "api_id": 5,
+    "api_name": "南方海域",
+    "api_type": 0
+   },
+   "6": {
+    "api_id": 6,
+    "api_name": "中部海域",
+    "api_type": 0
+   },
+   "7": {
+    "api_id": 7,
+    "api_name": "南西海域",
+    "api_type": 0
+   }
+  },
+  "$maps": {
+   "11": {
+    "api_id": 11,
+    "api_infotext": "鎮守府正面近海の<br>警備に出動せよ！",
+    "api_item": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_level": 1,
+    "api_maparea_id": 1,
+    "api_max_maphp": null,
+    "api_name": "鎮守府正面海域",
+    "api_no": 1,
+    "api_opetext": "近海警備",
+    "api_required_defeat_count": null,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "12": {
+    "api_id": 12,
+    "api_infotext": "南西諸島沖に接近する<br>敵前衛艦隊を捕捉、迎撃せよ！",
+    "api_item": [
+     32,
+     0,
+     0,
+     0
+    ],
+    "api_level": 1,
+    "api_maparea_id": 1,
+    "api_max_maphp": null,
+    "api_name": "南西諸島沖",
+    "api_no": 2,
+    "api_opetext": "南西諸島沖警備",
+    "api_required_defeat_count": null,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "13": {
+    "api_id": 13,
+    "api_infotext": "製油所地帯沿岸部の<br>海上輸送ラインを防衛せよ！",
+    "api_item": [
+     31,
+     0,
+     0,
+     0
+    ],
+    "api_level": 2,
+    "api_maparea_id": 1,
+    "api_max_maphp": null,
+    "api_name": "製油所地帯沿岸",
+    "api_no": 3,
+    "api_opetext": "海上護衛作戦",
+    "api_required_defeat_count": null,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "14": {
+    "api_id": 14,
+    "api_infotext": "南西諸島の防衛ライン上の<br>敵侵攻艦隊を捕捉、<br>全力出撃でこれを撃滅せよ！",
+    "api_item": [
+     33,
+     34,
+     32,
+     0
+    ],
+    "api_level": 3,
+    "api_maparea_id": 1,
+    "api_max_maphp": null,
+    "api_name": "南西諸島防衛線",
+    "api_no": 4,
+    "api_opetext": "南1号作戦",
+    "api_required_defeat_count": null,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "15": {
+    "api_id": 15,
+    "api_infotext": "なるべく小編成の対潜哨戒部隊を<br>編成し、鎮守府近海に出没する敵<br>潜水艦を捜索。これを捕捉制圧、<br>近海の安全な航行を実現せよ！",
+    "api_item": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "api_level": 5,
+    "api_maparea_id": 1,
+    "api_max_maphp": null,
+    "api_name": "鎮守府近海",
+    "api_no": 5,
+    "api_opetext": "鎮守府近海対潜哨戒",
+    "api_required_defeat_count": 4,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "16": {
+    "api_id": 16,
+    "api_infotext": "対潜及び防空能力に優れた艦艇<br>を基幹戦力とした艦隊を編成、<br>輸送船団航路の護衛にあたれ！",
+    "api_item": [
+     31,
+     32,
+     33,
+     34
+    ],
+    "api_level": 5,
+    "api_maparea_id": 1,
+    "api_max_maphp": null,
+    "api_name": "鎮守府近海航路",
+    "api_no": 6,
+    "api_opetext": "輸送船団護衛作戦",
+    "api_required_defeat_count": 7,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "21": {
+    "api_id": 21,
+    "api_infotext": "艦隊を南西諸島方面に展開！<br>同海域の哨戒を実施、同水域に<br>侵入した敵を排除、南西航路の<br>安全を確保せよ！",
+    "api_item": [
+     33,
+     2,
+     0,
+     0
+    ],
+    "api_level": 3,
+    "api_maparea_id": 2,
+    "api_max_maphp": null,
+    "api_name": "南西諸島近海",
+    "api_no": 1,
+    "api_opetext": "南西諸島哨戒",
+    "api_required_defeat_count": null,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "22": {
+    "api_id": 22,
+    "api_infotext": "艦隊をバシー海峡に展開せよ！<br>同方面の制海権を確保し、南方<br>からの資源輸送の安全に務め、<br>防衛体制を強化せよ！",
+    "api_item": [
+     34,
+     2,
+     0,
+     0
+    ],
+    "api_level": 4,
+    "api_maparea_id": 2,
+    "api_max_maphp": null,
+    "api_name": "バシー海峡",
+    "api_no": 2,
+    "api_opetext": "柳作戦",
+    "api_required_defeat_count": null,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "23": {
+    "api_id": 23,
+    "api_infotext": "オリョール海に進出、同海域を<br>哨戒。敵通商破壊艦隊を排除、<br>我が方り海上輸送ラインの防衛<br>に努めよ！",
+    "api_item": [
+     31,
+     32,
+     0,
+     0
+    ],
+    "api_level": 5,
+    "api_maparea_id": 2,
+    "api_max_maphp": null,
+    "api_name": "東部オリョール海",
+    "api_no": 3,
+    "api_opetext": "オリョール哨戒",
+    "api_required_defeat_count": null,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "24": {
+    "api_id": 24,
+    "api_infotext": "沖ノ島海域に襲来した有力な敵<br>機動部隊を迎撃する。艦隊全力<br>出撃で、これを捕捉撃滅せよ！",
+    "api_item": [
+     32,
+     31,
+     1,
+     3
+    ],
+    "api_level": 6,
+    "api_maparea_id": 2,
+    "api_max_maphp": null,
+    "api_name": "沖ノ島海域",
+    "api_no": 4,
+    "api_opetext": "あ号艦隊決戦",
+    "api_required_defeat_count": null,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "25": {
+    "api_id": 25,
+    "api_infotext": "同方面に敵艦隊接近の兆候が報告<br>された。巡洋艦を中心とした哨戒<br>部隊を編成、敵艦隊の動向を探れ",
+    "api_item": [
+     31,
+     33,
+     0,
+     0
+    ],
+    "api_level": 8,
+    "api_maparea_id": 2,
+    "api_max_maphp": null,
+    "api_name": "沖ノ島沖",
+    "api_no": 5,
+    "api_opetext": "沖ノ島沖戦闘哨戒",
+    "api_required_defeat_count": 4,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "31": {
+    "api_id": 31,
+    "api_infotext": "北方海域に艦隊を進出させ、<br>モーレイ海を哨戒せよ！",
+    "api_item": [
+     32,
+     0,
+     0,
+     0
+    ],
+    "api_level": 4,
+    "api_maparea_id": 3,
+    "api_max_maphp": null,
+    "api_name": "モーレイ海",
+    "api_no": 1,
+    "api_opetext": "モーレイ海哨戒",
+    "api_required_defeat_count": null,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "32": {
+    "api_id": 32,
+    "api_infotext": "駆逐艦を主力とした高速艦隊で、<br>敵に包囲された北方海域キス島に<br>突入！守備隊を無事収容せよ！",
+    "api_item": [
+     32,
+     10,
+     0,
+     0
+    ],
+    "api_level": 5,
+    "api_maparea_id": 3,
+    "api_max_maphp": null,
+    "api_name": "キス島沖",
+    "api_no": 2,
+    "api_opetext": "キス島撤退作戦",
+    "api_required_defeat_count": null,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "33": {
+    "api_id": 33,
+    "api_infotext": "空母2隻以上を擁する空母機動<br>部隊などの有力な艦隊をもって<br>北方海域に進出。同戦力により<br>敵情の強行偵察を敢行せよ！",
+    "api_item": [
+     11,
+     12,
+     0,
+     0
+    ],
+    "api_level": 7,
+    "api_maparea_id": 3,
+    "api_max_maphp": null,
+    "api_name": "アルフォンシーノ方面",
+    "api_no": 3,
+    "api_opetext": "アルフォンシーノ方面進出",
+    "api_required_defeat_count": null,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "34": {
+    "api_id": 34,
+    "api_infotext": "北方海域奥地に敵艦隊の大規模<br>泊地を発見！我が艦隊の総力を<br>挙げてこれを撃滅せよ！",
+    "api_item": [
+     34,
+     11,
+     12,
+     0
+    ],
+    "api_level": 9,
+    "api_maparea_id": 3,
+    "api_max_maphp": null,
+    "api_name": "北方海域全域",
+    "api_no": 4,
+    "api_opetext": "北方海域艦隊決戦",
+    "api_required_defeat_count": null,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   },
+   "35": {
+    "api_id": 35,
+    "api_infotext": "北方海域に敵増援の動きがある。<br>中規模の水上打撃部隊を派遣し、<br>敵増援を捕捉、これを撃滅せよ！",
+    "api_item": [
+     32,
+     0,
+     0,
+     0
+    ],
+    "api_level": 9,
+    "api_maparea_id": 3,
+    "api_max_maphp": null,
+    "api_name": "北方AL海域",
+    "api_no": 5,
+    "api_opetext": "北方海域戦闘哨戒",
+    "api_required_defeat_count": 4,
+    "api_sally_flag": [
+     1,
+     0,
+     0
+    ]
+   }
+  }
+ }
+}

@@ -1,0 +1,66 @@
+/* poi 本体に漏れないよう、postcss-kcsim-scope.mjs が全ルールを `.kcsim` 配下に閉じ込める。 */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@source "../src";
+
+@theme {
+  --color-*: initial;
+  --color-white: #fff;
+  --color-black: #000;
+  --color-transparent: transparent;
+
+  /* Blueprint dark に合わせたスレート系 */
+  --color-ink-950: #111418;
+  --color-ink-900: #1c2127;
+  --color-ink-800: #252a31;
+  --color-ink-700: #2f343c;
+  --color-ink-600: #383e47;
+  --color-ink-500: #404854;
+  --color-ink-400: #738091;
+  --color-ink-300: #8f99a8;
+  --color-ink-200: #abb3bf;
+  --color-ink-100: #d3d8de;
+  --color-ink-50: #f6f7f9;
+
+  --color-accent-700: #215db0;
+  --color-accent-600: #2d72d2;
+  --color-accent-500: #4c90f0;
+  --color-accent-400: #8abbff;
+
+  --color-ok-600: #238551;
+  --color-ok-400: #72ca9b;
+  --color-warn-600: #c87619;
+  --color-warn-400: #fbb360;
+  --color-danger-600: #cd4246;
+  --color-danger-500: #e76a6e;
+  --color-danger-400: #fa999c;
+
+  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Noto Sans JP",
+    "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.kcsim {
+  background: var(--color-ink-900);
+  color: var(--color-ink-100);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color-scheme: dark;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.kcsim ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.kcsim ::-webkit-scrollbar-thumb {
+  background: var(--color-ink-500);
+  border-radius: 6px;
+  border: 2px solid var(--color-ink-800);
+}
+.kcsim ::-webkit-scrollbar-track {
+  background: transparent;
+}
