@@ -1,24 +1,12 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import type { SortieSummary } from "@sim-core";
 import { geometricSorties } from "../../sim/runner";
 import { compSourceLabel } from "../../sim/sortieAdapter";
-import { Badge, Card, ProgressBar, Stat, Table, Td, Th, Thead, Tr } from "../../ui";
+import { Badge, Tabs } from "../../ui";
 import { MapGraph } from "../map/MapGraph";
-import type { MapData } from "../../data/mapData";
-import type { EnemyCompSet } from "@shared/data/types";
-import { NumTd, RANKS, RANK_COLOR, RankLegend, StackedBar, pct } from "./bars";
-
-export interface SortieRunMeta {
-  data: MapData;
-  summary: SortieSummary;
-  friendNames: string[];
-  warnings: string[];
-  uncertain: Set<string>;
-  /** ノード → 使った編成セット (出典バッジ用) */
-  compSets: Record<string, EnemyCompSet>;
-  ms: number;
-  seed: number;
-}
+import { Assumptions } from "./Assumptions";
+import { DTable, DTr, Kpi, Mini, Num, RankLegend, StackedBar, Td, Th, pct, rankBar } from "./bars";
+import type { SortieOutcome } from "./requests";
 
 const num = (v: number | null | undefined, d = 1) => (v === null || v === undefined ? "—" : v.toFixed(d));
 
@@ -34,8 +22,37 @@ export const edgeRatesFromPaths = (paths: { path: string[]; rate: number }[]): M
   return m;
 };
 
-export const SortieResults = ({ run }: { run: SortieRunMeta }) => {
-  const { summary: s, data } = run;
+/** 出撃あたりの主要率。大破撤退はノードごとの大破撤退率の和 (1 出撃で撤退は 1 回)。 */
+const sortieRates = (s: SortieSummary) => {
+  const nodes = Object.values(s.nodes);
+  return {
+    clear: s.boss.killRate,
+    reach: s.boss.reachRate,
+    sWin: s.boss.reachRate * (s.boss.rankRates.SS + s.boss.rankRates.S),
+    heavy: nodes.reduce((t, n) => t + n.retreatHeavyRate, 0),
+    moderate: nodes.reduce((t, n) => t + n.retreatModerateRate, 0),
+  };
+};
+
+/** 結果がまだ無いときの主要指標の枠 */
+export const SortieKpis = ({ s }: { s?: SortieSummary }) => {
+  const r = s && sortieRates(s);
+  const v = (x: number | undefined) => (x === undefined ? "—" : pct(x));
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      <Kpi label="突破" value={v(r?.clear)} title="ボスで A 勝利以上 (出撃あたり)" />
+      <Kpi label="ボス到達" value={v(r?.reach)} />
+      <Kpi label="S勝利" value={v(r?.sWin)} title="ボスで S 勝利以上 (出撃あたり)" />
+      <Kpi label="大破撤退" value={v(r?.heavy)} sub={r && r.moderate > 0.0005 ? `中破 ${pct(r.moderate)}` : undefined} />
+    </div>
+  );
+};
+
+type Detail = "nodes" | "graph" | "ships" | "notes";
+
+export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.ReactNode }) => {
+  const { summary: s, data } = out;
+  const [detail, setDetail] = useState<Detail>("nodes");
   const bossNode = data.detail.nodes.find((n) => n.isBoss)?.letter;
   const edgeRates = useMemo(() => edgeRatesFromPaths(s.paths), [s]);
   const badges = useMemo(() => {
@@ -46,222 +63,170 @@ export const SortieResults = ({ run }: { run: SortieRunMeta }) => {
 
   const clear = s.gauge ?? null;
   const geo = geometricSorties(s.boss.killRate);
-  const sorties = clear ? { mean: clear.expectedSorties, p50: clear.p50Sorties, p90: clear.p90Sorties } : geo ? { mean: geo.mean, p50: geo.p50, p90: geo.p90 } : null;
+  const sorties = clear ? { mean: clear.expectedSorties, p50: clear.p50Sorties, p90: clear.p90Sorties } : geo;
 
   // 経路が不確実なルールを持つノードを通る割合 (そのルールが実際に発火したかまでは分からない)
-  const uncertainShare = useMemo(() => {
+  const uncertain = useMemo(() => {
     const through = new Map<string, number>();
-    for (const p of s.paths) for (const l of new Set(p.path.slice(0, -1))) if (run.uncertain.has(l)) through.set(l, (through.get(l) ?? 0) + p.rate);
+    for (const p of s.paths) for (const l of new Set(p.path.slice(0, -1))) if (out.uncertain.has(l)) through.set(l, (through.get(l) ?? 0) + p.rate);
     return [...through.entries()].sort((a, b) => b[1] - a[1]);
-  }, [s, run.uncertain]);
+  }, [s, out.uncertain]);
 
   const nodeRows = Object.entries(s.nodes)
     .filter(([, n]) => n.reachRate > 0)
     .sort((a, b) => b[1].reachRate - a[1].reachRate);
-
-  const warnings = [...new Set([...s.warnings, ...run.warnings])];
+  const notes = out.assumptions.warnings.length;
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card
-        title="出撃結果"
-        actions={
-          <span
-            className="text-xs text-ink-400 tabular-nums"
-            title={`seed ${run.seed} / ${(run.ms / 1000).toFixed(2)} 秒 / データ: ${data.source === "api" ? "API" : "静的バンドル"}${data.stale ? " (キャッシュ)" : ""}`}
-          >
-            {s.count.toLocaleString()} 出撃
-          </span>
-        }
-        bodyClassName="flex flex-col gap-2"
-      >
-        <div className="grid grid-cols-2 gap-2">
-          <Stat size="lg" label="ボス到達率" value={pct(s.boss.reachRate)} sub={bossNode ? `ノード ${bossNode}` : undefined} />
-          <Stat size="lg" label="ボスA勝利以上" value={pct(s.boss.killRate)} title="出撃あたり。ボス撃破の目安" />
-        </div>
-        <div className="grid grid-cols-3 gap-2 lg:grid-cols-6">
-          <Stat label="ボス旗艦撃沈" value={pct(s.boss.flagshipSunkRate)} title="出撃あたり (A勝利以上とは別集計)" />
-          <Stat label="撤退率" value={pct(s.retreatRate)} />
-          <Stat label="味方に撃沈あり" value={pct(s.sunkRate)} />
-          <Stat label="平均戦闘数" value={num(s.battlesMean, 2)} sub={`平均 ${num(s.nodesMean, 2)} ノード`} />
-          <Stat label="燃料/出撃" value={num(s.fuelUsedMean, 1)} title="艦隊合計の平均" />
-          <Stat label="弾薬/出撃" value={num(s.ammoUsedMean, 1)} title="艦隊合計の平均" />
-        </div>
-      </Card>
-
-      {uncertainShare.length > 0 && (
-        <div className="rounded-md border border-warn-600/50 bg-warn-600/10 px-3 py-2 text-sm text-warn-400">
-          <b>ルーティング不確実:</b> {uncertainShare.map(([l, r]) => `${l} (${pct(r)})`).join(", ")} を通る出撃は未確定の分岐ルールに依存します。
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <Card title="経路と到達率" bodyClassName="flex flex-col gap-2">
-          <MapGraph
-            nodes={data.detail.nodes}
-            edges={data.detail.edges}
-            selected={null}
-            onSelect={() => {}}
-            targets={new Set()}
-            withComps={new Set()}
-            edgeRates={edgeRates}
-            nodeBadges={badges}
+    <>
+      <SortieKpis s={s} />
+      <div className="flex flex-col gap-1">
+        <StackedBar parts={rankBar(s.boss.rankRates)} height="h-3" />
+        <RankLegend rates={s.boss.rankRates} />
+      </div>
+      <div className="grid grid-cols-4 gap-x-2 gap-y-1">
+        <Mini label="ボス旗艦撃沈" value={pct(s.boss.flagshipSunkRate)} title={`平均旗艦ダメージ ${num(s.boss.flagshipDamageMean)}`} />
+        <Mini label="味方撃沈" value={pct(s.sunkRate)} alert={s.sunkRate > 0.005} />
+        <Mini label="戦闘数" value={num(s.battlesMean, 2)} title={`平均 ${num(s.nodesMean, 2)} ノード`} />
+        <Mini label="燃料/弾薬" value={`${num(s.fuelUsedMean, 0)}/${num(s.ammoUsedMean, 0)}`} title="艦隊合計の平均 (出撃あたり)" />
+        <Mini
+          label={clear ? `周回 (${clear.kind === "hp" ? "HP" : "撃破"}ゲージ)` : "周回 (目安)"}
+          value={num(sorties?.mean, 1)}
+          title={clear ? `${clear.runs} 回試行` : "1 / 突破率"}
+        />
+        <Mini label="中央値" value={sorties ? String(sorties.p50) : "—"} />
+        <Mini label="90%点" value={sorties ? String(sorties.p90) : "—"} />
+        {uncertain.length > 0 ? (
+          <Mini
+            label="不確実ルート"
+            value={pct(uncertain.reduce((t, [, r]) => Math.max(t, r), 0))}
+            title={uncertain.map(([l, r]) => `${l} ${pct(r)}`).join(", ")}
           />
-          <p
-            className="text-xs text-ink-400"
-            title={`上位 ${s.paths.length} 経路から集計${s.otherPathsRate > 0.0005 ? `、その他 ${pct(s.otherPathsRate)}` : ""}`}
-          >
-            線の太さ・% = 通過率、ノード下 = 到達率
-          </p>
-        </Card>
-
-        <div className="flex flex-col gap-4">
-          <Card title="ボス戦の勝敗" bodyClassName="flex flex-col gap-2">
-            <StackedBar parts={RANKS.map((k) => ({ label: k, value: s.boss.rankRates[k], color: RANK_COLOR[k] }))} height="h-6" />
-            <RankLegend rates={s.boss.rankRates} />
-            <p className="text-xs text-ink-400">ボス戦に到達した出撃の分布 · 平均旗艦ダメージ {num(s.boss.flagshipDamageMean, 1)}</p>
-          </Card>
-
-          <Card
-            title="クリアまでの出撃回数"
-            actions={
-              <Badge
-                tone={clear ? "accent" : "neutral"}
-                title={clear ? `${clear.runs} 回試行` : "ゲージ未指定のため、ボスA勝利以上の確率 p から 1/p などで見積もった目安"}
-              >
-                {clear ? `${clear.kind === "hp" ? "HP" : "撃破数"}ゲージ` : "簡易見積り"}
-              </Badge>
-            }
-            bodyClassName="grid grid-cols-3 gap-2"
-          >
-            <Stat label="平均" value={num(sorties?.mean, 1)} />
-            <Stat label="中央値" value={sorties?.p50 ?? "—"} />
-            <Stat label="90%点" value={sorties?.p90 ?? "—"} />
-            {clear && clear.cappedRate > 0 && <div className="col-span-3 text-xs text-warn-400">上限回数に達した試行 {pct(clear.cappedRate)}</div>}
-          </Card>
-        </div>
+        ) : clear && clear.cappedRate > 0 ? (
+          <Mini label="上限到達" value={pct(clear.cappedRate)} alert />
+        ) : null}
       </div>
 
-      <Card title="ノード別" bodyClassName="p-0">
-        <Table className="rounded-none border-0">
-          <Thead>
-            <tr>
-              <Th>ノード</Th>
-              <Th className="text-right">到達率</Th>
-              <Th className="text-right">戦闘率</Th>
-              <Th className="w-56">勝敗</Th>
-              <Th className="text-right">夜戦率</Th>
-              <Th className="text-right">大破撤退</Th>
-              <Th className="text-right">中破撤退</Th>
-              <Th className="text-right">撤退計</Th>
-            </tr>
-          </Thead>
-          <tbody>
-            {nodeRows.map(([l, n]) => (
-              <Tr key={l}>
-                <Td className="font-medium">
-                  {l}
-                  {l === bossNode && <Badge tone="danger" className="ml-1.5">ボス</Badge>}
-                  {run.uncertain.has(l) && <Badge tone="warn" className="ml-1.5" title="不確実なルーティングルールあり">不確実</Badge>}
-                  {run.compSets[l] && (
-                    <Badge tone={run.compSets[l].source === "poi-observed" ? "ok" : "neutral"} className="ml-1.5" title="敵編成データの出典">
-                      {compSourceLabel(run.compSets[l])}
-                    </Badge>
-                  )}
-                </Td>
-                <NumTd main>{pct(n.reachRate)}</NumTd>
-                <NumTd>{pct(n.battleRate)}</NumTd>
-                <Td>{n.battleRate > 0 ? <StackedBar parts={RANKS.map((k) => ({ label: k, value: n.rankRates[k], color: RANK_COLOR[k] }))} height="h-3.5" /> : <span className="text-ink-500">—</span>}</Td>
-                {n.battleRate > 0 ? <NumTd>{pct(n.nightRate)}</NumTd> : <Td className="text-right text-ink-500">—</Td>}
-                <NumTd alert={n.retreatHeavyRate > 0.01}>{pct(n.retreatHeavyRate)}</NumTd>
-                <NumTd>{pct(n.retreatModerateRate)}</NumTd>
-                <NumTd>{pct(n.retreatRate)}</NumTd>
-              </Tr>
-            ))}
-          </tbody>
-        </Table>
-      </Card>
+      <div className="flex items-center justify-between gap-2">
+        <Tabs
+          variant="pill"
+          size="sm"
+          value={detail}
+          onChange={setDetail}
+          tabs={[
+            { id: "nodes", label: "ノード" },
+            { id: "graph", label: "経路" },
+            { id: "ships", label: "損耗" },
+            { id: "notes", label: notes ? `前提 ${notes}` : "前提" },
+          ]}
+        />
+        {meta}
+      </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 2xl:grid-cols-2">
-        <Card title="主な経路" bodyClassName="p-0">
-          <Table className="max-h-96 rounded-none border-0">
-            <Thead>
-              <tr>
-                <Th>経路</Th>
-                <Th className="w-40 text-right">割合</Th>
-              </tr>
-            </Thead>
-            <tbody>
+      <div className="-mx-1 min-h-0 flex-1 overflow-auto px-1">
+        {detail === "nodes" && (
+          <DTable
+            head={
+              <>
+                <Th className="text-left">ノード</Th>
+                <Th>到達</Th>
+                <Th className="w-[38%] text-left">勝敗</Th>
+                <Th>夜戦</Th>
+                <Th>大破撤退</Th>
+              </>
+            }
+          >
+            {nodeRows.map(([l, n]) => (
+              <DTr key={l}>
+                <Td
+                  className="font-medium whitespace-nowrap"
+                  title={out.compSets[l] ? `敵編成: ${compSourceLabel(out.compSets[l])}` : undefined}
+                >
+                  {l}
+                  {l === bossNode && <Badge tone="danger" className="ml-1">ボス</Badge>}
+                  {out.uncertain.has(l) && <Badge tone="warn" className="ml-1" title="不確実なルーティングルール">?</Badge>}
+                </Td>
+                <Num main>{pct(n.reachRate)}</Num>
+                <Td>{n.battleRate > 0 ? <StackedBar parts={rankBar(n.rankRates)} height="h-2.5" /> : <span className="text-ink-500">—</span>}</Td>
+                <Num>{n.battleRate > 0 ? pct(n.nightRate) : "—"}</Num>
+                <Num alert={n.retreatHeavyRate > 0.01}>{pct(n.retreatHeavyRate)}</Num>
+              </DTr>
+            ))}
+          </DTable>
+        )}
+
+        {detail === "graph" && (
+          <div className="flex flex-col gap-2">
+            <MapGraph
+              nodes={data.detail.nodes}
+              edges={data.detail.edges}
+              selected={null}
+              onSelect={() => {}}
+              targets={new Set()}
+              withComps={new Set()}
+              edgeRates={edgeRates}
+              nodeBadges={badges}
+            />
+            <DTable
+              head={
+                <>
+                  <Th className="text-left">経路</Th>
+                  <Th>割合</Th>
+                </>
+              }
+            >
               {s.paths.slice(0, 20).map((p, i) => (
-                <Tr key={i}>
-                  <Td className="font-mono">{p.path.join(" → ")}</Td>
-                  <Td>
-                    <div className="flex items-center gap-2">
-                      <ProgressBar value={p.rate} max={1} tone="accent" className="flex-1" />
-                      <span className="w-16 text-right tabular-nums text-ink-50">{pct(p.rate, 2)}</span>
-                    </div>
-                  </Td>
-                </Tr>
+                <DTr key={i}>
+                  <Td className="font-mono">{p.path.join("→")}</Td>
+                  <Num main>{pct(p.rate, 2)}</Num>
+                </DTr>
               ))}
               {s.otherPathsRate > 0.0005 && (
-                <Tr>
+                <DTr>
                   <Td className="text-ink-400">その他</Td>
-                  <Td className="text-right tabular-nums text-ink-400">{pct(s.otherPathsRate, 2)}</Td>
-                </Tr>
+                  <Num>{pct(s.otherPathsRate, 2)}</Num>
+                </DTr>
               )}
-            </tbody>
-          </Table>
-        </Card>
+            </DTable>
+          </div>
+        )}
 
-        <Card title="1出撃あたりの損耗" bodyClassName="p-0">
-          <Table className="rounded-none border-0">
-            <Thead>
-              <tr>
-                <Th>艦</Th>
-                <Th className="text-right">大破</Th>
-                <Th className="text-right">中破</Th>
-                <Th className="text-right">撃沈</Th>
-                <Th className="text-right">受ダメ</Th>
-                <Th className="text-right">要修理HP</Th>
-                <Th className="text-right">燃料</Th>
-                <Th className="text-right">弾薬</Th>
-                <Th className="text-right">ダメコン</Th>
-              </tr>
-            </Thead>
-            <tbody>
-              {s.friend.map((f, i) => (
-                <Tr key={i}>
-                  <Td>
-                    <span className="mr-1.5 text-xs text-ink-400">{i + 1}</span>
-                    {run.friendNames[i]}
-                  </Td>
-                  <NumTd main>{pct(f.heavyRate)}</NumTd>
-                  <NumTd>{pct(f.moderateRate)}</NumTd>
-                  <NumTd alert={f.sunkRate > 0.005}>{pct(f.sunkRate)}</NumTd>
-                  <NumTd>{f.damageTakenMean.toFixed(1)}</NumTd>
-                  <NumTd>{f.hpMissingMean.toFixed(1)}</NumTd>
-                  <NumTd>{f.fuelUsedMean.toFixed(1)}</NumTd>
-                  <NumTd>{f.ammoUsedMean.toFixed(1)}</NumTd>
-                  <NumTd>{pct(f.damecon.usedRate)}</NumTd>
-                </Tr>
-              ))}
-            </tbody>
-          </Table>
-        </Card>
+        {detail === "ships" && (
+          <DTable
+            head={
+              <>
+                <Th className="text-left">艦</Th>
+                <Th>大破</Th>
+                <Th>中破</Th>
+                <Th>撃沈</Th>
+                <Th>受ダメ</Th>
+                <Th>修理HP</Th>
+                <Th>燃料</Th>
+                <Th>弾薬</Th>
+                <Th>ダメコン</Th>
+              </>
+            }
+          >
+            {s.friend.map((f, i) => (
+              <DTr key={i}>
+                <Td className="max-w-24 truncate" title={out.friendNames[i]}>
+                  {out.friendNames[i]}
+                </Td>
+                <Num main>{pct(f.heavyRate)}</Num>
+                <Num>{pct(f.moderateRate)}</Num>
+                <Num alert={f.sunkRate > 0.005}>{pct(f.sunkRate)}</Num>
+                <Num>{f.damageTakenMean.toFixed(1)}</Num>
+                <Num>{f.hpMissingMean.toFixed(1)}</Num>
+                <Num>{f.fuelUsedMean.toFixed(1)}</Num>
+                <Num>{f.ammoUsedMean.toFixed(1)}</Num>
+                <Num>{pct(f.damecon.usedRate)}</Num>
+              </DTr>
+            ))}
+          </DTable>
+        )}
+
+        {detail === "notes" && <Assumptions data={out.assumptions} />}
       </div>
-
-      <details className="rounded-lg border border-ink-600 px-4 py-3">
-        <summary className="cursor-pointer text-sm font-medium text-ink-300">
-          前提・警告{warnings.length > 0 && <span className="ml-1.5 text-warn-400">{warnings.length}</span>}
-        </summary>
-        <ul className="mt-2 list-inside list-disc text-sm text-ink-200">
-          {warnings.map((w, i) => (
-            <li key={i}>{w}</li>
-          ))}
-          <li>通常艦隊のみ。連合艦隊・基地航空隊・支援・資源/渦潮などのノード効果は未対応。</li>
-          <li>敵の隠しステータスは推定値を使用 (出典はノード戦闘の結果下部に表示)。</li>
-        </ul>
-      </details>
-    </div>
+    </>
   );
 };

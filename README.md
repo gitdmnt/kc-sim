@@ -15,10 +15,11 @@ UI は Web アプリ (データ API と同じ Cloudflare Worker が配る) で�
 | **1. 戦闘・出撃エンジン** | 砲撃・雷撃・対潜・航空戦・夜戦・命中/回避/クリティカル/装甲・陣形・交戦形態・轟沈ストッパー、ルーティング評価、撤退ポリシー、ゲージ。Rust → wasm、シード指定で完全再現可能 | `sim-core/` |
 | **2. データ基盤** | マスターデータ、深海棲艦の表示/隠しステータス (出典付き)、海域グラフ、ルーティング規則 (自作 DSL)、敵編成と出現率 (KCNav)、装備ボーナス。ローカル完結の HTTP API と静的バンドル | `server/` |
 | **3. 観測と推定** | poi の通信から戦闘を自動記録 (IndexedDB) してサーバに送信。サーバが敵の回避・命中・運をベイズ推定し、シミュレーションに反映 | `poi-plugin-sim/src/capture`, `shared/estimate`, `server/src/estimator` |
-| **4. UI** | Web UI: 艦隊編成 / 海域 / 敵艦データ / シミュレーション (戦闘・出撃) / パラメータ推定 / 設定。poi プラグイン: Web UI の埋め込み + 観測ログ / 送信設定。Web Worker で計算 | `web/`, `poi-plugin-sim/` |
+| **4. UI** | Web UI: 出撃 (海域選択・艦隊編成・結果を 1 画面に置き、編成を変えるたびに自動で再計算。出撃 / 単一マス戦闘) / 海域 / 敵艦 / 推定 / 設定。poi プラグイン: Web UI の埋め込み + 観測ログ / 送信設定。Web Worker で計算 | `web/`, `poi-plugin-sim/` |
 
 スクリーンショットは [`docs/screenshots/`](docs/screenshots/) にあります (`13-poi-plugin-window`・`14-poi-plugin-sim`・`16-poi-sortie` は
-実機の poi で撮ったもので、UI を Web に移す前の旧プラグイン UI です。埋め込みの見え方は開発用ページで撮った `19-plugin-embedded`)。
+実機の poi で撮ったもので、UI を Web に移す前の旧プラグイン UI です。埋め込みの見え方は開発用ページで撮った `19-plugin-embedded`。
+艦隊編成・シミュレーションの画像は出撃タブに統合する前のもので、`cd web && bun run screenshots` で撮り直せます)。
 
 ## アーキテクチャ
 
@@ -35,7 +36,7 @@ flowchart LR
     CAP --- LOG
   end
   subgraph browser["Web UI (web/、ブラウザまたは iframe)"]
-    UI["React UI<br/>(6 タブ)"]
+    UI["React UI<br/>(5 タブ)"]
     WK["Web Worker"]
     WASM["sim-core (wasm)"]
     PRE["艦隊プリセット<br/>(localStorage)"]
@@ -125,7 +126,7 @@ bun install
 bun run dev           # http://localhost:5173 (/api は 127.0.0.1:8787 に中継。変更は HMR で反映)
 ```
 
-poi なしのブラウザでは poi のデータが無いので、設定タブの「内蔵サンプルデータを使う」で同梱の艦・装備を使えます
+poi なしのブラウザでは poi のデータが無いので、出撃タブの「内蔵サンプルデータを使う」で同梱の艦・装備を使えます
 (開発サーバでは `web/myState.json` (poi の state のダンプ) か同梱サンプルを poi の代わりに読みます)。
 データ API と同じ Worker から配る形は `cd web && bun run build` → `cd server && bun run dev` → http://127.0.0.1:8787/ 。
 

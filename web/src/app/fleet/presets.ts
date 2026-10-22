@@ -53,8 +53,16 @@ export const newShipFor = (masterId: number, catalog: Catalog, base?: PresetShip
 export const defaultSlotSize = (catalog: Catalog, shipMasterId: number, slotIndex: number) =>
   catalog.master.ships[shipMasterId]?.api_maxeq?.[slotIndex];
 
+export interface PresetsApi {
+  presets: Preset[];
+  save: (p: Omit<Preset, "id"> & { id?: string }) => Preset;
+  remove: (id: string) => void;
+  /** store を直接書き換えたあと (取り込みなど) に一覧を読み直す */
+  refresh: () => void;
+}
+
 /** localStorage のプリセットを購読するフック。変更系は保存してから再読込する。 */
-export const usePresets = () => {
+export const usePresets = (): PresetsApi => {
   const [version, setVersion] = useState(0);
   const bump = useCallback(() => setVersion((v) => v + 1), []);
   const external = useSyncExternalStore(subscribeChanges, () => externalRevision);
@@ -63,7 +71,6 @@ export const usePresets = () => {
 
   return {
     presets,
-    store,
     save: useCallback(
       (p: Omit<Preset, "id"> & { id?: string }) => {
         const saved = store.save(p);

@@ -14,7 +14,7 @@ import type { MapData } from "../data/mapData";
 import type { EnemyCompSet, RoutingDoc, Rule, Predicate } from "@shared/data/types";
 import type { MasterData, Preset } from "@shared/fleet/types";
 import { buildEnemyShips, buildFriendShips, enemyFormationOf } from "@shared/sim/adapter";
-import type { BuildEnemyOptions, EnemyBuild, FriendBuild } from "@shared/sim/adapter";
+import type { BuildEnemyOptions, EnemyBuild, EnemyLookup, FriendBuild } from "@shared/sim/adapter";
 import type { FitEntry } from "@shared/sim/fit";
 
 /** 指定難易度の最新セットを選ぶ。無ければ最も高い難易度に代替 (fallback=true)。 */
@@ -30,16 +30,19 @@ export const pickSet = (sets: EnemyCompSet[], difficulty: number): { set: EnemyC
 export const compSourceLabel = (set: Pick<EnemyCompSet, "source" | "totalCount">): string =>
   set.source === "poi-observed" ? `観測 (n=${set.totalCount.toLocaleString()})` : set.source === "kcnav" ? "KCNav" : set.source;
 
+/** 海域データ (API・静的バンドル) から敵艦の情報を引く。 */
+export const mapLookup = (data: Pick<MapData, "ships" | "equips">): EnemyLookup => ({
+  ship: (id) => data.ships.get(id)?.ship,
+  equip: (id) => data.equips.get(id),
+  detail: (id) => data.ships.get(id),
+});
+
 export const toSimComps = (
   set: EnemyCompSet,
   data: Pick<MapData, "ships" | "equips">,
   opts: BuildEnemyOptions = {}
 ): { comps: SimComp[]; builds: EnemyBuild[] } => {
-  const lookup = {
-    ship: (id: number) => data.ships.get(id)?.ship,
-    equip: (id: number) => data.equips.get(id),
-    detail: (id: number) => data.ships.get(id),
-  };
+  const lookup = mapLookup(data);
   const builds = set.comps.map((c) => buildEnemyShips(c.main, lookup, opts));
   return {
     builds,

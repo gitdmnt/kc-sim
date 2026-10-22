@@ -17,3 +17,4 @@ export { EmptyState } from "./EmptyState";
 export { ToastProvider, useToast } from "./Toast";
 export { Modal, Drawer } from "./Modal";
 export { ConfirmDialog } from "./Confirm";
+export { Popover } from "./Popover";

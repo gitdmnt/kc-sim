@@ -1,12 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { STORAGE_PREFIX } from "../fleet";
 import { getDataApi } from "../data/api";
-import { Card, Checkbox, ConfirmDialog, Field, Button, S, useToast } from "../ui";
+import { Card, ConfirmDialog, Button, NumberInput, S, useToast } from "../ui";
 import { getPresetStore } from "./fleet/presets";
 import { resetSettings, updateSettings, useSettings } from "./settings";
-import { NumberInput } from "../ui/NumberInput";
 
 type Action = "presets" | "settings" | "cache";
+
+const Row = ({ label, title, children }: { label: React.ReactNode; title?: string; children: React.ReactNode }) => (
+  <div className="flex min-h-11 items-center justify-between gap-3 py-1.5" title={title}>
+    <span className="text-sm text-ink-100">{label}</span>
+    {children}
+  </div>
+);
+
+const Toggle = ({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) => (
+  <input type="checkbox" aria-label={label} className="h-4 w-4 cursor-pointer accent-accent-500" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+);
 
 export const SettingsTab = () => {
   const settings = useSettings();
@@ -47,7 +57,7 @@ export const SettingsTab = () => {
     settings: S.settings.resetSettings,
     cache: S.settings.clearCache,
   };
-  // 消すと戻せないもの (プリセット) だけ danger。行の主役は項目名と件数で、ボタンは小さく右に寄せる。
+  // 消すと戻せないもの (プリセット) だけ danger
   const DATA_ROWS: { action: Action; label: string; count?: number; button: string; danger: boolean }[] = [
     { action: "presets", label: S.settings.presets, count: presetCount, button: S.settings.deleteAll, danger: true },
     { action: "cache", label: S.settings.cache, button: S.settings.clear, danger: false },
@@ -55,54 +65,44 @@ export const SettingsTab = () => {
   ];
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <Card title="推定値" bodyClassName="flex flex-col gap-3">
-        <Checkbox
-          label="シミュレーションで推定値を使う"
-          hint="サーバが観測から求めた推定値 (観測 30 回以上) を使います。オフのときは使いません"
-          checked={settings.useEstimates}
-          onChange={(e) => updateSettings({ useEstimates: e.target.checked })}
-        />
-      </Card>
-
-      <Card title="敵編成の出典" bodyClassName="flex flex-col gap-3">
-        <Field label="観測を優先する遭遇数" hint="このノード・難易度の自分たちの観測 (poi) がこの数以上なら観測の集計、未満なら KCNav を使います">
-          <NumberInput className="w-28" value={settings.minObserved} min={1} max={100000} onChange={(minObserved) => updateSettings({ minObserved })} />
-        </Field>
-      </Card>
-
-      <Card title={S.settings.debug} bodyClassName="flex flex-col gap-3">
-        <Checkbox
-          label={S.settings.useSample}
-          hint={S.settings.useSampleHint}
-          checked={settings.useSampleState}
-          onChange={(e) => updateSettings({ useSampleState: e.target.checked })}
-        />
-      </Card>
-
-      <Card title={S.settings.data} bodyClassName="flex flex-col divide-y divide-ink-700">
-        {DATA_ROWS.map((r) => (
-          <div key={r.action} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
-            <span className="text-sm text-ink-100">
+    <Card className="mx-auto max-w-2xl" bodyClassName="flex flex-col divide-y divide-ink-700 py-1">
+      <Row label="サーバの推定値を使う" title="観測 30 回以上の推定値">
+        <Toggle label="サーバの推定値を使う" checked={settings.useEstimates} onChange={(useEstimates) => updateSettings({ useEstimates })} />
+      </Row>
+      <Row label="観測を優先する遭遇数" title="これ以上の観測があるノードは KCNav ではなく観測の敵編成を使う">
+        <NumberInput className="w-24" value={settings.minObserved} min={1} max={100000} onChange={(minObserved) => updateSettings({ minObserved })} />
+      </Row>
+      {/* 普段は出撃タブの空状態から入る。オンのときは戻せるよう常に出す */}
+      {(import.meta.env.DEV || settings.useSampleState) && (
+        <Row label={S.settings.useSample}>
+          <Toggle label={S.settings.useSample} checked={settings.useSampleState} onChange={(useSampleState) => updateSettings({ useSampleState })} />
+        </Row>
+      )}
+      {DATA_ROWS.map((r) => (
+        <Row
+          key={r.action}
+          label={
+            <>
               {r.label}
               {r.count !== undefined && <span className="ml-2 text-ink-400 tabular-nums">{S.common.count(r.count)}</span>}
-            </span>
-            <Button size="sm" variant={r.danger ? "danger" : "secondary"} onClick={() => setConfirm(r.action)}>
-              {r.button}
-            </Button>
-          </div>
-        ))}
-      </Card>
+            </>
+          }
+        >
+          <Button size="sm" variant={r.danger ? "danger" : "secondary"} onClick={() => setConfirm(r.action)}>
+            {r.button}
+          </Button>
+        </Row>
+      ))}
 
       {confirm && (
         <ConfirmDialog
           danger
           title={LABEL[confirm]}
-          confirmLabel={S.common.delete}
+          confirmLabel={DATA_ROWS.find((r) => r.action === confirm)?.button}
           onCancel={() => setConfirm(null)}
           onConfirm={() => run(confirm)}
         />
       )}
-    </div>
+    </Card>
   );
 };

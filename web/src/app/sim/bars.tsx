@@ -1,6 +1,6 @@
 import React from "react";
 import type { Rank } from "@sim-core";
-import { Td, cx } from "../../ui";
+import { cx } from "../../ui";
 
 export const RANKS: Rank[] = ["SS", "S", "A", "B", "C", "D", "E"];
 export const RANK_COLOR: Record<Rank, string> = {
@@ -28,31 +28,86 @@ export const pct = (v: number, digits = 1) => `${(v * 100).toFixed(digits)}%`;
 /** 表示上 0 (「0.0%」「0.0」「0」) か */
 const shownZero = (s: string) => /^0(\.0+)?%?$/.test(s);
 
-/** 勝敗ランクの凡例 (割合つき)。0% のランクは薄くする。 */
+/** 勝敗ランクの凡例 (割合つき)。0% のランクは出さない。 */
 export const RankLegend = ({ rates }: { rates: Record<Rank, number> }) => (
-  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
     {RANKS.map((k) => {
-      const v = pct(rates[k], 2);
-      return (
-        <span key={k} className={cx("flex items-center gap-1.5", shownZero(v) ? "text-ink-500" : "text-ink-200")}>
-          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: RANK_COLOR[k] }} />
-          {k} <span className={cx("tabular-nums", !shownZero(v) && "text-ink-50")}>{v}</span>
+      const v = pct(rates[k], 1);
+      return shownZero(v) ? null : (
+        <span key={k} className="flex items-center gap-1 text-ink-300">
+          <span className="inline-block h-2 w-2 rounded-sm" style={{ background: RANK_COLOR[k] }} />
+          {k} <span className="tabular-nums text-ink-50">{v}</span>
         </span>
       );
     })}
   </div>
 );
 
-/** 表の数値セル。主列 (`main`) は明るく、表示上 0 の値は薄く、`alert` は危険色。 */
-export const NumTd = ({ children, main, alert }: { children: string; main?: boolean; alert?: boolean }) => (
-  <Td
+export const rankBar = (rates: Record<Rank, number>) => RANKS.map((k) => ({ label: k, value: rates[k], color: RANK_COLOR[k] }));
+
+/** 主要指標。結果パネルの上段に 2×2 で並べる。 */
+export const Kpi = ({ label, value, sub, title }: { label: string; value: string; sub?: React.ReactNode; title?: string }) => (
+  <div title={title} className="min-w-0 rounded-md border border-accent-500/25 bg-gradient-to-br from-accent-500/12 to-ink-900/60 px-3 py-1.5 shadow-[inset_3px_0_0_var(--color-accent-500)]">
+    <div className="flex items-baseline justify-between gap-2 text-xs text-ink-300">
+      <span className="truncate">{label}</span>
+      {sub && <span className="truncate text-ink-400">{sub}</span>}
+    </div>
+    <div className="text-[26px] leading-tight font-semibold tabular-nums text-ink-50">{value}</div>
+  </div>
+);
+
+/** 補助指標 (小)。 */
+export const Mini = ({ label, value, title, alert }: { label: string; value: string; title?: string; alert?: boolean }) => (
+  <div title={title} className="min-w-0">
+    <div className="truncate text-[11px] text-ink-400">{label}</div>
+    <div className={cx("truncate text-sm font-medium tabular-nums", alert ? "text-danger-400" : shownZero(value) ? "text-ink-400" : "text-ink-50")}>{value}</div>
+  </div>
+);
+
+// ---- 結果パネル内の詰めた表 ----
+
+export const DTable = ({ head, children }: { head: React.ReactNode; children: React.ReactNode }) => (
+  <table className="w-full border-collapse text-xs">
+    <thead className="sticky top-0 z-10 bg-ink-800 text-left text-[11px] text-ink-400">
+      <tr className="border-b border-ink-600">{head}</tr>
+    </thead>
+    <tbody>{children}</tbody>
+  </table>
+);
+
+export const Th = ({ children, className }: { children?: React.ReactNode; className?: string }) => (
+  <th className={cx("px-1.5 py-1 font-medium whitespace-nowrap", className ?? "text-right")}>{children}</th>
+);
+
+export const DTr = ({ children, onClick, selected }: { children: React.ReactNode; onClick?: () => void; selected?: boolean }) => (
+  <tr
+    onClick={onClick}
     className={cx(
-      "text-right tabular-nums",
+      "border-b border-ink-700/70 last:border-0",
+      onClick && "cursor-pointer hover:bg-ink-700/50",
+      selected && "bg-accent-500/10 shadow-[inset_2px_0_0_var(--color-accent-500)]"
+    )}
+  >
+    {children}
+  </tr>
+);
+
+export const Td = ({ children, className, title }: { children?: React.ReactNode; className?: string; title?: string }) => (
+  <td title={title} className={cx("px-1.5 py-1 align-middle", className)}>
+    {children}
+  </td>
+);
+
+/** 数値セル。主列 (`main`) は明るく、表示上 0 の値は薄く、`alert` は危険色。 */
+export const Num = ({ children, main, alert }: { children: string; main?: boolean; alert?: boolean }) => (
+  <td
+    className={cx(
+      "px-1.5 py-1 text-right tabular-nums whitespace-nowrap",
       shownZero(children) ? "text-ink-500" : alert ? "text-danger-400" : main ? "font-medium text-ink-50" : "text-ink-300"
     )}
   >
     {children}
-  </Td>
+  </td>
 );
 
 export const STATE_PARTS = (s: { healthyRate: number; lightRate: number; moderateRate: number; heavyRate: number; sunkRate: number }) => [

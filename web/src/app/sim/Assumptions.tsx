@@ -18,122 +18,112 @@ export interface AssumptionData {
   enemy: EnemyBuild[];
   applyFit: boolean;
   /** 設定「シミュレーションで推定値を使う」が有効だった (サーバの推定値 = estimator:server を使った) */
-  serverEstimates?: boolean;
+  serverEstimates: boolean;
+  /** 入力の組み立てと計算の警告 (重複なし) */
+  warnings: string[];
 }
 
+/** 仮値・不明の敵隠しステータスの数 (前提タブの件数表示用) */
+export const weakCount = (data: AssumptionData): number => {
+  const seen = new Set<string>();
+  for (const e of data.enemy)
+    for (const r of e.reliability) if (r.confidence !== "datamined" && r.confidence !== "observed") seen.add(`${r.shipId}:${r.stat}`);
+  return seen.size;
+};
+
+const H = ({ children, tone }: { children: React.ReactNode; tone?: "warn" }) => (
+  <h4 className={tone === "warn" ? "mb-1 text-xs font-semibold text-warn-400" : "mb-1 text-xs font-semibold text-ink-300"}>{children}</h4>
+);
+
+/** 計算の前提: 敵の隠しステータスの出典、サーバ推定値、装備ボーナス、警告。 */
 export const Assumptions = ({ data }: { data: AssumptionData }) => {
   // 艦×ステータスごとに一意化
   const seen = new Map<string, EnemyBuild["reliability"][number]>();
   for (const e of data.enemy) for (const r of e.reliability) seen.set(`${r.shipId}:${r.stat}`, r);
   const all = [...seen.values()];
-  const used = all.filter((r) => r.source === SERVER_ESTIMATOR_SOURCE);
   const counts = new Map<string, number>();
   all.forEach((r) => counts.set(r.confidence, (counts.get(r.confidence) ?? 0) + 1));
-  const weak = all.filter((r) => r.confidence !== "datamined" && r.confidence !== "observed");
   // 艦ごとに同じ注記が並ばないよう、ステータス×出典ごとに艦名をまとめる
   const weakGroups = new Map<string, { stat: string; confidence: string; names: Set<string> }>();
-  weak.forEach((r) => {
-    const key = `${r.stat}:${r.confidence}`;
-    const g = weakGroups.get(key) ?? { stat: r.stat, confidence: r.confidence, names: new Set<string>() };
-    g.names.add(r.value === null ? r.name : `${r.name} (${r.value})`);
-    weakGroups.set(key, g);
-  });
-  const warnings = [...new Set([...data.friend.warnings, ...data.enemy.flatMap((e) => e.warnings)])];
-  const usedShips = new Map<number, { name: string; items: typeof used }>();
-  used.forEach((r) => {
-    const e = usedShips.get(r.shipId) ?? { name: r.name, items: [] };
-    e.items.push(r);
-    usedShips.set(r.shipId, e);
-  });
+  all
+    .filter((r) => r.confidence !== "datamined" && r.confidence !== "observed")
+    .forEach((r) => {
+      const key = `${r.stat}:${r.confidence}`;
+      const g = weakGroups.get(key) ?? { stat: r.stat, confidence: r.confidence, names: new Set<string>() };
+      g.names.add(r.value === null ? r.name : `${r.name} (${r.value})`);
+      weakGroups.set(key, g);
+    });
+  const usedShips = new Map<number, { name: string; items: typeof all }>();
+  all
+    .filter((r) => r.source === SERVER_ESTIMATOR_SOURCE)
+    .forEach((r) => {
+      const e = usedShips.get(r.shipId) ?? { name: r.name, items: [] };
+      e.items.push(r);
+      usedShips.set(r.shipId, e);
+    });
 
   return (
-    <details className="rounded-lg border border-ink-600 px-4 py-3">
-      <summary className="cursor-pointer text-sm font-medium text-ink-300">
-        前提・信頼性
-        {weak.length > 0 && <span className="ml-1.5 text-warn-400">仮値・不明 {weak.length}</span>}
-        {warnings.length > 0 && <span className="ml-1.5 text-warn-400">警告 {warnings.length}</span>}
-      </summary>
-      <div className="mt-3 flex flex-col gap-4 text-sm">
+    <div className="flex flex-col gap-3 text-sm">
+      {data.warnings.length > 0 && (
         <section>
-          <h4 className="mb-1.5 font-semibold text-ink-200">敵の隠しステータスの出典</h4>
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            {[...counts].map(([c, n]) => (
-              <Badge key={c} tone={CONF_LABEL[c]?.tone ?? "neutral"}>
-                {CONF_LABEL[c]?.label ?? c} {n}
-              </Badge>
+          <H tone="warn">警告 {data.warnings.length}</H>
+          <ul className="list-inside list-disc text-xs text-ink-200">
+            {data.warnings.slice(0, 30).map((w, i) => (
+              <li key={i}>{w}</li>
             ))}
-          </div>
-          {weakGroups.size === 0 ? (
-            <p className="text-ink-300">全て観測またはデータマイニング由来です。</p>
-          ) : (
-            <>
-              <ul className="flex flex-col gap-1">
-                {[...weakGroups.values()].map((g) => (
-                  <li key={`${g.stat}:${g.confidence}`} className="flex flex-wrap items-center gap-1.5">
-                    <Badge tone={CONF_LABEL[g.confidence]?.tone ?? "neutral"}>
-                      {STAT_LABEL[g.stat] ?? g.stat}: {CONF_LABEL[g.confidence]?.label ?? g.confidence}
-                    </Badge>
-                    <span className="text-ink-200">{[...g.names].join("、")}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-1.5 text-xs text-ink-400">これらを含む結果は回避・命中・索敵判定がずれる可能性があります。</p>
-            </>
-          )}
-        </section>
-
-        {data.serverEstimates && (
-          <section>
-            <h4 className="mb-1.5 font-semibold text-ok-400">サーバの推定値を使用</h4>
-            {used.length === 0 ? (
-              <p className="text-ink-300">この敵編成の艦にはサーバの推定値 (n ≥ 30) がありません。</p>
-            ) : (
-              <>
-                <p className="mb-1.5 text-ink-300">サーバが観測から求めた推定 (n ≥ 30) を {usedShips.size} 隻・{used.length} 項目に適用</p>
-                <ul className="flex flex-col gap-1">
-                  {[...usedShips.entries()].map(([id, e]) => (
-                    <li key={id} className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-ink-100">{e.name}</span>
-                      {e.items.map((r) => (
-                        <Badge key={r.stat} tone="ok" title={r.n === null ? undefined : `n=${r.n}`}>
-                          {STAT_LABEL[r.stat]} {r.value === null ? "—" : Math.round(r.value * 10) / 10}
-                        </Badge>
-                      ))}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </section>
-        )}
-
-        <section>
-          <h4 className="mb-1.5 font-semibold text-ink-200">味方艦</h4>
-          <ul className="list-inside list-disc text-ink-200">
-            <li>素ステータス = 実測値 − 装備のマスター値{data.applyFit ? " − 装備ボーナス" : ""}。手入力艦は計算値 (近代化・固有ボーナス除く)。</li>
-            <li>
-              装備ボーナス: {data.applyFit ? `近似計算 (未対応条件 ${data.friend.fitSkipped} 件は加算なし)` : "差し引かない"}
-            </li>
-            <li>戦闘開始時は耐久・燃料・弾薬ともに全快。</li>
           </ul>
         </section>
+      )}
 
+      <section>
+        <H>敵の隠しステータス</H>
+        <div className="flex flex-wrap gap-1">
+          {[...counts].map(([c, n]) => (
+            <Badge key={c} tone={CONF_LABEL[c]?.tone ?? "neutral"}>
+              {CONF_LABEL[c]?.label ?? c} {n}
+            </Badge>
+          ))}
+        </div>
+        {weakGroups.size > 0 && (
+          <ul className="mt-1.5 flex flex-col gap-1 text-xs">
+            {[...weakGroups.values()].map((g) => (
+              <li key={`${g.stat}:${g.confidence}`} className="flex flex-wrap items-center gap-1.5">
+                <Badge tone={CONF_LABEL[g.confidence]?.tone ?? "neutral"}>
+                  {STAT_LABEL[g.stat] ?? g.stat}: {CONF_LABEL[g.confidence]?.label ?? g.confidence}
+                </Badge>
+                <span className="text-ink-200">{[...g.names].join("、")}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {data.serverEstimates && (
         <section>
-          <h4 className="mb-1.5 font-semibold text-ink-200">モデルの範囲</h4>
-          <p className="text-ink-300">通常艦隊 1 つ対 1 ノードのみ。連合艦隊・基地航空隊・支援・陸上型特効・一部の特殊攻撃・イベント特効は未対応。</p>
-        </section>
-
-        {warnings.length > 0 && (
-          <section>
-            <h4 className="mb-1.5 font-semibold text-warn-400">警告 ({warnings.length})</h4>
-            <ul className="list-inside list-disc text-ink-200">
-              {warnings.slice(0, 20).map((w, i) => (
-                <li key={i}>{w}</li>
+          <H>サーバ推定値 (n ≥ 30)</H>
+          {usedShips.size === 0 ? (
+            <span className="text-xs text-ink-400">該当なし</span>
+          ) : (
+            <ul className="flex flex-col gap-1 text-xs">
+              {[...usedShips.entries()].map(([id, e]) => (
+                <li key={id} className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-ink-100">{e.name}</span>
+                  {e.items.map((r) => (
+                    <Badge key={r.stat} tone="ok" title={r.n === null ? undefined : `n=${r.n}`}>
+                      {STAT_LABEL[r.stat]} {r.value === null ? "—" : Math.round(r.value * 10) / 10}
+                    </Badge>
+                  ))}
+                </li>
               ))}
             </ul>
-          </section>
-        )}
-      </div>
-    </details>
+          )}
+        </section>
+      )}
+
+      <section className="text-xs text-ink-300">
+        <H>味方</H>
+        装備ボーナス: {data.applyFit ? `近似 (未対応条件 ${data.friend.fitSkipped} 件)` : "差し引かない"}
+      </section>
+    </div>
   );
 };

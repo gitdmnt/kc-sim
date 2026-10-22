@@ -1,18 +1,23 @@
 /**
- * Web UI の開発サーバ (vite) を起動し、headless Chromium で各タブのスクリーンショットを docs/screenshots/ に保存する。
- * `bun run screenshots`。データ API は vite が 127.0.0.1:8787 (`cd server && bun run dev`) に中継する。
+ * Web UI の開発サーバ (vite) を起動し、headless Chromium で各画面のスクリーンショットを撮る。
+ * `bun run screenshots`。出力は SHOTS_DIR (既定 docs/screenshots)、ファイル名の頭に SHOTS_PREFIX を付ける。
+ * データ API は vite が KCSIM_API (既定 127.0.0.1:8787) に中継し、落ちていれば静的バンドル (server/dist/maps) を使う。
  * ブラウザは playwright のキャッシュにある chromium_headless_shell を使う (CHROMIUM_PATH で上書き可)。
- * 観測ログの画面はプラグイン側 (poi-plugin-sim/scripts/screenshots.ts)。
+ * 出撃タブはページがスクロールしないこと (scrollHeight <= innerHeight) を 1280×800 と 1200×710 で確かめる。
  */
 import { chromium } from "playwright-core";
+import type { Page } from "playwright-core";
 import { startDevServer } from "./devServer";
 import { mkdirSync, readdirSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
-const OUT = resolve(import.meta.dir, "../../docs/screenshots");
+const OUT = resolve(process.env.SHOTS_DIR ?? resolve(import.meta.dir, "../../docs/screenshots"));
+const PREFIX = process.env.SHOTS_PREFIX ?? "";
 const PORT = 5199;
 const URL = `http://localhost:${PORT}/`;
+/** 出撃結果を撮る海域 (同梱サンプルの第1艦隊でボスに届く) */
+const MAP = process.env.SHOTS_MAP ?? "4-2";
 
 const findChromium = (): string => {
   if (process.env.CHROMIUM_PATH) return process.env.CHROMIUM_PATH;
@@ -30,131 +35,140 @@ const findChromium = (): string => {
 
 mkdirSync(OUT, { recursive: true });
 
-const server = await startDevServer(PORT);
-
+const server = await startDevServer(PORT, process.env.KCSIM_API);
 const browser = await chromium.launch({ executablePath: findChromium() });
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 page.on("pageerror", (e) => console.error("[pageerror]", e.message));
-page.on("console", (m) => m.type() === "error" && console.error("[console.error]", m.text().slice(0, 300)));
 
 const shot = async (name: string, opts: { fullPage?: boolean } = {}) => {
-  await page.screenshot({ path: join(OUT, `${name}.png`), fullPage: opts.fullPage ?? false });
-  console.log("saved", `${name}.png`);
+  await page.screenshot({ path: join(OUT, `${PREFIX}${name}.png`), fullPage: opts.fullPage ?? false });
+  console.log("saved", `${PREFIX}${name}.png`);
 };
 const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).click();
 
+/** 結果パネルの実行情報 (title = "seed … · 秒") が変わり、進捗バーが消えるまで待つ */
+const meta = (p: Page) =>
+  p.evaluate(() => {
+    const m = document.querySelector("span[title^='seed']");
+    return m ? `${m.getAttribute("title")} ${m.textContent}` : "";
+  });
+const waitResult = async (prev: string) => {
+  await page.waitForFunction(
+    (p) => {
+      const m = document.querySelector("span[title^='seed']");
+      return !!m && `${m.getAttribute("title")} ${m.textContent}` !== p && !document.querySelector("[role=progressbar]");
+    },
+    prev,
+    { timeout: 180_000 }
+  );
+  await page.waitForTimeout(300);
+};
+
+const checkNoScroll = async (label: string) => {
+  const [sh, ih] = await page.evaluate(() => [document.scrollingElement!.scrollHeight, innerHeight]);
+  console.log(`${label}: scrollHeight ${sh} <= innerHeight ${ih}: ${sh <= ih}`);
+  if (sh > ih) throw new Error(`${label}: page scrolls`);
+};
+
 try {
   await page.goto(URL);
-  await page.evaluate(async () => {
-    localStorage.clear();
-    const dbs = await indexedDB.databases();
-    await Promise.all(dbs.map((d) => new Promise((r) => { const q = indexedDB.deleteDatabase(d.name!); q.onsuccess = q.onerror = q.onblocked = () => r(null); })));
-  });
+  await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByText("プリセットがありません").waitFor();
-  await shot("00-fleet-empty");
+  await page.getByText("1番艦を追加").waitFor();
+  await shot("00-workspace-empty");
 
-  // poi の第1艦隊を取り込む → 編集画面
-  await page.getByTitle("第1艦隊").click();
-  await page.getByText("第1艦隊を取り込みました").waitFor();
-  await page.waitForTimeout(300);
-  console.log("body margin:", await page.evaluate(() => getComputedStyle(document.body).margin));
-  await shot("01-fleet-editor");
-  await shot("01b-fleet-editor-full", { fullPage: true });
+  // poi の第1艦隊 (6 隻) を取り込み、海域を選ぶ → 自動で計算される
+  await page.getByTitle("第1艦隊").first().click();
+  await waitResult("");
+  let prev = await meta(page);
+  await page.getByLabel("海域").selectOption(MAP);
+  await waitResult(prev);
+  console.log("auto:", await meta(page));
+  prev = await meta(page);
+  await page.getByRole("button", { name: /^実行/ }).click();
+  await waitResult(prev);
+  console.log("manual:", await meta(page));
+  const kpi = await page.locator("section.kc-chart").first().innerText();
+  console.log("---- sortie ----\n" + kpi.split("\n").slice(0, 24).join(" | "));
+  await checkNoScroll("1280x800");
+  await shot("workspace-1280");
 
-  await page.waitForTimeout(3700); // トースト消滅待ち
+  // poi のプラグインウィンドウ相当 (1200×750 からタブ分を引いた高さ)
+  await page.setViewportSize({ width: 1200, height: 710 });
+  await page.waitForTimeout(400);
+  await checkNoScroll("1200x710");
+  await shot("workspace-1200");
+  await page.setViewportSize({ width: 1280, height: 800 });
 
-  // 艦ピッカー
-  await page.getByLabel("1番艦").click();
+  // 艦ピッカー・装備ピッカー
+  await page.getByLabel("1番艦", { exact: true }).click();
   await page.getByPlaceholder("名前・読みで検索").fill("やまと");
   await page.waitForTimeout(150);
-  await shot("02-fleet-ship-picker");
+  await shot("02-ship-picker");
   await page.keyboard.press("Escape");
-
-  // 装備ピッカー
-  await page.getByLabel("#1 装備").first().click();
-  await page.getByPlaceholder("名前・読みで検索").fill("46");
+  await page.getByLabel("#1 装備").nth(5).click();
   await page.waitForTimeout(150);
-  await shot("03-fleet-equip-picker");
+  await shot("03-equip-picker");
   await page.keyboard.press("Escape");
 
-  // 入出力モーダル (DeckBuilder 書き出し)
+  // 艦の詳細・条件・プリセット管理
+  await page.getByLabel("1番艦の詳細").click();
+  await page.waitForTimeout(150);
+  await shot("04-ship-detail");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "条件" }).click();
+  await page.waitForTimeout(150);
+  await shot("05-conditions");
+  await page.keyboard.press("Escape");
+  await page.getByLabel("プリセットの管理").click();
   await page.getByRole("button", { name: "入出力" }).click();
   await page.getByRole("tab", { name: "デッキビルダー" }).click();
   await page.waitForTimeout(150);
-  await shot("04-fleet-io-deckbuilder");
+  await shot("06-io-deckbuilder");
   await page.keyboard.press("Escape");
 
-  // データ API (server が localhost:8787 で動いている場合のみ)
-  const apiUp = await fetch("http://127.0.0.1:8787/api/v1/health").then((r) => r.ok, () => false);
-  if (apiUp) {
-    await tab("海域");
-    await page.locator("select").nth(1).selectOption("1-5");
-    await page.getByRole("button", { name: "ノード D" }).waitFor();
-    await page.getByRole("button", { name: "ノード D" }).click();
+  // 詳細タブ (経路図)
+  await page.getByRole("tab", { name: "経路", exact: true }).click();
+  await page.waitForTimeout(200);
+  await shot("07-workspace-route");
+
+  // 単一マス戦闘 (ボス)
+  prev = await meta(page);
+  await page.getByRole("tab", { name: "単一戦闘", exact: true }).click();
+  await waitResult(prev);
+  await checkNoScroll("battle 1280x800");
+  await shot("08-workspace-battle");
+  await page.getByRole("tab", { name: "出撃", exact: true }).first().click();
+
+  // 海域タブ
+  await tab("海域");
+  await page.getByRole("button", { name: "ノード D" }).first().waitFor({ timeout: 20_000 }).catch(() => {});
+  if (await page.getByRole("button", { name: "ノード D" }).count()) {
+    await page.getByRole("button", { name: "ノード D" }).first().click();
     await page.waitForTimeout(300);
     await shot("09-map-routing");
-    await page.getByRole("button", { name: "ノード J" }).click();
-    await page.getByText("試行").first().waitFor({ timeout: 10000 });
-    await page.waitForTimeout(300);
-    await shot("10-map-enemy-comps", { fullPage: true });
-
-    await tab("敵艦データ");
-    await page.getByPlaceholder("名前・ID で検索").fill("駆逐イ級");
-    await page.getByRole("button", { name: /駆逐イ級/ }).first().click();
-    await page.getByText("隠しステータス推定").waitFor();
-    await page.waitForTimeout(300);
-    await shot("11-enemy-detail", { fullPage: true });
-  } else {
-    console.warn("server not running on :8787; skipping map/enemy screenshots");
   }
 
+  const apiUp = await fetch(`${process.env.KCSIM_API ?? "http://127.0.0.1:8787"}/api/v1/health`).then((r) => r.ok, () => false);
   if (apiUp) {
-    // 出撃シミュレーション: 対潜編成 (五十鈴改二 + 駆逐3) で 1-5
-    await tab("艦隊編成");
-    await page.getByTitle("第3艦隊").click();
-    await page.getByText("第3艦隊を取り込みました").waitFor();
-    await tab("シミュレーション");
-    await page.getByRole("tab", { name: "出撃", exact: true }).click();
-    await page.getByText("出撃設定", { exact: true }).waitFor();
-    await page.waitForFunction(() => document.body.innerText.includes("1-5"));
-    await page.locator("select").first().selectOption({ label: "第3艦隊 (4隻)" });
-    await page.waitForTimeout(1500);
-    await page.getByRole("button", { name: "実行", exact: true }).click();
-    await page.getByText("ボス到達率").waitFor({ timeout: 180000 });
-    await page.waitForTimeout(700);
-    const t = await page.locator("main").innerText();
-    console.log("---- sortie numbers ----\n" + t.slice(t.indexOf("ボス到達率")).split("\n").slice(0, 120).join(" | "));
-    await shot("15-sim-sortie", { fullPage: true });
+    await tab("敵艦");
+    await page.getByPlaceholder("名前・ID で検索").fill("駆逐イ級");
+    await page.getByRole("button", { name: /駆逐イ級/ }).first().click();
+    await page.waitForTimeout(500);
+    await shot("11-enemy-detail", { fullPage: true });
+  } else {
+    console.warn("data API is down; skipping the enemy screenshot");
   }
 
   await tab("設定");
   await page.waitForTimeout(200);
-  await shot("07-settings");
+  await shot("12-settings");
 
-  if (apiUp) {
-    await tab("シミュレーション");
-    await page.getByText("戦闘設定", { exact: true }).waitFor();
-    // 1-5 / J / 全編成 / 10k 戦 (既定値)。ノード選択が読み込まれるのを待つ
-    await page.waitForFunction(() => [...document.querySelectorAll("select")].some((s) => s.value === "J"));
-    await page.getByRole("button", { name: "実行", exact: true }).click();
-    await page.getByText("勝敗判定", { exact: true }).waitFor({ timeout: 120000 });
-    await page.waitForTimeout(500);
-    const text = await page.locator("main").innerText();
-    console.log("---- sim numbers ----\n" + text.split("\n").slice(0, 60).join(" | "));
-    await shot("12-sim-battle", { fullPage: true });
-  }
-  // 狭いプラグインウィンドウ (800px 幅) の確認
+  // 狭いウィンドウ (800px 幅): 1 列に積んでページをスクロールする
   await page.setViewportSize({ width: 800, height: 900 });
-  await tab("艦隊編成");
+  await tab("出撃");
   await page.waitForTimeout(400);
-  await shot("17-narrow-fleet");
-  if (apiUp) {
-    await tab("海域");
-    await page.getByRole("button", { name: "ノード D" }).click();
-    await page.waitForTimeout(1200);
-    await shot("18-narrow-map");
-  }
+  await shot("17-narrow-workspace");
 } finally {
   await browser.close();
   server.kill();
