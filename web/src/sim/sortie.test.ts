@@ -10,6 +10,7 @@ import {
 } from "./sortieAdapter";
 import { geometricSorties, mergeSortieSummaries, runSortieJob } from "./runner";
 
+const ZD = { mean: 0, p50: 0, p90: 0 };
 const routing: RoutingDoc = {
   map: "9-9",
   defaults: { select: { F: "D" }, flags: ["open"] },
@@ -152,7 +153,8 @@ const sum = (count: number, o: Partial<SortieSummary> = {}): SortieSummary => ({
   nodes: { A: { reachRate: 0.5, battleRate: 0.5, rankRates: { SS: 0, S: 1, A: 0, B: 0, C: 0, D: 0, E: 0 }, retreatRate: 0, retreatHeavyRate: 0, retreatModerateRate: 0, nightRate: 0 } },
   boss: { reachRate: 0.5, rankRates: { SS: 0, S: 1, A: 0, B: 0, C: 0, D: 0, E: 0 }, killRate: 0.5, flagshipSunkRate: 0.5, flagshipDamageMean: 10 },
   retreatRate: 0.1, sunkRate: 0, battlesMean: 2, nodesMean: 3, fuelUsedMean: 5, ammoUsedMean: 6,
-  friend: [{ sunkRate: 0, heavyRate: 0.1, moderateRate: 0.2, damageTakenMean: 10, hpMissingMean: 5, fuelUsedMean: 1, ammoUsedMean: 1, damecon: { usedRate: 0 } }],
+  bauxiteMean: 0, repair: { fuel: ZD, steel: ZD, timeSec: ZD, timeSecTotal: ZD },
+  friend: [{ sunkRate: 0, heavyRate: 0.1, moderateRate: 0.2, damageTakenMean: 10, hpMissingMean: 5, fuelUsedMean: 1, ammoUsedMean: 1, bauxiteMean: 0, proficiencyLostMean: 0, repair: { fuel: ZD, steel: ZD, timeSec: ZD }, damecon: { usedRate: 0 } }],
   warnings: ["w1"], ...o,
 });
 

@@ -1,6 +1,6 @@
 /** simulateBattle を分割実行して結果を合成する (Worker と単体テストの両方から使う)。 */
 import type {
-  BattleInput, NodeSummary, PathRate, Rank, ShipSummary, SimulationSummary, SortieInput, SortieShipSummary, SortieSummary,
+  BattleInput, Dist, NodeSummary, PathRate, Rank, ShipSummary, SimulationSummary, SortieInput, SortieShipSummary, SortieSummary,
 } from "@sim-core";
 
 export type Engine = (input: BattleInput, count: number, seed: number) => SimulationSummary;
@@ -142,6 +142,12 @@ const wrec = <K extends string>(parts: { n: number; rec: Record<K, number> }[], 
   for (const k of keys) out[k] = wavg(parts.map((p) => ({ n: p.n, v: p.rec[k] })));
   return out;
 };
+/** 平均は厳密、p50/p90 は塊ごとの値の重み付き平均 (近似)。 */
+const mergeDist = (parts: { n: number; v: Dist }[]): Dist => ({
+  mean: wavg(parts.map((p) => ({ n: p.n, v: p.v.mean }))),
+  p50: wavg(parts.map((p) => ({ n: p.n, v: p.v.p50 }))),
+  p90: wavg(parts.map((p) => ({ n: p.n, v: p.v.p90 }))),
+});
 const RANK_KEYS: Rank[] = ["SS", "S", "A", "B", "C", "D", "E"];
 
 /** 出撃サマリを出撃数で重み付けして合成する。経路は上位リスト同士の合算 (落ちた分は other へ)。 */
@@ -191,6 +197,13 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
     hpMissingMean: wavg(by((s) => s.friend[i].hpMissingMean)),
     fuelUsedMean: wavg(by((s) => s.friend[i].fuelUsedMean)),
     ammoUsedMean: wavg(by((s) => s.friend[i].ammoUsedMean)),
+    bauxiteMean: wavg(by((s) => s.friend[i].bauxiteMean)),
+    proficiencyLostMean: wavg(by((s) => s.friend[i].proficiencyLostMean)),
+    repair: {
+      fuel: mergeDist(by((s) => s.friend[i].repair.fuel)),
+      steel: mergeDist(by((s) => s.friend[i].repair.steel)),
+      timeSec: mergeDist(by((s) => s.friend[i].repair.timeSec)),
+    },
     damecon: { usedRate: wavg(by((s) => s.friend[i].damecon.usedRate)) },
   }));
 
@@ -212,6 +225,25 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
     nodesMean: wavg(by((s) => s.nodesMean)),
     fuelUsedMean: wavg(by((s) => s.fuelUsedMean)),
     ammoUsedMean: wavg(by((s) => s.ammoUsedMean)),
+    bauxiteMean: wavg(by((s) => s.bauxiteMean)),
+    repair: {
+      fuel: mergeDist(by((s) => s.repair.fuel)),
+      steel: mergeDist(by((s) => s.repair.steel)),
+      timeSec: mergeDist(by((s) => s.repair.timeSec)),
+      timeSecTotal: mergeDist(by((s) => s.repair.timeSecTotal)),
+    },
+    effects: parts[0].effects && {
+      gainedMean: {
+        fuel: wavg(by((s) => s.effects!.gainedMean.fuel)),
+        ammo: wavg(by((s) => s.effects!.gainedMean.ammo)),
+        steel: wavg(by((s) => s.effects!.gainedMean.steel)),
+        bauxite: wavg(by((s) => s.effects!.gainedMean.bauxite)),
+      },
+      maelstromFuelMean: wavg(by((s) => s.effects!.maelstromFuelMean)),
+      maelstromAmmoMean: wavg(by((s) => s.effects!.maelstromAmmoMean)),
+      anchorageHpMean: wavg(by((s) => s.effects!.anchorageHpMean)),
+      anchorageMaterialsMean: wavg(by((s) => s.effects!.anchorageMaterialsMean)),
+    },
     friend,
     gauge: parts.find((p) => p.gauge)?.gauge,
     warnings: [...new Set(parts.flatMap((p) => p.warnings))],
