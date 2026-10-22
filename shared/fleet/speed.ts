@@ -68,7 +68,8 @@ export const boostedSpeed = (base: number, group: Group, equips: Pick<PresetEqui
   for (const [rt, rb, re, star, res] of ROWS) {
     if (t < rt) continue;
     const ok = star ? boilers.filter((b) => b.improvement >= STAR_BOILER).length >= rb : boilers.length >= rb && boilers.length + enhanced >= rb + re;
-    if (ok && res[col] > best) best = res[col];
+    const v = res[col] ?? 0;
+    if (ok && v > best) best = v;
   }
   return best;
 };

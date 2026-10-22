@@ -91,6 +91,8 @@ export interface ShipMaster {
   api_name?: string;
   api_stype?: number;
   api_ctype?: number;
+  /** 改装後の艦 ID (poi の master data にはある。kc-sim の data API には無い)。 */
+  api_aftershipid?: string | number;
   api_taik?: number[];
   api_houg?: number[];
   api_raig?: number[];

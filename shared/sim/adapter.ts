@@ -15,7 +15,7 @@ import type { ApiEquipment, ApiShip, CompShip, Confidence, EnemyComp, HiddenStat
 import { isAircraft } from "../fleet/calc";
 import { resolveShipStats } from "../fleet/stats";
 import type { EquipMaster, MasterData, Preset, PresetEquip, PresetFormation, PresetShip } from "../fleet/types";
-import { computeFitBonus, fitToEquipmentStats } from "./fit";
+import { computeFitBonus, fitToEquipmentStats, shipBaseId } from "./fit";
 import type { FitEntry } from "./fit";
 
 export const FORMATION_MAP: Partial<Record<PresetFormation, Formation>> = {
@@ -110,8 +110,11 @@ export const buildFriendShips = (preset: Preset, master: MasterData, opts: Frien
     let bonus: EquipmentStats = {};
     if (apply) {
       const fit = computeFitBonus(
-        { masterId: ship.masterId, stype: m?.api_stype ?? 0, ctype: m?.api_ctype },
-        all.map((e) => ({ masterId: e.masterId, type2: master.equips[e.masterId]?.api_type?.[2] ?? 0, improvement: e.improvement })),
+        { masterId: ship.masterId, stype: m?.api_stype ?? 0, ctype: m?.api_ctype, baseId: shipBaseId(ship.masterId, master) },
+        all.map((e) => {
+          const em = master.equips[e.masterId];
+          return { masterId: e.masterId, type2: em?.api_type?.[2] ?? 0, improvement: e.improvement, saku: em?.api_saku, tyku: em?.api_tyku, houm: em?.api_houm };
+        }),
         opts.fitBonuses!
       );
       bonus = fitToEquipmentStats(fit.bonus);
