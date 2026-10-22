@@ -7,6 +7,10 @@ export interface PickerOption {
   label: string;
   sub?: string;
   group?: string;
+  /** 同じ value の選択肢を区別するキー (既定は value) */
+  key?: string;
+  /** 候補として薄く表示する */
+  dim?: boolean;
   /** 正規化済みの検索文字列 */
   search: string;
 }
