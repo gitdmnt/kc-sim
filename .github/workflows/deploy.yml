@@ -61,7 +61,7 @@ jobs:
 
       - name: Build web
         working-directory: server
-        run: bun run build:web
+        run: SKIP_WASM_BUILD=1 bun run build:web
 
       - name: Apply D1 migrations
         working-directory: server
