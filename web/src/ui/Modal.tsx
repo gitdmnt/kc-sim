@@ -47,7 +47,7 @@ export const Modal = ({ title, onClose, footer, className, children }: Props) =>
   useDialog(ref, onClose);
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/75 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/75 p-4"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
@@ -81,7 +81,7 @@ export const Drawer = ({ title, onClose, className, children }: Omit<Props, "foo
   useDialog(ref, onClose);
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-ink-950/65 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex justify-end bg-ink-950/65"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <aside

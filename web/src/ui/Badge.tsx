@@ -25,7 +25,7 @@ export const Badge = ({
 }) => (
   <span
     title={title}
-    className={cx("inline-flex items-center rounded-md px-1.5 text-xs leading-5 font-medium whitespace-nowrap", TONE[tone], className)}
+    className={cx("inline-flex items-center rounded-md px-2 text-xs leading-5 font-medium whitespace-nowrap", TONE[tone], className)}
   >
     {children}
   </span>

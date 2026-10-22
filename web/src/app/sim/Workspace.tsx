@@ -194,9 +194,9 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
 
   // 左から操作の順: 海域 → 編成 → モード・条件 → 実行
   const bar = (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1">
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
       <div className="flex shrink-0 items-center gap-1">
-        <Select className="h-7! w-36" aria-label="海域" value={prefs.map} onChange={(e) => setPrefs({ map: e.target.value, node: null })}>
+        <Select className="h-7! w-32" aria-label="海域" value={prefs.map} onChange={(e) => setPrefs({ map: e.target.value, node: null })}>
           {mapOptions.map((m) => (
             <option key={m.key} value={m.key}>
               {m.name && m.name !== m.key ? `${m.key} ${m.name}` : m.key}

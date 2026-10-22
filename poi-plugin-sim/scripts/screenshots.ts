@@ -83,7 +83,7 @@ try {
   const migrated = await main.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("kcsim:presetsMigrated:")));
   console.log("presets migrated:", migrated);
   // 新規プリセットを作り、空の編成に poi の第1艦隊を取り込む
-  await web.getByText("⋯", { exact: true }).first().click();
+  await web.getByLabel("プリセットの管理").click();
   await web.getByRole("button", { name: "新規" }).click();
   await web.getByTitle("第1艦隊").waitFor({ state: "visible" });
   if (await web.getByTitle("第1艦隊").isDisabled()) throw new Error("poi の艦隊が届いていない (取り込みボタンが無効)");
@@ -116,7 +116,8 @@ try {
     }
     await db.close();
   });
-  await tab("観測ログ");
+  // poi の中ではプラグインのビューも Web UI のヘッダのタブに並ぶ
+  await web.getByRole("tab", { name: "観測ログ", exact: true }).click();
   await page.getByText("昼戦").first().waitFor();
   await page.waitForTimeout(200);
   await shot("05-log-list");

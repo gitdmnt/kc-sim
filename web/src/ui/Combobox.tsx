@@ -208,7 +208,7 @@ export const Combobox = ({
               <button
                 type="button"
                 onClick={() => choose(null)}
-                className="block w-full cursor-pointer px-3 py-1.5 text-left text-xs text-ink-300 hover:bg-ink-700"
+                className="block w-full cursor-pointer px-3 py-2 text-left text-xs text-ink-300 hover:bg-ink-700"
               >
                 選択を外す
               </button>
@@ -241,7 +241,7 @@ export const Combobox = ({
               )
             )}
             {total > flat.length && (
-              <div className="px-3 py-1.5 text-center text-xs text-ink-400">
+              <div className="px-3 py-2 text-center text-xs text-ink-400">
                 他 {total - flat.length} 件
               </div>
             )}

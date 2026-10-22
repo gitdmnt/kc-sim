@@ -35,7 +35,7 @@ export const Checkbox = ({
   className,
   ...rest
 }: Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & { label: string; hint?: string }) => (
-  <label className={cx("flex cursor-pointer items-start gap-2.5", className)}>
+  <label className={cx("flex cursor-pointer items-start gap-2", className)}>
     <input type="checkbox" className="mt-1 h-4 w-4 cursor-pointer accent-accent-500" {...rest} />
     <span>
       <span className="block text-sm text-ink-100">{label}</span>
@@ -55,7 +55,7 @@ export const Field = ({
   className?: string;
   children: React.ReactNode;
 }) => (
-  <label className={cx("flex min-w-0 flex-col gap-1.5", className)}>
+  <label className={cx("flex min-w-0 flex-col gap-1", className)}>
     <span className="text-xs text-ink-400">{label}</span>
     {children}
     {hint && <span className="text-xs text-ink-400">{hint}</span>}

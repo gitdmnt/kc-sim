@@ -49,7 +49,7 @@ export const PresetMenu = ({ store, preset, select }: Props) => {
 
   return (
     <div className="flex min-w-0 items-center gap-1">
-      <Select className="h-7! w-44 min-w-24 shrink" value={preset?.id ?? ""} onChange={(e) => select(e.target.value)} aria-label={S.fleet.presets}>
+      <Select className="h-7! w-40 min-w-24 shrink" value={preset?.id ?? ""} onChange={(e) => select(e.target.value)} aria-label={S.fleet.presets}>
         {!preset && <option value="">{blankPreset().name}</option>}
         {presets.map((p) => (
           <option key={p.id} value={p.id}>

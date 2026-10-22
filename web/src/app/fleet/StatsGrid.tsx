@@ -23,7 +23,7 @@ export const StatsGrid = ({ ship }: { ship: PresetShip }) => {
   // 出典は艦単位の既定 (実測あり→実測、なし→計算) と異なるセルだけ sub で示す
   const base = ship.observed ? "observed" : "computed";
   return (
-    <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
+    <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
       {ORDER.map((key) => {
         const r = stats[key];
         return (
