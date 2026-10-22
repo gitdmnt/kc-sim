@@ -9,7 +9,8 @@ import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
-const OUT = resolve(import.meta.dir, "../../docs/screenshots");
+// SCREENSHOT_OUT で出力先を変えられる (動作確認で docs を汚さないため)
+const OUT = process.env.SCREENSHOT_OUT ?? resolve(import.meta.dir, "../../docs/screenshots");
 const WEB_PORT = 5198;
 const PLUGIN_PORT = 5197;
 
@@ -72,16 +73,23 @@ const shot = async (name: string) => {
 const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).click();
 
 try {
-  // 埋め込んだ Web UI に poi の state (開発用ページではサンプル) が届くと「poi 接続中」になる。
+  // 埋め込んだ Web UI に poi の state (開発用ページではサンプル) が postMessage で届くと、poi の艦隊の取り込みボタンが有効になる。
   // postMessage の送り元は子ウィンドウでなくメインウィンドウ (= 親の opener) で、実機の poi と同じ経路
   const web = page.frameLocator("iframe[title=kc-sim]");
-  await web.getByText("poi 接続中").waitFor({ timeout: 30_000 });
+  const preset = web.locator("select").first();
+  await preset.waitFor({ timeout: 30_000 });
   // 旧プラグイン UI のプリセットが移行されている
-  await web.getByText("旧プラグインの編成").waitFor({ timeout: 10_000 });
+  await web.locator("option", { hasText: "旧プラグインの編成" }).first().waitFor({ state: "attached", timeout: 10_000 });
   const migrated = await main.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("kcsim:presetsMigrated:")));
   console.log("presets migrated:", migrated);
+  // 新規プリセットを作り、空の編成に poi の第1艦隊を取り込む
+  await web.getByText("⋯", { exact: true }).first().click();
+  await web.getByRole("button", { name: "新規" }).click();
+  await web.getByTitle("第1艦隊").waitFor({ state: "visible" });
+  if (await web.getByTitle("第1艦隊").isDisabled()) throw new Error("poi の艦隊が届いていない (取り込みボタンが無効)");
   await web.getByTitle("第1艦隊").click();
-  await web.getByText("第1艦隊を取り込みました").waitFor();
+  await web.getByText("大和改二").first().waitFor({ timeout: 10_000 });
+  await web.getByText("突破").first().waitFor();
   await page.waitForTimeout(300);
   await shot("19-plugin-embedded");
 
@@ -119,7 +127,7 @@ try {
   await page.keyboard.press("Escape");
 
   await tab("送信設定");
-  await page.getByText("最終成功").waitFor();
+  await page.getByText("観測ログを自動送信").waitFor();
   await page.waitForTimeout(300);
   await shot("08-plugin-upload");
 } finally {

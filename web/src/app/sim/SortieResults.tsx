@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import type { SortieSummary } from "@sim-core";
+import type { NodeSummary, SortieSummary } from "@sim-core";
 import { geometricSorties } from "../../sim/runner";
 import { compSourceLabel } from "../../sim/sortieAdapter";
 import { Badge, Tabs } from "../../ui";
@@ -34,6 +34,24 @@ const sortieRates = (s: SortieSummary) => {
   };
 };
 
+const NO_VISIT: NodeSummary = {
+  reachRate: 0,
+  battleRate: 0,
+  rankRates: { SS: 0, S: 0, A: 0, B: 0, C: 0, D: 0, E: 0 },
+  retreatRate: 0,
+  retreatHeavyRate: 0,
+  retreatModerateRate: 0,
+  nightRate: 0,
+};
+
+/** ノード表の行: 出撃地点 (Start*) を先頭に、以降は到達率の高い順。到達 0% はボスだけ残す。 */
+export const orderNodeRows = (nodes: Record<string, NodeSummary>, bosses: string[]): [string, NodeSummary][] => {
+  const rows = new Map(Object.entries(nodes).filter(([, n]) => n.reachRate > 0));
+  for (const b of bosses) if (!rows.has(b)) rows.set(b, nodes[b] ?? NO_VISIT);
+  const start = (l: string) => (l.startsWith("Start") ? 0 : 1);
+  return [...rows].sort((a, b) => start(a[0]) - start(b[0]) || b[1].reachRate - a[1].reachRate);
+};
+
 /** 結果がまだ無いときの主要指標の枠 */
 export const SortieKpis = ({ s }: { s?: SortieSummary }) => {
   const r = s && sortieRates(s);
@@ -53,7 +71,7 @@ type Detail = "nodes" | "graph" | "ships" | "notes";
 export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.ReactNode }) => {
   const { summary: s, data } = out;
   const [detail, setDetail] = useState<Detail>("nodes");
-  const bossNode = data.detail.nodes.find((n) => n.isBoss)?.letter;
+  const bossLetters = data.detail.nodes.filter((n) => n.isBoss).map((n) => n.letter);
   const edgeRates = useMemo(() => edgeRatesFromPaths(s.paths), [s]);
   const badges = useMemo(() => {
     const m = new Map<string, string>();
@@ -72,9 +90,7 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
     return [...through.entries()].sort((a, b) => b[1] - a[1]);
   }, [s, out.uncertain]);
 
-  const nodeRows = Object.entries(s.nodes)
-    .filter(([, n]) => n.reachRate > 0)
-    .sort((a, b) => b[1].reachRate - a[1].reachRate);
+  const nodeRows = orderNodeRows(s.nodes, bossLetters);
   const notes = out.assumptions.warnings.length;
 
   return (
@@ -143,7 +159,7 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
                   title={out.compSets[l] ? `敵編成: ${compSourceLabel(out.compSets[l])}` : undefined}
                 >
                   {l}
-                  {l === bossNode && <Badge tone="danger" className="ml-1">ボス</Badge>}
+                  {bossLetters.includes(l) && <Badge tone="danger" className="ml-1">ボス</Badge>}
                   {out.uncertain.has(l) && <Badge tone="warn" className="ml-1" title="不確実なルーティングルール">?</Badge>}
                 </Td>
                 <Num main>{pct(n.reachRate)}</Num>
