@@ -148,6 +148,39 @@ pub struct SortiePolicy {
 pub enum GaugeKind {
     Kill,
     Hp,
+    /// Transport gauge: TP gained at the boss by rank (S full, A ×0.7 floored).
+    Tp,
+}
+
+/// Tank-force TP table of a transport event (KC3Kai `fud_quarterly.json#tpMultipliers.tankforce`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TankType {
+    Type1,
+    Type2,
+    TypeUnk,
+}
+
+/// One gauge of a multi-gauge map, run after the previous one is cleared.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GaugePhase {
+    pub kind: GaugeKind,
+    pub remaining: f64,
+    /// Boss comps of this gauge (default: the boss node's comps).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comps: Option<Vec<EnemyComp>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub final_comps: Option<Vec<EnemyComp>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub final_threshold: Option<f64>,
+    /// Routing `phase` during this gauge. Default: the map's starting phase + the gauge index.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phase: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tank: Option<TankType>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tp_per_sortie: Option<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -166,6 +199,15 @@ pub struct GaugeInput {
     /// Carry morale between the sorties of a run (absent: every sortie starts from the input morale).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub morale: Option<GaugeMorale>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tank: Option<TankType>,
+    /// `tp`: TP of a full-rank sortie, replacing the table lookup.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tp_per_sortie: Option<f64>,
+    /// Gauges run one after another in each run (this input's own `kind`/`remaining` is gauge 0 when
+    /// `phases` is absent). When present, `phases` replaces the fields above.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phases: Option<Vec<GaugePhase>>,
 }
 
 /// Wait between sorties: at least `waitMinutes`, and until every ship reaches `untilMorale` (≤ 49).
@@ -288,6 +330,14 @@ pub struct BossSummary {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct PhaseSummary {
+    pub kind: GaugeKind,
+    pub expected_sorties: Option<f64>,
+    pub p90_sorties: Option<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GaugeSummary {
     pub kind: GaugeKind,
     pub remaining: f64,
@@ -301,6 +351,9 @@ pub struct GaugeSummary {
     pub p50_wait_minutes: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub p90_wait_minutes: Option<f64>,
+    /// With `phases`: sorties spent in each gauge over the cleared runs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phases: Option<Vec<PhaseSummary>>,
     pub capped_rate: f64,
     pub runs: u32,
 }

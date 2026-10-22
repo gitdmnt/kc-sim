@@ -3,6 +3,7 @@
 
 pub mod model;
 pub mod resource;
+pub mod tp;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -13,6 +14,7 @@ use crate::routing::{RouteConfig, RouteCtx, RouteEquip, RouteShip, Router};
 use crate::ship::ShipState;
 use model::*;
 use resource::*;
+use tp::ShipTp;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum NodeBattle {
@@ -27,6 +29,18 @@ struct Comp {
     init: Vec<ShipState>,
     formation: Formation,
     flagship_max_hp: i32,
+}
+
+/// One gauge of a gauge run with its comps already built.
+struct PhaseRun {
+    kind: GaugeKind,
+    remaining: f64,
+    boss_set: Option<CompSet>,
+    final_set: Option<CompSet>,
+    threshold: f64,
+    routing_phase: Option<f64>,
+    tank: usize,
+    tp_override: Option<f64>,
 }
 
 struct CompSet {
@@ -102,6 +116,8 @@ pub struct Sortie {
     /// Anchorage repair ships: (ship index, heal rate, covered fleet positions).
     repairers: Vec<(usize, f64, Vec<usize>)>,
     has_effects: bool,
+    /// Per-ship TP parts; `Some` when a gauge of kind `tp` is configured.
+    tp_ships: Option<Vec<ShipTp>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -110,8 +126,17 @@ enum Retreat {
     Moderate,
 }
 
-/// Boss battle of one sortie: (rank, flagship sunk, damage dealt to the flagship).
-type BossResult = (Rank, bool, i32);
+/// Boss battle of one sortie.
+#[derive(Clone, Copy)]
+struct BossResult {
+    rank: Rank,
+    /// Flagship sunk.
+    sunk: bool,
+    /// Damage dealt to the flagship.
+    damage: i32,
+    /// Fleet TP on arrival per tank mode (`tp::mode`); zeros unless a gauge needs TP.
+    tp: [i32; 3],
+}
 
 #[derive(Default)]
 struct ShipRec {
@@ -305,6 +330,14 @@ impl Sortie {
                 repairers.push((i, rate, covered));
             }
         }
+        let wants_tp = input.gauge.as_ref().is_some_and(|g| g.kind == GaugeKind::Tp || g.phases.iter().flatten().any(|p| p.kind == GaugeKind::Tp));
+        if wants_tp {
+            for (i, s) in input.friend.ships.iter().enumerate() {
+                if tp::stype_tp(s.ship_type).is_none() {
+                    warnings.push(format!("friend ship #{i}: ship type {} has no TP in the source table; counted as 0", s.ship_type));
+                }
+            }
+        }
         let has_effects = nodes.iter().any(|n| !matches!(n.effect, Effect::None));
         for (i, s) in input.friend.ships.iter().enumerate() {
             if s.level.is_none() || s.fuel_max.is_none() {
@@ -317,6 +350,7 @@ impl Sortie {
             radar,
             repairers,
             has_effects,
+            tp_ships: wants_tp.then(|| input.friend.ships.iter().map(tp::ship_tp).collect()),
             router,
             nodes,
             friend,
@@ -444,6 +478,10 @@ impl Sortie {
                     flag.hp = hp.clamp(1, comp.flagship_max_hp);
                 }
                 let setup = self.setup(*nb, info.boss, info.formation, comp.formation);
+                let tp = match (&self.tp_ships, info.boss) {
+                    (Some(t), true) => tp::fleet_tp(t, |i| st[i].hp > 0 && st[i].hp_ratio(self.friend.ships[i].max_hp) > 0.25),
+                    _ => [0; 3],
+                };
                 let mut b = Battle::new([&self.friend, &comp.core], [std::mem::take(&mut st), enemy], setup, rng);
                 let o = b.run();
                 st = std::mem::take(&mut b.st[0]);
@@ -452,7 +490,7 @@ impl Sortie {
                 if info.boss {
                     let start = b.hp_start[1].first().copied().unwrap_or(0);
                     let end = b.st[1].first().map(|s| s.hp.max(0)).unwrap_or(0);
-                    boss_result = Some((o.rank, start > 0 && end <= 0, (start - end).max(0)));
+                    boss_result = Some(BossResult { rank: o.rank, sunk: start > 0 && end <= 0, damage: (start - end).max(0), tp });
                 }
                 if let Some(r) = rec.as_deref_mut() {
                     r.battle[node] += 1;
@@ -505,7 +543,7 @@ impl Sortie {
             if boss_reached {
                 r.boss_reach += 1;
             }
-            if let Some((rank, sunk, dmg)) = boss_result {
+            if let Some(BossResult { rank, sunk, damage: dmg, .. }) = boss_result {
                 r.boss_ranks[rank_idx(rank)] += 1;
                 if rank <= Rank::A {
                     r.kills += 1;
@@ -748,119 +786,174 @@ impl Sortie {
         minutes
     }
 
+    fn phase_run(&self, kind: GaugeKind, remaining: f64, comps: &Option<Vec<EnemyComp>>, final_comps: &Option<Vec<EnemyComp>>, threshold: Option<f64>, routing_phase: Option<f64>, tank: Option<TankType>, tp: Option<f64>) -> Result<PhaseRun, String> {
+        let boss_set = match comps {
+            Some(c) => Some(CompSet::new("gauge.comps", c)?),
+            None => None,
+        };
+        let final_set = match final_comps {
+            Some(c) if kind == GaugeKind::Hp => Some(CompSet::new("gauge.finalComps", c)?),
+            _ => None,
+        };
+        let threshold = threshold.unwrap_or_else(|| {
+            let sets: Vec<&CompSet> = match (&final_set, &boss_set) {
+                (Some(s), _) | (None, Some(s)) => vec![s],
+                _ => self.nodes.iter().filter(|n| n.boss).filter_map(|n| n.battle.as_ref().map(|b| &b.1)).collect(),
+            };
+            sets.iter().flat_map(|s| s.comps.iter().map(|c| c.flagship_max_hp)).max().unwrap_or(0) as f64
+        });
+        Ok(PhaseRun { kind, remaining, boss_set, final_set, threshold, routing_phase, tank: tp::mode(tank), tp_override: tp })
+    }
+
+    /// One sortie of a gauge phase; returns whether the phase is now cleared.
+    fn phase_sortie(&self, ph: &PhaseRun, remaining: &mut f64, rng: &mut Rng, morale: Option<&mut Vec<i32>>) -> bool {
+        let over = |hp: Option<i32>| ph.boss_set.as_ref().map(|s| (s, hp));
+        match ph.kind {
+            GaugeKind::Kill => {
+                if let Some(r) = self.run_one(rng, over(None), None, morale) {
+                    if r.rank <= Rank::A {
+                        *remaining -= 1.0;
+                    }
+                }
+                remaining.ceil() <= 0.0
+            }
+            GaugeKind::Tp => {
+                if let Some(r) = self.run_one(rng, over(None), None, morale) {
+                    *remaining -= tp::gained(ph.tp_override.unwrap_or(r.tp[ph.tank] as f64), r.rank);
+                }
+                *remaining <= 0.0
+            }
+            GaugeKind::Hp => {
+                let is_final = *remaining <= ph.threshold;
+                let hp = remaining.ceil() as i32;
+                let result = if is_final {
+                    match (&ph.final_set, over(Some(hp))) {
+                        (Some(set), _) => self.run_one(rng, Some((set, Some(hp))), None, morale),
+                        (None, Some(o)) => self.run_one(rng, Some(o), None, morale),
+                        (None, None) => self.run_final_default(rng, hp, morale),
+                    }
+                } else {
+                    self.run_one(rng, over(None), None, morale)
+                };
+                let Some(r) = result else { return false };
+                if is_final && r.sunk {
+                    return true;
+                }
+                *remaining -= r.damage as f64;
+                if is_final {
+                    *remaining = remaining.max(1.0);
+                }
+                !is_final && *remaining <= 0.0
+            }
+        }
+    }
+
     fn gauge(&self, g: &GaugeInput, kill_rate: f64, rng: &mut Rng) -> Result<(GaugeSummary, Option<String>), String> {
         let max_sorties = g.max_sorties.unwrap_or(500).max(1);
         let has_boss = self.nodes.iter().any(|n| n.boss && n.battle.is_some());
         let mut warning = None;
         let mut sorties: Vec<u32> = Vec::new();
         let mut waits: Vec<f64> = Vec::new();
+        let mut per_phase: Vec<Vec<u32>> = Vec::new();
         let mut capped = 0u32;
         let runs;
         let init_morale: Vec<i32> = self.init.iter().map(|s| s.morale).collect();
-        let full_kill = g.kind == GaugeKind::Kill && g.morale.is_some();
-        match g.kind {
-            GaugeKind::Kill if !full_kill => {
-                runs = g.runs.unwrap_or(2000);
-                let need = g.remaining.ceil().max(0.0) as u32;
-                for _ in 0..runs {
-                    let (mut k, mut s) = (0, 0);
-                    while k < need && s < max_sorties {
-                        s += 1;
-                        if rng.chance(kill_rate) {
-                            k += 1;
-                        }
-                    }
-                    if k >= need {
-                        sorties.push(s);
-                    } else {
-                        capped += 1;
+        let phased = g.phases.as_ref().is_some_and(|p| !p.is_empty());
+        let geometric = g.kind == GaugeKind::Kill && g.morale.is_none() && !phased;
+        if geometric {
+            runs = g.runs.unwrap_or(2000);
+            let need = g.remaining.ceil().max(0.0) as u32;
+            for _ in 0..runs {
+                let (mut k, mut s) = (0, 0);
+                while k < need && s < max_sorties {
+                    s += 1;
+                    if rng.chance(kill_rate) {
+                        k += 1;
                     }
                 }
-            }
-            _ if !has_boss => {
-                runs = g.runs.unwrap_or(200);
-                warning = Some("gauge: no boss battle node in the map; nothing to estimate".to_string());
-                capped = runs;
-            }
-            _ => {
-                runs = g.runs.unwrap_or(200);
-                let final_set = match &g.final_comps {
-                    Some(c) if g.kind == GaugeKind::Hp => Some(CompSet::new("gauge.finalComps", c)?),
-                    _ => None,
-                };
-                let threshold = g.final_threshold.unwrap_or_else(|| {
-                    let sets: Vec<&CompSet> = match &final_set {
-                        Some(s) => vec![s],
-                        None => self.nodes.iter().filter(|n| n.boss).filter_map(|n| n.battle.as_ref().map(|b| &b.1)).collect(),
-                    };
-                    sets.iter().flat_map(|s| s.comps.iter().map(|c| c.flagship_max_hp)).max().unwrap_or(0) as f64
-                });
-                for _ in 0..runs {
-                    let mut remaining = g.remaining;
-                    let mut s = 0;
-                    let mut wait = 0.0;
-                    let mut m = init_morale.clone();
-                    let mut cleared = if g.kind == GaugeKind::Kill { remaining.ceil() <= 0.0 } else { remaining <= 0.0 };
-                    while !cleared && s < max_sorties {
-                        s += 1;
-                        let mor = g.morale.as_ref().map(|_| &mut m);
-                        if g.kind == GaugeKind::Kill {
-                            if let Some((rank, _, _)) = self.run_one(rng, None, None, mor) {
-                                if rank <= Rank::A {
-                                    remaining -= 1.0;
-                                }
-                            }
-                            cleared = remaining.ceil() <= 0.0;
-                        } else {
-                            let is_final = remaining <= threshold;
-                            let hp = remaining.ceil() as i32;
-                            let result = if is_final {
-                                match &final_set {
-                                    Some(set) => self.run_one(rng, Some((set, Some(hp))), None, mor),
-                                    None => self.run_final_default(rng, hp, mor),
-                                }
-                            } else {
-                                self.run_one(rng, None, None, mor)
-                            };
-                            if let Some((_, sunk, dmg)) = result {
-                                if is_final && sunk {
-                                    cleared = true;
-                                } else {
-                                    remaining -= dmg as f64;
-                                    if !is_final && remaining <= 0.0 {
-                                        cleared = true;
-                                    }
-                                    if is_final {
-                                        remaining = remaining.max(1.0);
-                                    }
-                                }
-                            }
-                        }
-                        if !cleared {
-                            if let Some(cfg) = &g.morale {
-                                wait += Self::wait_recover(&mut m, cfg);
-                            }
-                        }
-                    }
-                    if cleared {
-                        sorties.push(s);
-                        waits.push(wait);
-                    } else {
-                        capped += 1;
-                    }
+                if k >= need {
+                    sorties.push(s);
+                } else {
+                    capped += 1;
                 }
             }
-        }
-        sorties.sort_unstable();
-        let pct = |q: f64| -> Option<f64> {
-            if sorties.is_empty() {
-                None
+        } else if !has_boss {
+            runs = g.runs.unwrap_or(200);
+            warning = Some("gauge: no boss battle node in the map; nothing to estimate".to_string());
+            capped = runs;
+        } else {
+            runs = g.runs.unwrap_or(200);
+            let phases: Vec<PhaseRun> = if phased {
+                g.phases.iter().flatten().map(|p| self.phase_run(p.kind, p.remaining, &p.comps, &p.final_comps, p.final_threshold, p.phase, p.tank, p.tp_per_sortie)).collect::<Result<_, _>>()?
             } else {
-                let i = ((q * sorties.len() as f64).ceil() as usize).clamp(1, sorties.len()) - 1;
-                Some(sorties[i] as f64)
+                vec![self.phase_run(g.kind, g.remaining, &None, &g.final_comps, g.final_threshold, None, g.tank, g.tp_per_sortie)?]
+            };
+            let n = phases.len();
+            let base_phase = self.router.phase();
+            let empty = |ph: &PhaseRun| if ph.kind == GaugeKind::Kill { ph.remaining.ceil() <= 0.0 } else { ph.remaining <= 0.0 };
+            for _ in 0..runs {
+                let mut s = 0;
+                let mut wait = 0.0;
+                let mut m = init_morale.clone();
+                let mut spent = vec![0u32; n];
+                let mut idx = 0;
+                let mut remaining = phases[0].remaining;
+                let mut cleared = empty(&phases[0]);
+                loop {
+                    while cleared {
+                        idx += 1;
+                        if idx == n {
+                            break;
+                        }
+                        remaining = phases[idx].remaining;
+                        cleared = empty(&phases[idx]);
+                    }
+                    if idx == n || s >= max_sorties {
+                        break;
+                    }
+                    s += 1;
+                    spent[idx] += 1;
+                    let ph = &phases[idx];
+                    self.router.set_phase(ph.routing_phase.unwrap_or(base_phase + idx as f64));
+                    let mor = g.morale.as_ref().map(|_| &mut m);
+                    cleared = self.phase_sortie(ph, &mut remaining, rng, mor);
+                    if !(cleared && idx + 1 == n) {
+                        if let Some(cfg) = &g.morale {
+                            wait += Self::wait_recover(&mut m, cfg);
+                        }
+                    }
+                }
+                if idx == n {
+                    sorties.push(s);
+                    waits.push(wait);
+                    per_phase.push(spent);
+                } else {
+                    capped += 1;
+                }
             }
+            self.router.set_phase(base_phase);
+        }
+        let stats = |v: &mut Vec<u32>| {
+            v.sort_unstable();
+            let pct = |q: f64| (!v.is_empty()).then(|| v[((q * v.len() as f64).ceil() as usize).clamp(1, v.len()) - 1] as f64);
+            ((!v.is_empty()).then(|| v.iter().map(|&s| s as f64).sum::<f64>() / v.len() as f64), pct(0.5), pct(0.9))
         };
-        let expected = if sorties.is_empty() { None } else { Some(sorties.iter().map(|&s| s as f64).sum::<f64>() / sorties.len() as f64) };
+        let phase_stats = if phased {
+            let kinds: Vec<GaugeKind> = g.phases.iter().flatten().map(|p| p.kind).collect();
+            Some(
+                kinds
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, kind)| {
+                        let (expected_sorties, _, p90_sorties) = stats(&mut per_phase.iter().map(|r| r[i]).collect());
+                        PhaseSummary { kind, expected_sorties, p90_sorties }
+                    })
+                    .collect(),
+            )
+        } else {
+            None
+        };
+        let (expected, p50, p90) = stats(&mut sorties);
         waits.sort_by(|a, b| a.total_cmp(b));
         let waiting = g.morale.is_some() && !waits.is_empty();
         Ok((
@@ -868,11 +961,12 @@ impl Sortie {
                 kind: g.kind,
                 remaining: g.remaining,
                 expected_sorties: expected,
-                p50_sorties: pct(0.5),
-                p90_sorties: pct(0.9),
+                p50_sorties: p50,
+                p90_sorties: p90,
                 expected_wait_minutes: waiting.then(|| waits.iter().sum::<f64>() / waits.len() as f64),
                 p50_wait_minutes: waiting.then(|| percentile(&waits, 0.5)),
                 p90_wait_minutes: waiting.then(|| percentile(&waits, 0.9)),
+                phases: phase_stats,
                 capped_rate: if runs > 0 { capped as f64 / runs as f64 } else { 0.0 },
                 runs,
             },

@@ -540,9 +540,11 @@ export interface SortiePolicy {
 }
 
 export interface GaugeInput {
-  /** `kill`: a kill = boss battle with rank ≥ A. `hp`: boss flagship damage depletes the gauge. */
-  kind: "kill" | "hp";
-  /** Kills or HP remaining. */
+  /** `kill`: a kill = boss battle with rank ≥ A. `hp`: boss flagship damage depletes the gauge.
+   *  `tp`: transport gauge; each sortie gains the fleet's TP at the boss (S/SS full, A × 0.7
+   *  floored, else 0). Ignored when `phases` is given. */
+  kind: "kill" | "hp" | "tp";
+  /** Kills, HP or TP remaining. Ignored when `phases` is given. */
   remaining: number;
   /** HP gauge: boss comps of the final form (last dance). Default: the boss node's comps. */
   finalComps?: EnemyComp[];
@@ -557,6 +559,31 @@ export interface GaugeInput {
   /** Carry morale from sortie to sortie (full sortie simulation per run, also for `kill`; default
    *  `runs` becomes 200). Absent: every sortie starts from the input morale. */
   morale?: GaugeMorale;
+  /** `tp`: tank-force table of the event (KC3Kai `tpMultipliers.tankforce`): ship type and equipment
+   *  TP × 0.75 / 0.8 plus the tank equipment's own TP. Default: no tank force. */
+  tank?: TankType;
+  /** `tp`: TP of a full-rank sortie, replacing the table lookup (the A-rank scaling still applies). */
+  tpPerSortie?: number;
+  /** Several gauges of one map, cleared one after another within each run (full sortie simulation;
+   *  default `runs` 200). Sorties are counted over the whole run and `maxSorties` caps the run. When
+   *  present it replaces `kind` / `remaining` / `finalComps` / `finalThreshold` / `tank` / `tpPerSortie`. */
+  phases?: GaugePhase[];
+}
+
+export type TankType = "type1" | "type2" | "typeUnk";
+
+export interface GaugePhase {
+  kind: "kill" | "hp" | "tp";
+  remaining: number;
+  /** Boss comps of this gauge. Default: the boss node's comps. */
+  comps?: EnemyComp[];
+  finalComps?: EnemyComp[];
+  finalThreshold?: number;
+  /** Routing `phase` during this gauge. Default: the map's starting phase (`config.phase`, else
+   *  `routing.defaults.phase`, else 1) + the gauge's index. */
+  phase?: number;
+  tank?: TankType;
+  tpPerSortie?: number;
 }
 
 /** Wait between two sorties: at least `waitMinutes`, and until every ship reaches `untilMorale`
@@ -657,7 +684,7 @@ export interface NodeEffectsSummary {
 }
 
 export interface GaugeSummary {
-  kind: "kill" | "hp";
+  kind: "kill" | "hp" | "tp";
   remaining: number;
   /** Mean sorties to clear over the runs that cleared; null if no run cleared. */
   expectedSorties: number | null;
@@ -667,6 +694,8 @@ export interface GaugeSummary {
   expectedWaitMinutes?: number;
   p50WaitMinutes?: number;
   p90WaitMinutes?: number;
+  /** With `phases`: sorties spent in each gauge, over the cleared runs. */
+  phases?: { kind: "kill" | "hp" | "tp"; expectedSorties: number | null; p90Sorties: number | null }[];
   /** Runs that hit `maxSorties` without clearing. */
   cappedRate: number;
   runs: number;
