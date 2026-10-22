@@ -7,8 +7,8 @@ import { ESTIMATE_MIN_N } from "@shared/data/types";
 import type { EstimatedStat, EstimateRow } from "@shared/data/types";
 import { useAsync } from "../../data/useAsync";
 import { normalizeForSearch } from "../../fleet/catalog";
-import { Badge, Button, Card, Checkbox, EmptyState, S, Select, Stat, Table, Td, TextInput, Th, Thead, Tr, cx } from "../../ui";
-import { updateSettings, useSettings } from "../settings";
+import { ArrowDown, ArrowUp, RefreshCw, TriangleAlert } from "lucide-react";
+import { Button, Card, EmptyState, S, Select, Table, Td, TextInput, Th, Thead, Tr, cx } from "../../ui";
 import { DataError } from "../DataState";
 import { CONFIDENCE as CONF } from "./confidence";
 import { DensityPlot } from "./DensityPlot";
@@ -25,9 +25,10 @@ const Shift = ({ r }: { r: EstimateRow }) => {
   const d = r.mean - r.prior.value;
   const text = `${d >= 0 ? "+" : "−"}${f1(Math.abs(d))}`;
   return shifted(r) ? (
-    <Badge tone="warn" title="事前の値が 90% 信用区間の外">
-      {d >= 0 ? "↑" : "↓"} {text}
-    </Badge>
+    <span className="inline-flex items-center gap-0.5 text-warn-400 tabular-nums" title="事前の値が 90% 信用区間の外">
+      {d >= 0 ? <ArrowUp size={12} aria-hidden /> : <ArrowDown size={12} aria-hidden />}
+      {text}
+    </span>
   ) : (
     <span className="text-xs text-ink-400 tabular-nums">{text}</span>
   );
@@ -38,46 +39,47 @@ const weak = (r: EstimateRow) => r.n === 0 || r.sd > 0.8 * r.prior.sd;
 
 const ShipDetail = ({ name, shipId, rows, densityLoading }: { name: string; shipId: number; rows: EstimateRow[]; densityLoading: boolean }) => (
   <Card
+    className="flex min-h-0 flex-col"
+    bodyClassName="flex min-h-0 flex-1 flex-col gap-6 overflow-auto"
     title={
-      <span className="flex items-center gap-2">
+      <span className="flex items-baseline gap-2">
         {name}
-        <span className="text-xs font-normal text-ink-400">No.{shipId}</span>
+        <span className="text-xs font-normal text-ink-400 tabular-nums">No.{shipId}</span>
       </span>
     }
-    bodyClassName="flex flex-col gap-4"
   >
-    <div className="grid grid-cols-3 gap-2">
-      {rows.map((r) => (
-        <Stat
-          key={r.stat}
-          label={`${STAT_LABEL[r.stat]} (n=${r.n})`}
-          value={`${f1(r.mean)} ± ${f1(r.sd)}`}
-          sub={`事前: ${r.prior.value ?? "なし"}`}
-          subTone={shifted(r) ? "accent" : "muted"}
-        />
-      ))}
-    </div>
     {rows.map((r) => (
-      <section key={r.stat}>
-        <div className="mb-1 flex items-baseline justify-between gap-2">
-          <span className="flex items-center gap-2 text-sm font-semibold text-ink-100">
-            {STAT_LABEL[r.stat]}
-            {weak(r) && <Badge tone="neutral" title={r.n === 0 ? "観測なし" : "観測でほぼ絞れていない"}>不確実</Badge>}
+      <section key={r.stat} className="flex flex-col gap-1">
+        <div className="flex items-baseline gap-3">
+          <span className="w-10 shrink-0 text-xs text-ink-400">{STAT_LABEL[r.stat]}</span>
+          <span className="text-lg font-semibold text-ink-50 tabular-nums">
+            {f1(r.mean)} <span className="text-sm font-normal text-ink-400">± {f1(r.sd)}</span>
           </span>
-          <span className="text-xs text-ink-400 tabular-nums">
-            90% CI [{r.ci90[0]}, {r.ci90[1]}] · sd {f1(r.prior.sd)} → {f1(r.sd)}
+          <span className={cx("ml-auto text-xs tabular-nums", shifted(r) ? "text-warn-400" : "text-ink-400")} title="事前の値">
+            事前 {r.prior.value ?? "—"}
           </span>
         </div>
         {r.density ? (
           <DensityPlot density={r.density} ci90={r.ci90} mean={r.mean} priorValue={r.prior.value} label={STAT_LABEL[r.stat]} />
         ) : (
-          <p className="rounded-md bg-ink-900/70 px-3 py-4 text-center text-sm text-ink-400">{densityLoading ? S.common.loading : "—"}</p>
+          <p className="py-6 text-center text-sm text-ink-400">{densityLoading ? S.common.loading : "—"}</p>
         )}
+        <div className="flex items-center gap-3 text-xs text-ink-400 tabular-nums">
+          <span>n={r.n}</span>
+          <span>90% [{r.ci90[0]}, {r.ci90[1]}]</span>
+          {weak(r) && (
+            <span className="inline-flex items-center gap-1 text-warn-400" title={r.n === 0 ? "観測なし" : "観測でほぼ絞れていない"}>
+              <TriangleAlert size={12} aria-hidden />
+              絞れていない
+            </span>
+          )}
+        </div>
       </section>
     ))}
-    <div className="flex flex-wrap gap-3 text-xs text-ink-400">
+    <div className="flex flex-wrap gap-4 text-xs text-ink-400">
       <span><span className="mr-1 inline-block h-2 w-3 rounded-sm bg-accent-500/40" />事後</span>
       <span><span className="mr-1 inline-block w-3 border-t border-dashed border-ink-400 align-middle" />事前</span>
+      <span><span className="mr-1 inline-block h-3 w-0.5 bg-ink-50 align-middle" />平均</span>
     </div>
   </Card>
 );
@@ -85,7 +87,6 @@ const ShipDetail = ({ name, shipId, rows, densityLoading }: { name: string; ship
 type SortKey = "id" | "n" | "shift";
 
 export const EstimateTab = () => {
-  const settings = useSettings();
   const names = useAbyssalData();
   const [reload, setReload] = useState(0);
   const [query, setQuery] = useState("");
@@ -124,7 +125,7 @@ export const EstimateTab = () => {
   const detailRows = detail.data?.estimates.filter((r) => r.shipId === current);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:h-[calc(100vh-3.75rem)]">
       {list.error ? (
         <DataError error={list.error} onRetry={() => setReload((n) => n + 1)} />
       ) : list.loading && !all ? (
@@ -132,24 +133,25 @@ export const EstimateTab = () => {
       ) : !all || all.length === 0 ? (
         <EmptyState title="推定なし" />
       ) : (
-        <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_30rem]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_30rem]">
           <Card
+            className="flex min-h-0 flex-col"
             title={`推定値 (${rows.length})`}
             actions={
               <>
                 {list.data?.updatedAt && (
                   <span className="text-xs text-ink-400" title="最終推定">{formatShortDateTime(Date.parse(list.data.updatedAt))}</span>
                 )}
-                <Button size="sm" variant="ghost" onClick={() => setReload((n) => n + 1)} disabled={list.loading} title="サーバから取り直す" aria-label="再読み込み">
-                  ↻
+                <Button size="sm" variant="ghost" icon onClick={() => setReload((n) => n + 1)} disabled={list.loading} title="サーバから取り直す" aria-label="再読み込み">
+                  <RefreshCw size={14} aria-hidden />
                 </Button>
               </>
             }
-            bodyClassName="flex flex-col gap-3"
+            bodyClassName="flex min-h-0 flex-1 flex-col gap-3"
           >
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <TextInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="検索" aria-label="検索" className="w-36" />
-              <Select value={stat} onChange={(e) => setStat(e.target.value as EstimatedStat | "")} aria-label="ステータス" className="w-36">
+              <Select value={stat} onChange={(e) => setStat(e.target.value as EstimatedStat | "")} aria-label="ステータス" className="w-40">
                 <option value="">ステータス: すべて</option>
                 {(Object.keys(STAT_LABEL) as EstimatedStat[]).map((s) => (
                   <option key={s} value={s}>
@@ -167,22 +169,17 @@ export const EstimateTab = () => {
                 <option value="shifted">ずれあり</option>
                 <option value="enough">{`n ≥ ${ESTIMATE_MIN_N}`}</option>
               </Select>
-              <Checkbox
-                label="シミュに使う"
-                checked={settings.useEstimates}
-                onChange={(e) => updateSettings({ useEstimates: e.target.checked })}
-              />
             </div>
-            <Table className="max-h-[42rem]">
+            <Table className="min-h-0 flex-1">
               <Thead>
                 <tr>
                   <Th>敵艦</Th>
-                  <Th>ステータス</Th>
+                  <Th>能力</Th>
                   <Th>
                     <span title="API の値 (実測 > 推定 > 仮)">事前</span>
                   </Th>
                   <Th className="text-right">推定</Th>
-                  <Th className="text-right">90% CI</Th>
+                  <Th className="text-right">90%区間</Th>
                   <Th className="text-right">
                     <span title={`推定に効いた命中判定の数。n < ${ESTIMATE_MIN_N} は灰色でシミュレーションに使わない`}>観測数</span>
                   </Th>
@@ -198,7 +195,6 @@ export const EstimateTab = () => {
                         {first && (
                           <>
                             <span className="text-ink-50">{names.shipName(r.shipId)}</span>
-                            <span className="ml-1.5 text-xs text-ink-400">{r.shipId}</span>
                           </>
                         )}
                       </Td>

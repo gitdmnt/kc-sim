@@ -80,7 +80,7 @@ export const DensityPlot = ({
         {priorValue !== null && (
           <line x1={sx(priorValue)} x2={sx(priorValue)} y1={PAD.t} y2={base} className="stroke-ink-400" strokeDasharray="2 2" />
         )}
-        <line x1={sx(mean)} x2={sx(mean)} y1={PAD.t} y2={base} className="stroke-brass-400" strokeWidth={1.5} />
+        <line x1={sx(mean)} x2={sx(mean)} y1={PAD.t} y2={base} className="stroke-ink-50" strokeWidth={1.5} />
       </svg>
       <div className="relative h-4 text-xs leading-4 text-ink-300 tabular-nums" aria-hidden>
         {tickValues.map((t) => (

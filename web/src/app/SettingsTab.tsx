@@ -1,22 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { STORAGE_PREFIX } from "../fleet";
 import { getDataApi } from "../data/api";
-import { Card, ConfirmDialog, Button, NumberInput, S, useToast } from "../ui";
+import { Card, Checkbox, ConfirmDialog, Button, Field, NumberInput, S, useToast } from "../ui";
 import { getPresetStore } from "./fleet/presets";
 import { resetSettings, updateSettings, useSettings } from "./settings";
 
 type Action = "presets" | "settings" | "cache";
-
-const Row = ({ label, title, children }: { label: React.ReactNode; title?: string; children: React.ReactNode }) => (
-  <div className="flex min-h-11 items-center justify-between gap-3 py-1.5" title={title}>
-    <span className="text-sm text-ink-100">{label}</span>
-    {children}
-  </div>
-);
-
-const Toggle = ({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) => (
-  <input type="checkbox" aria-label={label} className="h-4 w-4 cursor-pointer accent-accent-500" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-);
 
 export const SettingsTab = () => {
   const settings = useSettings();
@@ -65,34 +55,41 @@ export const SettingsTab = () => {
   ];
 
   return (
-    <Card className="mx-auto max-w-2xl" bodyClassName="flex flex-col divide-y divide-ink-700 py-1">
-      <Row label="サーバの推定値を使う" title="観測 30 回以上の推定値">
-        <Toggle label="サーバの推定値を使う" checked={settings.useEstimates} onChange={(useEstimates) => updateSettings({ useEstimates })} />
-      </Row>
-      <Row label="観測を優先する遭遇数" title="これ以上の観測があるノードは KCNav ではなく観測の敵編成を使う">
-        <NumberInput className="w-24" value={settings.minObserved} min={1} max={100000} onChange={(minObserved) => updateSettings({ minObserved })} />
-      </Row>
-      {/* 普段は出撃タブの空状態から入る。オンのときは戻せるよう常に出す */}
-      {(import.meta.env.DEV || settings.useSampleState) && (
-        <Row label={S.settings.useSample}>
-          <Toggle label={S.settings.useSample} checked={settings.useSampleState} onChange={(useSampleState) => updateSettings({ useSampleState })} />
-        </Row>
-      )}
-      {DATA_ROWS.map((r) => (
-        <Row
-          key={r.action}
-          label={
-            <>
-              {r.label}
-              {r.count !== undefined && <span className="ml-2 text-ink-400 tabular-nums">{S.common.count(r.count)}</span>}
-            </>
-          }
-        >
-          <Button size="sm" variant={r.danger ? "danger" : "secondary"} onClick={() => setConfirm(r.action)}>
-            {r.button}
-          </Button>
-        </Row>
-      ))}
+    <Card bodyClassName="flex flex-col gap-6">
+      <section className="flex flex-col gap-3">
+        <h4 className="text-xs text-ink-400">シミュレーション</h4>
+        <Checkbox
+          label="サーバの推定値を使う"
+          hint="観測 30 回以上の推定値"
+          checked={settings.useEstimates}
+          onChange={(e) => updateSettings({ useEstimates: e.target.checked })}
+        />
+        <Field label="観測を優先する遭遇数" hint="これ以上の観測があるノードは KCNav ではなく観測の敵編成を使う" className="w-fit">
+          <NumberInput className="w-24" value={settings.minObserved} min={1} max={100000} onChange={(minObserved) => updateSettings({ minObserved })} />
+        </Field>
+        {/* 普段は出撃タブの空状態から入る。オンのときは戻せるよう常に出す */}
+        {(import.meta.env.DEV || settings.useSampleState) && (
+          <Checkbox label={S.settings.useSample} checked={settings.useSampleState} onChange={(e) => updateSettings({ useSampleState: e.target.checked })} />
+        )}
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h4 className="text-xs text-ink-400">{S.settings.data}</h4>
+        <ul className="grid grid-cols-[12rem_auto] items-center gap-x-4 gap-y-2">
+          {DATA_ROWS.map((r) => (
+            <li key={r.action} className="contents">
+              <span className="text-sm text-ink-100">
+                {r.label}
+                {r.count !== undefined && <span className="ml-2 text-ink-400 tabular-nums">{S.common.count(r.count)}</span>}
+              </span>
+              <Button size="sm" variant={r.danger ? "danger" : "secondary"} className="w-fit" onClick={() => setConfirm(r.action)}>
+                {r.danger && <Trash2 size={14} aria-hidden />}
+                {r.button}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       {confirm && (
         <ConfirmDialog
