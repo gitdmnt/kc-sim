@@ -22,7 +22,7 @@ export const ShipRow = ({ index, ship, onChange, onRemove }: Props) => {
   const mods = ship.luckMod + ship.hpMod + ship.aswMod;
 
   return (
-    <div className="grid grid-cols-[9.5rem_minmax(0,1fr)] gap-x-2 rounded-md border border-ink-600 bg-ink-800/90 px-2 py-1.5">
+    <div className="grid shrink-0 grid-cols-[9.5rem_minmax(0,1fr)] gap-x-2 rounded-md border border-ink-600 bg-ink-800/90 px-2 py-1">
       <div className="flex min-w-0 flex-col gap-1">
         <div className="flex items-center gap-1">
           <span className="w-3.5 shrink-0 text-center text-xs font-semibold tabular-nums text-ink-400" title={catalog.shipTypeName(ship.masterId)}>

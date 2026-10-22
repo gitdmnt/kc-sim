@@ -45,7 +45,7 @@ export const FleetPanel = ({ store, preset, select }: Props) => {
   };
 
   return (
-    <section className="flex min-w-0 flex-col gap-1.5">
+    <section className="flex min-w-0 flex-col gap-1.5 lg:min-h-0">
       <div className="flex h-7 items-center gap-1.5">
         <Select className="h-7! w-48 shrink-0 text-[13px]" value={preset?.id ?? ""} onChange={(e) => select(e.target.value)} aria-label={S.fleet.presets}>
           {!preset && <option value="">{blankPreset().name}</option>}
@@ -117,7 +117,8 @@ export const FleetPanel = ({ store, preset, select }: Props) => {
         {preset && <FleetStats preset={preset} />}
       </div>
 
-      <div className="flex flex-col gap-1">
+      {/* 6 隻とも装備枠が多い艦隊で画面に収まらないときだけ、この枠の中でスクロールする */}
+      <div className="flex flex-col gap-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         {ships.map((ship, i) => (
           <ShipRow
             key={i}
@@ -128,7 +129,7 @@ export const FleetPanel = ({ store, preset, select }: Props) => {
           />
         ))}
         {ships.length < MAX_SHIPS && (
-          <div className="flex items-center gap-1 rounded-md border border-dashed border-ink-500 bg-ink-800/50 px-2 py-1.5">
+          <div className="flex shrink-0 items-center gap-1 rounded-md border border-dashed border-ink-500 bg-ink-800/50 px-2 py-1">
             <span className="w-3.5 shrink-0 text-center text-xs font-semibold tabular-nums text-ink-500">{ships.length + 1}</span>
             <Combobox
               className="w-[calc(9.5rem-1.125rem)]"

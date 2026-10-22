@@ -44,7 +44,8 @@ const shot = async (name: string, opts: { fullPage?: boolean } = {}) => {
   await page.screenshot({ path: join(OUT, `${PREFIX}${name}.png`), fullPage: opts.fullPage ?? false });
   console.log("saved", `${PREFIX}${name}.png`);
 };
-const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).click();
+// 「出撃」はヘッダのタブとモード切り替えの両方にある。ヘッダが先
+const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).first().click();
 
 /** 結果パネルの実行情報 (title = "seed … · 秒") が変わり、進捗バーが消えるまで待つ */
 const meta = (p: Page) =>
@@ -163,6 +164,26 @@ try {
   await tab("設定");
   await page.waitForTimeout(200);
   await shot("12-settings");
+
+  // 最悪の高さ: 装備 5 枠の艦 6 隻 (第1艦隊の 1〜4 番艦を並べる)。枠の中だけスクロールし、ページは動かない
+  await tab("出撃");
+  await page.setViewportSize({ width: 1200, height: 710 });
+  await page.evaluate(() => {
+    const sel = localStorage.getItem("kcsim:selectedPreset")!;
+    const p = JSON.parse(localStorage.getItem(`kcsim:preset:${sel}`)!);
+    const ships = [0, 1, 2, 3, 0, 1].map((i) => p.ships[i]);
+    localStorage.setItem("kcsim:preset:worst", JSON.stringify({ ...p, id: "worst", name: "5枠×6", ships }));
+    localStorage.setItem("kcsim:selectedPreset", "worst");
+    localStorage.setItem("kcsim:workspace", JSON.stringify({ ...JSON.parse(localStorage.getItem("kcsim:workspace") ?? "{}"), mode: "sortie" }));
+  });
+  await page.reload();
+  await waitResult("");
+  await checkNoScroll("1200x710 six 5-slot ships");
+  await shot("workspace-1200-worst");
+  // さらに低い画面では艦の枠の中だけスクロールする
+  await page.setViewportSize({ width: 1024, height: 600 });
+  await page.waitForTimeout(300);
+  await checkNoScroll("1024x600 six 5-slot ships");
 
   // 狭いウィンドウ (800px 幅): 1 列に積んでページをスクロールする
   await page.setViewportSize({ width: 800, height: 900 });

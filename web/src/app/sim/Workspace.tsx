@@ -261,7 +261,7 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
   return (
     <>
       {toolbar && createPortal(bar, toolbar)}
-      <div className="grid grid-cols-1 gap-2 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_23rem] xl:grid-cols-[minmax(0,1fr)_25rem]">
+      <div className="grid grid-cols-1 gap-2 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_23rem] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_25rem]">
         {noMaster ? (
           poi.status === "waiting" ? (
             <EmptyState title={S.common.loading} />
