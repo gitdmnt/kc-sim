@@ -1,5 +1,6 @@
-# Production deploy on every push to main (docs/DEPLOY.md "Automatic deploy"): tests, pending D1 migrations,
-# the static map bundle from production D1, then `bun run deploy` (web build + wrangler deploy --env production).
+# Production deploy on every push to main (docs/DEPLOY.md "Automatic deploy"): tests, the static map bundle from
+# production D1, the web build, then pending D1 migrations, then `wrangler deploy --env production` (upload only).
+# Everything that can fail runs before the migration.
 name: deploy
 
 on:
@@ -54,14 +55,18 @@ jobs:
           (cd web && bun test)
           (cd server && bun run typecheck && bun test)
 
-      - name: Apply D1 migrations
-        working-directory: server
-        run: bun run migrate:remote
-
       - name: Export map bundle from production D1
         working-directory: server
         run: D1_REMOTE=1 bun run export:bundle
 
+      - name: Build web
+        working-directory: server
+        run: bun run build:web
+
+      - name: Apply D1 migrations
+        working-directory: server
+        run: bun run migrate:remote
+
       - name: Deploy
         working-directory: server
-        run: SKIP_WASM_BUILD=1 bun run deploy
+        run: bunx wrangler deploy --env production
