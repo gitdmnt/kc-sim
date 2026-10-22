@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --local --port 8787",
+    "dev": "mkdir -p ../web/dist && wrangler dev --local --port 8787",
+    "build:web": "cd ../web && bun install && bun run build",
     "migrate": "wrangler d1 migrations apply kc-sim --local",
     "migrate:remote": "wrangler d1 migrations apply kc-sim --remote --env production",
     "ingest": "bun scripts/ingest-all.ts",
@@ -24,8 +25,8 @@
     "aggregate:rebuild": "bun scripts/aggregate.ts rebuild",
     "estimate": "bun scripts/estimate.ts",
     "build:wasm": "cd ../sim-core && wasm-pack build --target web",
-    "deploy": "wrangler deploy --env production",
-    "deploy:check": "wrangler deploy --env production --dry-run --outdir .tmp/deploy"
+    "deploy": "bun run build:web && wrangler deploy --env production",
+    "deploy:check": "bun run build:web && wrangler deploy --env production --dry-run --outdir .tmp/deploy"
   },
   "dependencies": {
     "hono": "^4.13.13",

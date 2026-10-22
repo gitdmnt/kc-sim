@@ -7,7 +7,7 @@
 // all threads, so it includes miniflare's D1 object) across: startup until ready (the global scope runs here),
 // the first invocation, and the same invocation again (warm). cold − warm is what a fresh isolate adds.
 import { dlopen, FFIType, ptr } from "bun:ffi";
-import { cpSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Database } from "bun:sqlite";
@@ -108,6 +108,7 @@ const SCENARIOS: Scenario[] = [
 
 async function measure(s: Scenario) {
   const dir = await prepareState(!!s.estimatorWork);
+  mkdirSync(join(ROOT, "../web/dist"), { recursive: true }); // wrangler.toml [assets] needs it to exist
   const bin = join(ROOT, "node_modules/.bin/wrangler");
   const proc = Bun.spawn([bin, "dev", "--local", "--port", String(PORT), "--inspector-port", "9331", "--persist-to", dir, "--test-scheduled", "--log-level", "info"], {
     cwd: ROOT, stdout: "pipe", stderr: "pipe", env: { ...process.env, WRANGLER_SEND_METRICS: "false" },

@@ -2,6 +2,15 @@ name = "kc-sim"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
+# The web UI (web/, `bun run build:web`) as Workers Static Assets, inherited by [env.production]. A request that
+# matches a file is answered without running the worker (and is not billed as a worker request). Anything else runs
+# the worker: /api/* and /admin/* always do (run_worker_first, so no asset can shadow the API or skip the Access
+# check), and unknown paths get the app's JSON 404. No SPA fallback: the UI is one page and its tabs are not URLs.
+# `wrangler dev` / `deploy` need the directory to exist (the package scripts build or create it).
+[assets]
+directory = "../web/dist"
+run_worker_first = ["/api/*", "/admin/*"]
+
 # Top level = local development (`bun run dev`, `wrangler dev`). It cannot be deployed: the D1 id is a
 # placeholder. Production is [env.production] below (`wrangler deploy --env production`, docs/DEPLOY.md).
 
