@@ -63,19 +63,12 @@ export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps,
     <div className="flex flex-col gap-2">
       <svg
         viewBox={`${box.x} ${box.y} ${box.w} ${box.h}`}
-        className="w-full rounded-md border border-ink-600 bg-ink-950"
+        className="w-full rounded-md bg-ink-950"
         style={{ maxHeight: "34rem", aspectRatio: `${box.w} / ${box.h}` }}
         role="img"
         aria-label="海域マップ"
       >
         <defs>
-          <pattern id="kc-grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M20 0H0V20" fill="none" stroke="var(--color-ink-700)" strokeWidth={0.6} />
-          </pattern>
-          <pattern id="kc-grid-major" width="100" height="100" patternUnits="userSpaceOnUse">
-            <rect width="100" height="100" fill="url(#kc-grid)" />
-            <path d="M100 0H0V100" fill="none" stroke="var(--color-ink-600)" strokeWidth={0.8} />
-          </pattern>
           <marker id="kc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
             <path d="M0 0L10 5L0 10z" fill="var(--color-ink-400)" />
           </marker>
@@ -83,13 +76,6 @@ export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps,
             <path d="M0 0L10 5L0 10z" fill="var(--color-accent-500)" />
           </marker>
         </defs>
-        <rect x={box.x} y={box.y} width={box.w} height={box.h} fill="url(#kc-grid-major)" />
-        {/* 方位記号: 右下隅 (ノードは pad 40 の内側なので重ならない) */}
-        <g transform={`translate(${box.x + box.w - 10} ${box.y + box.h - 6})`} opacity={0.5} style={{ pointerEvents: "none" }} aria-hidden>
-          <path d="M0 -14L3.5 0L0 -3L-3.5 0Z" fill="var(--color-brass-500)" />
-          <text x={-10} y={-2} textAnchor="middle" fontSize={9} fontWeight={700} fill="var(--color-brass-400)">N</text>
-        </g>
-
         {edges.map((e) => {
           const a = pos.get(e.from);
           const b = pos.get(e.to);
@@ -115,7 +101,7 @@ export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps,
               strokeDasharray={dim ? "4 4" : undefined}
               markerEnd={hl || (edgeRates && rate) ? "url(#kc-arrow-hl)" : "url(#kc-arrow)"}
             />
-            {rate !== undefined && rate >= 0.005 && (
+            {rate !== undefined && rate >= 0.005 && !nodeBadges && (
               <text
                 x={(a.x! + b.x!) / 2}
                 y={(a.y! + b.y!) / 2 - 5}
@@ -149,7 +135,7 @@ export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps,
             >
               <title>{`${NODE_TYPE_LABEL[typeKey(n.type)]}${withComps.has(n.letter) && !edgeRates ? " · 敵編成データあり" : ""}`}</title>
               {n.isBoss && <circle r={R + 7} fill="none" stroke="var(--color-danger-500)" strokeWidth={2} strokeDasharray="3 3" />}
-              {isSel && <circle r={R + 4} fill="none" stroke="var(--color-brass-400)" strokeWidth={2.5} />}
+              {isSel && <circle r={R + 4} fill="none" stroke="var(--color-accent-400)" strokeWidth={2.5} />}
               {targets.has(n.letter) && !isSel && <circle r={R + 4} fill="none" stroke="var(--color-accent-500)" strokeWidth={2} />}
               <circle r={R} fill={color} stroke="var(--color-ink-950)" strokeWidth={2} />
               <text textAnchor="middle" dominantBaseline="central" fontSize={n.letter.length > 2 ? 12 : 14} fontWeight={700} fill="var(--color-ink-50)" style={{ pointerEvents: "none" }}>

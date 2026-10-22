@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from "react";
+import { TriangleAlert } from "lucide-react";
 import type { NodeSummary, SortieSummary } from "@sim-core";
 import { geometricSorties } from "../../sim/runner";
 import { compSourceLabel } from "../../sim/sortieAdapter";
-import { Badge, Tabs } from "../../ui";
-import { MapGraph } from "../map/MapGraph";
+import { StackedBar, Tabs } from "../../ui";
+import { MapGraph, NODE_COLOR, NODE_TYPE_LABEL, typeKey } from "../map/MapGraph";
 import { Assumptions } from "./Assumptions";
-import { DTable, DTr, Kpi, Mini, Num, RankLegend, StackedBar, Td, Th, pct, rankBar } from "./bars";
+import { DTable, DTr, Fact, Num, RateList, RateRow, Td, Th, pct, rankBar } from "./bars";
 import type { SortieOutcome } from "./requests";
 
 const num = (v: number | null | undefined, d = 1) => (v === null || v === undefined ? "—" : v.toFixed(d));
@@ -20,18 +21,6 @@ export const edgeRatesFromPaths = (paths: { path: string[]; rate: number }[]): M
     }
   }
   return m;
-};
-
-/** 出撃あたりの主要率。大破撤退はノードごとの大破撤退率の和 (1 出撃で撤退は 1 回)。 */
-const sortieRates = (s: SortieSummary) => {
-  const nodes = Object.values(s.nodes);
-  return {
-    clear: s.boss.killRate,
-    reach: s.boss.reachRate,
-    sWin: s.boss.reachRate * (s.boss.rankRates.SS + s.boss.rankRates.S),
-    heavy: nodes.reduce((t, n) => t + n.retreatHeavyRate, 0),
-    moderate: nodes.reduce((t, n) => t + n.retreatModerateRate, 0),
-  };
 };
 
 const NO_VISIT: NodeSummary = {
@@ -52,17 +41,33 @@ export const orderNodeRows = (nodes: Record<string, NodeSummary>, bosses: string
   return [...rows].sort((a, b) => start(a[0]) - start(b[0]) || b[1].reachRate - a[1].reachRate);
 };
 
-/** 結果がまだ無いときの主要指標の枠 */
-export const SortieKpis = ({ s }: { s?: SortieSummary }) => {
-  const r = s && sortieRates(s);
+/**
+ * 出撃あたりの主要率 (ボス到達 → 突破 → S 勝利、大破撤退) を同じ尺度の棒で上から並べる。
+ * ボス到達の棒はボス戦の勝敗で塗り分け、突破・S 勝利はその一部分。大破撤退はノードごとの和 (1 出撃で撤退は 1 回)。
+ */
+export const SortieRates = ({ s }: { s?: SortieSummary }) => {
   const v = (x: number | undefined) => (x === undefined ? "—" : pct(x));
+  const reach = s?.boss.reachRate ?? 0;
+  const ranks = s ? rankBar(s.boss.rankRates, reach) : [];
+  const heavy = s ? Object.values(s.nodes).reduce((t, n) => t + n.retreatHeavyRate, 0) : undefined;
+  const moderate = s ? Object.values(s.nodes).reduce((t, n) => t + n.retreatModerateRate, 0) : 0;
+  const sWin = ranks.slice(0, 2);
   return (
-    <div className="grid grid-cols-2 gap-1.5">
-      <Kpi label="突破" value={v(r?.clear)} title="ボスで A 勝利以上 (出撃あたり)" />
-      <Kpi label="ボス到達" value={v(r?.reach)} />
-      <Kpi label="S勝利" value={v(r?.sWin)} title="ボスで S 勝利以上 (出撃あたり)" />
-      <Kpi label="大破撤退" value={v(r?.heavy)} sub={r && r.moderate > 0.0005 ? `中破 ${pct(r.moderate)}` : undefined} />
-    </div>
+    <RateList>
+      <RateRow label="ボス到達" parts={ranks} value={v(s?.boss.reachRate)} />
+      <RateRow label="突破" title="ボスで A 勝利以上 (出撃あたり)" parts={ranks.slice(0, 3)} value={v(s?.boss.killRate)} />
+      <RateRow label="S勝利" title="ボスで S 勝利以上 (出撃あたり)" parts={sWin} value={v(s && sWin.reduce((t, p) => t + p.value, 0))} />
+      <RateRow
+        label="大破撤退"
+        title={moderate > 0.0005 ? `中破撤退 ${pct(moderate)}` : undefined}
+        parts={[
+          { label: "大破撤退", value: heavy ?? 0, color: "var(--color-hp-heavy)" },
+          { label: "中破撤退", value: moderate, color: "var(--color-hp-moderate)" },
+        ]}
+        value={v(heavy)}
+        tone={heavy !== undefined && heavy >= 0.1 ? "danger" : undefined}
+      />
+    </RateList>
   );
 };
 
@@ -71,6 +76,7 @@ type Detail = "nodes" | "graph" | "ships" | "notes";
 export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.ReactNode }) => {
   const { summary: s, data } = out;
   const [detail, setDetail] = useState<Detail>("nodes");
+  const nodeInfo = useMemo(() => new Map(data.detail.nodes.map((n) => [n.letter, n])), [data]);
   const bossLetters = data.detail.nodes.filter((n) => n.isBoss).map((n) => n.letter);
   const edgeRates = useMemo(() => edgeRatesFromPaths(s.paths), [s]);
   const badges = useMemo(() => {
@@ -80,8 +86,7 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
   }, [s]);
 
   const clear = s.gauge ?? null;
-  const geo = geometricSorties(s.boss.killRate);
-  const sorties = clear ? { mean: clear.expectedSorties, p50: clear.p50Sorties, p90: clear.p90Sorties } : geo;
+  const sorties = clear ? { mean: clear.expectedSorties, p50: clear.p50Sorties, p90: clear.p90Sorties } : geometricSorties(s.boss.killRate);
 
   // 経路が不確実なルールを持つノードを通る割合 (そのルールが実際に発火したかまでは分からない)
   const uncertain = useMemo(() => {
@@ -91,36 +96,36 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
   }, [s, out.uncertain]);
 
   const nodeRows = orderNodeRows(s.nodes, bossLetters);
+  const anyNight = nodeRows.some(([, n]) => n.nightRate >= 0.0005);
+  const maxRetreat = Math.max(0.0001, ...nodeRows.map(([, n]) => n.retreatHeavyRate));
+  const anyDamecon = s.friend.some((f) => f.damecon.usedRate >= 0.0005);
   const notes = out.assumptions.warnings.length;
 
   return (
     <>
-      <SortieKpis s={s} />
-      <div className="flex flex-col gap-1">
-        <StackedBar parts={rankBar(s.boss.rankRates)} height="h-3" />
-        <RankLegend rates={s.boss.rankRates} />
-      </div>
-      <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-        <Mini label="ボス旗艦撃沈" value={pct(s.boss.flagshipSunkRate)} title={`平均旗艦ダメージ ${num(s.boss.flagshipDamageMean)}`} />
-        <Mini label="味方撃沈" value={pct(s.sunkRate)} alert={s.sunkRate > 0.005} />
-        <Mini label="戦闘数" value={num(s.battlesMean, 2)} title={`平均 ${num(s.nodesMean, 2)} ノード`} />
-        <Mini label="燃料/弾薬" value={`${num(s.fuelUsedMean, 0)}/${num(s.ammoUsedMean, 0)}`} title="艦隊合計の平均 (出撃あたり)" />
-        <Mini
-          label={clear ? `周回 (${clear.kind === "hp" ? "HP" : "撃破"}ゲージ)` : "周回 (目安)"}
+      <SortieRates s={s} />
+
+      <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+        <Fact
+          label={clear ? `周回 (${clear.kind === "hp" ? "HP" : "撃破"}ゲージ)` : "周回"}
           value={num(sorties?.mean, 1)}
-          title={clear ? `${clear.runs} 回試行` : "1 / 突破率"}
+          sub={sorties ? `中央 ${sorties.p50} · 90% ${sorties.p90}` : undefined}
+          title={clear ? `${clear.runs} 回試行` : "1 / 突破率 (幾何分布)"}
         />
-        <Mini label="中央値" value={sorties ? String(sorties.p50) : "—"} />
-        <Mini label="90%点" value={sorties ? String(sorties.p90) : "—"} />
-        {uncertain.length > 0 ? (
-          <Mini
-            label="不確実ルート"
-            value={pct(uncertain.reduce((t, [, r]) => Math.max(t, r), 0))}
+        <Fact label="ボス旗艦撃沈" value={pct(s.boss.flagshipSunkRate)} title={`平均旗艦ダメージ ${num(s.boss.flagshipDamageMean)}`} />
+        <Fact label="戦闘" value={num(s.battlesMean, 2)} title={`平均 ${num(s.nodesMean, 2)} マス`} />
+        <Fact label="燃料 / 弾薬" value={`${num(s.fuelUsedMean, 0)} / ${num(s.ammoUsedMean, 0)}`} title="艦隊合計の平均 (出撃あたり)" />
+        {s.sunkRate >= 0.0005 && <Fact label="味方撃沈" value={pct(s.sunkRate)} tone="danger" />}
+        {uncertain.length > 0 && (
+          <Fact
+            icon={<TriangleAlert size={12} className="text-warn-400" aria-hidden />}
+            label="不確実な分岐を通過"
+            value={pct(uncertain[0][1])}
             title={uncertain.map(([l, r]) => `${l} ${pct(r)}`).join(", ")}
+            tone="warn"
           />
-        ) : clear && clear.cappedRate > 0 ? (
-          <Mini label="上限到達" value={pct(clear.cappedRate)} alert />
-        ) : null}
+        )}
+        {clear && clear.cappedRate > 0 && <Fact label="上限到達" value={pct(clear.cappedRate)} tone="danger" />}
       </div>
 
       <div className="flex items-center justify-between gap-2">
@@ -130,49 +135,67 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
           value={detail}
           onChange={setDetail}
           tabs={[
-            { id: "nodes", label: "ノード" },
+            { id: "nodes", label: "マス" },
             { id: "graph", label: "経路" },
             { id: "ships", label: "損耗" },
-            { id: "notes", label: notes ? `前提 ${notes}` : "前提" },
+            { id: "notes", label: "前提", hint: notes ? String(notes) : undefined },
           ]}
         />
         {meta}
       </div>
 
-      <div className="-mx-1 min-h-0 flex-1 overflow-auto px-1">
+      <div className="-mx-2 min-h-0 flex-1 overflow-auto px-2">
         {detail === "nodes" && (
           <DTable
             head={
               <>
-                <Th className="text-left">ノード</Th>
-                <Th>到達</Th>
-                <Th className="w-[38%] text-left">勝敗</Th>
-                <Th>夜戦</Th>
-                <Th>大破撤退</Th>
+                <Th className="w-12 text-left">マス</Th>
+                <Th className="text-left" title="棒の長さ = 到達率、色 = そのマスでの勝敗">
+                  到達・勝敗
+                </Th>
+                <Th className="w-16">到達</Th>
+                {anyNight && <Th className="w-14">夜戦</Th>}
+                <Th className="w-28" title="そのマスで大破撤退する割合 (出撃あたり)">
+                  大破撤退
+                </Th>
               </>
             }
           >
-            {nodeRows.map(([l, n]) => (
-              <DTr key={l}>
-                <Td
-                  className="font-medium whitespace-nowrap"
-                  title={out.compSets[l] ? `敵編成: ${compSourceLabel(out.compSets[l])}` : undefined}
-                >
-                  {l}
-                  {bossLetters.includes(l) && <Badge tone="danger" className="ml-1">ボス</Badge>}
-                  {out.uncertain.has(l) && <Badge tone="warn" className="ml-1" title="不確実なルーティングルール">?</Badge>}
-                </Td>
-                <Num main>{pct(n.reachRate)}</Num>
-                <Td>{n.battleRate > 0 ? <StackedBar parts={rankBar(n.rankRates)} height="h-2.5" /> : <span className="text-ink-500">—</span>}</Td>
-                <Num>{n.battleRate > 0 ? pct(n.nightRate) : "—"}</Num>
-                <Num alert={n.retreatHeavyRate > 0.01}>{pct(n.retreatHeavyRate)}</Num>
-              </DTr>
-            ))}
+            {nodeRows.map(([l, n]) => {
+              const info = nodeInfo.get(l);
+              const type = info ? typeKey(info.type) : "unknown";
+              return (
+                <DTr key={l}>
+                  <Td className="whitespace-nowrap" title={[NODE_TYPE_LABEL[type], out.compSets[l] && `敵編成: ${compSourceLabel(out.compSets[l])}`].filter(Boolean).join(" · ")}>
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: NODE_COLOR[type] }} aria-hidden />
+                      <span className={info?.isBoss ? "font-semibold text-ink-50" : "text-ink-200"}>{l === "Start" ? "S" : l}</span>
+                      {out.uncertain.has(l) && <TriangleAlert size={12} className="text-warn-400" aria-label="不確実な分岐" />}
+                    </span>
+                  </Td>
+                  <Td>
+                    <StackedBar
+                      parts={n.battleRate > 0 ? rankBar(n.rankRates, n.reachRate * n.battleRate) : [{ label: "到達", value: n.reachRate, color: "var(--color-ink-600)" }]}
+                    />
+                  </Td>
+                  <Num>{pct(n.reachRate)}</Num>
+                  {anyNight && <Num>{n.battleRate > 0 ? pct(n.nightRate) : "—"}</Num>}
+                  <Td>
+                    <span className="flex items-center gap-2">
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-full">
+                        <span className="block h-full rounded-full bg-hp-heavy" style={{ width: `${(n.retreatHeavyRate / maxRetreat) * 100}%` }} />
+                      </span>
+                      <span className={n.retreatHeavyRate >= 0.0005 ? "w-12 text-right tabular-nums text-ink-100" : "w-12 text-right tabular-nums text-ink-500"}>{pct(n.retreatHeavyRate)}</span>
+                    </span>
+                  </Td>
+                </DTr>
+              );
+            })}
           </DTable>
         )}
 
         {detail === "graph" && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <MapGraph
               nodes={data.detail.nodes}
               edges={data.detail.edges}
@@ -187,20 +210,25 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
               head={
                 <>
                   <Th className="text-left">経路</Th>
-                  <Th>割合</Th>
+                  <Th className="w-28" />
+                  <Th className="w-16">割合</Th>
                 </>
               }
             >
               {s.paths.slice(0, 20).map((p, i) => (
                 <DTr key={i}>
-                  <Td className="font-mono">{p.path.join("→")}</Td>
-                  <Num main>{pct(p.rate, 2)}</Num>
+                  <Td className="font-mono text-xs text-ink-200">{p.path.join(" ")}</Td>
+                  <Td>
+                    <StackedBar parts={[{ label: "割合", value: p.rate, color: "var(--color-ink-400)" }]} className="h-1.5" />
+                  </Td>
+                  <Num>{pct(p.rate, 1)}</Num>
                 </DTr>
               ))}
               {s.otherPathsRate > 0.0005 && (
                 <DTr>
                   <Td className="text-ink-400">その他</Td>
-                  <Num>{pct(s.otherPathsRate, 2)}</Num>
+                  <Td />
+                  <Num>{pct(s.otherPathsRate, 1)}</Num>
                 </DTr>
               )}
             </DTable>
@@ -212,30 +240,36 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
             head={
               <>
                 <Th className="text-left">艦</Th>
-                <Th>大破</Th>
-                <Th>中破</Th>
-                <Th>撃沈</Th>
-                <Th>受ダメ</Th>
-                <Th>修理HP</Th>
-                <Th>燃料</Th>
-                <Th>弾薬</Th>
-                <Th>ダメコン</Th>
+                <Th className="w-32 text-left" title="帰投時の状態 (撃沈・大破・中破)">
+                  損傷
+                </Th>
+                <Th className="w-14">大破</Th>
+                <Th className="w-14">撃沈</Th>
+                <Th className="w-16" title="帰投時に減っている HP の平均">
+                  修理HP
+                </Th>
+                {anyDamecon && <Th className="w-16">ダメコン</Th>}
               </>
             }
           >
             {s.friend.map((f, i) => (
               <DTr key={i}>
-                <Td className="max-w-24 truncate" title={out.friendNames[i]}>
+                <Td className="max-w-28 truncate text-ink-200" title={out.friendNames[i]}>
                   {out.friendNames[i]}
                 </Td>
-                <Num main>{pct(f.heavyRate)}</Num>
-                <Num>{pct(f.moderateRate)}</Num>
+                <Td>
+                  <StackedBar
+                    parts={[
+                      { label: "撃沈", value: f.sunkRate, color: "var(--color-hp-sunk)" },
+                      { label: "大破", value: f.heavyRate, color: "var(--color-hp-heavy)" },
+                      { label: "中破", value: f.moderateRate, color: "var(--color-hp-moderate)" },
+                    ]}
+                  />
+                </Td>
+                <Num>{pct(f.heavyRate)}</Num>
                 <Num alert={f.sunkRate > 0.005}>{pct(f.sunkRate)}</Num>
-                <Num>{f.damageTakenMean.toFixed(1)}</Num>
                 <Num>{f.hpMissingMean.toFixed(1)}</Num>
-                <Num>{f.fuelUsedMean.toFixed(1)}</Num>
-                <Num>{f.ammoUsedMean.toFixed(1)}</Num>
-                <Num>{pct(f.damecon.usedRate)}</Num>
+                {anyDamecon && <Num>{pct(f.damecon.usedRate)}</Num>}
               </DTr>
             ))}
           </DTable>
@@ -246,3 +280,4 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
     </>
   );
 };
+

@@ -31,16 +31,19 @@ it uses the static bundles; it fails if the 出撃 tab scrolls at 1280×800 or 1
 
 ## 出撃 workspace
 
-Header: tabs, then the workspace toolbar (海域, 難易度 for event maps, 出撃 / 単一戦闘 with node and enemy comp,
-条件 popover, 自動, 実行). Left: preset selector + ⋯ (name, HQ level, poi import, new / duplicate / IO / delete), a
-one-line fleet summary, one row per ship (equipment in two columns; mods, morale and stats behind ⋯). Right: the key
-rates (突破 = boss A+ per sortie, ボス到達, S勝利 = boss S+ per sortie, 大破撤退), rank bar, secondary numbers and
-detail tabs (nodes, route map, damage, assumptions).
+Header: tabs, then the workspace toolbar in the order of use, left to right: 海域 (+ 難易度 for event maps), 編成 (preset
+selector + ⋯: name, HQ level, poi import, new / duplicate / IO / delete), 出撃 / 単一戦闘 (with node and enemy comp),
+条件 (sliders icon), then 自動 (refresh icon) and 実行 (play icon + count, fills with progress). Left: a one-line fleet
+summary (icons: 制空, 速力, 索敵 Cn1–4, ドラム缶, 電探) and the six ships in a 2 × 3 grid like the game; each ship is a
+header (number, ship type, name, Lv) over one column of slots (equipment icon, name, ★, 熟練, 搭載); mods, morale and
+stats behind ⋯. Right: the key rates as bars on one 0–100% scale (ボス到達 colored by boss rank, 突破 = boss A+ per
+sortie, S勝利 = boss S+ per sortie, 大破撤退), secondary numbers, and detail tabs (マス: reach bar colored by rank and
+大破撤退 bar per node; 経路: route map with edge width = traversal rate; 損耗; 前提).
 
 Auto-run (`src/app/sim/useSimRun.ts`): while 自動 is on, every change to the simulated inputs (ships, equipment,
 map, difficulty, mode, conditions, estimate settings; not the preset name or note) re-runs 10,000 sorties/battles
 300 ms after the last change, cancelling the run in flight. 実行 runs the count chosen in 条件 (default 100,000).
-Old results are dimmed and a 2 px bar shows progress. The seed is fixed, so fleet variants are compared on the same
+Old results are dimmed and the 実行 button fills with progress. The seed is fixed, so fleet variants are compared on the same
 random stream. Map, mode, conditions and 自動 persist in `kcsim:workspace`, the preset in `kcsim:selectedPreset`.
 
 ## Design system

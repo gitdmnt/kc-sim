@@ -1,4 +1,5 @@
 import React from "react";
+import { Dices } from "lucide-react";
 import type { Formation, NightPolicy } from "@sim-core";
 import type { EnemyCompSet, MapNode, RoutingDoc } from "@shared/data/types";
 import type { PresetFormation } from "@shared/fleet/types";
@@ -57,7 +58,7 @@ export const fmtCount = (n: number) => (n >= 1_000_000 ? `${n / 1_000_000}M` : n
 
 const Group = ({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) => (
   <div className={className}>
-    <div className="mb-1 text-[13px] font-medium text-ink-200">{title}</div>
+    <div className="mb-1 text-xs text-ink-400">{title}</div>
     <div className="flex flex-col gap-1">{children}</div>
   </div>
 );
@@ -97,10 +98,10 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, battle
         </Select>
       </Field>
       <Field label="乱数シード">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <NumberInput className="w-full" min={0} max={2 ** 31} value={prefs.seed} onChange={(seed) => setPrefs({ seed })} />
-          <Button size="sm" onClick={() => setPrefs({ seed: Math.floor(Math.random() * 2 ** 31) })} title="ランダムなシード">
-            ⟳
+          <Button size="md" icon onClick={() => setPrefs({ seed: Math.floor(Math.random() * 2 ** 31) })} title="ランダムなシード" aria-label="ランダムなシード">
+            <Dices size={16} aria-hidden />
           </Button>
         </div>
       </Field>
@@ -221,7 +222,7 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, battle
 
       {battleNodes.length > 0 && (
         <>
-          <div className="col-span-3 border-t border-dashed border-ink-600" />
+          <div className="col-span-3 h-px bg-ink-800" />
           {battleNodes.map((n) => (
             <Field key={n.letter} label={`陣形 ${n.letter}`}>
               <Select
@@ -249,7 +250,7 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, battle
         </>
       )}
 
-      <div className="col-span-3 border-t border-dashed border-ink-600" />
+      <div className="col-span-3 h-px bg-ink-800" />
       {common}
     </div>
   );

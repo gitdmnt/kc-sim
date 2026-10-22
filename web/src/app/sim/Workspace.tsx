@@ -14,14 +14,14 @@ import { PresetMenu } from "../fleet/PresetMenu";
 import { usePresets } from "../fleet/presets";
 import { useIntentFor } from "../nav";
 import { updateSettings, useSettings } from "../settings";
-import { BattleKpis, BattleResults } from "./BattleResults";
+import { BattleRates, BattleResults } from "./BattleResults";
 import { Conditions, DIFF, defaultMapConfig, fmtCount } from "./Conditions";
 import type { MapConfig } from "./Conditions";
 import { usePrefs } from "./prefs";
 import type { SimMode } from "./prefs";
 import { battleRequest, loadFitBonuses, sortieRequest } from "./requests";
 import type { SimOutcome } from "./requests";
-import { SortieKpis, SortieResults } from "./SortieResults";
+import { SortieRates, SortieResults } from "./SortieResults";
 import { useSimRun } from "./useSimRun";
 
 /** 自動実行の回数と待ち時間。最も重い海域でも Worker の起動込みで数百 ms に収まる回数 */
@@ -319,9 +319,9 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
             ) : out?.kind === "battle" ? (
               <BattleResults out={out} meta={meta} shipName={shipName} />
             ) : mode === "sortie" ? (
-              <SortieKpis />
+              <SortieRates />
             ) : (
-              <BattleKpis />
+              <BattleRates />
             )}
           </div>
         </section>

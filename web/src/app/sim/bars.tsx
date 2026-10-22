@@ -1,119 +1,109 @@
 import React from "react";
 import type { Rank } from "@sim-core";
-import { cx } from "../../ui";
+import { StackedBar, cx } from "../../ui";
+import type { BarPart } from "../../ui";
 
 export const RANKS: Rank[] = ["SS", "S", "A", "B", "C", "D", "E"];
 export const RANK_COLOR: Record<Rank, string> = {
-  SS: "#e8cf7a", S: "var(--color-brass-500)", A: "var(--color-danger-500)", B: "var(--color-warn-600)", C: "#b8892a", D: "var(--color-ok-600)", E: "var(--color-accent-600)",
+  SS: "var(--color-rank-ss)",
+  S: "var(--color-rank-s)",
+  A: "var(--color-rank-a)",
+  B: "var(--color-rank-b)",
+  C: "var(--color-rank-c)",
+  D: "var(--color-rank-d)",
+  E: "var(--color-rank-e)",
 };
-
-export const StackedBar = ({
-  parts,
-  height = "h-7",
-}: {
-  parts: { label: string; value: number; color: string }[];
-  height?: string;
-}) => (
-  <div className={`flex w-full overflow-hidden rounded border border-ink-600 bg-ink-900 ${height}`}>
-    {parts.map((p) =>
-      p.value > 0 ? (
-        <div key={p.label} style={{ width: `${p.value * 100}%`, background: p.color }} title={`${p.label}: ${(p.value * 100).toFixed(2)}%`} />
-      ) : null
-    )}
-  </div>
-);
 
 export const pct = (v: number, digits = 1) => `${(v * 100).toFixed(digits)}%`;
 
 /** 表示上 0 (「0.0%」「0.0」「0」) か */
-const shownZero = (s: string) => /^0(\.0+)?%?$/.test(s);
+export const shownZero = (s: string) => /^0(\.0+)?%?$/.test(s);
 
-/** 勝敗ランクの凡例 (割合つき)。0% のランクは出さない。 */
-export const RankLegend = ({ rates }: { rates: Record<Rank, number> }) => (
-  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
-    {RANKS.map((k) => {
-      const v = pct(rates[k], 1);
-      return shownZero(v) ? null : (
-        <span key={k} className="flex items-center gap-1 text-ink-300">
-          <span className="inline-block h-2 w-2 rounded-sm" style={{ background: RANK_COLOR[k] }} />
-          {k} <span className="tabular-nums text-ink-50">{v}</span>
-        </span>
-      );
-    })}
-  </div>
+/** 勝敗ランクの区間。scale を掛けると「出撃あたり」などの割合になる。 */
+export const rankBar = (rates: Record<Rank, number>, scale = 1): BarPart[] =>
+  RANKS.map((k) => ({ label: k, value: rates[k] * scale, color: RANK_COLOR[k] }));
+
+export const STATE_PARTS = (s: { healthyRate: number; lightRate: number; moderateRate: number; heavyRate: number; sunkRate: number }): BarPart[] => [
+  { label: "無傷", value: s.healthyRate, color: "var(--color-hp-healthy)" },
+  { label: "小破", value: s.lightRate, color: "var(--color-hp-light)" },
+  { label: "中破", value: s.moderateRate, color: "var(--color-hp-moderate)" },
+  { label: "大破", value: s.heavyRate, color: "var(--color-hp-heavy)" },
+  { label: "撃沈", value: s.sunkRate, color: "var(--color-hp-sunk)" },
+];
+
+/**
+ * 主要な率の一覧: 見出し・棒・数値の 3 列。全行で同じ 0〜100% の尺度なので、行を上から読むと漏斗になる。
+ * 数値は右端の 1 列に揃える。
+ */
+export const RateList = ({ children }: { children: React.ReactNode }) => (
+  <div className="grid grid-cols-[4.5rem_minmax(0,1fr)_4.5rem] items-center gap-x-3 gap-y-1">{children}</div>
 );
 
-export const rankBar = (rates: Record<Rank, number>) => RANKS.map((k) => ({ label: k, value: rates[k], color: RANK_COLOR[k] }));
-
-/** 主要指標。結果パネルの上段に 2×2 で並べる。 */
-export const Kpi = ({ label, value, sub, title }: { label: string; value: string; sub?: React.ReactNode; title?: string }) => (
-  <div title={title} className="min-w-0 rounded-md border border-accent-500/25 bg-gradient-to-br from-accent-500/12 to-ink-900/60 px-3 py-1.5 shadow-[inset_3px_0_0_var(--color-accent-500)]">
-    <div className="flex items-baseline justify-between gap-2 text-xs text-ink-300">
-      <span className="truncate">{label}</span>
-      {sub && <span className="truncate text-ink-400">{sub}</span>}
-    </div>
-    <div className="text-[26px] leading-tight font-semibold tabular-nums text-ink-50">{value}</div>
-  </div>
+export const RateRow = ({ label, parts, value, title, tone }: { label: string; parts: BarPart[]; value: string; title?: string; tone?: "danger" }) => (
+  <>
+    <span className="truncate text-sm text-ink-300" title={title}>
+      {label}
+    </span>
+    <StackedBar parts={parts} />
+    <span className={cx("text-right text-lg font-semibold tabular-nums", tone === "danger" ? "text-danger-400" : "text-ink-50")}>{value}</span>
+  </>
 );
 
-/** 補助指標 (小)。 */
-export const Mini = ({ label, value, title, alert }: { label: string; value: string; title?: string; alert?: boolean }) => (
-  <div title={title} className="min-w-0">
-    <div className="truncate text-[11px] text-ink-400">{label}</div>
-    <div className={cx("truncate text-sm font-medium tabular-nums", alert ? "text-danger-400" : shownZero(value) ? "text-ink-400" : "text-ink-50")}>{value}</div>
+/** 補助の数値: 見出しと値を左右に。2 列のグリッドに並べる。 */
+export const Fact = ({ label, value, sub, title, tone, icon }: { label: string; value: string; sub?: string; title?: string; tone?: "danger" | "warn"; icon?: React.ReactNode }) => (
+  <div title={title} className="flex min-w-0 items-baseline gap-2">
+    <span className="flex min-w-0 items-center gap-1 truncate text-xs text-ink-400">
+      {icon}
+      {label}
+    </span>
+    <span className="flex-1" />
+    {sub && <span className="text-xs text-ink-500 tabular-nums">{sub}</span>}
+    <span className={cx("text-sm font-medium tabular-nums", tone === "danger" ? "text-danger-400" : tone === "warn" ? "text-warn-400" : "text-ink-50")}>{value}</span>
   </div>
 );
 
 // ---- 結果パネル内の詰めた表 ----
 
 export const DTable = ({ head, children }: { head: React.ReactNode; children: React.ReactNode }) => (
-  <table className="w-full border-collapse text-xs">
-    <thead className="sticky top-0 z-10 bg-ink-800 text-left text-[11px] text-ink-400">
-      <tr className="border-b border-ink-600">{head}</tr>
+  <table className="w-full border-collapse text-sm">
+    <thead className="sticky top-0 z-10 bg-ink-900 text-left text-xs text-ink-400">
+      <tr>{head}</tr>
     </thead>
     <tbody>{children}</tbody>
   </table>
 );
 
-export const Th = ({ children, className }: { children?: React.ReactNode; className?: string }) => (
-  <th className={cx("px-1.5 py-1 font-medium whitespace-nowrap", className ?? "text-right")}>{children}</th>
+export const Th = ({ children, className, title }: { children?: React.ReactNode; className?: string; title?: string }) => (
+  <th title={title} className={cx("px-2 py-1 font-normal whitespace-nowrap", className ?? "text-right")}>
+    {children}
+  </th>
 );
 
 export const DTr = ({ children, onClick, selected }: { children: React.ReactNode; onClick?: () => void; selected?: boolean }) => (
   <tr
     onClick={onClick}
-    className={cx(
-      "border-b border-ink-700/70 last:border-0",
-      onClick && "cursor-pointer hover:bg-ink-700/50",
-      selected && "bg-accent-500/10 shadow-[inset_2px_0_0_var(--color-accent-500)]"
-    )}
+    aria-selected={selected}
+    className={cx("border-t border-ink-800", onClick && "cursor-pointer hover:bg-ink-800", selected && "bg-accent-500/12")}
   >
     {children}
   </tr>
 );
 
 export const Td = ({ children, className, title }: { children?: React.ReactNode; className?: string; title?: string }) => (
-  <td title={title} className={cx("px-1.5 py-1 align-middle", className)}>
+  <td title={title} className={cx("h-7 px-2 align-middle", className)}>
     {children}
   </td>
 );
 
-/** 数値セル。主列 (`main`) は明るく、表示上 0 の値は薄く、`alert` は危険色。 */
-export const Num = ({ children, main, alert }: { children: string; main?: boolean; alert?: boolean }) => (
+/** 数値セル。表示上 0 の値は薄く、`alert` は危険色。 */
+export const Num = ({ children, alert, className }: { children: string; alert?: boolean; className?: string }) => (
   <td
     className={cx(
-      "px-1.5 py-1 text-right tabular-nums whitespace-nowrap",
-      shownZero(children) ? "text-ink-500" : alert ? "text-danger-400" : main ? "font-medium text-ink-50" : "text-ink-300"
+      "h-7 px-2 text-right tabular-nums whitespace-nowrap",
+      shownZero(children) ? "text-ink-500" : alert ? "text-danger-400" : "text-ink-100",
+      className
     )}
   >
     {children}
   </td>
 );
-
-export const STATE_PARTS = (s: { healthyRate: number; lightRate: number; moderateRate: number; heavyRate: number; sunkRate: number }) => [
-  { label: "無傷", value: s.healthyRate, color: "var(--color-ok-600)" },
-  { label: "小破", value: s.lightRate, color: "#b8892a" },
-  { label: "中破", value: s.moderateRate, color: "var(--color-warn-600)" },
-  { label: "大破", value: s.heavyRate, color: "var(--color-danger-600)" },
-  { label: "撃沈", value: s.sunkRate, color: "var(--color-ink-500)" },
-];
