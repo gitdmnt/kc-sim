@@ -23,8 +23,26 @@ SKIP_WASM_BUILD=1 bun run build   # reuse an existing ../sim-core/pkg
 Output (`../poi-plugin-sim-build`): `index.es`, `package.json` (`main: index.es`), `views/index.js`
 (the UI, wasm bytes embedded), `views/sim.worker.js` (the simulation worker), `i18n/`.
 
-Other commands: `bun test`, `bunx tsc --noEmit`, `bun dev` (stand-alone dev page using `dev/sampleState.json`),
-`bun run sample` (regenerate the sample state), `bun run screenshots` (needs the data API on :8787).
+Other commands: `bun test`, `bunx tsc --noEmit`, `bun run sample` (regenerate the sample state),
+`bun run screenshots` (needs the data API on :8787).
+
+## Layout and dev server
+
+The UI core does not depend on poi. Only the entry points differ:
+
+| Entry | Role |
+|---|---|
+| `src/KcsimApp.tsx` | UI root. Takes poi's `{ info, const }` as a prop; renders inside `.kcsim` |
+| `src/host.ts` | What differs per host: how the simulation worker is created, the default static-bundle URL. Entries call `setHost` |
+| `src/poi/index.tsx` | poi adapter (vite build entry): redux `connect`, `file://` worker and bundled `maps/`, inline CSS, `startCapture` exports |
+| `dev/server.ts`, `dev/main.tsx` | Stand-alone host on bun |
+
+`bun run dev` (port 5173; `--port N` or `PORT`) serves the UI without poi. It bundles `dev/main.tsx` and the worker
+with `Bun.build`, builds the CSS with the same PostCSS config as the poi build (Tailwind + `.kcsim` scope), and
+reloads the page when `src/`, `assets/`, `dev/` or `../sim-core/pkg` change. A build error replaces the page with the
+message. The poi state comes from `myState.json` (a dumped poi state, gitignored) or `dev/sampleState.json`; static
+map bundles are served from `../data-worker/dist/maps`. `import.meta.env.DEV` is true only here, which enables the
+設定 tab's 「合成データ投入」.
 
 ## Install into poi
 

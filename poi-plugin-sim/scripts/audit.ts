@@ -22,7 +22,7 @@ const findChromium = (): string => {
   throw new Error("no chromium");
 };
 
-const server = Bun.spawn(["bunx", "vite", "--port", String(PORT), "--strictPort"], { cwd: resolve(import.meta.dir, ".."), stdout: "pipe", stderr: "inherit" });
+const server = Bun.spawn(["bun", "dev/server.ts", "--port", String(PORT)], { cwd: resolve(import.meta.dir, ".."), stdout: "pipe", stderr: "inherit" });
 {
   const dec = new TextDecoder();
   for await (const c of server.stdout as any) if (dec.decode(c).includes("Local:")) break;

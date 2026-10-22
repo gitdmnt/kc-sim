@@ -1,5 +1,6 @@
 import wasmBytes from "@sim-core/sim_core_bg.wasm?bytes";
 import type { SortieSummary } from "@sim-core";
+import { getHost } from "../host";
 import type { InferOptions, PriorTable } from "../estimate/infer";
 import type { EstimateResult, Observation } from "../estimate/types";
 import type { Job, JobResult, SortieJob } from "./runner";
@@ -10,25 +11,6 @@ export interface SimHandle<T = JobResult[]> {
   /** Worker を終了して実行を打ち切る (promise は "cancelled" で reject) */
   cancel: () => void;
 }
-
-/**
- * Worker の作り方:
- * - 開発 (vite serve): vite の `?worker`。
- * - poi 本番: `views/sim.worker.js` を file:// URL で読む。poi のプラグインウィンドウは CSP が
- *   `script-src 'self' file://* 'unsafe-inline'` で、blob:/data: の Worker も、ページ内の
- *   WebAssembly コンパイル (unsafe-eval 無し) も禁止されている。file:// の Worker なら許可される
- *   (実機の poi 12.0.1 で確認)。ファイルはビルド時に vite.config.ts の emit-sim-worker が出力する。
- */
-const createWorker = async (): Promise<Worker> => {
-  if (import.meta.env.DEV) {
-    const mod = await import("./sim.worker?worker");
-    return new mod.default();
-  }
-  const dir = (typeof __dirname === "string" ? __dirname : "").replace(/\\/g, "/");
-  if (!dir) throw new Error("Worker の場所を特定できません (__dirname が未定義)");
-  const url = encodeURI(`file://${dir.startsWith("/") ? "" : "/"}${dir}/sim.worker.js`);
-  return new Worker(url);
-};
 
 const start = <T,>(
   request: Record<string, unknown>,
@@ -42,7 +24,7 @@ const start = <T,>(
     rejectFn = reject;
     let w: Worker;
     try {
-      w = worker = await createWorker();
+      w = worker = getHost().createSimWorker();
     } catch (e) {
       return reject(e);
     }

@@ -28,7 +28,7 @@ const findChromium = (): string => {
 
 mkdirSync(OUT, { recursive: true });
 
-const server = Bun.spawn(["bunx", "vite", "--port", String(PORT), "--strictPort"], {
+const server = Bun.spawn(["bun", "dev/server.ts", "--port", String(PORT)], {
   cwd: resolve(import.meta.dir, ".."),
   stdout: "pipe",
   stderr: "pipe",
@@ -38,7 +38,7 @@ const ready = (async () => {
   for await (const chunk of server.stdout as any) {
     if (dec.decode(chunk).includes("Local:")) return;
   }
-  throw new Error("vite exited");
+  throw new Error("dev server exited");
 })();
 await ready;
 
@@ -97,10 +97,8 @@ try {
 
   // 観測ログ: 戦闘を流し込んでから表示
   await page.evaluate(async () => {
-    const cap: any = await import(/* @vite-ignore */ "/src/capture/index.ts");
-    const fx: any = await import(/* @vite-ignore */ "/src/capture/fixtures.ts");
-    const fleetMod: any = await import(/* @vite-ignore */ "/src/fleet/index.ts");
-    const state: any = (await import(/* @vite-ignore */ "/dev/sampleState.json")).default;
+    // dev/main.tsx が公開する開発用の口
+    const { capture: cap, captureFixtures: fx, fleet: fleetMod, sampleState: state } = Reflect.get(window, "__kcsimDev");
     const db = new cap.ObservationDb();
     const ships = fleetMod.importFromPoi(state, 0).ships;
     let t = Date.now() - 3600_000;

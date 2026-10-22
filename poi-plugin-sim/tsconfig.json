@@ -29,5 +29,5 @@
       "@sim-core/*": ["../../sim-core/pkg/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "dev"]
 }

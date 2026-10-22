@@ -24,7 +24,7 @@ const findChromium = (): string => {
   throw new Error("chromium_headless_shell not found; set CHROMIUM_PATH");
 };
 
-const server = Bun.spawn(["bunx", "vite", "--port", String(PORT), "--strictPort"], {
+const server = Bun.spawn(["bun", "dev/server.ts", "--port", String(PORT)], {
   cwd: resolve(import.meta.dir, ".."),
   stdout: "pipe",
   stderr: "inherit",
@@ -33,7 +33,7 @@ const decoder = new TextDecoder();
 const reader = server.stdout.getReader();
 for (let buf = ""; !buf.includes("Local:"); ) {
   const { value, done } = await reader.read();
-  if (done) throw new Error("vite exited");
+  if (done) throw new Error("dev server exited");
   buf += decoder.decode(value);
 }
 

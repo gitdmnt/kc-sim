@@ -63,7 +63,7 @@ flowchart LR
 |---|---|---|
 | `sim-core/` | Rust → wasm のシミュレーションエンジン | テストが `../data-worker/seed/routing` を読む |
 | `data-worker/` | Cloudflare Worker + D1 (データ API、KCNav クローラ) | — |
-| `poi-plugin-sim/` | poi プラグイン (React) | `vite.config.ts` が `../sim-core` (wasm-pack) と `../data-worker/dist/maps` を使い、`../poi-plugin-sim-build` に出力 |
+| `poi-plugin-sim/` | poi プラグイン (React) | `vite.config.ts` (poi 向けビルド) が `../sim-core` (wasm-pack) と `../data-worker/dist/maps` を使い、`../poi-plugin-sim-build` に出力。開発サーバ (`bun run dev`) も同じものを使う |
 | `docs/` | 設計・API・検証ドキュメント | — |
 
 ローカル専用のもの (`data-worker/.wrangler` の D1、`.dev.vars`、`poi-plugin-sim/myState.json`、ビルド出力) は `.gitignore` 済みです。
@@ -126,7 +126,7 @@ ln -s /絶対パス/kc-sim/poi-plugin-sim-build node_modules/poi-plugin-sim-buil
 poi を再起動すると、プラグイン一覧に「シミュ」が現れます。設定タブの API ベース URL
 (既定 `http://127.0.0.1:8787`) をデータ基盤に合わせてください。
 
-開発用に、poi なしでブラウザで動かす場合は `cd poi-plugin-sim && bun dev` (同梱のサンプル艦隊で動作)。
+開発用に、poi なしでブラウザで動かす場合は `cd poi-plugin-sim && bun run dev` (http://localhost:5173、同梱のサンプル艦隊で動作。変更を保存すると自動で再読み込み)。
 
 ### テスト
 

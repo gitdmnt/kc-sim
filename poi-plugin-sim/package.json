@@ -27,7 +27,7 @@
     "react-redux": "^9.2.0"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "bun dev/server.ts",
     "build": "vite build",
     "build:wasm": "cd ../sim-core && wasm-pack build --target web",
     "sample": "bun scripts/gen-sample-state.ts",

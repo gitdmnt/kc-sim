@@ -104,60 +104,45 @@ const buildWasm = (): Plugin => ({
   },
 });
 
-// Worker (?worker&inline) は本体とは別のビルドパイプラインなので、同じエイリアス解決が必要。
-const worker = { format: "iife" as const, plugins: () => [tsconfigPaths()] };
-
-export default defineConfig(({ command }) => {
-  if (command === "serve") {
-    return {
-      plugins: [wasmBytes(), tsconfigPaths(), react()],
-      // 開発時の静的バンドルの場所 (data-worker で export:bundle 済みなら)
-      define: { __DEV_BUNDLE_BASE__: JSON.stringify(`/@fs${path.resolve(__dirname, "../data-worker/dist/maps")}`) },
-      worker,
-      server: { open: false, watch: {}, fs: { allow: [".."] } },
-    };
-  }
-
-  return {
-    plugins: [
-      wasmBytes(),
-      stripDefaultWasmUrl(),
-      tsconfigPaths(),
-      react({ jsxRuntime: "classic" }),
-      buildWasm(),
-      emitSimWorker(),
-      viteStaticCopy({
-        targets: [
-          { src: "index.es", dest: "." },
-          { src: "package.build.json", dest: ".", rename: "package.json" },
-          { src: "README.md", dest: "." },
-          // API に繋がらないときの代替 (静的マップバンドル)。data-worker で export:bundle 済みなら同梱する
-          ...(fs.existsSync(path.resolve(__dirname, "../data-worker/dist/maps"))
-            ? [{ src: "../data-worker/dist/maps", dest: "." }]
-            : []),
-          { src: "LICENSE.md", dest: "." },
-          { src: "i18n", dest: "." },
-        ],
-      }),
-    ],
-    worker,
-    build: {
-      outDir: DIST_DIR,
-      emptyOutDir: true,
-      minify: false,
-      cssCodeSplit: false,
-      lib: {
-        entry: path.resolve(__dirname, "src/plugin.ts"),
-        formats: ["cjs"],
-        fileName: () => "views/index.js",
-      },
-      rollupOptions: {
-        // poi が提供する React を使う
-        external: ["react", "react-dom"],
-        output: {
-          globals: { react: "React", "react-dom": "ReactDOM" },
-        },
+// vite は poi 向けのビルド専用。開発サーバは bun (dev/server.ts)。
+export default defineConfig({
+  plugins: [
+    wasmBytes(),
+    stripDefaultWasmUrl(),
+    tsconfigPaths(),
+    react({ jsxRuntime: "classic" }),
+    buildWasm(),
+    emitSimWorker(),
+    viteStaticCopy({
+      targets: [
+        { src: "index.es", dest: "." },
+        { src: "package.build.json", dest: ".", rename: "package.json" },
+        { src: "README.md", dest: "." },
+        // API に繋がらないときの代替 (静的マップバンドル)。data-worker で export:bundle 済みなら同梱する
+        ...(fs.existsSync(path.resolve(__dirname, "../data-worker/dist/maps"))
+          ? [{ src: "../data-worker/dist/maps", dest: "." }]
+          : []),
+        { src: "LICENSE.md", dest: "." },
+        { src: "i18n", dest: "." },
+      ],
+    }),
+  ],
+  build: {
+    outDir: DIST_DIR,
+    emptyOutDir: true,
+    minify: false,
+    cssCodeSplit: false,
+    lib: {
+      entry: path.resolve(__dirname, "src/poi/index.tsx"),
+      formats: ["cjs"],
+      fileName: () => "views/index.js",
+    },
+    rollupOptions: {
+      // poi が提供する React を使う
+      external: ["react", "react-dom"],
+      output: {
+        globals: { react: "React", "react-dom": "ReactDOM" },
       },
     },
-  };
+  },
 });

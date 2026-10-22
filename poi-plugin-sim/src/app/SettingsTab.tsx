@@ -51,7 +51,7 @@ export const SettingsTab = () => {
   const [seeding, setSeeding] = useState(false);
   const upload = useAutoUploadStatus();
 
-  // 開発用: runBattle のログから合成の観測を作る。vite dev のみ (本番ビルドでは三項演算ごと消える)。
+  // 開発用: runBattle のログから合成の観測を作る。開発サーバのみ (本番ビルドでは三項演算ごと消える)。
   // 静的 import するとメインスレッド用の wasm 初期化が本番バンドルに入るので、動的 import にしている。
   const seed = import.meta.env.DEV
     ? async () => {

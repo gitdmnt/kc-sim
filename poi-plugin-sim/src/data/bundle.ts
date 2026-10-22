@@ -1,3 +1,4 @@
+import { getHost } from "../host";
 import type { MapBundle } from "./types";
 
 /** 静的バンドル (`data-worker/dist/maps/{W-M}.json`, API.md §5) の読み込み口。 */
@@ -20,11 +21,5 @@ export class StaticBundleLoader implements MapBundleLoader {
   }
 }
 
-/** バンドルの置き場: 設定の URL があればそれ、無ければプラグイン同梱の `../maps` (file://)。 */
-export const defaultBundleBase = (configured: string): string => {
-  if (configured.trim()) return configured.trim();
-  if (typeof __DEV_BUNDLE_BASE__ === "string") return __DEV_BUNDLE_BASE__;
-  const dir = (typeof __dirname === "string" ? __dirname : "").replace(/\\/g, "/");
-  if (!dir) return "";
-  return encodeURI(`file://${dir.startsWith("/") ? "" : "/"}${dir}/../maps`);
-};
+/** バンドルの置き場: 設定の URL があればそれ、無ければ host の既定 (poi ならプラグイン同梱の maps/)。 */
+export const defaultBundleBase = (configured: string): string => configured.trim() || getHost().bundleBase;
