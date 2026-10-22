@@ -1,4 +1,4 @@
-// POST /api/v1/observations (docs/API.md §3) in two halves, so that each fits the Workers Free CPU budget:
+// POST /api/v1/observations (docs/API.md §3) in two halves, so that the request does bounded work:
 // - stageUpload (the request): one D1 batch in which SQLite checks the body's JSON and splits it into
 //   upload_items rows. The worker never parses the body.
 // - ingestPending (the cron, budgeted): per staged item size and schema checks, re-derivation and validation

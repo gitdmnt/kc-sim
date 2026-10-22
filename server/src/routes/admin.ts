@@ -1,15 +1,16 @@
 // Admin API (docs/API.md §4): KCNav queue control, routing uploads, poi-observed aggregation, the server
 // estimator, the scheduled jobs, clients and validation records. Behind Cloudflare Access (auth/access.ts).
-// Every endpoint fits the Workers Free CPU budget: job endpoints run one budgeted step (repeat until the
-// response reports nothing remaining), rebuilds and deletions only reset and leave the work to the cron.
+// Job endpoints are budgeted (src/budget.ts): /jobs/run, /ingest/run and /estimate/run run like the cron until
+// their queues are empty or the budget is spent; /aggregate/run and /kcnav/reparse run one step (repeat until the
+// response reports nothing remaining). Rebuilds and deletions only reset and leave the work to the cron.
 import { Hono } from "hono";
 import { requireAccess, type VerifyDeps } from "../auth/access";
 import { banClient } from "../auth/clients";
-import { Budget, TARGET_MS } from "../budget";
+import { Budget, PASS_MS, RUN_MS } from "../budget";
 import { bumpDataVersion } from "../cache";
 import type { Env } from "../env";
 import { estimatorBacklog, forgetClientObservations, resetShipsStatements, runEstimator } from "../estimator/job";
-import { runIngest, runScheduled, withJobsLease, type JobDeps } from "../jobs";
+import { runScheduled, withJobsLease, type JobDeps } from "../jobs";
 import { mapName, parseMapKey } from "../maps";
 import { enqueue } from "../kcnav/enqueue";
 import { reparseCached, tick } from "../kcnav/tick";
@@ -22,9 +23,9 @@ export interface AdminDeps extends JobDeps {
   access?: VerifyDeps;
 }
 
-/** `?budgetMs=` (cost-model CPU of one step; default TARGET_MS), or null when malformed. */
-const budgetParam = (v: string | undefined): number | null => {
-  if (v === undefined) return TARGET_MS;
+/** `?budgetMs=` (cost-model CPU; `fallback` when absent), or null when malformed. */
+const budgetParam = (v: string | undefined, fallback: number): number | null => {
+  if (v === undefined) return fallback;
   const n = Number(v);
   return Number.isFinite(n) && n > 0 && n <= 60_000 ? n : null;
 };
@@ -33,18 +34,19 @@ export function adminRoutes(deps: AdminDeps) {
   const app = new Hono<{ Bindings: Env }>();
   app.use("*", requireAccess(deps.access));
 
-  // One cron invocation on demand (src/jobs.ts): ingest, aggregation, estimator under one budget.
+  // One cron run on demand (src/jobs.ts): ingest, aggregation and the estimator in passes until the queues are
+  // empty or the run's budget (default RUN_MS) is spent.
   app.post("/jobs/run", async (c) => {
-    const budgetMs = budgetParam(c.req.query("budgetMs"));
+    const budgetMs = budgetParam(c.req.query("budgetMs"), RUN_MS);
     if (budgetMs === null) return c.json({ error: "budgetMs must be a number in (0, 60000]" }, 400);
-    return c.json(await runScheduled(c.env, deps, budgetMs));
+    return c.json(await runScheduled(c.env, deps, { budgetMs }));
   });
 
-  // Staged uploads only (ingest + aggregation, no estimator) under one budget.
+  // The same run without the estimator: staged uploads and aggregation only.
   app.post("/ingest/run", async (c) => {
-    const budgetMs = budgetParam(c.req.query("budgetMs"));
+    const budgetMs = budgetParam(c.req.query("budgetMs"), RUN_MS);
     if (budgetMs === null) return c.json({ error: "budgetMs must be a number in (0, 60000]" }, 400);
-    return c.json(await runIngest(c.env, deps.now(), new Budget(budgetMs)));
+    return c.json(await runScheduled(c.env, deps, { budgetMs, estimator: false }));
   });
 
   // Server estimator (docs/ESTIMATOR.md "Server job"). Body (all optional): {rebuild, shipIds, budgetMs}.
@@ -54,7 +56,7 @@ export function adminRoutes(deps: AdminDeps) {
     const { rebuild, shipIds, budgetMs } = parsed.data;
     const db = c.env.DB;
     if (rebuild) await db.batch(resetShipsStatements(db, shipIds ?? null));
-    const budget = new Budget(budgetMs ?? TARGET_MS);
+    const budget = new Budget(budgetMs ?? RUN_MS);
     const now = deps.now();
     const r = await withJobsLease(db, now, budget, () => runEstimator(db, { gridFn: deps.gridFn, budget, now }));
     return c.json({ busy: r === null, ...r, remaining: await estimatorBacklog(db), spentMs: Number(budget.spent.toFixed(2)) });
@@ -94,7 +96,7 @@ export function adminRoutes(deps: AdminDeps) {
 
   // poi-observed aggregation (docs/API.md §4): one budgeted step.
   app.post("/aggregate/run", async (c) => {
-    const budgetMs = budgetParam(c.req.query("budgetMs"));
+    const budgetMs = budgetParam(c.req.query("budgetMs"), PASS_MS);
     if (budgetMs === null) return c.json({ error: "budgetMs must be a number in (0, 60000]" }, 400);
     const now = deps.now();
     return c.json(await aggregatePending(c.env.DB, new Budget(budgetMs), () => new Date(now).toISOString()));
@@ -127,7 +129,7 @@ admin.post("/kcnav/enqueue", async (c) => {
 
 // One budgeted step; repeat with ?after=<next> until next is null.
 admin.post("/kcnav/reparse", async (c) => {
-  const budgetMs = budgetParam(c.req.query("budgetMs"));
+  const budgetMs = budgetParam(c.req.query("budgetMs"), PASS_MS);
   const after = Number(c.req.query("after") ?? 0);
   if (budgetMs === null || !Number.isInteger(after) || after < 0) return c.json({ error: "after must be a job id, budgetMs a number in (0, 60000]" }, 400);
   return c.json(await reparseCached(c.env, new Budget(budgetMs), after));

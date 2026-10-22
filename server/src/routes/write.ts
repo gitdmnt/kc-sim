@@ -68,7 +68,7 @@ export function writeRoutes(deps: WriteDeps) {
     // Validation, storage and aggregation run in the cron (src/jobs.ts); rejections land in observation_rejections.
     // The request does not ingest itself: uploads mostly land on fresh isolates, where the first ingest also pays
     // V8's compilation of the whole validation path (cold uploads measured 30 ms with it, 9 ms without, docs/DEPLOY.md
-    // §10), while the cron's isolate is reused every minute and pays it once.
+    // §10), while a cron run pays it once for every upload it ingests.
     return c.json({ queued: r.queued, duplicates: r.duplicates, pending: r.pending }, 202);
   });
 

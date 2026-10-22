@@ -137,7 +137,7 @@ export const enqueueRequest = z.object({
 export const estimateRunRequest = z.object({
   rebuild: z.boolean().optional(),
   shipIds: z.array(z.int().positive()).max(5000).optional(),
-  /** CPU budget of this run in the cost model (src/budget.ts); default TARGET_MS. More only on Workers Paid or locally. */
+  /** CPU budget of this run in the cost model (src/budget.ts); default RUN_MS. */
   budgetMs: z.number().positive().max(60_000).optional(),
 }).strict();
 

@@ -1,13 +1,13 @@
-// CPU budget of one invocation (docs/DEPLOY.md "CPU budget"). Workers Free stops an invocation after 10 ms of
-// CPU, and inside workerd neither Date.now() nor performance.now() advance while JavaScript runs, so a job cannot
-// time itself. Background work therefore counts its work units and charges each one with a cost per unit
-// measured on workerd (bench/calibrate.ts), rounded up. A job checks `fits` before a unit and stops when the
-// rest of the invocation would not fit; the queue keeps the remainder for the next invocation.
+// CPU budget of background work (docs/DEPLOY.md "CPU budget"). Inside workerd neither Date.now() nor
+// performance.now() advance while JavaScript runs, so a job cannot time itself. Background work therefore counts
+// its work units and charges each one with a cost per unit measured on workerd (bench/calibrate.ts), rounded up.
+// A job checks `fits` before a unit and stops when the rest of the run would not fit; the queue keeps the
+// remainder for the next run.
 
 /**
  * Milliseconds of workerd CPU per unit: local workerd on an Apple M-series machine (bench/calibrate.ts unit costs,
- * bench/run.ts whole invocations), rounded up to about 1.5× the measurement. Production machines may be slower;
- * the 5 ms target leaves the other half of the 10 ms limit as headroom.
+ * bench/run.ts whole invocations), rounded up to about 1.5× the measurement. Production cron runs measure 10–15×
+ * the model (docs/DEPLOY.md "Fresh isolates"); RUN_MS allows for that.
  */
 export const COST = {
   /** fixed part of a scheduled invocation (lease, queue probes, isolate overhead) */
@@ -51,22 +51,31 @@ export const COST = {
   summarizeShip: 0.7,
 } as const;
 
-/** D1 calls (queries / batches) a Workers Free invocation may make. */
-export const D1_CALLS_FREE = 50;
-
-/** Target CPU per invocation: half the Workers Free limit. */
-export const TARGET_MS = 5;
+/**
+ * Cost-model CPU of one jobs run (the hourly cron, POST /admin/jobs/run). Production measures 10–15× the model,
+ * so a full run is 6–9 s of real CPU, well under the 30 s `cpu_ms` limit (wrangler.toml).
+ */
+export const RUN_MS = 600;
 
 /**
- * Queue sizes reported by uploads and job runs are counted up to this many rows: COUNT(*) reads every row it
- * counts (D1 Free: 5 M rows read a day), and a backlog is just as actionable at "1000+".
+ * One pass over the stages inside a run (src/jobs.ts), so that ingest, aggregation and the estimator share a
+ * run; also the default budget of the single-step admin endpoints.
+ */
+export const PASS_MS = 50;
+
+/** D1 calls (queries / batches) of one run: Workers Paid allows 1000 D1 queries per invocation; 200 stay spare. */
+export const RUN_D1_CALLS = 800;
+
+/**
+ * Queue sizes reported by uploads and job runs are counted up to this many rows: COUNT(*) reads (and D1 bills)
+ * every row it counts, and a backlog is just as actionable at "1000+".
  */
 export const BACKLOG_COUNT_CAP = 1000;
 
 export class Budget {
   spent = 0;
   d1Calls = 0;
-  constructor(readonly limitMs: number = TARGET_MS, readonly d1Limit = D1_CALLS_FREE - 8) {}
+  constructor(readonly limitMs: number, readonly d1Limit = RUN_D1_CALLS) {}
 
   /** Whether `ms` more CPU and `calls` more D1 calls fit. */
   fits(ms: number, calls = 0): boolean {

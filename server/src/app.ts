@@ -8,7 +8,7 @@ import { writeRoutes } from "./routes/write";
 import { adminRoutes, type AdminDeps } from "./routes/admin";
 
 /** wrangler.toml [triggers] crons: the jobs (src/jobs.ts) run on this schedule; any other cron runs one KCNav step. */
-export const JOBS_CRON = "* * * * *";
+export const JOBS_CRON = "0 * * * *";
 
 /** `cache` replaces caches.default (tests). */
 export function createApp(deps: AdminDeps & { cache?: Cache }) {

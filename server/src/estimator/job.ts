@@ -390,7 +390,7 @@ const SUMMARY_COST = COST.summarizeShip + 2 * COST.gridIo + 2 * COST.d1Kb * GRID
  * Summarizes the dirty ships that fit, oldest change first, once nothing is queued (no staged uploads, pending
  * pairs or rolls) or some ship has been dirty for PUBLISH_EVERY_MS. Then every dirty ship goes, not only the
  * overdue ones, so under a steady stream the ships stay in one cycle and the data version is bumped in a few
- * consecutive runs every PUBLISH_EVERY_MS rather than once a minute. Returns how many.
+ * consecutive runs every PUBLISH_EVERY_MS rather than in every run. Returns how many.
  */
 async function summarizeStep(db: D1Database, budget: Budget, now: string, epsilon?: number): Promise<number> {
   const limit = Math.floor((budget.left - 3 * COST.d1Call) / SUMMARY_COST);

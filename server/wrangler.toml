@@ -61,13 +61,13 @@ ACCESS_TEAM_DOMAIN = ""
 ACCESS_AUD = ""
 # Secret, not a var: `wrangler secret put IP_HASH_SALT --env production`.
 
-# Workers Paid: CPU limit per invocation, set explicitly (the Paid default). The jobs cron's runs take ~25–80 ms of
-# production CPU (docs/DEPLOY.md §5, §10), well inside it.
+# Workers Paid: CPU limit per invocation, set explicitly (the Paid default). A jobs run stops at a cost-model budget
+# of 6–9 s of production CPU (src/budget.ts RUN_MS, docs/DEPLOY.md §5, §10), well inside it.
 [env.production.limits]
 cpu_ms = 30000
 
-# The jobs cron (src/app.ts JOBS_CRON, src/jobs.ts): every minute, staged uploads, aggregation and the estimator
-# under one cost-model budget (src/budget.ts; production runs measure 10–15× the model, docs/DEPLOY.md §10).
-# Another expression (5 cron triggers per account on Free, more on Paid) runs one KCNav step per tick instead.
+# The jobs cron (src/app.ts JOBS_CRON, src/jobs.ts): hourly, staged uploads, aggregation and the estimator in passes
+# until the queues are empty or the run's budget is spent (src/budget.ts; docs/DEPLOY.md §5).
+# Another expression (250 cron triggers per account on Paid) runs one KCNav step per tick instead.
 [env.production.triggers]
-crons = ["* * * * *"]
+crons = ["0 * * * *"]

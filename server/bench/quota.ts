@@ -1,5 +1,5 @@
 // D1 rows written per uploaded battle, end to end (stage, ingest, aggregation, estimator count / fold / summary),
-// for the Workers Free capacity estimate (docs/DEPLOY.md "Free plan capacity"). Counts the rows each statement
+// for the capacity estimate (docs/DEPLOY.md "Capacity"). Counts the rows each statement
 // changed per table, and the same weighted by 1 + the table's index count (D1 also bills index rows; an upper
 // bound, since an UPDATE only rewrites the indexes of the columns it changes).
 //
@@ -39,9 +39,9 @@ for (let i = 0; i < records.length; i += 60) {
   requests.uploads++;
   await call("POST", "/api/v1/observations", JSON.stringify({ observations: records.slice(i, i + 60).map(uploadItem) }), { Authorization: `Bearer ${token}` });
 }
-// the cron until every queue is empty (production budget per run; the last one finds nothing to do)
+// the hourly cron until every queue is empty (production budget per run; the last one finds nothing to do)
 for (let i = 0; i < 20_000; i++) {
-  clock += 60_000;
+  clock += 3_600_000;
   requests.jobs++;
   if ((await call("POST", "/admin/jobs/run")).idle) break;
 }

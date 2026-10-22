@@ -1,10 +1,12 @@
-// Background work under the Workers Free CPU limit (docs/DEPLOY.md "CPU budget"). One cron invocation per
-// minute runs the stages below under one cost-model budget (src/budget.ts) and one lease; each stage stops when
-// its next unit would not fit, and its queue keeps the rest for the next minute:
+// Background work (docs/DEPLOY.md §5 "Cron", "CPU budget"). The hourly cron runs the stages below in passes
+// under one cost-model budget per run (RUN_MS, RUN_D1_CALLS; src/budget.ts) and one lease. A pass gives each
+// stage a share of PASS_MS; each stage stops when its next unit would not fit:
 //   ingest (staged uploads → observations, ≤ 40 %), aggregation (≤ 30 %), estimator (the rest).
-// Upload requests only stage (routes/write.ts); stored observations appear with the next cron run.
+// Passes repeat until no queue has work, a pass gets nothing done, or the run's budget is spent; the queues keep
+// the rest for the next run. Upload requests only stage (routes/write.ts); stored observations appear with the
+// next cron run, within about an hour.
 import type { GridFn } from "../../shared/estimate/forward";
-import { Budget, COST, TARGET_MS } from "./budget";
+import { Budget, COST, PASS_MS, RUN_MS } from "./budget";
 import type { Env } from "./env";
 import { runEstimator, type EstimatorResult } from "./estimator/job";
 import { ingestPending, type IngestResult } from "./ingest/upload";
@@ -16,8 +18,11 @@ export interface JobDeps {
   now: () => number;
 }
 
-/** Longer than any invocation; a crashed holder blocks the jobs at most this long. */
-const LEASE_MS = 2 * 60_000;
+/**
+ * Longer than any run: a cron invocation ends after 15 min of wall time at most, and a run's ≤ RUN_D1_CALLS D1
+ * calls and ≤ ~10 s of CPU take far less. A crashed holder blocks the jobs at most this long.
+ */
+const LEASE_MS = 15 * 60_000;
 
 /** Runs `fn` while holding kv_state.jobs_lock_until; null when another invocation holds it. */
 export async function withJobsLease<T>(db: D1Database, now: number, budget: Budget, fn: () => Promise<T>): Promise<T | null> {
@@ -40,14 +45,18 @@ export interface JobsResult {
   ingest?: IngestResult;
   aggregation?: AggregateResult;
   estimator?: EstimatorResult;
-  /** cost-model CPU and D1 calls of this invocation */
+  /** passes over the stages (0 when idle or busy) */
+  passes: number;
+  /** cost-model CPU and D1 calls of this run */
   spentMs: number;
   d1Calls: number;
 }
 
+type Stages = Pick<JobsResult, "ingest" | "aggregation" | "estimator">;
+
 /**
  * Ingest and the aggregation fold under shares of what is left, between two passes over maps ready for
- * re-materialisation (rare, possibly most of a run: first with the whole budget, then with what is left so that
+ * re-materialisation (rare, possibly most of a pass: first with the whole budget, then with what is left so that
  * a burst that was just folded in shows up at once).
  */
 async function storeStages(db: D1Database, budget: Budget, now: number, ingestShare: number) {
@@ -76,27 +85,50 @@ async function hasWork(db: D1Database, budget: Budget): Promise<boolean> {
   return !!r?.work;
 }
 
-const done = (budget: Budget, r: Partial<JobsResult> & { busy: boolean }): JobsResult =>
-  ({ ...r, spentMs: Number(budget.spent.toFixed(2)), d1Calls: budget.d1Calls });
-
-/** The cron: every stage under one budget (default TARGET_MS) and the jobs lease. */
-export async function runScheduled(env: Env, deps: JobDeps, budgetMs: number = TARGET_MS): Promise<JobsResult> {
-  const budget = new Budget(budgetMs);
-  budget.charge(COST.invocation);
-  if (!(await hasWork(env.DB, budget))) return done(budget, { busy: false, idle: true });
-  const now = deps.now();
-  const r = await withJobsLease(env.DB, now, budget, async () => {
-    const stored = await storeStages(env.DB, budget, now, 0.4);
-    const eb = budget.slice(budget.left);
-    const estimator = await runEstimator(env.DB, { gridFn: deps.gridFn, budget: eb, now });
-    budget.absorb(eb);
-    return { ...stored, estimator };
-  });
-  return done(budget, { busy: r === null, ...r });
+/** Adds one pass to the run's totals: counts add up, map / ship lists merge, backlog sizes are the last pass's. */
+function addPass<T extends object>(total: T | undefined, pass: T): T {
+  if (!total) return pass;
+  const out: Record<string, unknown> = { ...(total as Record<string, unknown>) };
+  for (const [k, v] of Object.entries(pass)) {
+    const t = out[k];
+    if (t === undefined || k === "remaining" || k === "dirtyMaps") out[k] = v;
+    else if (typeof v === "number") out[k] = (t as number) + v;
+    else if (Array.isArray(v)) out[k] = [...new Set([...(t as number[]), ...v])].sort((a, b) => a - b);
+    else out[k] = addPass(t as object, v as object);
+  }
+  return out as T;
 }
 
-/** Ingest + aggregation (no estimator) under `budget`: POST /admin/ingest/run. */
-export async function runIngest(env: Env, now: number, budget: Budget): Promise<JobsResult> {
-  const r = await withJobsLease(env.DB, now, budget, () => storeStages(env.DB, budget, now, 0.6));
-  return done(budget, { busy: r === null, ...r });
+const done = (budget: Budget, passes: number, r: Partial<JobsResult> & { busy: boolean }): JobsResult =>
+  ({ ...r, passes, spentMs: Number(budget.spent.toFixed(2)), d1Calls: budget.d1Calls });
+
+/**
+ * One jobs run (the cron, POST /admin/jobs/run; without the estimator POST /admin/ingest/run): passes over the
+ * stages under the jobs lease until the queues are empty, a pass gets nothing done, or `budgetMs` (default
+ * RUN_MS) or RUN_D1_CALLS is spent.
+ */
+export async function runScheduled(
+  env: Env, deps: JobDeps, { budgetMs = RUN_MS, estimator = true }: { budgetMs?: number; estimator?: boolean } = {},
+): Promise<JobsResult> {
+  const db = env.DB;
+  const budget = new Budget(budgetMs);
+  budget.charge(COST.invocation);
+  if (!(await hasWork(db, budget))) return done(budget, 0, { busy: false, idle: true });
+  const now = deps.now();
+  let passes = 0;
+  const r = await withJobsLease(db, now, budget, async () => {
+    let total: Stages | undefined;
+    for (;;) {
+      const pass = budget.slice(PASS_MS);
+      const { ingest: i, aggregation: a } = await storeStages(db, pass, now, estimator ? 0.4 : 0.6);
+      const e = estimator ? await runEstimator(db, { gridFn: deps.gridFn, budget: pass, now }) : undefined;
+      budget.absorb(pass);
+      passes++;
+      total = addPass(total, { ingest: i, aggregation: a, ...(e && { estimator: e }) });
+      // a pass that moved no queue: what is left cannot progress in this run
+      const moved = i.ingested + i.duplicates + i.rejected + a.aggregated + a.failed + a.maps.length + (e ? e.observations + e.gridCalls + e.summarized : 0);
+      if (!moved || budget.left === 0 || !(await hasWork(db, budget))) return total;
+    }
+  });
+  return done(budget, passes, { busy: r === null, ...r });
 }
