@@ -4,9 +4,43 @@ import {
   dayBattle,
   legacyHougeki,
   listItemsTorpedo,
+  mapNext15J,
+  mapNextSelect,
+  mapStart15,
   midnightBattle,
 } from "./fixtures";
-import { extractAttackEvents, extractEnemy, splitDamage } from "./parser";
+import { extractAttackEvents, extractCellData, extractEnemy, extractMapCell, splitDamage } from "./parser";
+
+describe("map packets (api_req_map/start, next)", () => {
+  test("start: first cell without api_from_no", () => {
+    expect(extractMapCell(mapStart15)).toEqual({
+      no: 1, from: null, colorNo: 4, eventId: 4, eventKind: 1, bossCellNo: 12, next: 1, selectCells: null,
+    });
+  });
+  test("start: api_cell_data keeps every cell incl. the start and optional api_distance", () => {
+    const cells = extractCellData(mapStart15)!;
+    expect(cells.map((c) => c.no)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(cells[0]).toEqual({ no: 0, colorNo: 0, passed: 1, distance: null });
+    expect(cells[6]).toEqual({ no: 6, colorNo: 4, passed: 0, distance: 3 });
+    expect(cells[12]).toEqual({ no: 12, colorNo: 5, passed: 0, distance: null });
+  });
+  test("next: boss cell, terminal (api_next 0), api_from_no", () => {
+    expect(extractMapCell(mapNext15J)).toEqual({
+      no: 12, from: 7, colorNo: 5, eventId: 5, eventKind: 1, bossCellNo: 12, next: 0, selectCells: null,
+    });
+    expect(extractCellData(mapNext15J)).toBeNull();
+  });
+  test("next: active branching offers api_select_route cells", () => {
+    expect(extractMapCell(mapNextSelect)).toMatchObject({ no: 3, from: 2, eventId: 6, eventKind: 2, next: 2, selectCells: [5, 6] });
+  });
+  test("malformed packets", () => {
+    expect(extractMapCell(undefined)).toBeNull();
+    expect(extractMapCell({ api_maparea_id: 1 })).toBeNull();
+    expect(extractCellData({ api_cell_data: [{ api_no: 2 }, null, { api_color_no: 4 }] })).toEqual([
+      { no: 2, colorNo: null, passed: null, distance: null },
+    ]);
+  });
+});
 
 describe("splitDamage", () => {
   test("strips the .1 cover flag", () => {

@@ -26,6 +26,10 @@ export const pickSet = (sets: EnemyCompSet[], difficulty: number): { set: EnemyC
   return diffs.length ? { set: newest(diffs[0]), fallback: true } : undefined;
 };
 
+/** 編成データの出典表示: 自分たちの観測は「観測 (n=…)」、KCNav は「KCNav」。 */
+export const compSourceLabel = (set: Pick<EnemyCompSet, "source" | "totalCount">): string =>
+  set.source === "poi-observed" ? `観測 (n=${set.totalCount.toLocaleString()})` : set.source === "kcnav" ? "KCNav" : set.source;
+
 export const toSimComps = (
   set: EnemyCompSet,
   data: Pick<MapData, "ships" | "equips">,
@@ -126,6 +130,8 @@ export interface SortieBuild {
   friend: FriendBuild;
   enemyBuilds: EnemyBuild[];
   uncertain: Set<string>;
+  /** ノード → シミュレーションに使った編成セット (出典表示用) */
+  compSets: Record<string, EnemyCompSet>;
 }
 
 export const buildSortieInput = (
@@ -143,6 +149,7 @@ export const buildSortieInput = (
   if (friend.input.length === 0) throw new Error("味方艦がいません");
 
   const enemyBuilds: EnemyBuild[] = [];
+  const compSets: Record<string, EnemyCompSet> = {};
   const nodes: Record<string, SortieNode> = {};
   for (const n of data.detail.nodes) {
     nodes[n.letter] = { kind: (n.type ?? undefined) as SortieNode["kind"], boss: n.isBoss };
@@ -153,6 +160,7 @@ export const buildSortieInput = (
     if (picked.fallback) warnings.push(`ノード ${n.letter}: 難易度 ${s.difficulty} の編成が無く、難易度 ${picked.set.difficulty} で代替`);
     const { comps, builds } = toSimComps(picked.set, data, opts.apply);
     nodes[n.letter].comps = comps;
+    compSets[n.letter] = picked.set;
     enemyBuilds.push(...builds);
   }
 
@@ -187,5 +195,5 @@ export const buildSortieInput = (
     topPaths: opts.topPaths ?? 200,
     ...(gauge ? { gauge } : {}),
   };
-  return { input, warnings: [...warnings, ...friend.warnings], friend, enemyBuilds, uncertain: uncertainNodes(routing) };
+  return { input, warnings: [...warnings, ...friend.warnings], friend, enemyBuilds, uncertain: uncertainNodes(routing), compSets };
 };

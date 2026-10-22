@@ -179,7 +179,7 @@ export const MapTab = () => {
               <section>
                 <h4 className="mb-2 text-xs font-semibold text-ink-300">敵編成</h4>
                 {compNodes.has(node.letter) ? (
-                  <CompsPanel sets={md!.comps[node.letter] ?? []} names={names} />
+                  <CompsPanel sets={md!.comps[node.letter] ?? []} selection={md!.compSelection[node.letter]} names={names} />
                 ) : (
                   <p className="text-xs text-ink-400">このノードの敵編成データはありません。</p>
                 )}

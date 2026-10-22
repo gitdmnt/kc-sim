@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { FORMATION_NAME } from "../../data/routing";
-import type { CompShip, EnemyComp, EnemyCompSet } from "../../data/types";
+import type { CompSelection, CompShip, EnemyComp, EnemyCompSet } from "../../data/types";
+import { compSourceLabel } from "../../sim/sortieAdapter";
 import { Badge, ProgressBar, Select } from "../../ui";
 
 interface Names {
@@ -56,7 +57,22 @@ const Comp = ({ comp, names }: { comp: EnemyComp; names: Names }) => (
   </article>
 );
 
-export const CompsPanel = ({ sets, names }: { sets: EnemyCompSet[]; names: Names }) => {
+/** 「観測 (n=…)」/「KCNav」。KCNav のときは観測が閾値に届かなかった件数も添える。 */
+const CompSourceBadge = ({ set, selection }: { set: EnemyCompSet; selection?: CompSelection }) => {
+  const observed = set.source === "poi-observed";
+  const title = observed
+    ? `自分たちの観測 (poi) の集計。${set.periodStart?.slice(0, 10) ?? "?"} 以降`
+    : selection && selection.observedCount > 0
+      ? `観測 n=${selection.observedCount} が閾値 ${selection.minObserved} 未満のため KCNav を使用`
+      : "KCNav (TsunDB) の集計";
+  return (
+    <Badge tone={observed ? "ok" : "neutral"} className="ml-1.5" title={title}>
+      {compSourceLabel(set)}
+    </Badge>
+  );
+};
+
+export const CompsPanel = ({ sets, names, selection }: { sets: EnemyCompSet[]; names: Names; selection?: CompSelection[] }) => {
   const [difficulty, setDifficulty] = useState<number | null>(null);
   if (sets.length === 0) return <p className="text-xs text-ink-400">敵編成データがありません。</p>;
 
@@ -79,7 +95,8 @@ export const CompsPanel = ({ sets, names }: { sets: EnemyCompSet[]; names: Names
           </Select>
         )}
         <span>
-          {set.periodStart ?? "?"} 〜 {set.periodEnd ?? "現在"} / 試行 {set.totalCount.toLocaleString()} 回 / {set.source}
+          {set.periodStart?.slice(0, 10) ?? "?"} 〜 {set.periodEnd?.slice(0, 10) ?? "現在"} / 試行 {set.totalCount.toLocaleString()} 回
+          <CompSourceBadge set={set} selection={selection?.find((s) => s.difficulty === set.difficulty)} />
         </span>
       </div>
       {comps.map((c) => (

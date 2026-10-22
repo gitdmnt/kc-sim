@@ -3,8 +3,11 @@
  * 対応: api_opening_taisen / api_opening_atack / api_hougeki1-3 / api_raigeki / api_hougeki (夜戦) /
  *       api_n_hougeki1-2 (夜→昼) / api_kouku, api_kouku2, api_injection_kouku (stage3) / api_air_base_attack
  * 未対応 (生データは保存される): 支援艦隊, 基地航空隊の対潜, 連合艦隊の艦隊間インデックス補正の細部。
+ * 海域マス (api_req_map/start・next の api_no・api_cell_data) も取り出す (extractMapCell / extractCellData)。
  */
-import type { AttackEvent, AttackPhase, CapturedEnemy, CapturedEnemyShip, HitKind, Side } from "./types";
+import type {
+  AttackEvent, AttackPhase, CapturedCell, CapturedCellData, CapturedEnemy, CapturedEnemyShip, HitKind, Side,
+} from "./types";
 
 type RawEvent = Omit<AttackEvent, "seq">;
 
@@ -213,4 +216,39 @@ export const extractEnemy = (body: any): CapturedEnemy => {
     enemyFormation: num(formation[1]),
     engagement: num(formation[2]),
   };
+};
+
+// ---- 海域マス (api_req_map/start・next) ----
+
+/** ゲーム応答の 1 オブジェクト。未検証の JSON なので各値は num() などで確かめて使う。 */
+type Packet = Record<string, unknown>;
+const packet = (v: unknown): Packet | null => (v !== null && typeof v === "object" ? (v as Packet) : null);
+
+/** api_req_map/start・next の応答から到達マスを取り出す。api_no が無ければ null。 */
+export const extractMapCell = (body: unknown): Omit<CapturedCell, "battles"> | null => {
+  const b = packet(body);
+  const no = num(b?.api_no);
+  if (!b || no === null) return null;
+  const select = packet(b.api_select_route)?.api_select_cells;
+  return {
+    no,
+    from: num(b.api_from_no),
+    colorNo: num(b.api_color_no),
+    eventId: num(b.api_event_id),
+    eventKind: num(b.api_event_kind),
+    bossCellNo: num(b.api_bosscell_no),
+    next: num(b.api_next),
+    selectCells: Array.isArray(select) ? select.filter((x: unknown): x is number => typeof x === "number") : null,
+  };
+};
+
+/** api_req_map/start の api_cell_data (全マスの番号・色・通過済み)。無ければ null。 */
+export const extractCellData = (body: unknown): CapturedCellData[] | null => {
+  const list = packet(body)?.api_cell_data;
+  if (!Array.isArray(list)) return null;
+  return list.flatMap((item: unknown) => {
+    const c = packet(item);
+    const no = num(c?.api_no);
+    return !c || no === null ? [] : [{ no, colorNo: num(c.api_color_no), passed: num(c.api_passed), distance: num(c.api_distance) }];
+  });
 };

@@ -1,13 +1,15 @@
 import { DataApi, getDataApi } from "./api";
 import { StaticBundleLoader, defaultBundleBase } from "./bundle";
 import type { MapBundleLoader } from "./bundle";
-import type { ApiEquipment, EnemyCompSet, MapDetail, MapSummary, ShipDetail } from "./types";
+import type { ApiEquipment, CompSelection, EnemyCompSet, MapDetail, MapSummary, ShipDetail } from "./types";
 
 /** シミュレーションに必要な海域データ一式 (API か静的バンドルから)。 */
 export interface MapData {
   key: string;
   detail: MapDetail;
   comps: Record<string, EnemyCompSet[]>;
+  /** ノード → 難易度ごとの出典 (観測 n と KCNav のどちらを使ったか)。古い API・バンドルでは空 */
+  compSelection: Record<string, CompSelection[]>;
   ships: Map<number, ShipDetail>;
   equips: Map<number, ApiEquipment>;
   source: "api" | "bundle";
@@ -31,17 +33,19 @@ const shouldFallback = (e: unknown) => {
 
 export const loadMapData = async (
   key: string,
-  opts: { api?: DataApi; bundle?: MapBundleLoader; bundleBase?: string } = {}
+  opts: { api?: DataApi; bundle?: MapBundleLoader; bundleBase?: string; minObserved?: number } = {}
 ): Promise<MapData> => {
   const api = opts.api ?? getDataApi();
   try {
     const d = await api.map(key);
     const nodes = d.data.enemyCompNodes;
     const comps: Record<string, EnemyCompSet[]> = {};
+    const compSelection: Record<string, CompSelection[]> = {};
     let stale = d.stale;
-    const loaded = await Promise.all(nodes.map((n) => api.enemyComps(key, n)));
+    const loaded = await Promise.all(nodes.map((n) => api.enemyComps(key, n, opts.minObserved)));
     nodes.forEach((n, i) => {
       comps[n] = loaded[i].data.sets;
+      compSelection[n] = loaded[i].data.selection ?? [];
       stale ||= loaded[i].stale;
     });
     const ids = [...new Set(Object.values(comps).flatMap((sets) => sets.flatMap((s) => s.comps.flatMap((c) => [...c.main, ...c.escort].map((x) => x.shipId)))))];
@@ -62,6 +66,7 @@ export const loadMapData = async (
       key,
       detail: d.data,
       comps,
+      compSelection,
       ships,
       equips: new Map(eq.data.map((e) => [e.id, e])),
       source: "api",
@@ -76,6 +81,7 @@ export const loadMapData = async (
       key,
       detail: { map: b.map, nodes: b.nodes, edges: b.edges, routing: b.routing, enemyCompNodes: Object.keys(b.enemyComps) },
       comps: b.enemyComps,
+      compSelection: b.enemyCompSelection ?? {},
       ships: new Map(Object.entries(b.ships).map(([id, s]) => [Number(id), normalizeBundleShip(s as unknown)])),
       equips: new Map(Object.entries(b.equipments).map(([id, x]) => [Number(id), x])),
       source: "bundle",

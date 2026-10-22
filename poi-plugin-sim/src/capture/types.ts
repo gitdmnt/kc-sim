@@ -62,13 +62,84 @@ export interface CapturedMapInfo {
   area: number;
   mapNo: number;
   cellId: number;
-  /** 解決できた場合のノード名 (A, B...)。無ければ cellId の文字列 */
+  /**
+   * cellId の文字列。ノード名 (A, B…) はクライアントでは解決しない: サーバが edges (edge_id = 行き先の
+   * cell 番号) から引く (docs/API.md §3)。古い記録には解決済みの名前が入っていることがある。
+   */
   node: string;
   difficulty: number | null;
   eventId: number | null;
   eventKind: number | null;
   /** 出撃開始からのノード通し番号 */
   step: number;
+  /** この出撃の CapturedSortie.id。古い記録・出撃開始を取り逃した場合は無い */
+  sortieId?: string;
+  /** 出撃時の api_cell_data の api_no 一覧 (海域レイアウト)。不明なら無い */
+  layout?: number[];
+}
+
+/** api_req_map/start・next で到達したマス。 */
+export interface CapturedCell {
+  /** api_no */
+  no: number;
+  /** api_from_no (送られてくる場合のみ) */
+  from: number | null;
+  colorNo: number | null;
+  eventId: number | null;
+  eventKind: number | null;
+  /** api_bosscell_no */
+  bossCellNo: number | null;
+  /** api_next: 0 なら行き止まり (終端マス) */
+  next: number | null;
+  /** 能動分岐の選択肢 (api_select_route.api_select_cells) */
+  selectCells: number[] | null;
+  /** このマスの戦闘 (CapturedBattle.id、記録順) */
+  battles: string[];
+}
+
+/** api_req_map/start の api_cell_data の 1 要素。 */
+export interface CapturedCellData {
+  no: number;
+  colorNo: number | null;
+  passed: number | null;
+  distance: number | null;
+}
+
+/** boss: ボスマスで終了 / end_node: 行き止まりで終了 / retreat: 途中で帰投 / unknown: 終わりを見ていない */
+export type SortieEnd = "boss" | "end_node" | "retreat" | "unknown";
+
+/** 出撃時の艦隊の特徴 (ルート分岐の条件分析用)。 */
+export interface SortieFleetFeatures {
+  /** 艦種 (api_stype)。艦隊の並び順 */
+  stypes: number[];
+  escortStypes?: number[];
+  /** 艦隊速力 (最も遅い艦) */
+  speed: number | null;
+  /** 判定式(33) 分岐点係数 1-4 */
+  los: { cn1: number; cn2: number; cn3: number; cn4: number } | null;
+  hqLevel: number | null;
+}
+
+export interface CapturedSortie {
+  id: string;
+  startedAt: number;
+  updatedAt: number;
+  endedAt: number | null;
+  /** null は出撃中 */
+  endKind: SortieEnd | null;
+  map: string;
+  area: number;
+  mapNo: number;
+  difficulty: number | null;
+  deckId: number;
+  /** 母港の api_combined_flag (0 通常, 1 機動, 2 水上, 3 輸送)。不明なら null */
+  combined: number | null;
+  cellData: CapturedCellData[] | null;
+  cells: CapturedCell[];
+  fleet: CapturedFleet | null;
+  features: SortieFleetFeatures | null;
+  /** 1=未アップロード, 0=済 */
+  pending: 0 | 1;
 }
 
 /** 戦闘開始時の燃料・弾薬 (poi の api_fuel / api_bull と master の最大値)。 */

@@ -1,8 +1,11 @@
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import { beforeEach, describe, expect, test } from "bun:test";
-import { ObservationDb } from "./db";
-import { battleResult, dayBattle, mapNext, mapStart, midnightBattle } from "./fixtures";
+import { ObservationDb, STALE_SORTIE_MS } from "./db";
+import {
+  battle15, battleResult, dayBattle, mapNext, mapNext15D, mapNext15F, mapNext15G, mapNext15I, mapNext15J, mapStart,
+  mapStart15, midnightBattle,
+} from "./fixtures";
 import { CaptureSession, isBattlePath, isResultPath } from "./session";
 import type { CapturedFleet } from "./types";
 import { fleetSnapshot, startCapture, stopCapture } from "./plugin";
@@ -41,7 +44,6 @@ describe("CaptureSession + ObservationDb", () => {
     session = new CaptureSession({
       sink: db,
       getFleet: (d, c) => (calls.push([d, c]), fleet),
-      resolveNode: (_a, _m, cell) => (cell === 5 ? "B" : undefined),
       now: () => ++t,
       onError: (e) => {
         throw e;
@@ -57,7 +59,7 @@ describe("CaptureSession + ObservationDb", () => {
     await session.handle("/kcsapi/api_req_map/next", mapNext, {});
     await session.handle("/kcsapi/api_req_sortie/battle", dayBattle, {});
     await session.handle("/kcsapi/api_req_battle_midnight/battle", midnightBattle, {});
-    await session.handle("/kcsapi/api_port/port", {}, {}); // ignored
+    await session.handle("/kcsapi/api_port/port", { api_combined_flag: 0 }, {}); // ends the sortie
   };
 
   test("records map, fleet, enemy, raw, result", async () => {
@@ -73,7 +75,8 @@ describe("CaptureSession + ObservationDb", () => {
     expect(first.enemyMasterIds).toEqual([1501, 1502, 1503]);
     expect(first.raw).toEqual(dayBattle);
     expect(first.result).toMatchObject({ rank: "S", mvp: 2, dropShipId: 77 });
-    expect(all[1].map).toMatchObject({ node: "B", step: 2, cellId: 5 });
+    // no letters on the client: node is the raw cell id (the server resolves letters)
+    expect(all[1].map).toMatchObject({ node: "5", step: 2, cellId: 5 });
     expect(all[1].result).toBeUndefined();
     // night battle shares the visit with the day battle of the same node
     expect(all[2].visitId).toBe(all[1].visitId);
@@ -83,7 +86,7 @@ describe("CaptureSession + ObservationDb", () => {
 
   test("queries and events", async () => {
     await run();
-    expect(await db.listBattles({ map: "1-2", node: "B" })).toHaveLength(2);
+    expect(await db.listBattles({ map: "1-2", node: "5" })).toHaveLength(2);
     expect(await db.listBattles({ map: "1-2", node: "1" })).toHaveLength(1);
     expect(await db.listBattles({ map: "9-9" })).toHaveLength(0);
     expect(await db.listBattles({ limit: 1 })).toHaveLength(1);
@@ -101,11 +104,13 @@ describe("CaptureSession + ObservationDb", () => {
     expect(exported.events.length).toBeGreaterThan(20);
   });
 
-  test("combined battles request the escort fleet", async () => {
+  test("combined battles request the escort fleet; the port's combined flag drives the sortie snapshot", async () => {
+    await session.handle("api_port/port", { api_combined_flag: 1 });
     await session.handle("api_req_map/start", mapStart, { api_deck_id: "1" });
     await session.handle("api_req_combined_battle/battle", dayBattle, {});
     await session.handle("api_req_combined_battle/ec_battle", dayBattle, {});
-    expect(calls).toEqual([[1, true], [1, false]]);
+    expect(calls).toEqual([[1, true], [1, true], [1, false]]);
+    expect((await db.listSorties())[0].combined).toBe(1);
   });
 
   test("battle without a map start still records (map null)", async () => {
@@ -132,16 +137,21 @@ describe("CaptureSession + ObservationDb", () => {
     await expect(db.uploadPending("https://api.example/", opts)).rejects.toThrow("500");
     ok = true;
     bodies.length = 0;
-    expect(await db.uploadPending("https://api.example/", { ...opts, batchSize: 3 })).toBe(4);
+    expect(await db.uploadPending("https://api.example/", { ...opts, batchSize: 3 })).toBe(5);
     expect(bodies).toHaveLength(2);
     expect(bodies[0].url).toBe("https://api.example/api/v1/observations");
     expect(bodies[0].body.clientId).toBe("poi-test");
     expect(bodies[0].body.observations).toHaveLength(3);
     const o = bodies[0].body.observations[0];
     expect(Object.keys(o).sort()).toEqual(
-      ["clientObsId", "difficulty", "enemy", "fleet", "kind", "map", "node", "observedAt", "raw"].sort()
+      ["cell", "clientObsId", "difficulty", "enemy", "fleet", "kind", "map", "node", "observedAt", "raw"].sort()
     );
-    expect(o).toMatchObject({ map: "1-2", node: "1", difficulty: 3, kind: "battle" });
+    expect(o).toMatchObject({ map: "1-2", node: "1", cell: 1, difficulty: 3, kind: "battle" });
+    // battles first, then the finished sortie
+    expect(bodies[1].body.observations.map((x: any) => x.kind)).toEqual(["battle", "sortie"]);
+    const s = bodies[1].body.observations[1];
+    expect(s).toMatchObject({ map: "1-2", difficulty: 3, kind: "sortie", sortie: { endKind: "retreat", deckId: 1, combined: null } });
+    expect(s.sortie.cells.map((c: any) => [c.no, c.battles.length])).toEqual([[1, 1], [5, 2]]);
     expect(new Date(o.observedAt).toISOString()).toBe(o.observedAt);
     expect(o.raw.path).toBe("api_req_sortie/battle");
     expect(o.raw.raw).toEqual(dayBattle);
@@ -155,13 +165,95 @@ describe("CaptureSession + ObservationDb", () => {
   test("errors in sink never reject when no handler throws", async () => {
     const errors: unknown[] = [];
     const s = new CaptureSession({
-      sink: { saveBattle: async () => { throw new Error("boom"); }, saveResult: async () => {} },
+      sink: { saveBattle: async () => { throw new Error("boom"); }, saveResult: async () => {}, saveSortie: async () => {} },
       getFleet: () => null,
       onError: (e) => errors.push(e),
     });
     await s.handle("api_req_sortie/battle", dayBattle);
     await s.handle("api_req_sortie/battle", dayBattle);
     expect(errors).toHaveLength(2);
+  });
+
+  /** 1-5: Start → A(1) → D(4) → F(6) → G(7, 気のせい) → J(12, ボス)。戦闘は A, D, F, J。 */
+  const sortie15 = async (s = session) => {
+    await s.handle("/kcsapi/api_port/port", { api_combined_flag: 0 });
+    await s.handle("/kcsapi/api_req_map/start", mapStart15, { api_deck_id: "1", api_maparea_id: "1", api_mapinfo_no: "5" });
+    await s.handle("/kcsapi/api_req_sortie/battle", battle15([1501, 1502, 1503]), {});
+    await s.handle("/kcsapi/api_req_sortie/battleresult", battleResult);
+    for (const next of [mapNext15D, mapNext15F]) {
+      await s.handle("/kcsapi/api_req_map/next", next, { api_recovery_type: "0" });
+      await s.handle("/kcsapi/api_req_sortie/battle", battle15([1501, 1502]), {});
+      await s.handle("/kcsapi/api_req_sortie/battleresult", battleResult);
+    }
+    await s.handle("/kcsapi/api_req_map/next", mapNext15G, {});
+    await s.handle("/kcsapi/api_req_map/next", mapNext15J, {});
+    await s.handle("/kcsapi/api_req_sortie/battle", battle15([1530, 1501, 1502], 4), {});
+    await s.handle("/kcsapi/api_req_battle_midnight/battle", midnightBattle, {});
+    await s.handle("/kcsapi/api_req_sortie/battleresult", battleResult);
+  };
+
+  test("records the sortie: cells, cell data, battle links, boss end", async () => {
+    await sortie15();
+    // still in progress until the fleet is back in port: not uploadable yet
+    const [open] = await db.listSorties();
+    expect(open.endKind).toBeNull();
+    expect(await db.countPending(t)).toBe(5);
+    await session.handle("/kcsapi/api_port/port", { api_combined_flag: 0 });
+    const [s] = await db.listSorties("1-5");
+    expect(s).toMatchObject({ map: "1-5", area: 1, mapNo: 5, difficulty: null, deckId: 1, combined: 0, endKind: "boss", pending: 1 });
+    expect(s.cellData).toHaveLength(13);
+    expect(s.cellData![6]).toEqual({ no: 6, colorNo: 4, passed: 0, distance: 3 });
+    expect(s.cells.map((c) => [c.no, c.from, c.eventId, c.next])).toEqual([[1, null, 4, 1], [4, 1, 4, 2], [6, 4, 4, 2], [7, 6, 6, 1], [12, 7, 5, 0]]);
+    expect(s.cells.map((c) => c.battles.length)).toEqual([1, 1, 1, 0, 2]);
+    const battles = await db.listBattles({ map: "1-5" });
+    expect(s.cells.flatMap((c) => c.battles)).toEqual(battles.map((b) => b.id));
+    expect(battles[0].map).toMatchObject({ cellId: 1, node: "1", sortieId: s.id, layout: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] });
+    expect(s.fleet).toEqual(fleet);
+    expect(await db.countPending(t)).toBe(6);
+  });
+
+  test("end kinds: terminal cell vs retreat; a new start closes a sortie that never reached port", async () => {
+    await session.handle("api_req_map/start", mapStart15, { api_deck_id: "1" });
+    await session.handle("api_req_map/next", mapNext15D, {});
+    await session.handle("api_req_map/next", mapNext15F, {});
+    await session.handle("api_req_map/next", mapNext15I, {});
+    await session.handle("api_port/port", {});
+    await session.handle("api_req_map/start", mapStart15, { api_deck_id: "2" });
+    await session.handle("api_req_map/next", mapNext15D, {});
+    await session.handle("api_req_map/start", mapStart15, { api_deck_id: "1" });
+    const [terminal, retreat, open] = await db.listSorties();
+    expect(terminal.endKind).toBe("end_node");
+    expect(retreat).toMatchObject({ endKind: "retreat", deckId: 2 });
+    expect(retreat.cells.map((c) => c.no)).toEqual([1, 4]);
+    expect(open.endKind).toBeNull();
+  });
+
+  test("uploadPending sends sortie observations; stale open sorties go up as unknown", async () => {
+    await sortie15();
+    await session.handle("api_port/port", {});
+    await session.handle("api_req_map/start", mapStart15, { api_deck_id: "1" }); // left open
+    const bodies: any[] = [];
+    const fakeFetch = (async (_url: string, init: any) => {
+      bodies.push(JSON.parse(init.body));
+      return { ok: true, status: 200, statusText: "OK" };
+    }) as unknown as typeof fetch;
+    expect(await db.uploadPending("http://x", { fetch: fakeFetch, clientId: "c", now: () => t })).toBe(6);
+    const obs = bodies.flatMap((b) => b.observations);
+    const battle = obs.find((o: any) => o.kind === "battle");
+    expect(battle).toMatchObject({ map: "1-5", cell: 1, difficulty: 0, layout: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] });
+    expect(battle.raw.sortieId).toMatch(/^s-/);
+    const sortie = obs.find((o: any) => o.kind === "sortie");
+    expect(Object.keys(sortie).sort()).toEqual(["clientObsId", "difficulty", "fleet", "kind", "layout", "map", "observedAt", "sortie"]);
+    expect(sortie.sortie.endKind).toBe("boss");
+    expect(sortie.sortie.cells[4]).toEqual({
+      no: 12, from: 7, colorNo: 5, eventId: 5, eventKind: 1, bossCellNo: 12, next: 0, selectCells: null,
+      battles: [obs[3].clientObsId, obs[4].clientObsId],
+    });
+    expect(await db.countPending(t)).toBe(0);
+    expect(await db.countPending(t + STALE_SORTIE_MS)).toBe(1);
+    bodies.length = 0;
+    expect(await db.uploadPending("http://x", { fetch: fakeFetch, clientId: "c", now: () => t + STALE_SORTIE_MS })).toBe(1);
+    expect(bodies[0].observations[0].sortie).toMatchObject({ endKind: "unknown", endedAt: null });
   });
 });
 

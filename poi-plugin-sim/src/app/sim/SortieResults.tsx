@@ -1,9 +1,11 @@
 import React, { useMemo } from "react";
 import type { SortieSummary } from "@sim-core";
 import { geometricSorties } from "../../sim/runner";
+import { compSourceLabel } from "../../sim/sortieAdapter";
 import { Badge, Card, ProgressBar, Stat, Table, Td, Th, Thead, Tr, cx } from "../../ui";
 import { MapGraph } from "../map/MapGraph";
 import type { MapData } from "../../data/mapData";
+import type { EnemyCompSet } from "../../data/types";
 import { RANKS, RANK_COLOR, StackedBar, pct } from "./bars";
 
 export interface SortieRunMeta {
@@ -12,6 +14,8 @@ export interface SortieRunMeta {
   friendNames: string[];
   warnings: string[];
   uncertain: Set<string>;
+  /** ノード → 使った編成セット (出典バッジ用) */
+  compSets: Record<string, EnemyCompSet>;
   ms: number;
   seed: number;
 }
@@ -144,6 +148,11 @@ export const SortieResults = ({ run }: { run: SortieRunMeta }) => {
                   {l}
                   {l === bossNode && <Badge tone="danger" className="ml-1.5">ボス</Badge>}
                   {run.uncertain.has(l) && <Badge tone="warn" className="ml-1.5" title="不確実なルーティングルールあり">不確実</Badge>}
+                  {run.compSets[l] && (
+                    <Badge tone={run.compSets[l].source === "poi-observed" ? "ok" : "neutral"} className="ml-1.5" title="敵編成データの出典">
+                      {compSourceLabel(run.compSets[l])}
+                    </Badge>
+                  )}
                 </Td>
                 <Td className="text-right tabular-nums">{pct(n.reachRate)}</Td>
                 <Td className="text-right tabular-nums">{pct(n.battleRate)}</Td>

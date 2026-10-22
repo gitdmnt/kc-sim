@@ -113,14 +113,18 @@ export interface CompShip {
 
 export interface EnemyComp {
   id: number;
-  kcnavMasterId?: number;
+  kcnavMasterId?: number | null;
   formation: number | null;
   count: number;
   weight: number;
-  airpower: number[];
+  /** KCNav のみ。観測 (poi-observed) の編成は null */
+  airpower: number[] | null;
   lbasAirpower?: number[];
   main: CompShip[];
   escort: CompShip[];
+  /** poi-observed のみ: 最初・最後に観測した日時 */
+  firstSeen?: string;
+  lastSeen?: string;
 }
 
 export interface EnemyCompSet {
@@ -129,14 +133,28 @@ export interface EnemyCompSet {
   periodEnd: string | null;
   totalCount: number;
   retrievedAt: string;
+  /** "kcnav" | "poi-observed" (自分たちの観測の集計) など */
   source: string;
+  /** poi-observed のみ: 海域レイアウトの版と、このノードにまとめたマス番号 */
+  layout?: number;
+  cells?: number[];
   comps: EnemyComp[];
+}
+
+/** 難易度ごとの出典の選択 (観測数 ≥ minObserved なら poi-observed、でなければ KCNav)。 */
+export interface CompSelection {
+  difficulty: number;
+  source: string | null;
+  observedCount: number;
+  minObserved: number;
 }
 
 export interface EnemyCompsResponse {
   map: string;
   node: string;
   sets: EnemyCompSet[];
+  minObserved?: number;
+  selection?: CompSelection[];
 }
 
 // ---- ships / equipment ----
@@ -220,8 +238,9 @@ export interface MapBundle {
   nodes: MapNode[];
   edges: MapEdge[];
   routing: RoutingDoc | null;
-  /** node letter → newest set per difficulty */
+  /** node letter → API と同じ出典ポリシーで選んだ set (難易度ごと) */
   enemyComps: Record<string, EnemyCompSet[]>;
+  enemyCompSelection?: Record<string, CompSelection[]>;
   /** 平坦な `Ship & {estimates, best}` (API.md §5)。ShipDetail 形にも対応 */
   ships: Record<string, ShipDetail | (ShipDetail["ship"] & Pick<ShipDetail, "estimates" | "best">)>;
   equipments: Record<string, ApiEquipment>;

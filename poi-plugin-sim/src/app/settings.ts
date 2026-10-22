@@ -13,6 +13,8 @@ export interface Settings {
   useEstimates: boolean;
   /** 観測データを自動でデータ API (D1) に送信する (メインウィンドウの capture/autoUpload が読む) */
   autoUpload: boolean;
+  /** 敵編成: 自分たちの観測 (poi-observed) をこの遭遇数以上で KCNav より優先する (API の minObserved) */
+  minObserved: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -22,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   clientId: "",
   useEstimates: false,
   autoUpload: true,
+  minObserved: 30,
 };
 
 const KEY = `${STORAGE_PREFIX}settings`;

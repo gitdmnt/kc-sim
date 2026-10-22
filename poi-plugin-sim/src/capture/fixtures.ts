@@ -153,3 +153,91 @@ export const battleResult = {
   api_mvp: 2,
   api_get_ship: { api_ship_id: 77, api_ship_name: "x" },
 };
+
+// ---- 海域 (api_req_map/start・next) ----
+// 1-5 の実パケット形式に合わせて組んだもの。マス番号は KC3 edges と同じ (edge_id = 行き先の api_no):
+// 0 Start, 1 A, 2 B, 3 C, 4 D, 5 E, 6 F, 7 G, 8 H, 9 I, 10/11/12 J (ボス、経路ごとに別番号)。
+// api_cell_data の api_id は海域ごとの通し ID でキャプチャでは使わない。api_distance は基地航空隊の
+// ある海域でだけ付く (ここでは一部にだけ付けて欠落も確かめる)。
+
+const CELL_COLORS_15 = [0, 4, 90, 4, 4, 4, 4, 90, 4, 4, 5, 5, 5];
+
+/** api_req_map/start (1-5、A マスへ)。api_from_no は付かない。 */
+export const mapStart15 = {
+  api_cell_data: CELL_COLORS_15.map((color, no) => ({
+    api_id: 1500 + no,
+    api_no: no,
+    api_color_no: color,
+    api_passed: no <= 4 ? 1 : 0,
+    ...(no === 6 ? { api_distance: 3 } : {}),
+  })),
+  api_rashin_flg: 1,
+  api_rashin_id: 2,
+  api_maparea_id: 1,
+  api_mapinfo_no: 5,
+  api_no: 1,
+  api_color_no: 4,
+  api_event_id: 4,
+  api_event_kind: 1,
+  api_next: 1,
+  api_bosscell_no: 12,
+  api_bosscomp: 0,
+  api_airsearch: { api_plane_type: 0, api_result: 0 },
+  api_e_deck_info: [{ api_kind: 1, api_ship_ids: [1501, 1502, 1503] }],
+  api_limit_state: 0,
+};
+
+const next15 = (no: number, from: number, extra: Record<string, unknown>) => ({
+  api_rashin_flg: 1,
+  api_rashin_id: 1,
+  api_maparea_id: 1,
+  api_mapinfo_no: 5,
+  api_no: no,
+  api_from_no: from,
+  api_comment_kind: 0,
+  api_production_kind: 0,
+  api_bosscell_no: 12,
+  api_bosscomp: 0,
+  api_airsearch: { api_plane_type: 0, api_result: 0 },
+  api_limit_state: 0,
+  ...extra,
+});
+
+/** api_req_map/next: A → D (戦闘、分岐 2)。 */
+export const mapNext15D = next15(4, 1, { api_color_no: 4, api_event_id: 4, api_event_kind: 1, api_next: 2 });
+/** D → F (戦闘)。 */
+export const mapNext15F = next15(6, 4, { api_color_no: 4, api_event_id: 4, api_event_kind: 1, api_next: 2 });
+/** F → G (気のせい: event 6 / kind 0)。 */
+export const mapNext15G = next15(7, 6, { api_color_no: 90, api_event_id: 6, api_event_kind: 0, api_next: 1 });
+/** G → J (ボス、cell 12、終端)。 */
+export const mapNext15J = next15(12, 7, { api_color_no: 5, api_event_id: 5, api_event_kind: 1, api_next: 0 });
+/** F → I (戦闘、終端マス)。 */
+export const mapNext15I = next15(9, 6, { api_color_no: 4, api_event_id: 4, api_event_kind: 1, api_next: 0 });
+
+/** 能動分岐 (event 6 / kind 2) の api_req_map/next。選択肢は api_select_route。 */
+export const mapNextSelect = {
+  api_rashin_flg: 0,
+  api_rashin_id: 0,
+  api_maparea_id: 7,
+  api_mapinfo_no: 3,
+  api_no: 3,
+  api_from_no: 2,
+  api_color_no: 6,
+  api_event_id: 6,
+  api_event_kind: 2,
+  api_next: 2,
+  api_bosscell_no: 18,
+  api_bosscomp: 0,
+  api_comment_kind: 0,
+  api_production_kind: 0,
+  api_select_route: { api_select_cells: [5, 6] },
+  api_airsearch: { api_plane_type: 0, api_result: 0 },
+  api_limit_state: 0,
+};
+
+/** 1-5 の戦闘 (敵 3 隻、単縦陣)。ship ids を変えて別編成を作れる。 */
+export const battle15 = (shipKe: number[], formation = 1) => ({
+  ...dayBattle,
+  api_formation: [1, formation, 1],
+  api_ship_ke: [...shipKe, ...Array(6 - shipKe.length).fill(-1)],
+});

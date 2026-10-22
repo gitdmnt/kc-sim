@@ -1,19 +1,26 @@
 /**
- * game.response を受けて戦闘観測レコードを組み立てる。poi / DOM には依存せず、
+ * game.response を受けて戦闘観測レコードと出撃 (経路) レコードを組み立てる。poi / DOM には依存せず、
  * 艦隊スナップショットの取得 (getFleet) と保存先 (sink) は外から注入する。
+ * マス番号 (api_no) からノード名への変換はしない (サーバが edges から引く。docs/API.md §3)。
  */
-import { extractAttackEvents, extractEnemy } from "./parser";
+import { extractAttackEvents, extractCellData, extractEnemy, extractMapCell } from "./parser";
 import type {
   BattleResultInfo,
   CapturedBattle,
+  CapturedCell,
   CapturedFleet,
   CapturedMapInfo,
+  CapturedSortie,
+  SortieEnd,
+  SortieFleetFeatures,
   StoredEvent,
 } from "./types";
 
 export interface ObservationSink {
   saveBattle(battle: CapturedBattle, events: StoredEvent[]): Promise<void>;
   saveResult(battleId: string, result: BattleResultInfo): Promise<void>;
+  /** 出撃レコードを (途中経過も含めて) 上書き保存する。 */
+  saveSortie(sortie: CapturedSortie): Promise<void>;
 }
 
 export interface CaptureDeps {
@@ -21,8 +28,10 @@ export interface CaptureDeps {
   /** 1 始まりの艦隊番号で、その時点の艦隊スナップショットを返す (poi の store から)。
    * combined=true なら随伴艦隊 (第2艦隊) も escort に入れる。 */
   getFleet: (deckId: number, combined: boolean) => CapturedFleet | null;
-  /** (area, map, cellId) → ノード名 (A, B…)。ゲーム API には無いので任意。 */
-  resolveNode?: (area: number, mapNo: number, cellId: number) => string | undefined;
+  /** 出撃時の艦隊の特徴 (艦種・速力・索敵)。任意。 */
+  fleetFeatures?: (fleet: CapturedFleet) => SortieFleetFeatures | null;
+  /** select_eventmap_rank を見ていないときの難易度 (poi の state から)。任意。 */
+  getDifficulty?: (area: number, mapNo: number) => number | null;
   now?: () => number;
   onError?: (error: unknown) => void;
 }
@@ -47,9 +56,18 @@ const toNum = (v: unknown): number | null => {
   return typeof n === "number" && Number.isFinite(n) ? n : null;
 };
 
+/** 最後のマスから出撃の終わり方を決める: ボス > 行き止まり (api_next 0) > 途中帰投。 */
+export const sortieEndKind = (last: CapturedCell | undefined): SortieEnd => {
+  if (!last) return "unknown";
+  if (last.eventId === 5 || (last.bossCellNo !== null && last.no === last.bossCellNo)) return "boss";
+  return last.next === 0 ? "end_node" : "retreat";
+};
+
 export class CaptureSession {
   private map: CapturedMapInfo | null = null;
+  private sortie: CapturedSortie | null = null;
   private deckId = 1;
+  private combinedFlag: number | null = null;
   private visitId = "";
   private step = 0;
   private counter = 0;
@@ -82,7 +100,10 @@ export class CaptureSession {
         this.difficultyByMap.set(`${area}-${mapNo}`, rank);
       }
     } else if (path === "api_req_map/start" || path === "api_req_map/next") {
-      this.onMapNode(path === "api_req_map/start", body, postBody);
+      await this.onMapNode(path === "api_req_map/start", body, postBody);
+    } else if (path === "api_port/port") {
+      this.combinedFlag = toNum(body?.api_combined_flag) ?? this.combinedFlag;
+      await this.endSortie();
     } else if (isResultPath(path)) {
       await this.onResult(body);
     } else if (isBattlePath(path)) {
@@ -90,28 +111,67 @@ export class CaptureSession {
     }
   }
 
-  private onMapNode(isStart: boolean, body: any, postBody: any) {
+  private async endSortie() {
+    const s = this.sortie;
+    if (!s) return;
+    this.sortie = null;
+    const now = this.now();
+    await this.deps.sink.saveSortie({ ...s, endKind: sortieEndKind(s.cells.at(-1)), endedAt: now, updatedAt: now });
+  }
+
+  private async onMapNode(isStart: boolean, body: any, postBody: any) {
     const area = toNum(body?.api_maparea_id) ?? this.map?.area;
     const mapNo = toNum(body?.api_mapinfo_no) ?? this.map?.mapNo;
-    const cellId = toNum(body?.api_no);
-    if (area == null || mapNo == null || cellId === null) return;
+    const cell = extractMapCell(body);
+    if (area == null || mapNo == null || cell === null) return;
+    const key = `${area}-${mapNo}`;
+    const now = this.now();
     if (isStart) {
+      await this.endSortie(); // 母港を経ずに次の出撃 (取り逃し) なら前の出撃を閉じる
       this.step = 0;
       this.deckId = toNum(postBody?.api_deck_id) ?? 1;
+      const cellData = extractCellData(body);
+      const combined = this.deckId === 1 && (this.combinedFlag ?? 0) > 0;
+      const fleet = this.deps.getFleet(this.deckId, combined);
+      this.sortie = {
+        id: `s-${now.toString(36)}-${++this.counter}`,
+        startedAt: now,
+        updatedAt: now,
+        endedAt: null,
+        endKind: null,
+        map: key,
+        area,
+        mapNo,
+        difficulty: this.difficultyByMap.get(key) ?? this.deps.getDifficulty?.(area, mapNo) ?? null,
+        deckId: this.deckId,
+        combined: this.combinedFlag,
+        cellData,
+        cells: [],
+        fleet,
+        features: fleet && this.deps.fleetFeatures ? this.deps.fleetFeatures(fleet) : null,
+        pending: 1,
+      };
     }
     this.step += 1;
-    const key = `${area}-${mapNo}`;
-    this.visitId = `${this.now().toString(36)}-${++this.counter}`;
+    this.visitId = `${now.toString(36)}-${++this.counter}`;
+    const sortie = this.sortie?.map === key ? this.sortie : null;
+    if (sortie) {
+      sortie.cells.push({ ...cell, battles: [] });
+      sortie.updatedAt = now;
+      await this.deps.sink.saveSortie(sortie);
+    }
     this.map = {
       map: key,
       area,
       mapNo,
-      cellId,
-      node: this.deps.resolveNode?.(area, mapNo, cellId) ?? String(cellId),
-      difficulty: this.difficultyByMap.get(key) ?? null,
-      eventId: toNum(body?.api_event_id),
-      eventKind: toNum(body?.api_event_kind),
+      cellId: cell.no,
+      node: String(cell.no),
+      difficulty: sortie?.difficulty ?? this.difficultyByMap.get(key) ?? this.deps.getDifficulty?.(area, mapNo) ?? null,
+      eventId: cell.eventId,
+      eventKind: cell.eventKind,
       step: this.step,
+      ...(sortie ? { sortieId: sortie.id } : {}),
+      ...(sortie?.cellData ? { layout: sortie.cellData.map((c) => c.no) } : {}),
     };
   }
 
@@ -144,6 +204,12 @@ export class CaptureSession {
     }));
     this.lastBattleId = id;
     await this.deps.sink.saveBattle(battle, events);
+    const cell = this.sortie && this.map?.sortieId === this.sortie.id ? this.sortie.cells.at(-1) : undefined;
+    if (cell && cell.battles.length < 8) {
+      cell.battles.push(id);
+      this.sortie!.updatedAt = capturedAt;
+      await this.deps.sink.saveSortie(this.sortie!);
+    }
   }
 
   private async onResult(body: any) {

@@ -11,6 +11,9 @@ export const useMapList = (nonce = 0) => {
 
 /** 1 海域分のデータ一式 (API または静的バンドル)。key が null なら何もしない。 */
 export const useMapData = (key: string | null, nonce = 0) => {
-  const { apiBase, bundleBase } = useSettings();
-  return useAsync<MapData>(key ? () => loadMapData(key, { bundleBase }).then((d) => ({ data: d, stale: d.stale })) : null, [key, apiBase, bundleBase, nonce]);
+  const { apiBase, bundleBase, minObserved } = useSettings();
+  return useAsync<MapData>(
+    key ? () => loadMapData(key, { bundleBase, minObserved }).then((d) => ({ data: d, stale: d.stale })) : null,
+    [key, apiBase, bundleBase, minObserved, nonce]
+  );
 };

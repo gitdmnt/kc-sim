@@ -5,7 +5,9 @@ import { loadMapData } from "../data/mapData";
 import type { MapBundle, RoutingDoc } from "../data/types";
 import { MemoryStorage } from "../fleet/storage";
 import type { MasterData, Preset } from "../fleet/types";
-import { buildSortieInput, flagNames, hasStartRules, pickSet, selectNodes, startNodes, uncertainNodes } from "./sortieAdapter";
+import {
+  buildSortieInput, compSourceLabel, flagNames, hasStartRules, pickSet, selectNodes, startNodes, uncertainNodes,
+} from "./sortieAdapter";
 import { geometricSorties, mergeSortieSummaries, runSortieJob } from "./runner";
 
 const routing: RoutingDoc = {
@@ -73,6 +75,23 @@ describe("loadMapData fallback", () => {
     const api404 = new DataApi({ baseUrl: () => "http://x", storage: new MemoryStorage(), fetch: (async () => new Response("{}", { status: 404 })) as any });
     await expect(loadMapData("9-9", { api: api404, bundle: { loadMap: async () => bundle } })).rejects.toMatchObject({ status: 404 });
   });
+  test("API: passes minObserved and keeps the per-node source selection", async () => {
+    const urls: string[] = [];
+    const selection = [{ difficulty: 0, source: "poi-observed", observedCount: 42, minObserved: 40 }];
+    const json = (url: string): unknown =>
+      url.includes("/enemy-comps") ? { map: "9-9", node: "A", minObserved: 40, selection, sets: bundle.enemyComps.A.map((s) => ({ ...s, source: "poi-observed", totalCount: 42 })) }
+      : url.endsWith("/maps/9-9") ? { map: bundle.map, nodes: bundle.nodes, edges: [], routing, enemyCompNodes: ["A"] }
+      : url.includes("/ships/") ? { ship: bundle.ships["1501"], estimates: [], best: {} }
+      : { equipments: [] };
+    const api = new DataApi({
+      baseUrl: () => "http://x", storage: new MemoryStorage(),
+      fetch: (async (url: string) => (urls.push(url), new Response(JSON.stringify(json(url))))) as unknown as typeof fetch,
+    });
+    const d = await loadMapData("9-9", { api, minObserved: 40 });
+    expect(urls).toContain("http://x/api/v1/maps/9-9/nodes/A/enemy-comps?minObserved=40");
+    expect(d.compSelection).toEqual({ A: selection });
+    expect(d.comps.A[0].source).toBe("poi-observed");
+  });
 });
 
 describe("buildSortieInput", () => {
@@ -80,6 +99,7 @@ describe("buildSortieInput", () => {
     key: "9-9", source: "bundle" as const, stale: false,
     detail: { map: bundle.map, nodes: bundle.nodes, edges: [], routing, enemyCompNodes: ["A"] },
     comps: bundle.enemyComps,
+    compSelection: {},
     ships: new Map([[1501, { ship: bundle.ships["1501"] as any, estimates: [], best: { ev: { value: 14, confidence: "datamined" as const, source: "s" } } }]]),
     equips: new Map([[1501, bundle.equipments["1501"]]]),
   };
@@ -104,6 +124,9 @@ describe("buildSortieInput", () => {
     expect(b.warnings.some((w) => w.includes("ボスマス"))).toBe(true);
     expect(b.warnings.some((w) => w.includes("空きマス扱い: B"))).toBe(true);
     expect([...b.uncertain]).toEqual(["A"]);
+    expect(Object.keys(b.compSets)).toEqual(["A"]);
+    expect(compSourceLabel(b.compSets.A)).toBe("KCNav");
+    expect(compSourceLabel({ source: "poi-observed", totalCount: 1234 })).toBe("観測 (n=1,234)");
   });
 
   test("gauge input and missing routing", () => {

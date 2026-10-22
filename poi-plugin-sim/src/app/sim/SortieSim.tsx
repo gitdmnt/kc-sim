@@ -146,7 +146,7 @@ export const SortieSim = () => {
       const summary = await h.promise;
       setRun({
         data: md, summary, friendNames: build.friend.input.map((s) => s.name ?? `#${s.id}`),
-        warnings: [...notes, ...build.warnings], uncertain: build.uncertain, ms: performance.now() - t0, seed,
+        warnings: [...notes, ...build.warnings], uncertain: build.uncertain, compSets: build.compSets, ms: performance.now() - t0, seed,
       });
     } catch (e) {
       if ((e as Error).message !== "cancelled") setError((e as Error).message);

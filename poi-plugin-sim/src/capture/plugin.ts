@@ -5,13 +5,13 @@
  * プラグインウィンドウを開かなくても動く (poi の plugin-manager がロード時に呼ぶ)。
  * プラグインウィンドウ側 (別 BrowserWindow) では呼ばない。二重登録は window 上のフラグで防ぐ。
  */
-import { importFromPoi } from "../fleet/poiImport";
+import { summarizeFleet } from "../fleet/calc";
+import { importFromPoi, masterFromPoi } from "../fleet/poiImport";
 import { startAutoUpload } from "./autoUpload";
 import type { AutoUploader, AutoUploadOptions } from "./autoUpload";
 import { ObservationDb } from "./db";
 import { CaptureSession } from "./session";
-import type { CaptureDeps } from "./session";
-import type { CapturedFleet, ShipSupply } from "./types";
+import type { CapturedFleet, ShipSupply, SortieFleetFeatures } from "./types";
 
 const GLOBAL_KEY = "__kcsimCapture";
 
@@ -19,7 +19,6 @@ export interface StartCaptureOptions {
   /** poi の redux state を返す関数。既定は window.getStore()。 */
   getState?: () => any;
   db?: ObservationDb;
-  resolveNode?: CaptureDeps["resolveNode"];
   target?: Pick<Window, "addEventListener" | "removeEventListener">;
   /** 自動送信の差し替え (テスト用)。false なら自動送信しない。 */
   autoUpload?: false | Partial<Omit<AutoUploadOptions, "db">>;
@@ -76,6 +75,22 @@ const defaultGetState = () => {
   return typeof w.getStore === "function" ? w.getStore() : undefined;
 };
 
+/** 出撃時の艦隊の特徴: 艦種 (master の api_stype)、速力・索敵 (summarizeFleet)、司令部 Lv。 */
+export const fleetFeatures = (state: unknown, fleet: CapturedFleet): SortieFleetFeatures => {
+  const master = masterFromPoi(state);
+  const hq = at(state, "info", "basic", "api_level");
+  const hqLevel = typeof hq === "number" ? hq : null;
+  const summary = summarizeFleet([...fleet.ships, ...(fleet.escort ?? [])], master, hqLevel ?? 120);
+  const stypes = (ships: CapturedFleet["ships"]) => ships.map((s) => master.ships[s.masterId]?.api_stype ?? 0);
+  return {
+    stypes: stypes(fleet.ships),
+    ...(fleet.escort ? { escortStypes: stypes(fleet.escort) } : {}),
+    speed: summary.speed,
+    los: summary.los,
+    hqLevel,
+  };
+};
+
 /** 開始する。既に動いていれば何もせず既存の db を返す。 */
 export const startCapture = (opts: StartCaptureOptions = {}): ObservationDb => {
   const g = globalThis as any;
@@ -93,7 +108,19 @@ export const startCapture = (opts: StartCaptureOptions = {}): ObservationDb => {
         return null;
       }
     },
-    resolveNode: opts.resolveNode,
+    fleetFeatures: (fleet) => {
+      try {
+        return fleetFeatures(getState(), fleet);
+      } catch (e) {
+        console.error("[kcsim] fleet features failed", e);
+        return null;
+      }
+    },
+    // イベント海域で select_eventmap_rank を見ていない (前回起動時に選択済み) ときの難易度
+    getDifficulty: (area, mapNo) => {
+      const rank = at(getState(), "info", "maps", area * 10 + mapNo, "api_eventmap", "api_selected_rank");
+      return typeof rank === "number" && rank > 0 ? rank : null;
+    },
   });
 
   let autoUploader: AutoUploader | undefined;

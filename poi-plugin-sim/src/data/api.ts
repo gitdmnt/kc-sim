@@ -138,9 +138,11 @@ export class DataApi {
   map(key: string) {
     return this.get<MapDetail>(`/api/v1/maps/${encodeURIComponent(key)}`);
   }
-  enemyComps(map: string, node: string) {
+  /** 出典は API の既定ポリシー: 観測 (poi-observed) が minObserved 件以上なら観測、でなければ KCNav (API.md §2)。 */
+  enemyComps(map: string, node: string, minObserved?: number) {
+    const q = minObserved === undefined ? "" : `?minObserved=${minObserved}`;
     return this.get<EnemyCompsResponse>(
-      `/api/v1/maps/${encodeURIComponent(map)}/nodes/${encodeURIComponent(node)}/enemy-comps`
+      `/api/v1/maps/${encodeURIComponent(map)}/nodes/${encodeURIComponent(node)}/enemy-comps${q}`
     );
   }
   async abyssalShips() {

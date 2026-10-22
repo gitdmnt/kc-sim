@@ -7,6 +7,7 @@ import { Button, Card, Checkbox, ConfirmDialog, Field, TextInput, S, useToast } 
 import { getPresetStore } from "./fleet/presets";
 import { useApp } from "./context";
 import { resetSettings, updateSettings, useSettings } from "./settings";
+import { NumberInput } from "../ui/NumberInput";
 
 /** 自動送信の状況。送信はメインウィンドウで動くので、状態は localStorage (storage イベント) と共有の IndexedDB から読む。 */
 const useAutoUploadStatus = (): { status: AutoUploadStatus; pending: number | null } => {
@@ -157,6 +158,12 @@ export const SettingsTab = () => {
           checked={settings.useEstimates}
           onChange={(e) => updateSettings({ useEstimates: e.target.checked })}
         />
+      </Card>
+
+      <Card title="敵編成の出典" bodyClassName="flex flex-col gap-3">
+        <Field label="観測を優先する遭遇数" hint="このノード・難易度の自分たちの観測 (poi) がこの数以上なら観測の集計、未満なら KCNav を使います">
+          <NumberInput className="w-28" value={settings.minObserved} min={1} max={100000} onChange={(minObserved) => updateSettings({ minObserved })} />
+        </Field>
       </Card>
 
       <Card title={S.settings.debug} bodyClassName="flex flex-col gap-3">
