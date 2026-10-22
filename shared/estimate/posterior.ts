@@ -175,24 +175,24 @@ export class ShipPosterior {
     for (let k = 0; k <= 100; k++) this.logq[k] = Math.log((1 - epsilon) * (k / 100) + epsilon / 3);
   }
 
-  private fold(ll: Float64Array, grid: Float64Array, c: OutcomeCounts) {
+  private fold(ll: Float64Array, grid: Uint8Array, c: OutcomeCounts) {
     if (grid.length !== 2 * ll.length) throw new Error(`grid size ${grid.length} != ${2 * ll.length}`);
     const q = this.logq;
     for (let k = 0; k < ll.length; k++) {
-      const h = Math.round(grid[2 * k]! * 100);
-      const cr = Math.round(grid[2 * k + 1]! * 100);
+      const h = grid[2 * k]!;
+      const cr = grid[2 * k + 1]!;
       ll[k]! += c.miss * q[100 - h]! + c.hit * q[h - cr]! + c.crit * q[cr]!;
     }
   }
 
   /** `grid` = hitProbabilityGrid(target: defender, evasion: ev, luck: luck) */
-  addEvasion(grid: Float64Array, c: OutcomeCounts) {
+  addEvasion(grid: Uint8Array, c: OutcomeCounts) {
     this.fold(this.llEv, grid, c);
     this.nEvasion += c.miss + c.hit + c.crit;
   }
 
   /** `grid` = hitProbabilityGrid(target: attacker, luck: luck, hiddenAccuracy: acc) */
-  addAccuracy(grid: Float64Array, c: OutcomeCounts) {
+  addAccuracy(grid: Uint8Array, c: OutcomeCounts) {
     this.fold(this.llAcc, grid, c);
     this.nAccuracy += c.miss + c.hit + c.crit;
   }

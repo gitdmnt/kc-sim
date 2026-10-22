@@ -77,3 +77,34 @@ fn bench_sorties_per_second() {
     println!("1-5 sortie (API comps):    {r15:>10.0} sorties/s ({b15:.2} battles/sortie)");
     println!("5-node 6v6 surface sortie: {r5:>10.0} sorties/s ({b5:.2} battles/sortie)");
 }
+
+/// Forward-model grid of the estimator (`hitProbabilityGrid`): one 201 × 101 grid per call.
+#[test]
+fn bench_hit_probability_grid() {
+    use sim_core::query::hit_probability_grid;
+    let release = !cfg!(debug_assertions);
+    let reps = if release { 2_000 } else { 20 };
+    let axis = |n: usize| (0..n).map(|i| i as f64).collect::<Vec<_>>();
+    let query = |kind: QueryKind, attacker: ShipInput, defender: ShipInput, side: Side| AttackQuery {
+        kind, attacker, defender, attacker_side: Some(side), attacker_formation: None, defender_formation: None, attacker_index: None,
+        attacker_fleet_size: None, defender_index: None, defender_fleet_size: None, engagement: None, special: None, night: None, slot: None,
+        contact_modifier: None,
+    };
+    let evasion = |q: AttackQuery| HitGridQuery { query: q, target: GridTarget::Defender, evasion: axis(201), luck: axis(101), hidden_accuracy: vec![] };
+    let accuracy = |q: AttackQuery| HitGridQuery { query: q, target: GridTarget::Attacker, evasion: vec![], luck: axis(101), hidden_accuracy: axis(201) };
+    let cases = [
+        ("shelling, evasion (ev × luck)", evasion(query(QueryKind::Shelling, friend_ca(), enemy_ca(), Side::Friend))),
+        ("torpedo, evasion (ev × luck)", evasion(query(QueryKind::Torpedo, friend_dd(), enemy_cl(), Side::Friend))),
+        ("night, evasion (ev × luck)", evasion(query(QueryKind::Night, friend_cl(), enemy_dd(), Side::Friend))),
+        ("shelling, accuracy (luck × acc)", accuracy(query(QueryKind::Shelling, enemy_bb(), friend_dd(), Side::Enemy))),
+        ("torpedo, accuracy (luck × acc)", accuracy(query(QueryKind::Torpedo, enemy_cl(), friend_ca(), Side::Enemy))),
+    ];
+    for (name, g) in &cases {
+        let n = hit_probability_grid(g).unwrap().len();
+        let t = Instant::now();
+        for _ in 0..reps {
+            std::hint::black_box(hit_probability_grid(std::hint::black_box(g)).unwrap());
+        }
+        println!("grid {name:<32} {:>8.1} µs/call ({n} values)", t.elapsed().as_secs_f64() * 1e6 / reps as f64);
+    }
+}

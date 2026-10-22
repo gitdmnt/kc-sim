@@ -77,9 +77,9 @@ pub fn hit_probability(#[wasm_bindgen(unchecked_param_type = "AttackQuery")] que
 }
 
 /// `hitProbability` over a grid of one ship's evasion × luck × hidden accuracy (estimator helper):
-/// `[pHit, pCrit]` pairs, evasion outermost, hidden accuracy innermost.
+/// `[hit %, crit %]` pairs (`pHit = hit / 100`), evasion outermost, hidden accuracy innermost.
 #[wasm_bindgen(js_name = hitProbabilityGrid)]
-pub fn hit_probability_grid(#[wasm_bindgen(unchecked_param_type = "HitGridQuery")] grid: JsValue) -> Result<Vec<f64>, JsError> {
+pub fn hit_probability_grid(#[wasm_bindgen(unchecked_param_type = "HitGridQuery")] grid: JsValue) -> Result<Vec<u8>, JsError> {
     init();
     let g: model::HitGridQuery = from_js(grid, "HitGridQuery")?;
     query::hit_probability_grid(&g).map_err(|e| JsError::new(&e))

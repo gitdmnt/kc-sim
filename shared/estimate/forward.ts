@@ -15,7 +15,8 @@ import { hitProbabilityGrid } from "../../sim-core/pkg/sim_core";
 import type { AttackQuery, HitGridQuery, ShipInput } from "../../sim-core/pkg/sim_core";
 import type { ObservationRole } from "./types";
 
-export type GridFn = (grid: HitGridQuery) => Float64Array;
+/** hitProbabilityGrid: [命中 %, 会心 %] の組 (pHit = 命中 / 100)。ゲームが乱数と比べる整数 % そのもの。 */
+export type GridFn = (grid: HitGridQuery) => Uint8Array;
 
 /** wasm の hitProbabilityGrid。呼ぶ前に sim-core の init が済んでいること。 */
 export const wasmGrid: GridFn = (grid) => hitProbabilityGrid(grid);
@@ -85,13 +86,13 @@ export const canonicalQuery = (q: AttackQuery, role: ObservationRole): AttackQue
 /** 正規化済みの問い合わせの署名 (同じ署名 ⇒ 同じ確率)。 */
 export const signature = (q: AttackQuery): string => JSON.stringify(q);
 
-/** 1 つの署名の観測に対する、対象艦の隠しステータスのグリッド上の [pHit, pCrit] 列。 */
+/** 1 つの署名の観測に対する、対象艦の隠しステータスのグリッド上の [命中 %, 会心 %] 列。 */
 export const gridFor = (
   gridFn: GridFn,
   q: AttackQuery,
   role: ObservationRole,
   axes: { ev: number[]; acc: number[]; luck: number[] }
-): Float64Array =>
+): Uint8Array =>
   role === "evasion"
     ? gridFn({ query: q, target: "defender", evasion: axes.ev, luck: axes.luck })
     : gridFn({ query: q, target: "attacker", luck: axes.luck, hiddenAccuracy: axes.acc });

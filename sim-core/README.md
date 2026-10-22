@@ -17,7 +17,7 @@ simulateSortie(input: SortieInput, count: number, seed: number): SortieSummary  
 ```sh
 wasm-pack build --target web            # -> pkg/
 cargo test                              # unit + integration tests (routing tests read ../data-worker/seed/routing)
-cargo test --release -- --nocapture bench   # throughput (prints battles/s and sorties/s, asserts >= 50k battles/s)
+cargo test --release --test bench -- --nocapture --test-threads=1   # throughput (battles/s, sorties/s, µs per 201×101 hitProbabilityGrid; asserts >= 50k battles/s); one at a time, or the benches share cores
 bun validation/routing-vs-kcnav.ts [--offline]  # routing vs KCNav edge counts -> ../docs/VALIDATION.md (needs pkg/)
 KCR_DIR=<kancolle-replay checkout> bun validation/battle-vs-kcsim.ts  # realistic sorties + per-node battles vs kcsim -> ../docs/VALIDATION.md §3
 ```

@@ -388,7 +388,8 @@ export interface HitProbability {
  * `hitProbabilityGrid` input: `query` evaluated over the cartesian grid evasion × luck ×
  * hiddenAccuracy of one ship (estimator helper). Each axis replaces the target's naked
  * `stats.evasion` / `stats.luck` / `hiddenAccuracy`; an absent or empty axis keeps the query's value.
- * Result: `Float64Array` of `[pHit, pCrit]` pairs, index `2·((iEv·nLuck + iLuck)·nAcc + iAcc)`.
+ * Result: `Uint8Array` of `[hit %, crit %]` pairs (`pHit = hit / 100`, `pCrit = crit / 100`, the
+ * integer percents the game rolls against), index `2·((iEv·nLuck + iLuck)·nAcc + iAcc)`.
  */
 export interface HitGridQuery {
   query: AttackQuery;
@@ -630,5 +631,5 @@ export interface SortieSummary {
 // export function runBattle(input: BattleInput, seed: number): RunBattleOutput;
 // export function hitProbability(query: AttackQuery): HitProbability;
 // export function damageDistribution(query: AttackQuery): DamageDistribution;
-// export function hitProbabilityGrid(grid: HitGridQuery): Float64Array;
+// export function hitProbabilityGrid(grid: HitGridQuery): Uint8Array;
 // export function simulateSortie(input: SortieInput, count: number, seed: number): SortieSummary;

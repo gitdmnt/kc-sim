@@ -15,7 +15,19 @@ pub const CRIT_MOD: f64 = 1.5;
 /// Attacker accuracy term as a fraction: `(base + 2√lv + 1.5√luck + flat) × mod / 100`.
 #[inline]
 pub fn hit_rate(base: f64, level: f64, luck: f64, flat: f64, modifier: f64) -> f64 {
-    (base + 2.0 * level.max(0.0).sqrt() + 1.5 * luck.max(0.0).sqrt() + flat) * modifier * 0.01
+    hit_rate_from(hit_base(base, level, luck), flat, modifier)
+}
+
+/// `base + 2√lv + 1.5√luck`, the first part of [`hit_rate`].
+#[inline]
+pub fn hit_base(base: f64, level: f64, luck: f64) -> f64 {
+    base + 2.0 * level.max(0.0).sqrt() + 1.5 * luck.max(0.0).sqrt()
+}
+
+/// [`hit_rate`] from its [`hit_base`] part.
+#[inline]
+pub fn hit_rate_from(hit_base: f64, flat: f64, modifier: f64) -> f64 {
+    (hit_base + flat) * modifier * 0.01
 }
 
 /// Accuracy multiplier from the attacker's morale (`torpedo` uses the torpedo table).
@@ -79,13 +91,23 @@ pub struct HitCrit {
 }
 
 impl HitCrit {
+    /// Probability of hitting (normal or critical) in percent, 0..=100.
+    pub fn hit_pct(&self) -> u8 {
+        (self.acc.max(self.crit).min(99) + 1).max(0) as u8
+    }
+
+    /// Probability of a critical hit in percent, 0..=100.
+    pub fn crit_pct(&self) -> u8 {
+        (self.crit.min(99) + 1).max(0) as u8
+    }
+
     /// Probability of hitting (normal or critical).
     pub fn p_hit(&self) -> f64 {
-        ((self.acc.max(self.crit).min(99) + 1).max(0)) as f64 / 100.0
+        self.hit_pct() as f64 / 100.0
     }
 
     pub fn p_crit(&self) -> f64 {
-        ((self.crit.min(99) + 1).max(0)) as f64 / 100.0
+        self.crit_pct() as f64 / 100.0
     }
 }
 
@@ -94,10 +116,33 @@ fn js_round(x: f64) -> f64 {
     (x + 0.5).floor()
 }
 
+/// Hit term (percent, floored) of an attacker accuracy fraction.
+#[inline]
+pub fn hit_term(hit: f64) -> f64 {
+    (js_round(hit * 1_000_000.0) / 10_000.0).floor()
+}
+
+/// `√(2·luck)`, the luck part of the defender's evade value.
+#[inline]
+pub fn evade_luck(luck: f64) -> f64 {
+    (luck.max(0.0) * 2.0).sqrt()
+}
+
+/// Evade value `floor((ev + √(2·luck)) × mod)` from its [`evade_luck`] part.
+#[inline]
+pub fn evade(ev: f64, luck_part: f64, ev_mod: f64) -> f64 {
+    ((ev + luck_part) * ev_mod).floor()
+}
+
 /// kcsim `accuracyAndCrit`. `hit` is the attacker's accuracy fraction (from [`hit_rate`] and post
 /// multipliers), `crit_mod` 1.3 shelling/ASW, 1.5 torpedo/night, 0 airstrike.
 pub fn accuracy_and_crit(hit: f64, ev: &Evasion, crit_mod: f64, plane: Option<PlaneBonus>, crit_bonus_flat: f64) -> HitCrit {
-    let evade = ((ev.ev + (ev.luck.max(0.0) * 2.0).sqrt()) * ev.ev_mod).floor();
+    hit_crit(hit_term(hit), evade(ev.ev, evade_luck(ev.luck), ev.ev_mod), ev, crit_mod, plane, crit_bonus_flat)
+}
+
+/// [`accuracy_and_crit`] from the [`hit_term`] and the [`evade`] value; `ev.ev` / `ev.luck` are not read.
+/// Both inputs are integers, so the estimator grid evaluates this once per distinct value.
+pub fn hit_crit(hit_term: f64, evade: f64, ev: &Evasion, crit_mod: f64, plane: Option<PlaneBonus>, crit_bonus_flat: f64) -> HitCrit {
     let mut dodge = if evade > 65.0 {
         (55.0 + 2.0 * (evade - 65.0).sqrt()).floor()
     } else if evade > 40.0 {
@@ -111,7 +156,6 @@ pub fn accuracy_and_crit(hit: f64, ev: &Evasion, crit_mod: f64, plane: Option<Pl
     }
     dodge += ev.ev_flat * 0.01;
 
-    let hit_term = (js_round(hit * 1_000_000.0) / 10_000.0).floor();
     let dodge_term = (js_round(dodge * 1_000_000.0) / 10_000.0).floor();
     let mut acc = (hit_term - dodge_term).max(10.0);
     acc *= morale_ev(ev.morale);

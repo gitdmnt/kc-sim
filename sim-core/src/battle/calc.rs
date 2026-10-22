@@ -120,6 +120,115 @@ pub struct AttackAcc {
     pub crit_dmg: f64,
 }
 
+/// What follows `hit_rate` in an attack's accuracy fraction.
+#[derive(Clone, Copy, Debug)]
+enum HitTail {
+    /// torpedo, ASW
+    Plain,
+    /// shelling: `(h + fit) × ap/CI mod`, then − 0.13 for DE
+    Shell { fit: f64, mod2: f64, de: bool },
+    /// night: `h + fit`, then + 0.07 with an own searchlight
+    Night { fit: f64, searchlight: bool },
+    /// airstrike: fixed
+    Fixed(f64),
+}
+
+/// The attacker's accuracy fraction as a function of its luck and hidden accuracy, everything else
+/// fixed. The flat accuracy is summed left to right as in kcsim: `pre + hidden + post[0] + post[1] + …`.
+/// The estimator grid (`query::hit_probability_grid`) evaluates [`HitFn::luck_part`] and [`HitFn::flat`]
+/// once per axis value; [`HitFn::eval`] is the same computation in one call.
+#[derive(Clone, Copy, Debug)]
+pub struct HitFn {
+    base: f64,
+    level: f64,
+    pre: f64,
+    post: [f64; 3],
+    n_post: usize,
+    modifier: f64,
+    tail: HitTail,
+}
+
+impl HitFn {
+    fn new(base: f64, level: f64, pre: f64, post: &[f64], modifier: f64, tail: HitTail) -> HitFn {
+        let mut p = [0.0; 3];
+        p[..post.len()].copy_from_slice(post);
+        HitFn { base, level, pre, post: p, n_post: post.len(), modifier, tail }
+    }
+
+    #[inline]
+    pub fn luck_part(&self, luck: f64) -> f64 {
+        hit_base(self.base, self.level, luck)
+    }
+
+    #[inline]
+    pub fn flat(&self, hidden_acc: f64) -> f64 {
+        let mut flat = self.pre + hidden_acc;
+        for p in &self.post[..self.n_post] {
+            flat += *p;
+        }
+        flat
+    }
+
+    #[inline]
+    pub fn finish(&self, luck_part: f64, flat: f64) -> f64 {
+        let h = hit_rate_from(luck_part, flat, self.modifier);
+        match self.tail {
+            HitTail::Plain => h,
+            HitTail::Shell { fit, mod2, de } => {
+                let h = (h + fit) * mod2;
+                if de {
+                    h - 0.13
+                } else {
+                    h
+                }
+            }
+            HitTail::Night { fit, searchlight } => {
+                let h = h + fit;
+                if searchlight {
+                    h + 0.07
+                } else {
+                    h
+                }
+            }
+            HitTail::Fixed(h) => h,
+        }
+    }
+
+    #[inline]
+    pub fn eval(&self, luck: f64, hidden_acc: f64) -> f64 {
+        self.finish(self.luck_part(luck), self.flat(hidden_acc))
+    }
+}
+
+/// Inputs of `accuracy_and_crit` for one attack before the attacker's luck and hidden accuracy are
+/// plugged into `hit`, plus the critical damage multiplier.
+#[derive(Clone, Copy, Debug)]
+pub struct AccTerms {
+    pub hit: HitFn,
+    /// attacker luck and hidden accuracy
+    pub luck: f64,
+    pub hidden_acc: f64,
+    /// defender side
+    pub ev: Evasion,
+    pub crit_mod: f64,
+    pub plane: Option<PlaneBonus>,
+    pub crit_flat: f64,
+    pub crit_dmg: f64,
+}
+
+impl AccTerms {
+    #[inline]
+    pub fn resolve(&self) -> AttackAcc {
+        let hit = self.hit.eval(self.luck, self.hidden_acc);
+        AttackAcc { hc: accuracy_and_crit(hit, &self.ev, self.crit_mod, self.plane, self.crit_flat), crit_dmg: self.crit_dmg }
+    }
+
+    /// [`AccTerms::resolve`] for a given hit term and evade value (`formulas::hit_crit`).
+    pub fn hit_crit(&self, hit_term: f64, evade: f64) -> HitCrit {
+        hit_crit(hit_term, evade, &self.ev, self.crit_mod, self.plane, self.crit_flat)
+    }
+}
+
 // ------------------------------------------------------------- shelling ----
 
 /// Ships that shell with the carrier formula (carriers and air-capable AOs with bombers).
@@ -127,7 +236,12 @@ pub fn carrier_shelling(c: &ShipCore) -> bool {
     c.cv_like()
 }
 
+#[inline]
 pub fn shelling_acc(att: &Unit, def: &Unit, ci: Option<DayCi>) -> AttackAcc {
+    shelling_terms(att, def, ci).resolve()
+}
+
+pub fn shelling_terms(att: &Unit, def: &Unit, ci: Option<DayCi>) -> AccTerms {
     let a = att.core;
     let mut acc_mod = morale_acc(att.st.morale, false);
     if !countered(att.form, def.form) {
@@ -141,11 +255,8 @@ pub fn shelling_acc(att: &Unit, def: &Unit, ci: Option<DayCi>) -> AttackAcc {
     if let Some(ci) = ci {
         acc_mod2 *= ci.data().acc;
     }
-    let flat = a.acc + a.bonus.acc + a.hidden_acc + a.imp.acc_shell;
-    let mut hit = (hit_rate(90.0, a.level, a.luck, flat, acc_mod) + a.fit_acc * 0.01) * acc_mod2;
-    if a.class == ShipClass::DE {
-        hit -= 0.13;
-    }
+    let tail = HitTail::Shell { fit: a.fit_acc * 0.01, mod2: acc_mod2, de: a.class == ShipClass::DE };
+    let hit = HitFn::new(90.0, a.level, a.acc + a.bonus.acc, &[a.imp.acc_shell], acc_mod, tail);
     let ev = def.evasion(def.fm().shell_ev, def.core.imp.ev_shell);
     let planes = carrier_shelling(a);
     let (crit_rate, mut crit_dmg, acc_plane) = a.proficiency(att.st);
@@ -158,8 +269,10 @@ pub fn shelling_acc(att: &Unit, def: &Unit, ci: Option<DayCi>) -> AttackAcc {
         }
     }
     let plane = planes.then_some(PlaneBonus { acc: acc_plane, crit_rate });
-    let hc = accuracy_and_crit(hit, &ev, 1.3, plane, crit_flat);
-    AttackAcc { hc, crit_dmg: if planes { crit_dmg } else { 1.0 } }
+    AccTerms {
+        hit, luck: a.luck, hidden_acc: a.hidden_acc, ev, crit_mod: 1.3, plane, crit_flat,
+        crit_dmg: if planes { crit_dmg } else { 1.0 },
+    }
 }
 
 /// kcsim CVCI critical special case: (flat crit-rate bonus, override crit damage multiplier).
@@ -244,7 +357,12 @@ pub fn asw_uses_plane_prof(att: &ShipCore, opening: bool) -> bool {
     att.plane_asw > 0 && !opening && att.class != ShipClass::AO
 }
 
+#[inline]
 pub fn asw_acc(att: &Unit, def: &Unit, opening: bool) -> AttackAcc {
+    asw_terms(att, def, opening).resolve()
+}
+
+pub fn asw_terms(att: &Unit, def: &Unit, opening: bool) -> AccTerms {
     let a = att.core;
     let mut acc_mod = morale_acc(att.st.morale, false);
     if !countered(att.form, def.form) {
@@ -252,13 +370,15 @@ pub fn asw_acc(att: &Unit, def: &Unit, opening: bool) -> AttackAcc {
         acc_mod *= fm.asw_acc.unwrap_or(fm.shell_acc);
     }
     acc_mod *= def.vanguard_target_mod(false);
-    let hit = hit_rate(80.0, a.level, a.luck, a.sonar_acc + a.hidden_acc, acc_mod);
+    let hit = HitFn::new(80.0, a.level, a.sonar_acc, &[], acc_mod, HitTail::Plain);
     let ev = def.evasion(def.fm().asw_ev, 0.0);
     let use_prof = asw_uses_plane_prof(a, opening);
     let (crit_rate, crit_dmg, acc_plane) = a.proficiency(att.st);
     let plane = use_prof.then_some(PlaneBonus { acc: acc_plane, crit_rate });
-    let hc = accuracy_and_crit(hit, &ev, 1.3, plane, 0.0);
-    AttackAcc { hc, crit_dmg: if use_prof { crit_dmg } else { 1.0 } }
+    AccTerms {
+        hit, luck: a.luck, hidden_acc: a.hidden_acc, ev, crit_mod: 1.3, plane, crit_flat: 0.0,
+        crit_dmg: if use_prof { crit_dmg } else { 1.0 },
+    }
 }
 
 /// Post-cap ASW power. `night_scratch`: day-battle night ASW (power 0 ⇒ scratch damage only).
@@ -285,17 +405,22 @@ pub fn torpedo_power(att: &Unit, engagement: f64, damage_ratio: f64) -> f64 {
     soft_cap(base * att.fm().torp_pow * engagement * torpedo_state_mod(damage_ratio), CAP_TORPEDO).floor()
 }
 
+#[inline]
 pub fn torpedo_acc(att: &Unit, def: &Unit, power: f64) -> AttackAcc {
+    torpedo_terms(att, def, power).resolve()
+}
+
+pub fn torpedo_terms(att: &Unit, def: &Unit, power: f64) -> AccTerms {
     let a = att.core;
-    let flat = a.acc + a.hidden_acc + a.torp_acc_hidden + a.imp.acc_torp.floor() + (power / 5.0).floor();
+    let post = [a.torp_acc_hidden, a.imp.acc_torp.floor(), (power / 5.0).floor()];
     let mut acc_mod = att.fm().torp_acc * morale_acc(att.st.morale, true);
     if att.form == Formation::Vanguard && def.core.class == ShipClass::DD {
         acc_mod *= 1.2;
     }
     acc_mod *= def.vanguard_target_mod(true);
-    let hit = hit_rate(85.0, a.level, a.luck, flat, acc_mod);
+    let hit = HitFn::new(85.0, a.level, a.acc, &post, acc_mod, HitTail::Plain);
     let ev = def.evasion(def.fm().torp_ev, def.core.imp.ev_torp);
-    AttackAcc { hc: accuracy_and_crit(hit, &ev, 1.5, None, 0.0), crit_dmg: 1.0 }
+    AccTerms { hit, luck: a.luck, hidden_acc: a.hidden_acc, ev, crit_mod: 1.5, plane: None, crit_flat: 0.0, crit_dmg: 1.0 }
 }
 
 // ---------------------------------------------------------------- night ----
@@ -373,7 +498,12 @@ fn contact_effects(contact_acc: Option<f64>) -> (f64, f64, f64) {
     }
 }
 
+#[inline]
 pub fn night_acc(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack) -> AttackAcc {
+    night_terms(att, def, env, na).resolve()
+}
+
+pub fn night_terms(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack) -> AccTerms {
     let a = att.core;
     let (_, base_mul, crit_mod) = contact_effects(env.contact_acc);
     let acc_base = (69.0 + if env.own_starshell { 5.0 } else { 0.0 }) * base_mul;
@@ -383,11 +513,8 @@ pub fn night_acc(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack) -> Att
     }
     acc_mod *= def.vanguard_target_mod(false);
     acc_mod *= night_mods(a, na).acc;
-    let flat = a.acc + a.hidden_acc + a.imp.acc_nb;
-    let mut hit = hit_rate(acc_base, a.level, a.luck, flat, acc_mod) + a.fit_acc * 0.01;
-    if env.own_searchlight {
-        hit += 0.07;
-    }
+    let tail = HitTail::Night { fit: a.fit_acc * 0.01, searchlight: env.own_searchlight };
+    let hit = HitFn::new(acc_base, a.level, a.acc, &[a.imp.acc_nb], acc_mod, tail);
     let d = def.core;
     let mut ev_mod = def.fm().night_ev;
     let mut ev_flat = if matches!(d.class, ShipClass::CA | ShipClass::CAV) { 5.0 } else { 0.0 };
@@ -399,12 +526,12 @@ pub fn night_acc(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack) -> Att
         ev_flat *= 0.2;
     }
     let ev = def.evasion(ev_mod, ev_flat);
+    let terms = AccTerms { hit, luck: a.luck, hidden_acc: a.hidden_acc, ev, crit_mod, plane: None, crit_flat: 0.0, crit_dmg: 1.0 };
     if a.can_night_air(att.st) {
         let (crit_rate, crit_dmg, acc_plane) = a.proficiency(att.st);
-        let hc = accuracy_and_crit(hit, &ev, crit_mod, Some(PlaneBonus { acc: acc_plane, crit_rate }), 0.0);
-        return AttackAcc { hc, crit_dmg };
+        return AccTerms { plane: Some(PlaneBonus { acc: acc_plane, crit_rate }), crit_dmg, ..terms };
     }
-    AttackAcc { hc: accuracy_and_crit(hit, &ev, crit_mod, None, 0.0), crit_dmg: 1.0 }
+    terms
 }
 
 /// Basic night power (kcsim `NBPower`): FP + TP (+★); vs installations FP only.
@@ -462,11 +589,20 @@ pub fn night_air_power(att: &Unit, def: &ShipCore) -> f64 {
 
 // ------------------------------------------------------------------ air ----
 
+#[inline]
 pub fn air_acc(att: &Unit, def: &Unit) -> AttackAcc {
-    let (crit_rate, crit_dmg, acc_plane) = att.core.proficiency(att.st);
+    air_terms(att, def).resolve()
+}
+
+pub fn air_terms(att: &Unit, def: &Unit) -> AccTerms {
+    let a = att.core;
+    let (crit_rate, crit_dmg, acc_plane) = a.proficiency(att.st);
     let ev = def.evasion(1.0, 0.0);
-    let hc = accuracy_and_crit(0.95, &ev, 0.0, Some(PlaneBonus { acc: acc_plane, crit_rate }), 0.0);
-    AttackAcc { hc, crit_dmg }
+    let hit = HitFn::new(0.0, 0.0, 0.0, &[], 0.0, HitTail::Fixed(0.95));
+    AccTerms {
+        hit, luck: a.luck, hidden_acc: a.hidden_acc, ev, crit_mod: 0.0, plane: Some(PlaneBonus { acc: acc_plane, crit_rate }), crit_flat: 0.0,
+        crit_dmg,
+    }
 }
 
 /// Airstrike power of one slot before the torpedo-bomber random multiplier is known:
