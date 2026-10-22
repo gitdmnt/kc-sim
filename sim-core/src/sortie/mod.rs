@@ -14,6 +14,7 @@ use crate::routing::{RouteConfig, RouteCtx, RouteEquip, RouteShip, Router};
 use crate::ship::ShipState;
 use model::*;
 use resource::*;
+use std::cell::Cell;
 use tp::ShipTp;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -118,7 +119,14 @@ pub struct Sortie {
     has_effects: bool,
     /// Per-ship TP parts; `Some` when a gauge of kind `tp` is configured.
     tp_ships: Option<Vec<ShipTp>>,
+    bucket_above: Option<f64>,
+    extra: [f64; 4],
+    /// Resource vector of the last `run_one` (see `Cost`).
+    last_cost: Cell<Cost>,
 }
+
+/// Net resources of one sortie: fuel, ammo, steel, bauxite, buckets, docking seconds.
+type Cost = [f64; 6];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Retreat {
@@ -179,6 +187,7 @@ struct Rec {
     fleet_steel: Vec<f64>,
     fleet_time_max: Vec<f64>,
     fleet_time_sum: Vec<f64>,
+    costs: Vec<Cost>,
     gain: [f64; 4],
     mael_fuel: f64,
     mael_ammo: f64,
@@ -350,6 +359,9 @@ impl Sortie {
             radar,
             repairers,
             has_effects,
+            bucket_above: input.repair.and_then(|r| r.bucket_above_sec),
+            extra: input.extra_per_sortie.map_or([0.0; 4], |e| [e.fuel, e.ammo, e.steel, e.bauxite]),
+            last_cost: Cell::new([0.0; 6]),
             tp_ships: wants_tp.then(|| input.friend.ships.iter().map(tp::ship_tp).collect()),
             router,
             nodes,
@@ -418,6 +430,7 @@ impl Sortie {
         let mut node = self.start_node(rng);
         let mut path: Vec<usize> = vec![node];
         let mut boss_result = None;
+        let mut gain = [0.0f64; 4];
         let mut boss_reached = false;
         let mut battles = 0u64;
         let mut retreated = false;
@@ -441,6 +454,10 @@ impl Sortie {
             match &info.effect {
                 Effect::None => {}
                 Effect::Gain(g) => {
+                    gain[0] += g.fuel;
+                    gain[1] += g.ammo;
+                    gain[2] += g.steel;
+                    gain[3] += g.bauxite;
                     if let Some(r) = rec.as_deref_mut() {
                         r.gain[0] += g.fuel;
                         r.gain[1] += g.ammo;
@@ -533,7 +550,10 @@ impl Sortie {
                 None => break,
             }
         }
+        let cost = self.cost_of(&st, gain);
+        self.last_cost.set(cost);
         if let Some(r) = rec {
+            r.costs.push(cost);
             *r.paths.entry(path.iter().map(|&n| n as u16).collect()).or_insert(0) += 1;
             r.battles += battles;
             r.nodes += (path.len() - 1) as u64;
@@ -606,6 +626,33 @@ impl Sortie {
         boss_result
     }
 
+    /// Net resources of a finished sortie (resupply, bauxite, docking or buckets, extras, minus node gains).
+    fn cost_of(&self, st: &[ShipState], gain: [f64; 4]) -> Cost {
+        let mut c: Cost = [0.0; 6];
+        for (i, (s, s0)) in st.iter().zip(&self.init).enumerate() {
+            c[0] += resupply_cost(s0.fuel - s.fuel, self.married[i]) as f64;
+            c[1] += resupply_cost(s0.ammo - s.ammo, self.married[i]) as f64;
+            c[3] += 5.0 * s0.planes.iter().zip(&s.planes).map(|(a, b)| (a - b).max(0)).sum::<i32>() as f64;
+            if s.hp <= 0 {
+                continue;
+            }
+            let missing = self.friend.ships[i].max_hp - s.hp;
+            let secs = repair_time_sec(self.stypes[i], self.friend.ships[i].level, missing) as f64;
+            if secs > 0.0 && self.bucket_above.is_some_and(|b| secs > b) {
+                c[4] += 1.0;
+            } else {
+                let (f, t) = repair_cost(s.fuel_max, missing);
+                c[0] += f as f64;
+                c[2] += t as f64;
+                c[5] = c[5].max(secs);
+            }
+        }
+        for k in 0..4 {
+            c[k] += self.extra[k] - gain[k];
+        }
+        c
+    }
+
     /// Applies a maelstrom to the fleet; returns (is fuel, total lost).
     fn maelstrom(&self, m: &Maelstrom, st: &mut [ShipState], rng: &mut Rng) -> (bool, f64) {
         let fuel = m.resource == MaelstromResource::Fuel;
@@ -659,11 +706,6 @@ impl Sortie {
 
     fn summarize(&self, rec: Rec, count: u32, top: usize) -> SortieSummary {
         let n = count as f64;
-        let dist = |v: &[f64]| {
-            let mut sorted = v.to_vec();
-            sorted.sort_by(|a, b| a.total_cmp(b));
-            Dist { mean: if v.is_empty() { 0.0 } else { v.iter().sum::<f64>() / v.len() as f64 }, p50: percentile(&sorted, 0.5), p90: percentile(&sorted, 0.9) }
-        };
         let rate = |x: u32| if count > 0 { x as f64 / n } else { 0.0 };
         let mean = |x: f64| if count > 0 { x / n } else { 0.0 };
         let mut paths: Vec<(Vec<u16>, u32)> = rec.paths.into_iter().collect();
@@ -712,6 +754,7 @@ impl Sortie {
             fuel_used_mean: mean(rec.ships.iter().map(|s| s.fuel).sum()),
             ammo_used_mean: mean(rec.ships.iter().map(|s| s.ammo).sum()),
             bauxite_mean: mean(rec.ships.iter().map(|s| s.bauxite).sum()),
+            resources_per_sortie: resources_summary(&rec.costs),
             repair: FleetRepairSummary {
                 fuel: dist(&rec.fleet_fuel),
                 steel: dist(&rec.fleet_steel),
@@ -848,12 +891,13 @@ impl Sortie {
         }
     }
 
-    fn gauge(&self, g: &GaugeInput, kill_rate: f64, rng: &mut Rng) -> Result<(GaugeSummary, Option<String>), String> {
+    fn gauge(&self, g: &GaugeInput, kill_rate: f64, mean_cost: Cost, rng: &mut Rng) -> Result<(GaugeSummary, Option<String>), String> {
         let max_sorties = g.max_sorties.unwrap_or(500).max(1);
         let has_boss = self.nodes.iter().any(|n| n.boss && n.battle.is_some());
         let mut warning = None;
         let mut sorties: Vec<u32> = Vec::new();
         let mut waits: Vec<f64> = Vec::new();
+        let mut run_costs: Vec<Cost> = Vec::new();
         let mut per_phase: Vec<Vec<u32>> = Vec::new();
         let mut capped = 0u32;
         let runs;
@@ -873,6 +917,8 @@ impl Sortie {
                 }
                 if k >= need {
                     sorties.push(s);
+                    // No sortie is simulated here: the mean sortie cost times the sorties drawn.
+                    run_costs.push(mean_cost.map(|c| c * s as f64));
                 } else {
                     capped += 1;
                 }
@@ -896,6 +942,7 @@ impl Sortie {
                 let mut wait = 0.0;
                 let mut m = init_morale.clone();
                 let mut spent = vec![0u32; n];
+                let mut cost: Cost = [0.0; 6];
                 let mut idx = 0;
                 let mut remaining = phases[0].remaining;
                 let mut cleared = empty(&phases[0]);
@@ -917,6 +964,9 @@ impl Sortie {
                     self.router.set_phase(ph.routing_phase.unwrap_or(base_phase + idx as f64));
                     let mor = g.morale.as_ref().map(|_| &mut m);
                     cleared = self.phase_sortie(ph, &mut remaining, rng, mor);
+                    for (a, b) in cost.iter_mut().zip(self.last_cost.get()) {
+                        *a += b;
+                    }
                     if !(cleared && idx + 1 == n) {
                         if let Some(cfg) = &g.morale {
                             wait += Self::wait_recover(&mut m, cfg);
@@ -927,6 +977,7 @@ impl Sortie {
                     sorties.push(s);
                     waits.push(wait);
                     per_phase.push(spent);
+                    run_costs.push(cost);
                 } else {
                     capped += 1;
                 }
@@ -967,6 +1018,7 @@ impl Sortie {
                 p50_wait_minutes: waiting.then(|| percentile(&waits, 0.5)),
                 p90_wait_minutes: waiting.then(|| percentile(&waits, 0.9)),
                 phases: phase_stats,
+                resources: (!run_costs.is_empty()).then(|| resources_summary(&run_costs)),
                 capped_rate: if runs > 0 { capped as f64 / runs as f64 } else { 0.0 },
                 runs,
             },
@@ -989,7 +1041,9 @@ pub fn simulate_sortie(input: &SortieInput, count: u32, seed: u64) -> Result<Sor
     let top = input.top_paths.unwrap_or(20) as usize;
     let mut summary = sortie.simulate(count, &mut rng, top);
     if let Some(g) = &input.gauge {
-        let (gs, warning) = sortie.gauge(g, summary.boss.kill_rate, &mut rng)?;
+        let r = &summary.resources_per_sortie;
+        let mean_cost = [r.fuel.mean, r.ammo.mean, r.steel.mean, r.bauxite.mean, r.buckets.mean, r.time_sec.mean];
+        let (gs, warning) = sortie.gauge(g, summary.boss.kill_rate, mean_cost, &mut rng)?;
         if let Some(w) = warning {
             summary.warnings.push(w);
         }

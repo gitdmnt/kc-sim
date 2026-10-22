@@ -610,6 +610,17 @@ export interface SortieInput {
   maxNodes?: number;
   /** Number of most frequent paths to report. Default 20. */
   topPaths?: number;
+  repair?: RepairPolicy;
+  /** Costs of engines that do not exist yet (support fleets, LBAS sorties): added to every sortie in
+   *  `resourcesPerSortie` and `gauge.resources`. Not interpreted otherwise. */
+  extraPerSortie?: ResourceAmounts;
+}
+
+export interface RepairPolicy {
+  /** Ships whose docking time exceeds this many seconds take an instant repair item (bucket) instead:
+   *  no docking fuel / steel / time for them, one bucket each. Only affects the resource totals.
+   *  Default: never. */
+  bucketAboveSec?: number;
 }
 
 export interface PathRate {
@@ -672,6 +683,19 @@ export interface FleetRepairSummary extends RepairSummary {
   timeSecTotal: Dist;
 }
 
+/** Net resources (costs minus gains from resource nodes; extras included). Per sortie: fuel / ammo =
+ *  resupply + docking fuel, steel = docking steel, bauxite = refill, `timeSec` = slowest ship. Per
+ *  gauge clear: the sum over the run's sorties (docking time summed, one dock). */
+export interface ResourcesSummary {
+  fuel: Dist;
+  ammo: Dist;
+  steel: Dist;
+  bauxite: Dist;
+  /** Instant repair items (`repair.bucketAboveSec`). */
+  buckets: Dist;
+  timeSec: Dist;
+}
+
 /** Present only when a node of the map has an effect configured. */
 export interface NodeEffectsSummary {
   gainedMean: Required<ResourceAmounts>;
@@ -694,6 +718,9 @@ export interface GaugeSummary {
   expectedWaitMinutes?: number;
   p50WaitMinutes?: number;
   p90WaitMinutes?: number;
+  /** Resources spent per cleared run; absent when no run cleared. `kill` gauges are not simulated
+   *  sortie by sortie: mean sortie cost × the sorties drawn. */
+  resources?: ResourcesSummary;
   /** With `phases`: sorties spent in each gauge, over the cleared runs. */
   phases?: { kind: "kill" | "hp" | "tp"; expectedSorties: number | null; p90Sorties: number | null }[];
   /** Runs that hit `maxSorties` without clearing. */
@@ -729,6 +756,7 @@ export interface SortieSummary {
   /** Fuel / ammo are resupply costs: ships of Lv ≥ 100 pay floor(0.85 × amount) (amount > 1). */
   bauxiteMean: number;
   repair: FleetRepairSummary;
+  resourcesPerSortie: ResourcesSummary;
   effects?: NodeEffectsSummary;
   friend: SortieShipSummary[];
   gauge?: GaugeSummary;

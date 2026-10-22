@@ -154,6 +154,7 @@ const sum = (count: number, o: Partial<SortieSummary> = {}): SortieSummary => ({
   boss: { reachRate: 0.5, rankRates: { SS: 0, S: 1, A: 0, B: 0, C: 0, D: 0, E: 0 }, killRate: 0.5, flagshipSunkRate: 0.5, flagshipDamageMean: 10 },
   retreatRate: 0.1, sunkRate: 0, battlesMean: 2, nodesMean: 3, fuelUsedMean: 5, ammoUsedMean: 6,
   bauxiteMean: 0, repair: { fuel: ZD, steel: ZD, timeSec: ZD, timeSecTotal: ZD },
+  resourcesPerSortie: { fuel: ZD, ammo: ZD, steel: ZD, bauxite: ZD, buckets: ZD, timeSec: ZD },
   friend: [{ sunkRate: 0, heavyRate: 0.1, moderateRate: 0.2, damageTakenMean: 10, hpMissingMean: 5, fuelUsedMean: 1, ammoUsedMean: 1, bauxiteMean: 0, proficiencyLostMean: 0, repair: { fuel: ZD, steel: ZD, timeSec: ZD }, damecon: { usedRate: 0 } }],
   warnings: ["w1"], ...o,
 });

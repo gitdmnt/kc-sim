@@ -47,6 +47,19 @@ pub fn maelstrom_loss(have: i32, rate: f64, max: Option<i32>, radar_ships: usize
     loss.min(max.unwrap_or(i32::MAX)).min(have).max(0)
 }
 
+/// Mean and percentiles of a sample (zeros when empty).
+pub fn dist(v: &[f64]) -> super::model::Dist {
+    let mut sorted = v.to_vec();
+    sorted.sort_by(|a, b| a.total_cmp(b));
+    super::model::Dist { mean: if v.is_empty() { 0.0 } else { v.iter().sum::<f64>() / v.len() as f64 }, p50: percentile(&sorted, 0.5), p90: percentile(&sorted, 0.9) }
+}
+
+/// Per-resource distributions of a list of cost vectors.
+pub fn resources_summary(v: &[[f64; 6]]) -> super::model::ResourcesSummary {
+    let col = |k: usize| dist(&v.iter().map(|c| c[k]).collect::<Vec<_>>());
+    super::model::ResourcesSummary { fuel: col(0), ammo: col(1), steel: col(2), bauxite: col(3), buckets: col(4), time_sec: col(5) }
+}
+
 /// Sorted-sample percentile (nearest rank), as in the gauge summary.
 pub fn percentile(sorted: &[f64], q: f64) -> f64 {
     if sorted.is_empty() {

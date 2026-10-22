@@ -320,3 +320,68 @@ fn tp_gauge_warns_for_unknown_ship_types() {
     let s = simulate_sortie(&input, 5, 1).unwrap();
     assert!(s.warnings.iter().any(|w| w.contains("ship type 19 has no TP")), "{:?}", s.warnings);
 }
+
+#[test]
+fn resources_per_sortie_combine_the_parts() {
+    let comp = json!({ "comps": [{ "weight": 1.0, "fleet": enemy_fleet() }] });
+    let mut f = FleetInput { ships: vec![friend_cv(), friend_dd(), friend_ca()], formation: Some(Formation::LineAhead) };
+    for s in f.ships.iter_mut() {
+        s.fuel_max = Some(100);
+    }
+    let base = simulate_sortie(&single_node_input("battle", comp.clone(), f.clone()), 300, 4).unwrap();
+    let r = &base.resources_per_sortie;
+    assert!((r.fuel.mean - (base.fuel_used_mean + base.repair.fuel.mean)).abs() < 1e-9);
+    assert!((r.ammo.mean - base.ammo_used_mean).abs() < 1e-9);
+    assert!((r.steel.mean - base.repair.steel.mean).abs() < 1e-9);
+    assert!((r.bauxite.mean - base.bauxite_mean).abs() < 1e-9);
+    assert_eq!((r.buckets.mean, r.time_sec.mean), (0.0, base.repair.time_sec.mean));
+    // Caller-supplied extras are added to every sortie.
+    let mut input = single_node_input("battle", comp, f);
+    input.extra_per_sortie = Some(ResourceAmounts { fuel: 10.0, ammo: 4.0, steel: 3.0, bauxite: 2.0 });
+    let extra = simulate_sortie(&input, 300, 4).unwrap();
+    let e = &extra.resources_per_sortie;
+    assert!((e.fuel.mean - r.fuel.mean - 10.0).abs() < 1e-9 && (e.bauxite.mean - r.bauxite.mean - 2.0).abs() < 1e-9);
+    assert!((e.steel.p90 - r.steel.p90 - 3.0).abs() < 1e-9);
+}
+
+#[test]
+fn buckets_replace_long_docking() {
+    let comp = json!({ "comps": [{ "weight": 1.0, "fleet": enemy_fleet() }] });
+    let run = |above: Option<f64>| {
+        let mut input = single_node_input("battle", comp.clone(), friend_fleet());
+        input.repair = Some(RepairPolicy { bucket_above_sec: above });
+        simulate_sortie(&input, 300, 6).unwrap()
+    };
+    let none = run(None);
+    assert_eq!(none.resources_per_sortie.buckets.mean, 0.0);
+    assert!(none.resources_per_sortie.time_sec.mean > 0.0);
+    // A threshold above every docking time changes nothing.
+    assert_eq!(run(Some(1e9)).resources_per_sortie, none.resources_per_sortie);
+    // Threshold 0: every damaged ship takes a bucket, so docking costs and time vanish.
+    let all = run(Some(0.0));
+    let r = &all.resources_per_sortie;
+    assert!(r.buckets.mean > 0.0 && r.time_sec.mean == 0.0 && r.steel.mean == 0.0);
+    assert!(r.fuel.mean < none.resources_per_sortie.fuel.mean);
+    // Resupply is untouched; the number of buckets is the number of damaged ships.
+    assert!((r.ammo.mean - none.resources_per_sortie.ammo.mean).abs() < 1e-9);
+    assert!(r.buckets.mean <= 6.0);
+}
+
+#[test]
+fn gauge_resources_follow_the_sortie_costs() {
+    let mut input = sortie_1_5(fleet_1_5());
+    input.gauge = Some(GaugeInput { kind: GaugeKind::Kill, remaining: 3.0, final_comps: None, final_threshold: None, runs: Some(300), max_sorties: None, morale: None, tank: None, tp_per_sortie: None, phases: None });
+    let s = simulate_sortie(&input, 500, 3).unwrap();
+    let g = s.gauge.as_ref().unwrap();
+    let per = &s.resources_per_sortie;
+    // Kill gauges are not simulated sortie by sortie: mean cost × sorties.
+    let r = g.resources.as_ref().unwrap();
+    assert!((r.fuel.mean - per.fuel.mean * g.expected_sorties.unwrap()).abs() < 1e-6, "{r:?}");
+    assert!(r.fuel.p90 >= r.fuel.p50);
+    // A simulated gauge (hp) adds up the sorties' own costs.
+    input.gauge = Some(GaugeInput { kind: GaugeKind::Hp, remaining: 300.0, final_comps: None, final_threshold: None, runs: Some(60), max_sorties: None, morale: None, tank: None, tp_per_sortie: None, phases: None });
+    let s = simulate_sortie(&input, 500, 3).unwrap();
+    let g = s.gauge.as_ref().unwrap();
+    let ratio = g.resources.as_ref().unwrap().fuel.mean / (s.resources_per_sortie.fuel.mean * g.expected_sorties.unwrap());
+    assert!((0.7..1.4).contains(&ratio), "{ratio}");
+}

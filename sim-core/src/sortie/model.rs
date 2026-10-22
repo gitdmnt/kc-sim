@@ -234,6 +234,19 @@ pub struct SortieInput {
     pub max_nodes: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub top_paths: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repair: Option<RepairPolicy>,
+    /// Costs the engine does not model yet (support, LBAS), added to every sortie.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub extra_per_sortie: Option<ResourceAmounts>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RepairPolicy {
+    /// Ships whose docking time exceeds this many seconds are repaired with a bucket instead
+    /// (no docking cost or time). Default: never.
+    pub bucket_above_sec: Option<f64>,
 }
 
 // ---------------------------------------------------------------- output ----
@@ -284,6 +297,20 @@ pub struct Dist {
     pub mean: f64,
     pub p50: f64,
     pub p90: f64,
+}
+
+/// Net resources of a sortie or a gauge clear (costs minus gains from resource nodes).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourcesSummary {
+    pub fuel: Dist,
+    pub ammo: Dist,
+    pub steel: Dist,
+    pub bauxite: Dist,
+    /// Instant repair items (`repair.bucketAboveSec`).
+    pub buckets: Dist,
+    /// Docking time: per sortie the slowest ship, per gauge clear the sum over sorties.
+    pub time_sec: Dist,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -354,6 +381,9 @@ pub struct GaugeSummary {
     /// With `phases`: sorties spent in each gauge over the cleared runs.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub phases: Option<Vec<PhaseSummary>>,
+    /// Resources spent per cleared run (sum over its sorties); absent when no run cleared.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resources: Option<ResourcesSummary>,
     pub capped_rate: f64,
     pub runs: u32,
 }
@@ -374,6 +404,7 @@ pub struct SortieSummary {
     pub ammo_used_mean: f64,
     pub bauxite_mean: f64,
     pub repair: FleetRepairSummary,
+    pub resources_per_sortie: ResourcesSummary,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub effects: Option<NodeEffectsSummary>,
     pub friend: Vec<SortieShipSummary>,

@@ -232,6 +232,14 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
       timeSec: mergeDist(by((s) => s.repair.timeSec)),
       timeSecTotal: mergeDist(by((s) => s.repair.timeSecTotal)),
     },
+    resourcesPerSortie: {
+      fuel: mergeDist(by((s) => s.resourcesPerSortie.fuel)),
+      ammo: mergeDist(by((s) => s.resourcesPerSortie.ammo)),
+      steel: mergeDist(by((s) => s.resourcesPerSortie.steel)),
+      bauxite: mergeDist(by((s) => s.resourcesPerSortie.bauxite)),
+      buckets: mergeDist(by((s) => s.resourcesPerSortie.buckets)),
+      timeSec: mergeDist(by((s) => s.resourcesPerSortie.timeSec)),
+    },
     effects: parts[0].effects && {
       gainedMean: {
         fuel: wavg(by((s) => s.effects!.gainedMean.fuel)),
