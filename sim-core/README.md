@@ -16,7 +16,7 @@ simulateSortie(input: SortieInput, count: number, seed: number): SortieSummary  
 
 ```sh
 wasm-pack build --target web            # -> pkg/
-cargo test                              # unit + integration tests (routing tests read ../data-worker/seed/routing)
+cargo test                              # unit + integration tests (routing tests read ../server/seed/routing)
 cargo test --release --test bench -- --nocapture --test-threads=1   # throughput (battles/s, sorties/s, µs per 201×101 hitProbabilityGrid; asserts >= 50k battles/s); one at a time, or the benches share cores
 bun validation/routing-vs-kcnav.ts [--offline]  # routing vs KCNav edge counts -> ../docs/VALIDATION.md (needs pkg/)
 KCR_DIR=<kancolle-replay checkout> bun validation/battle-vs-kcsim.ts  # realistic sorties + per-node battles vs kcsim -> ../docs/VALIDATION.md §3
@@ -38,7 +38,7 @@ KCR_DIR=<kancolle-replay checkout> bun validation/battle-vs-kcsim.ts  # realisti
 | `src/routing.rs` | ROUTING_DSL parser / validator / evaluator, LoS formula 33 |
 | `src/sortie/` | sortie loop (node handling, retreat, state carry-over), aggregation, gauge estimates; `model.rs` = sortie JSON types |
 | `src/lib.rs` | wasm-bindgen exports |
-| `tests/` | engine behaviour, rank rules, JSON contract, published-number realism checks, routing (all seed docs, start rules, golden routes), sortie (1-5 end-to-end from `fixtures/1-5.api.json`, a one-time capture of the local data-worker API), bench |
+| `tests/` | engine behaviour, rank rules, JSON contract, published-number realism checks, routing (all seed docs, start rules, golden routes), sortie (1-5 end-to-end from `fixtures/1-5.api.json`, a one-time capture of the local server API), bench |
 | `validation/` | KCNav routing comparison harness + its data snapshot (`docs/VALIDATION.md`) |
 
 Mechanics and the list of known simplifications are documented in `../docs/SIM_INTERFACE.md`.

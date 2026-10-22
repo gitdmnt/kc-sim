@@ -6,7 +6,7 @@
  * プラグインウィンドウ側 (別 BrowserWindow) では呼ばない。二重登録は window 上のフラグで防ぐ。
  */
 import { summarizeFleet } from "@shared/fleet/calc";
-import { importFromPoi, masterFromPoi } from "../fleet/poiImport";
+import { importFromPoi, masterFromPoi } from "@shared/fleet/poiImport";
 import { startAutoUpload } from "./autoUpload";
 import type { AutoUploader, AutoUploadOptions } from "./autoUpload";
 import { ObservationDb } from "./db";

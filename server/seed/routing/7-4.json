@@ -1,0 +1,1014 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "7-4",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 7-4)"
+    },
+    {
+      "id": "ship-ids",
+      "note": "countIds from Tibowl api_start2 remodel chains"
+    },
+    {
+      "id": "kcnav-map",
+      "note": "node adjacency checked against the KCNav map route (tsunkit.net), 2026-10-22"
+    }
+  ],
+  "defaults": {
+    "select": {
+      "F": "H"
+    }
+  },
+  "nodes": {
+    "Start": {
+      "note": "compass start rules; edges confirmed by KCNav map route (Start->A, Start->C, A->B; KC3 edges.json had A->C)",
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BATTLESHIP",
+                  "STD_CV",
+                  "SS_CLASS"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CA_CLASS"
+                ],
+                "gte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL_CLASS"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "to": "C"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "countIds",
+                "ids": [
+                  161,
+                  166
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DE"
+                ],
+                "gte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 3
+              }
+            ]
+          },
+          "to": "A",
+          "uncertain": true,
+          "note": "text: あきつ丸+海防2+(駆逐or海防)1 (followed); compiled requires 駆逐>=1 or 海防>=4"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BBV",
+                  "CVL"
+                ],
+                "gte": 3
+              },
+              {
+                "all": [
+                  {
+                    "m": "countIds",
+                    "ids": [
+                      161,
+                      166
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "BBV",
+                      "CVL"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "C"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DE"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "to": "A"
+        },
+        {
+          "to": "C"
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "to": "B"
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "to": "E"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BATTLESHIP",
+                  "STD_CV",
+                  "SS_CLASS"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CVL"
+                ],
+                "gte": 3
+              },
+              {
+                "all": [
+                  {
+                    "m": "countIds",
+                    "ids": [
+                      161,
+                      166
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CVL"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "D"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 4
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CT"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "gte": 3
+                  }
+                ]
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DE"
+                ],
+                "gte": 3
+              },
+              {
+                "all": [
+                  {
+                    "m": "speed",
+                    "gte": "fastPlus"
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "to": "D"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "AO",
+                  "LHA"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DE"
+                ],
+                "gte": 4
+              },
+              {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "AO",
+                      "LHA",
+                      "DD",
+                      "DE"
+                    ],
+                    "eq": 6
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "countIds",
+                        "ids": [
+                          380,
+                          521,
+                          526,
+                          529,
+                          382,
+                          522,
+                          884,
+                          889,
+                          381,
+                          534,
+                          536
+                        ],
+                        "eq": 1
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "AO",
+                          "LHA",
+                          "DD",
+                          "DE"
+                        ],
+                        "eq": 5
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "G",
+          "note": "(大鷹型+補給+揚陸+駆逐+海防)=6 expanded over 大鷹型 count 0/1"
+        },
+        {
+          "to": "J"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "select": [
+            "H",
+            "J"
+          ]
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "to": "L",
+          "uncertain": true,
+          "note": "text: LoS-based I/L split with unknown thresholds ('??'); compiled always L"
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "to": "K"
+        }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "when": {
+            "m": "visited",
+            "node": "D"
+          },
+          "to": "K"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 4,
+            "lt": 33
+          },
+          "to": "K"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 4,
+            "lt": 37
+          },
+          "rules": [
+            {
+              "when": {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CT"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DE"
+                    ],
+                    "gte": 3
+                  },
+                  {
+                    "m": "ships",
+                    "eq": 5
+                  },
+                  {
+                    "any": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "CT",
+                          "DD",
+                          "DE"
+                        ],
+                        "eq": 5
+                      },
+                      {
+                        "all": [
+                          {
+                            "m": "countIds",
+                            "ids": [
+                              380,
+                              521,
+                              526,
+                              529,
+                              382,
+                              522,
+                              884,
+                              889,
+                              381,
+                              534,
+                              536
+                            ],
+                            "eq": 1
+                          },
+                          {
+                            "m": "count",
+                            "types": [
+                              "CT",
+                              "DD",
+                              "DE"
+                            ],
+                            "eq": 4
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "random": [
+                {
+                  "to": "K",
+                  "p": 0.5
+                },
+                {
+                  "to": "P",
+                  "p": 0.5
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            {
+              "random": [
+                {
+                  "to": "K",
+                  "p": 0.5
+                },
+                {
+                  "to": "L",
+                  "p": 0.5
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            }
+          ]
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CT"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DE"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "ships",
+                "eq": 5
+              },
+              {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CT",
+                      "DD",
+                      "DE"
+                    ],
+                    "eq": 5
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "countIds",
+                        "ids": [
+                          380,
+                          521,
+                          526,
+                          529,
+                          382,
+                          522,
+                          884,
+                          889,
+                          381,
+                          534,
+                          536
+                        ],
+                        "eq": 1
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "CT",
+                          "DD",
+                          "DE"
+                        ],
+                        "eq": 4
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "P",
+          "note": "(大鷹型+練巡+駆逐+海防)=5 expanded over 大鷹型 count 0/1"
+        },
+        {
+          "to": "L"
+        }
+      ]
+    },
+    "K": {
+      "rules": [
+        {
+          "to": "M",
+          "uncertain": true,
+          "note": "text: 不明 (K->P unconfirmed); compiled always M"
+        }
+      ]
+    },
+    "L": {
+      "rules": [
+        {
+          "to": "P"
+        }
+      ]
+    },
+    "M": {
+      "rules": [
+        {
+          "when": {
+            "m": "los",
+            "cn": 4,
+            "lt": 45
+          },
+          "to": "N"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BATTLESHIP"
+                    ],
+                    "maxSpeed": "slow",
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "STD_CV"
+                    ],
+                    "gte": 1
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 0
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "gte": 2
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 1
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "gte": 3
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 2
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "gte": 4
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 3
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "gte": 5
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 4
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "gte": 6
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BBV"
+                ],
+                "gte": 2
+              },
+              {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CVL"
+                    ],
+                    "gte": 2
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "countIds",
+                        "ids": [
+                          161,
+                          166
+                        ],
+                        "gte": 1
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "CVL"
+                        ],
+                        "gte": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 0
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP",
+                          "BBV",
+                          "CVL"
+                        ],
+                        "gte": 3
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 0
+                      },
+                      {
+                        "m": "countIds",
+                        "ids": [
+                          161,
+                          166
+                        ],
+                        "gte": 1
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP",
+                          "BBV",
+                          "CVL"
+                        ],
+                        "gte": 2
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 1
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP",
+                          "BBV",
+                          "CVL"
+                        ],
+                        "gte": 4
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 1
+                      },
+                      {
+                        "m": "countIds",
+                        "ids": [
+                          161,
+                          166
+                        ],
+                        "gte": 1
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP",
+                          "BBV",
+                          "CVL"
+                        ],
+                        "gte": 3
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 2
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP",
+                          "BBV",
+                          "CVL"
+                        ],
+                        "gte": 5
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 2
+                      },
+                      {
+                        "m": "countIds",
+                        "ids": [
+                          161,
+                          166
+                        ],
+                        "gte": 1
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP",
+                          "BBV",
+                          "CVL"
+                        ],
+                        "gte": 4
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 3
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP",
+                          "BBV",
+                          "CVL"
+                        ],
+                        "gte": 6
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "eq": 3
+                      },
+                      {
+                        "m": "countIds",
+                        "ids": [
+                          161,
+                          166
+                        ],
+                        "gte": 1
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP",
+                          "BBV",
+                          "CVL"
+                        ],
+                        "gte": 5
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "lte": 1
+              }
+            ]
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "los",
+                "cn": 4,
+                "lt": 47
+              },
+              "random": [
+                {
+                  "to": "N",
+                  "p": 0.5
+                },
+                {
+                  "to": "O",
+                  "p": 0.5
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            {
+              "to": "O"
+            }
+          ],
+          "uncertain": true,
+          "note": "text followed: 高速戦艦>=2 and (高速戦艦+航空戦艦+軽空母+あきつ丸)>=3 (fast BB = BATTLESHIP minus slow BATTLESHIP); compiled counts 航戦 in 'BBs-SBB' (and twice in the sum); '(低速)戦艦、正規空母を含む' read as slow BB AND 正規空母 per compiled"
+        },
+        {
+          "to": "P"
+        }
+      ]
+    },
+    "I": {
+      "end": true
+    },
+    "N": {
+      "end": true
+    },
+    "O": {
+      "end": true
+    },
+    "P": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

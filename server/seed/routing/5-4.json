@@ -1,0 +1,630 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "5-4",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 5-4)"
+    }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CV_CLASS"
+            ],
+            "gte": 1
+          },
+          "to": "B"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CA_CLASS"
+                ],
+                "gte": 5
+              }
+            ]
+          },
+          "to": "A"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "any": [
+                  {
+                    "m": "equipShips",
+                    "equip": {
+                      "group": "DRUM"
+                    },
+                    "gte": 5
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "equipShips",
+                        "equip": {
+                          "group": "DRUM"
+                        },
+                        "gte": 4
+                      },
+                      {
+                        "m": "equipShips",
+                        "equip": {
+                          "group": "LANDING_CRAFT"
+                        },
+                        "gte": 1
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "equipShips",
+                        "equip": {
+                          "group": "DRUM"
+                        },
+                        "gte": 3
+                      },
+                      {
+                        "m": "equipShips",
+                        "equip": {
+                          "group": "LANDING_CRAFT"
+                        },
+                        "gte": 2
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "equipShips",
+                        "equip": {
+                          "group": "DRUM"
+                        },
+                        "gte": 2
+                      },
+                      {
+                        "m": "equipShips",
+                        "equip": {
+                          "group": "LANDING_CRAFT"
+                        },
+                        "gte": 3
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "equipShips",
+                        "equip": {
+                          "group": "DRUM"
+                        },
+                        "gte": 1
+                      },
+                      {
+                        "m": "equipShips",
+                        "equip": {
+                          "group": "LANDING_CRAFT"
+                        },
+                        "gte": 4
+                      }
+                    ]
+                  },
+                  {
+                    "m": "equipShips",
+                    "equip": {
+                      "group": "LANDING_CRAFT"
+                    },
+                    "gte": 5
+                  }
+                ]
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 4
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "eq": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "B",
+          "note": "drum carriers + landing-craft carriers >= 5 (a ship with both counts twice), expanded into combinations"
+        },
+        {
+          "to": "A"
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "SS_CLASS"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "gte": 5
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CA_CLASS"
+                ],
+                "gte": 3
+              }
+            ]
+          },
+          "to": "D"
+        },
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CV_CLASS",
+              "SS_CLASS"
+            ],
+            "gte": 1
+          },
+          "to": "C"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "speed",
+                    "eq": "slow"
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BBV"
+                    ],
+                    "gte": 2
+                  },
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BBV"
+                        ],
+                        "gte": 1
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "BATTLESHIP"
+                        ],
+                        "maxSpeed": "slow",
+                        "gte": 1
+                      }
+                    ]
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "BATTLESHIP"
+                    ],
+                    "maxSpeed": "slow",
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "D"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "speed",
+                "gte": "fastPlus"
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "eq": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 3
+                  }
+                ]
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 4
+              }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "eq": 0
+          },
+          "to": "D"
+        },
+        {
+          "random": [
+            {
+              "to": "D",
+              "p": 0.5
+            },
+            {
+              "to": "E",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "to": "G"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "to": "I"
+        }
+      ]
+    },
+    "I": {
+      "rules": [
+        {
+          "to": "J"
+        }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "to": "M"
+        }
+      ]
+    },
+    "K": {
+      "rules": [
+        {
+          "to": "L"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "SS_CLASS"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BATTLESHIP"
+                ],
+                "maxSpeed": "slow",
+                "gte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "gte": 3
+              }
+            ]
+          },
+          "to": "F"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "gte": 2
+          },
+          "to": "E"
+        },
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "gte": 1
+          },
+          "to": "K",
+          "uncertain": true,
+          "note": "text: 'K?'"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS"
+            ],
+            "gte": 4
+          },
+          "to": "K",
+          "uncertain": true,
+          "note": "text: 'K?'"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "STD_CV"
+            ],
+            "lte": 2
+          },
+          "to": "L"
+        },
+        {
+          "random": [
+            {
+              "to": "K",
+              "p": 0.7
+            },
+            {
+              "to": "L",
+              "p": 0.3
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Kマス寄り(70%)'; compiled has K 0.3 / L 0.7; followed text"
+        }
+      ]
+    },
+    "L": {
+      "rules": [
+        {
+          "when": {
+            "m": "speed",
+            "gte": "fastPlus"
+          },
+          "to": "P"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 2,
+            "lt": 56
+          },
+          "to": "N",
+          "uncertain": true,
+          "note": "threshold 56 marked '?'"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "los",
+                "cn": 2,
+                "lt": 60
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "STD_CV"
+                ],
+                "gte": 5
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "N",
+              "p": 0.5
+            },
+            {
+              "to": "P",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "thresholds 56?/60? marked '?'; no ratio, compiled used"
+        },
+        {
+          "to": "P",
+          "uncertain": true,
+          "note": "threshold 60 marked '?'"
+        }
+      ]
+    },
+    "M": {
+      "rules": [
+        {
+          "when": {
+            "m": "speed",
+            "gte": "fastPlus"
+          },
+          "to": "P"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 2,
+            "lt": 41
+          },
+          "to": "O",
+          "uncertain": true,
+          "note": "threshold 41 marked '?'"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 2,
+            "lt": 45
+          },
+          "random": [
+            {
+              "to": "O",
+              "p": 0.5
+            },
+            {
+              "to": "P",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "threshold 41 marked '?'; no ratio, compiled used"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "gte": 1
+          },
+          "random": [
+            {
+              "to": "O",
+              "p": 0.334
+            },
+            {
+              "to": "P",
+              "p": 0.666
+            }
+          ]
+        },
+        {
+          "to": "P"
+        }
+      ]
+    },
+    "N": {
+      "end": true
+    },
+    "O": {
+      "end": true
+    },
+    "P": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

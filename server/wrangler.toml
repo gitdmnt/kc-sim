@@ -1,0 +1,68 @@
+name = "kc-sim"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+# The web UI (web/, `bun run build:web`) as Workers Static Assets, inherited by [env.production]. A request that
+# matches a file is answered without running the worker (and is not billed as a worker request). Anything else runs
+# the worker: /api/* and /admin/* always do (run_worker_first, so no asset can shadow the API or skip the Access
+# check), and unknown paths get the app's JSON 404. No SPA fallback: the UI is one page and its tabs are not URLs.
+# `wrangler dev` / `deploy` need the directory to exist (the package scripts build or create it).
+[assets]
+directory = "../web/dist"
+run_worker_first = ["/api/*", "/admin/*"]
+
+# Top level = local development (`bun run dev`, `wrangler dev`). It cannot be deployed: the D1 id is a
+# placeholder. Production is [env.production] below (`wrangler deploy --env production`, docs/DEPLOY.md).
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kc-sim"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+# Per-IP limit on write requests (POST /api/v1/clients, POST /api/v1/observations), keyed by the salted IP hash.
+[[ratelimits]]
+name = "WRITE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 20, period = 60 }
+
+[vars]
+KCNAV_BASE = "https://tsunkit.net"
+KCNAV_MIN_INTERVAL_MS = "65000"
+# .dev.vars sets ENVIRONMENT=development (admin bypass on localhost) and IP_HASH_SALT for wrangler dev.
+ENVIRONMENT = "production"
+
+[env.production]
+name = "kc-sim"
+# Interim: served on kc-sim.lumpoler.workers.dev until a hostname is chosen. Cloudflare documents the Cache API
+# (caches.default) as needing a custom domain or zone route (docs/DEPLOY.md §7); the code works either way.
+workers_dev = true
+# routes = [{ pattern = "<api host>", custom_domain = true }]
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "kc-sim"
+database_id = "3b5a142f-beaa-45ef-a6de-bddb478babb4"
+migrations_dir = "migrations"
+
+[[env.production.ratelimits]]
+name = "WRITE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 20, period = 60 }
+
+[env.production.vars]
+KCNAV_BASE = "https://tsunkit.net"
+KCNAV_MIN_INTERVAL_MS = "65000"
+ENVIRONMENT = "production"
+# Cloudflare Access application for /admin/* (docs/DEPLOY.md "Access"), e.g. "<team>.cloudflareaccess.com" and the
+# application's AUD tag. Empty until Access is set up: every /admin request then answers 503. (A placeholder host
+# would be a real, third-party team domain the worker fetches signing keys from.)
+ACCESS_TEAM_DOMAIN = ""
+ACCESS_AUD = ""
+# Secret, not a var: `wrangler secret put IP_HASH_SALT --env production`.
+
+# The jobs cron (src/app.ts JOBS_CRON, src/jobs.ts): every minute, staged uploads, aggregation and the estimator
+# under one cost-model CPU budget that fits Workers Free (10 ms per invocation; docs/DEPLOY.md "CPU budget").
+# Another expression (Workers Free allows 5 cron triggers per account) runs one KCNav step per tick instead.
+[env.production.triggers]
+crons = ["* * * * *"]

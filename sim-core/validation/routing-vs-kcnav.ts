@@ -8,15 +8,15 @@
 // a node that stays off under the best mixture, an observed branch that no fleet can take, or a
 // simulated move along an edge KCNav has never seen points at the rules.
 //
-// Reads the snapshots stored by the data-worker queue (D1 table kcnav_edge_counts, read-only, no
+// Reads the snapshots stored by the server queue (D1 table kcnav_edge_counts, read-only, no
 // KCNav request) and GET /api/v1/maps/{m} for edges and routing.
 //
 //   bun validation/routing-vs-kcnav.ts            # query D1 + API, save snapshot, rewrite docs/VALIDATION.md
 //   bun validation/routing-vs-kcnav.ts --offline  # reuse validation/kcnav-snapshot.json
 //
-// Needs `wasm-pack build --target web` (pkg/) and, unless --offline, the local data-worker on :8787.
+// Needs `wasm-pack build --target web` (pkg/) and, unless --offline, the local server on :8787.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { query } from "../../data-worker/scripts/lib/d1.ts";
+import { query } from "../../server/scripts/lib/d1.ts";
 import { initSync, simulateSortie } from "../pkg/sim_core.js";
 import type { EquipmentInput, RoutingDocument, ShipInput, SortieInput, SortieNode, SortieSummary } from "../pkg/sim_core.js";
 
@@ -157,7 +157,7 @@ async function loadSnapshot(): Promise<Snapshot> {
     if (!r.ok) throw new Error(`GET /maps/${m}: ${r.status}`);
     maps[m] = (await r.json()) as MapData;
   }
-  // D1 is read through the data-worker's wrangler wrapper (read-only query).
+  // D1 is read through the server's wrangler wrapper (read-only query).
   const ids = MAPS.map((m) => m.replace("-", "")).join(", ");
   const rows = await query<{ map_id: number; query: string; edge_id: number; runs: number; retrieved_at: string }>(
     `SELECT map_id, query, edge_id, runs, retrieved_at FROM kcnav_edge_counts WHERE map_id IN (${ids})`,

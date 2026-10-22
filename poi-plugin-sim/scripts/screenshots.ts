@@ -1,111 +1,102 @@
 /**
- * dev サーバを起動し、headless Chromium で各タブのスクリーンショットを docs/screenshots/ に保存する。
- * `bun run screenshots`。ブラウザは playwright のキャッシュにある chromium_headless_shell を使う
- * (CHROMIUM_PATH で上書き可)。
+ * プラグインのビューのスクリーンショット (docs/screenshots/)。`bun run screenshots`。
+ * Web UI (web/ の vite) とプラグインの開発用ページ (dev/) を起動し、headless Chromium で
+ * 埋め込んだシミュレータ (poi の state が postMessage で届いたこと = 「poi 接続中」)、観測ログ、送信設定を撮る。
+ * ブラウザは playwright のキャッシュにある chromium_headless_shell を使う (CHROMIUM_PATH で上書き可)。
  */
 import { chromium } from "playwright-core";
-import { mkdirSync, readdirSync, existsSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
 const OUT = resolve(import.meta.dir, "../../docs/screenshots");
-const PORT = 5199;
-const URL = `http://localhost:${PORT}/`;
+const WEB_PORT = 5198;
+const PLUGIN_PORT = 5197;
 
 const findChromium = (): string => {
   if (process.env.CHROMIUM_PATH) return process.env.CHROMIUM_PATH;
   const base = join(homedir(), "Library/Caches/ms-playwright");
-  const dirs = existsSync(base) ? readdirSync(base).filter((d) => d.startsWith("chromium_headless_shell")).sort() : [];
-  for (const d of dirs.reverse()) {
-    const dir = join(base, d);
-    for (const sub of readdirSync(dir)) {
-      const exe = join(dir, sub, "chrome-headless-shell");
+  const dirs = existsSync(base) ? readdirSync(base).filter((d) => d.startsWith("chromium_headless_shell")).sort().reverse() : [];
+  for (const d of dirs) {
+    for (const sub of readdirSync(join(base, d))) {
+      const exe = join(base, d, sub, "chrome-headless-shell");
       if (existsSync(exe)) return exe;
     }
   }
   throw new Error("chromium_headless_shell not found; set CHROMIUM_PATH");
 };
 
-mkdirSync(OUT, { recursive: true });
-
-const server = Bun.spawn(["bun", "dev/server.ts", "--port", String(PORT)], {
-  cwd: resolve(import.meta.dir, ".."),
-  stdout: "pipe",
-  stderr: "pipe",
-});
-const ready = (async () => {
-  const dec = new TextDecoder();
-  for await (const chunk of server.stdout as any) {
-    if (dec.decode(chunk).includes("Local:")) return;
+const startVite = async (cwd: string, port: number) => {
+  const proc = Bun.spawn(["bunx", "vite", "--port", String(port), "--strictPort"], { cwd, stdout: "ignore", stderr: "inherit" });
+  for (let i = 0; !(await fetch(`http://localhost:${port}/`).then((r) => r.ok, () => false)); i++) {
+    if (i > 300) throw new Error(`vite in ${cwd} did not start`);
+    await Bun.sleep(100);
   }
-  throw new Error("dev server exited");
-})();
-await ready;
+  return proc;
+};
+
+mkdirSync(OUT, { recursive: true });
+const servers = [
+  await startVite(resolve(import.meta.dir, "../../web"), WEB_PORT),
+  await startVite(resolve(import.meta.dir, ".."), PLUGIN_PORT),
+];
 
 const browser = await chromium.launch({ executablePath: findChromium() });
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
-page.on("pageerror", (e) => console.error("[pageerror]", e.message));
-page.on("console", (m) => m.type() === "error" && console.error("[console.error]", m.text().slice(0, 300)));
+// 新しいコンテキストは localStorage / IndexedDB が空。旧プラグイン UI のプリセットを 1 件置いて、移行も通す
+const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+await context.addInitScript(() => {
+  if (location.port !== "5197" || localStorage.getItem("kcsim:plugin") !== null) return;
+  const preset = {
+    id: "legacy1", name: "旧プラグインの編成", createdAt: 1, updatedAt: 1, fleetType: "single", formation: "line_ahead",
+    ships: [{ masterId: 1, level: 99, luckMod: 0, hpMod: 0, aswMod: 0, morale: 49, equips: [] }], source: "manual",
+  };
+  localStorage.setItem("kcsim:preset:legacy1", JSON.stringify(preset));
+});
+const main = await context.newPage();
+for (const p of [main]) {
+  p.on("pageerror", (e) => console.error("[pageerror]", e.message));
+  p.on("console", (m) => m.type() === "error" && console.error("[console.error]", m.text().slice(0, 300)));
+}
 
-const shot = async (name: string, opts: { fullPage?: boolean } = {}) => {
-  await page.screenshot({ path: join(OUT, `${name}.png`), fullPage: opts.fullPage ?? false });
-  console.log("saved", `${name}.png`);
+// poi のウィンドウモードと同じく、開発用ページ (= メインウィンドウ) が子ウィンドウを開いてビューを portal する
+const popupOpened = context.waitForEvent("page");
+await main.goto(`http://localhost:${PLUGIN_PORT}/?server=${encodeURIComponent(`http://localhost:${WEB_PORT}/`)}`);
+const page = await popupOpened;
+await page.setViewportSize({ width: 1440, height: 1000 });
+page.on("pageerror", (e) => console.error("[pageerror:plugin window]", e.message));
+
+const shot = async (name: string) => {
+  await page.screenshot({ path: join(OUT, `${name}.png`) });
+  console.log("saved", join(OUT, `${name}.png`));
 };
 const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).click();
 
 try {
-  await page.goto(URL);
-  await page.evaluate(async () => {
-    localStorage.clear();
-    const dbs = await indexedDB.databases();
-    await Promise.all(dbs.map((d) => new Promise((r) => { const q = indexedDB.deleteDatabase(d.name!); q.onsuccess = q.onerror = q.onblocked = () => r(null); })));
-  });
-  await page.reload();
-  await page.getByText("プリセットがありません").waitFor();
-  await shot("00-fleet-empty");
-
-  // poi の第1艦隊を取り込む → 編集画面
-  await page.getByTitle("第1艦隊").click();
-  await page.getByText("第1艦隊を取り込みました").waitFor();
+  // 埋め込んだ Web UI に poi の state (開発用ページではサンプル) が届くと「poi 接続中」になる。
+  // postMessage の送り元は子ウィンドウでなくメインウィンドウ (= 親の opener) で、実機の poi と同じ経路
+  const web = page.frameLocator("iframe[title=kc-sim]");
+  await web.getByText("poi 接続中").waitFor({ timeout: 30_000 });
+  // 旧プラグイン UI のプリセットが移行されている
+  await web.getByText("旧プラグインの編成").waitFor({ timeout: 10_000 });
+  const migrated = await main.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("kcsim:presetsMigrated:")));
+  console.log("presets migrated:", migrated);
+  await web.getByTitle("第1艦隊").click();
+  await web.getByText("第1艦隊を取り込みました").waitFor();
   await page.waitForTimeout(300);
-  console.log("body margin:", await page.evaluate(() => getComputedStyle(document.body).margin));
-  await shot("01-fleet-editor");
-  await shot("01b-fleet-editor-full", { fullPage: true });
-
-  await page.waitForTimeout(3700); // トースト消滅待ち
-
-  // 艦ピッカー
-  await page.getByLabel("1番艦").click();
-  await page.getByPlaceholder("名前・読みで検索").fill("やまと");
-  await page.waitForTimeout(150);
-  await shot("02-fleet-ship-picker");
-  await page.keyboard.press("Escape");
-
-  // 装備ピッカー
-  await page.getByLabel("#1 装備").first().click();
-  await page.getByPlaceholder("名前・読みで検索").fill("46");
-  await page.waitForTimeout(150);
-  await shot("03-fleet-equip-picker");
-  await page.keyboard.press("Escape");
-
-  // 入出力モーダル (DeckBuilder 書き出し)
-  await page.getByRole("button", { name: "入出力" }).click();
-  await page.getByRole("tab", { name: "デッキビルダー" }).click();
-  await page.waitForTimeout(150);
-  await shot("04-fleet-io-deckbuilder");
-  await page.keyboard.press("Escape");
+  await shot("19-plugin-embedded");
 
   // 観測ログ: 戦闘を流し込んでから表示
-  await page.evaluate(async () => {
+  await main.evaluate(async () => {
     // dev/main.tsx が公開する開発用の口
-    const { capture: cap, captureFixtures: fx, fleet: fleetMod, sampleState: state } = Reflect.get(window, "__kcsimDev");
+    const { capture: cap, captureFixtures: fx, importFromPoi, sampleState: state } = Reflect.get(window, "__kcsimDev");
     const db = new cap.ObservationDb();
-    const ships = fleetMod.importFromPoi(state, 0).ships;
+    const ships = importFromPoi(state, 0).ships;
     let t = Date.now() - 3600_000;
+    const nodes: Record<number, string> = { 1: "Start", 5: "B" };
     const session = new cap.CaptureSession({
       sink: db,
       getFleet: () => ({ deckId: 1, ships }),
-      resolveNode: (_a: number, _m: number, cell: number) => ({ 1: "Start", 5: "B" } as any)[cell],
+      resolveNode: (_a: number, _m: number, cell: number) => nodes[cell],
       now: () => (t += 60_000),
     });
     for (const [map, area] of [[2, 1], [4, 5]]) {
@@ -127,77 +118,11 @@ try {
   await shot("06-log-detail");
   await page.keyboard.press("Escape");
 
-  // データ API (data-worker が localhost:8787 で動いている場合のみ)
-  const apiUp = await fetch("http://127.0.0.1:8787/api/v1/health").then((r) => r.ok, () => false);
-  if (apiUp) {
-    await tab("海域");
-    await page.locator("select").nth(1).selectOption("1-5");
-    await page.getByRole("button", { name: "ノード D" }).waitFor();
-    await page.getByRole("button", { name: "ノード D" }).click();
-    await page.waitForTimeout(300);
-    await shot("09-map-routing");
-    await page.getByRole("button", { name: "ノード J" }).click();
-    await page.getByText("試行").first().waitFor({ timeout: 10000 });
-    await page.waitForTimeout(300);
-    await shot("10-map-enemy-comps", { fullPage: true });
-
-    await tab("敵艦データ");
-    await page.getByPlaceholder("名前・ID で検索").fill("駆逐イ級");
-    await page.getByRole("button", { name: /駆逐イ級/ }).first().click();
-    await page.getByText("隠しステータス推定").waitFor();
-    await page.waitForTimeout(300);
-    await shot("11-enemy-detail", { fullPage: true });
-  } else {
-    console.warn("data-worker not running on :8787; skipping map/enemy screenshots");
-  }
-
-  if (apiUp) {
-    // 出撃シミュレーション: 対潜編成 (五十鈴改二 + 駆逐3) で 1-5
-    await tab("艦隊編成");
-    await page.getByTitle("第3艦隊").click();
-    await page.getByText("第3艦隊を取り込みました").waitFor();
-    await tab("シミュレーション");
-    await page.getByRole("tab", { name: "出撃", exact: true }).click();
-    await page.getByText("出撃設定", { exact: true }).waitFor();
-    await page.waitForFunction(() => document.body.innerText.includes("1-5"));
-    await page.locator("select").first().selectOption({ label: "第3艦隊 (4隻)" });
-    await page.waitForTimeout(1500);
-    await page.getByRole("button", { name: "実行", exact: true }).click();
-    await page.getByText("ボス到達率").waitFor({ timeout: 180000 });
-    await page.waitForTimeout(700);
-    const t = await page.locator("main").innerText();
-    console.log("---- sortie numbers ----\n" + t.slice(t.indexOf("ボス到達率")).split("\n").slice(0, 120).join(" | "));
-    await shot("15-sim-sortie", { fullPage: true });
-  }
-
-  await tab("設定");
-  await page.waitForTimeout(200);
-  await shot("07-settings");
-
-  if (apiUp) {
-    await tab("シミュレーション");
-    await page.getByText("戦闘設定", { exact: true }).waitFor();
-    // 1-5 / J / 全編成 / 10k 戦 (既定値)。ノード選択が読み込まれるのを待つ
-    await page.waitForFunction(() => [...document.querySelectorAll("select")].some((s) => s.value === "J"));
-    await page.getByRole("button", { name: "実行", exact: true }).click();
-    await page.getByText("勝敗判定", { exact: true }).waitFor({ timeout: 120000 });
-    await page.waitForTimeout(500);
-    const text = await page.locator("main").innerText();
-    console.log("---- sim numbers ----\n" + text.split("\n").slice(0, 60).join(" | "));
-    await shot("12-sim-battle", { fullPage: true });
-  }
-  // 狭いプラグインウィンドウ (800px 幅) の確認
-  await page.setViewportSize({ width: 800, height: 900 });
-  await tab("艦隊編成");
-  await page.waitForTimeout(400);
-  await shot("17-narrow-fleet");
-  if (apiUp) {
-    await tab("海域");
-    await page.getByRole("button", { name: "ノード D" }).click();
-    await page.waitForTimeout(1200);
-    await shot("18-narrow-map");
-  }
+  await tab("送信設定");
+  await page.getByText("最終成功").waitFor();
+  await page.waitForTimeout(300);
+  await shot("08-plugin-upload");
 } finally {
   await browser.close();
-  server.kill();
+  servers.forEach((s) => s.kill());
 }

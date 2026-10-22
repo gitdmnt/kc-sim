@@ -1,0 +1,73 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "1-5",
+  "sources": [
+    { "id": "compass", "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence" },
+    { "id": "kc3-edges", "note": "adjacency from KC3Kai src/data/edges.json (World 1-5)" }
+  ],
+  "nodes": {
+    "Start": { "rules": [{ "to": "A" }] },
+    "A": { "rules": [{ "to": "D" }] },
+    "D": {
+      "rules": [
+        { "when": { "m": "ships", "eq": 1 }, "to": "E" },
+        {
+          "when": { "m": "ships", "gte": 5 },
+          "rules": [
+            { "when": { "m": "count", "types": ["SS_CLASS"], "gte": 1 }, "to": "F" },
+            { "random": [{ "to": "E", "p": 0.5 }, { "to": "F", "p": 0.5 }], "uncertain": true, "note": "text says only 'ランダム'; ratio assumed 50/50" }
+          ]
+        },
+        { "when": { "any": [{ "m": "onlyTypes", "types": ["DE"] }, { "m": "count", "types": ["AO"], "gte": 1 }] }, "to": "E" },
+        { "to": "F" }
+      ]
+    },
+    "E": {
+      "rules": [
+        { "when": { "m": "ships", "gte": 5 }, "to": "C" },
+        { "when": { "m": "onlyTypes", "types": ["DE"] }, "to": "J" },
+        { "to": "C" }
+      ]
+    },
+    "C": {
+      "rules": [
+        { "when": { "m": "onlyTypes", "types": ["DE"] }, "to": "J" },
+        {
+          "when": { "all": [{ "m": "count", "types": ["CL"], "eq": 1 }, { "m": "count", "types": ["DE"], "eq": 4 }, { "m": "ships", "eq": 5 }] },
+          "to": "J", "uncertain": true, "note": "marked '?' in source text"
+        },
+        {
+          "when": { "all": [{ "m": "ships", "lte": 4 }, { "m": "count", "types": ["AO"], "gte": 1 }] },
+          "random": [{ "to": "B", "p": 0.5 }, { "to": "J", "p": 0.5 }]
+        },
+        { "to": "B" }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["BATTLESHIP", "STD_CV", "SS_CLASS"], "gte": 1 },
+              { "m": "count", "types": ["CVL"], "gte": 2 },
+              { "m": "count", "types": ["CL"], "gte": 3 }
+            ]
+          },
+          "to": "I",
+          "note": "'戦艦' read as FBB+BB (not BBV)"
+        },
+        { "to": "G" }
+      ]
+    },
+    "G": {
+      "rules": [
+        { "when": { "m": "ships", "gte": 5 }, "to": "H" },
+        { "to": "J" }
+      ]
+    },
+    "B": { "end": true },
+    "H": { "end": true },
+    "I": { "end": true },
+    "J": { "end": true, "note": "boss" }
+  }
+}

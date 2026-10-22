@@ -1,0 +1,510 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "6-4",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 6-4)"
+    },
+    {
+      "id": "ship-ids",
+      "note": "countIds from Tibowl api_start2 remodel chains"
+    },
+    {
+      "id": "kcnav-map",
+      "note": "node adjacency and start points from the KCNav map route (tsunkit.net), 2026-10-22; KC3 edges.json merged the two start points"
+    }
+  ],
+  "nodes": {
+    "Start1": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "speed",
+                "gte": "fast"
+              },
+              {
+                "any": [
+                  {
+                    "all": [
+                      {
+                        "m": "flagship",
+                        "in": [
+                          "CL"
+                        ]
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "DD"
+                        ],
+                        "eq": 3
+                      }
+                    ]
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 4
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "B"
+        },
+        {
+          "to": "A",
+          "note": "Start1 is only chosen when the B or DD>=2 condition holds, so the last rule is unconditional"
+        }
+      ]
+    },
+    "Start2": {
+      "rules": [
+        {
+          "to": "M"
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "countIds",
+                "ids": [
+                  445,
+                  450
+                ],
+                "gte": 1
+              },
+              {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CAV"
+                    ],
+                    "eq": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "D"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "speed",
+                "eq": "slow"
+              }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "flagship",
+                "in": [
+                  "CL"
+                ]
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 3
+              }
+            ]
+          },
+          "to": "D"
+        },
+        {
+          "to": "E"
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "to": "D"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "to": "C"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "countIds",
+                "ids": [
+                  445,
+                  450
+                ],
+                "gte": 1
+              },
+              {
+                "m": "countIds",
+                "ids": [
+                  2,
+                  255,
+                  435
+                ],
+                "gte": 1
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CA_CLASS"
+                    ],
+                    "lte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "speed",
+                    "gte": "fast"
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "D"
+        },
+        {
+          "to": "G"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "to": "N"
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "to": "D"
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "to": "J"
+        }
+      ]
+    },
+    "I": {
+      "rules": [
+        {
+          "to": "N"
+        }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "eq": 0
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "lte": 1
+              }
+            ]
+          },
+          "to": "L"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "LHA"
+            ],
+            "gte": 1
+          },
+          "to": "N"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CV_CLASS"
+                ],
+                "eq": 2
+              },
+              {
+                "any": [
+                  {
+                    "m": "speed",
+                    "eq": "slow"
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS"
+                    ],
+                    "gte": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "L"
+        },
+        {
+          "to": "I"
+        }
+      ]
+    },
+    "K": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "eq": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CA_CLASS"
+                ],
+                "gte": 3
+              }
+            ]
+          },
+          "to": "H"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "gte": 2
+          },
+          "to": "J"
+        },
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "L": {
+      "rules": [
+        {
+          "to": "I"
+        }
+      ]
+    },
+    "M": {
+      "rules": [
+        {
+          "to": "K"
+        }
+      ]
+    },
+    "N": {
+      "end": true,
+      "note": "boss"
+    }
+  },
+  "start": {
+    "note": "compass case null: start 1 (-> A/B) or start 2 (-> M)",
+    "rules": [
+      {
+        "when": {
+          "any": [
+            {
+              "m": "count",
+              "types": [
+                "LHA"
+              ],
+              "gte": 1
+            },
+            {
+              "m": "count",
+              "types": [
+                "CV_CLASS"
+              ],
+              "gte": 1
+            },
+            {
+              "m": "count",
+              "types": [
+                "CAV"
+              ],
+              "gte": 3
+            }
+          ]
+        },
+        "to": "Start2"
+      },
+      {
+        "when": {
+          "all": [
+            {
+              "m": "count",
+              "types": [
+                "BB_CLASS"
+              ],
+              "eq": 2
+            },
+            {
+              "not": {
+                "all": [
+                  {
+                    "m": "countIds",
+                    "ids": [
+                      541
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "countIds",
+                    "ids": [
+                      573
+                    ],
+                    "gte": 1
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "to": "Start2",
+        "uncertain": true,
+        "note": "text: 戦艦級2隻 except the 長門改二+陸奥改二 pair (followed); compiled exempts the fleet when either 長門改二 or 陸奥改二 is present"
+      },
+      {
+        "when": {
+          "all": [
+            {
+              "m": "speed",
+              "gte": "fast"
+            },
+            {
+              "any": [
+                {
+                  "all": [
+                    {
+                      "m": "flagship",
+                      "in": [
+                        "CL"
+                      ]
+                    },
+                    {
+                      "m": "count",
+                      "types": [
+                        "DD"
+                      ],
+                      "eq": 3
+                    }
+                  ]
+                },
+                {
+                  "m": "count",
+                  "types": [
+                    "DD"
+                  ],
+                  "gte": 4
+                }
+              ]
+            }
+          ]
+        },
+        "to": "Start1"
+      },
+      {
+        "when": {
+          "m": "count",
+          "types": [
+            "DD"
+          ],
+          "gte": 2
+        },
+        "to": "Start1"
+      },
+      {
+        "to": "Start2"
+      }
+    ]
+  }
+}

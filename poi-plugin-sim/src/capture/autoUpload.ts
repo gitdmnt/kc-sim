@@ -12,9 +12,7 @@
  * 状態表示 (最終成功時刻・直近のエラー) はプラグインウィンドウから読むため localStorage に書く。
  * 保留数は IndexedDB が両ウィンドウで共有なので UI 側で直接数える。
  */
-import { STORAGE_PREFIX } from "../fleet";
-import { getSettings, subscribeSettings } from "../app/settings";
-import type { Settings } from "../app/settings";
+import { STORAGE_PREFIX, getUploadSettings, subscribePluginSettings } from "../settings";
 import type { ObservationDb } from "./db";
 import { isResultPath } from "./session";
 import { getUploadClient } from "./uploadClient";
@@ -65,7 +63,7 @@ export interface AutoUploadOptions {
   db: Pick<ObservationDb, "uploadPending" | "countPending">;
   /** 既定は localStorage を共有する uploadClient (手動送信と同じ間隔・トークン) */
   client?: Pick<UploadClient, "send" | "state">;
-  getSettings?: () => Pick<Settings, "autoUpload" | "apiBase">;
+  getSettings?: () => { autoUpload: boolean; apiBase: string };
   subscribeSettings?: (listener: () => void) => () => void;
   now?: () => number;
   setTimer?: (fn: () => void, ms: number) => unknown;
@@ -95,8 +93,8 @@ const isUploadTrigger = (rawPath: string): boolean => {
 };
 
 export const startAutoUpload = (opts: AutoUploadOptions): AutoUploader => {
-  const readSettings = opts.getSettings ?? getSettings;
-  const subscribe = opts.subscribeSettings ?? subscribeSettings;
+  const readSettings = opts.getSettings ?? getUploadSettings;
+  const subscribe = opts.subscribeSettings ?? subscribePluginSettings;
   const client = opts.client ?? getUploadClient();
   const now = opts.now ?? Date.now;
   const setTimer = opts.setTimer ?? ((fn, ms) => setTimeout(fn, ms));

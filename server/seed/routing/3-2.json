@@ -1,0 +1,362 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "3-2",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 3-2)"
+    }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 1
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "eq": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 4
+                  }
+                ]
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "eq": 6
+              }
+            ]
+          },
+          "to": "C"
+        },
+        {
+          "to": "A"
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "to": "B"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "lte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "STD_CV"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "to": "A"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "gte": 1
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.5
+            },
+            {
+              "to": "G",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled 50/50"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "speed",
+                "eq": "slow"
+              },
+              {
+                "m": "equipShips",
+                "equip": {
+                  "group": "RADAR"
+                },
+                "eq": 0
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL",
+                  "DD",
+                  "AO"
+                ],
+                "lte": 5
+              }
+            ]
+          },
+          "to": "G"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "speed",
+                "eq": "fastest"
+              },
+              {
+                "m": "equipShips",
+                "equip": {
+                  "group": "RADAR"
+                },
+                "gte": 4
+              }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "speed",
+                "gte": "fastPlus"
+              },
+              {
+                "m": "count",
+                "types": [
+                  "AO"
+                ],
+                "gte": 1
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "E",
+              "p": 0.4
+            },
+            {
+              "to": "G",
+              "p": 0.6
+            }
+          ]
+        },
+        {
+          "to": "G"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "when": {
+            "m": "speed",
+            "gte": "fastPlus"
+          },
+          "to": "F"
+        },
+        {
+          "random": [
+            {
+              "to": "D",
+              "p": 0.2
+            },
+            {
+              "to": "F",
+              "p": 0.8
+            }
+          ]
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "SS_CLASS"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CVL"
+                ],
+                "eq": 2
+              }
+            ]
+          },
+          "to": "J"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "speed",
+                "eq": "slow"
+              },
+              {
+                "m": "equipShips",
+                "equip": {
+                  "group": "RADAR"
+                },
+                "eq": 0
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL",
+                  "DD",
+                  "AO"
+                ],
+                "lte": 5
+              }
+            ]
+          },
+          "to": "H"
+        },
+        {
+          "when": {
+            "m": "speed",
+            "gte": "fastPlus"
+          },
+          "to": "F"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "AO"
+            ],
+            "gte": 1
+          },
+          "random": [
+            {
+              "to": "F",
+              "p": 0.55
+            },
+            {
+              "to": "H",
+              "p": 0.45
+            }
+          ]
+        },
+        {
+          "random": [
+            {
+              "to": "F",
+              "p": 0.35
+            },
+            {
+              "to": "H",
+              "p": 0.65
+            }
+          ]
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CL",
+              "DD",
+              "AO"
+            ],
+            "eq": 6
+          },
+          "to": "F"
+        },
+        {
+          "to": "I"
+        }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "to": "K"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "to": "L"
+        }
+      ]
+    },
+    "B": {
+      "end": true
+    },
+    "D": {
+      "end": true
+    },
+    "I": {
+      "end": true
+    },
+    "K": {
+      "end": true
+    },
+    "L": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

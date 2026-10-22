@@ -1,0 +1,54 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "6-3",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    { "id": "kc3-edges", "note": "adjacency from KC3Kai src/data/edges.json (World 6-3)" }
+  ],
+  "defaults": { "select": { "A": "B" } },
+  "nodes": {
+    "Start": { "rules": [{ "to": "A" }] },
+    "A": { "rules": [{ "select": ["B", "C"] }] },
+    "B": { "rules": [{ "to": "D" }] },
+    "C": { "rules": [{ "to": "E" }] },
+    "D": { "rules": [{ "to": "E" }] },
+    "E": {
+      "rules": [
+        {
+          "when": { "m": "count", "types": ["AV"], "lte": 1 },
+          "rules": [
+            {
+              "when": { "all": [{ "m": "count", "types": ["CL"], "lte": 1 }, { "m": "count", "types": ["DD"], "gte": 3 }] },
+              "to": "G"
+            },
+            {
+              "when": { "m": "count", "types": ["CL"], "lte": 2 },
+              "random": [{ "to": "F", "p": 0.6 }, { "to": "G", "p": 0.4 }]
+            },
+            { "to": "F" }
+          ]
+        },
+        { "to": "F" }
+      ]
+    },
+    "F": { "rules": [{ "to": "H" }] },
+    "G": { "rules": [{ "to": "H" }] },
+    "H": {
+      "rules": [
+        { "when": { "m": "los", "cn": 3, "lt": 36 }, "to": "I" },
+        {
+          "when": { "m": "los", "cn": 3, "lt": 38 },
+          "random": [{ "to": "I", "p": 0.5 }, { "to": "J", "p": 0.5 }],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        },
+        { "to": "J" }
+      ]
+    },
+    "I": { "end": true },
+    "J": { "end": true, "note": "boss" }
+  }
+}

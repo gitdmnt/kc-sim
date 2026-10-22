@@ -1,0 +1,634 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "4-5",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 4-5)"
+    }
+  ],
+  "defaults": {
+    "select": {
+      "A": "D",
+      "C": "F",
+      "I": "J"
+    }
+  },
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "random": [
+            {
+              "to": "A",
+              "p": 0.5
+            },
+            {
+              "to": "C",
+              "p": 0.5
+            }
+          ]
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "select": [
+            "B",
+            "D"
+          ]
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "select": [
+            "F",
+            "D"
+          ]
+        }
+      ]
+    },
+    "I": {
+      "rules": [
+        {
+          "select": [
+            "G",
+            "J"
+          ]
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "to": "E"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "to": "I"
+        }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "N": {
+      "rules": [
+        {
+          "to": "T"
+        }
+      ]
+    },
+    "S": {
+      "rules": [
+        {
+          "to": "Q"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "speed",
+                "gte": "fastPlus"
+              },
+              {
+                "m": "count",
+                "types": [
+                  "AO"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 3
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "M"
+        },
+        {
+          "to": "K"
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "to": "H",
+          "uncertain": true,
+          "note": "marked '?' in source text"
+        },
+        {
+          "random": [
+            {
+              "to": "D",
+              "p": 0.5
+            },
+            {
+              "to": "H",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "marked '?' in source text; ratio from compiled"
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "speed",
+                    "gte": "fastPlus"
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS",
+                      "CV_CLASS"
+                    ],
+                    "lte": 4
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "eq": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "gte": 3
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "not": {
+                      "m": "visited",
+                      "node": "D"
+                    }
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "eq": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "T"
+        },
+        {
+          "to": "K"
+        }
+      ]
+    },
+    "K": {
+      "rules": [
+        {
+          "when": {
+            "m": "visited",
+            "node": "E"
+          },
+          "to": "M",
+          "uncertain": true,
+          "note": "text: '?(反例アリ)'"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "STD_CV"
+                ],
+                "gte": 4
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 5
+              },
+              {
+                "m": "count",
+                "types": [
+                  "AO"
+                ],
+                "gte": 1
+              }
+            ]
+          },
+          "to": "M"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 2,
+            "lt": 63
+          },
+          "to": "L",
+          "uncertain": true,
+          "note": "threshold 63 marked '?'"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 2,
+            "lt": 70
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "SS_CLASS"
+                ],
+                "gte": 1
+              },
+              "random": [
+                {
+                  "to": "L",
+                  "p": 0.333
+                },
+                {
+                  "to": "M",
+                  "p": 0.333
+                },
+                {
+                  "to": "T",
+                  "p": 0.334
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            {
+              "random": [
+                {
+                  "to": "L",
+                  "p": 0.5
+                },
+                {
+                  "to": "T",
+                  "p": 0.5
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            }
+          ],
+          "uncertain": true,
+          "note": "thresholds 63/70 marked '?'"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "gte": 1
+          },
+          "random": [
+            {
+              "to": "M",
+              "p": 0.5
+            },
+            {
+              "to": "T",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        },
+        {
+          "to": "T",
+          "uncertain": true,
+          "note": "threshold 70 marked '?'"
+        }
+      ]
+    },
+    "M": {
+      "rules": [
+        {
+          "when": {
+            "m": "speed",
+            "eq": "fastest"
+          },
+          "to": "N"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "lte": 1
+          },
+          "to": "R"
+        },
+        {
+          "when": {
+            "m": "speed",
+            "gte": "fastPlus"
+          },
+          "to": "N"
+        },
+        {
+          "when": {
+            "m": "speed",
+            "eq": "slow"
+          },
+          "to": "R"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "STD_CV"
+            ],
+            "lte": 1
+          },
+          "to": "N"
+        },
+        {
+          "to": "R"
+        }
+      ]
+    },
+    "O": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "gte": 5
+          },
+          "to": "N",
+          "uncertain": true,
+          "note": "marked '?' in source text"
+        },
+        {
+          "random": [
+            {
+              "to": "N",
+              "p": 0.5
+            },
+            {
+              "to": "T",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "marked '?' in source text; ratio from compiled"
+        }
+      ]
+    },
+    "Q": {
+      "rules": [
+        {
+          "when": {
+            "m": "los",
+            "cn": 2,
+            "lt": 55
+          },
+          "to": "P",
+          "uncertain": true,
+          "note": "threshold 55 marked '?'"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 2,
+            "lt": 59
+          },
+          "rules": [
+            {
+              "when": {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS",
+                      "CV_CLASS"
+                    ],
+                    "gte": 5
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "eq": 0
+                  }
+                ]
+              },
+              "random": [
+                {
+                  "to": "O",
+                  "p": 0.5
+                },
+                {
+                  "to": "P",
+                  "p": 0.5
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            {
+              "random": [
+                {
+                  "to": "N",
+                  "p": 0.5
+                },
+                {
+                  "to": "P",
+                  "p": 0.5
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            }
+          ],
+          "uncertain": true,
+          "note": "thresholds 55/59 marked '?'"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 5
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "eq": 0
+              }
+            ]
+          },
+          "to": "O"
+        },
+        {
+          "to": "N",
+          "uncertain": true,
+          "note": "threshold 59 marked '?'"
+        }
+      ]
+    },
+    "R": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "speed",
+                "gte": "fastPlus"
+              },
+              {
+                "all": [
+                  {
+                    "m": "speed",
+                    "gte": "fast"
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL",
+                      "CAV"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "N"
+        },
+        {
+          "to": "S"
+        }
+      ]
+    },
+    "L": {
+      "end": true
+    },
+    "P": {
+      "end": true
+    },
+    "T": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

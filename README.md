@@ -1,8 +1,9 @@
-# kc-sim — 艦これ 出撃シミュレータ (poi プラグイン)
+# kc-sim — 艦これ 出撃シミュレータ (Web UI + poi プラグイン)
 
 艦隊編成から海域のルーティング・敵編成・戦闘までを **モンテカルロ法で何千回も回し**、
-「ボスに到達する確率」「S勝利率」「大破撤退率」「クリアまでの出撃回数」などを見積もる、
-[poi](https://github.com/poooi/poi) 用のシミュレータです。
+「ボスに到達する確率」「S勝利率」「大破撤退率」「クリアまでの出撃回数」などを見積もるシミュレータです。
+UI は Web アプリ (データ API と同じ Cloudflare Worker が配る) で、[poi](https://github.com/poooi/poi) 用プラグインが
+それを埋め込み、poi の艦隊・マスターデータを渡します。計算はブラウザ内 (Web Worker + wasm) で行います。
 
 > **状態:** 開発中。計算モデルは近似であり、ゲーム内の結果を保証しません。
 > 前提と限界は [既知の制限](#既知の制限) を必ず読んでください。
@@ -12,11 +13,12 @@
 | 柱 | 内容 | 場所 |
 |---|---|---|
 | **1. 戦闘・出撃エンジン** | 砲撃・雷撃・対潜・航空戦・夜戦・命中/回避/クリティカル/装甲・陣形・交戦形態・轟沈ストッパー、ルーティング評価、撤退ポリシー、ゲージ。Rust → wasm、シード指定で完全再現可能 | `sim-core/` |
-| **2. データ基盤** | マスターデータ、深海棲艦の表示/隠しステータス (出典付き)、海域グラフ、ルーティング規則 (自作 DSL)、敵編成と出現率 (KCNav)、装備ボーナス。ローカル完結の HTTP API と静的バンドル | `data-worker/` |
-| **3. 観測と推定** | poi の通信から戦闘を自動記録 (IndexedDB)。記録から敵の回避・命中・運をベイズ推定し、シミュレーションに反映 | `poi-plugin-sim/src/capture`, `src/estimate` |
-| **4. UI** | 艦隊編成 / 海域 / 敵艦データ / シミュレーション (戦闘・出撃) / パラメータ推定 / 観測ログ / 設定の 7 タブ。poi のダークテーマに合わせ、Web Worker で計算 | `poi-plugin-sim/` |
+| **2. データ基盤** | マスターデータ、深海棲艦の表示/隠しステータス (出典付き)、海域グラフ、ルーティング規則 (自作 DSL)、敵編成と出現率 (KCNav)、装備ボーナス。ローカル完結の HTTP API と静的バンドル | `server/` |
+| **3. 観測と推定** | poi の通信から戦闘を自動記録 (IndexedDB) してサーバに送信。サーバが敵の回避・命中・運をベイズ推定し、シミュレーションに反映 | `poi-plugin-sim/src/capture`, `shared/estimate`, `server/src/estimator` |
+| **4. UI** | Web UI: 艦隊編成 / 海域 / 敵艦データ / シミュレーション (戦闘・出撃) / パラメータ推定 / 設定。poi プラグイン: Web UI の埋め込み + 観測ログ / 送信設定。Web Worker で計算 | `web/`, `poi-plugin-sim/` |
 
-スクリーンショットは [`docs/screenshots/`](docs/screenshots/) にあります。
+スクリーンショットは [`docs/screenshots/`](docs/screenshots/) にあります (`13-poi-plugin-window`・`14-poi-plugin-sim`・`16-poi-sortie` は
+実機の poi で撮ったもので、UI を Web に移す前の旧プラグイン UI です。埋め込みの見え方は開発用ページで撮った `19-plugin-embedded`)。
 
 ## アーキテクチャ
 
@@ -26,28 +28,34 @@ flowchart LR
     GR["game.response<br/>(戦闘パケット)"]
     subgraph plugin["poi-plugin-sim"]
       CAP["capture<br/>(IndexedDB)"]
-      EST["estimator<br/>(隠しステータス推定)"]
-      UI["React UI<br/>(7 タブ)"]
-      WK["Web Worker<br/>(file://)"]
-      WASM["sim-core (wasm)"]
-      PRE["艦隊プリセット<br/>(localStorage)"]
+      LOG["観測ログ・送信設定"]
+      FRAME["iframe<br/>(Web UI を埋め込む)"]
     end
     GR --> CAP
-    CAP --> EST
-    EST --> WASM
+    CAP --- LOG
+  end
+  subgraph browser["Web UI (web/、ブラウザまたは iframe)"]
+    UI["React UI<br/>(6 タブ)"]
+    WK["Web Worker"]
+    WASM["sim-core (wasm)"]
+    PRE["艦隊プリセット<br/>(localStorage)"]
     UI --> WK --> WASM
     UI --- PRE
   end
-  subgraph dw["data-worker (Cloudflare Worker + D1)"]
+  FRAME -.->|"postMessage: poi の艦隊・マスター<br/>(サーバには送らない)"| UI
+  subgraph dw["server (Cloudflare Worker + D1)"]
+    ASSETS["/ (静的アセット: web/dist)"]
     API["/api/v1<br/>read / write"]
     ADM["/admin<br/>KCNav キュー・ルーティング"]
+    EST["estimator (cron)"]
     D1[("D1")]
     API --- D1
     ADM --- D1
+    EST --- D1
   end
-  UI -->|"HTTP (オフライン時は静的バンドル)"| API
-  CAP -.->|"任意: 観測のアップロード"| API
-  EST -.->|"任意: 推定結果のアップロード"| API
+  ASSETS -->|"index.html, JS, wasm"| browser
+  UI -->|"同一オリジンの /api (落ちていれば静的バンドル /maps)"| API
+  CAP -.->|"観測のアップロード (任意)"| API
   ING["ingest スクリプト (bun)<br/>start2 / kancolle-replay / KC3 / EO"] --> D1
   KC["KCNav (tsunkit.net)<br/>65 秒に 1 リクエスト"] --> ADM
 ```
@@ -61,12 +69,14 @@ flowchart LR
 
 | ディレクトリ | 内容 | 兄弟への参照 |
 |---|---|---|
-| `sim-core/` | Rust → wasm のシミュレーションエンジン | テストが `../data-worker/seed/routing` を読む |
-| `data-worker/` | Cloudflare Worker + D1 (データ API、KCNav クローラ) | — |
-| `poi-plugin-sim/` | poi プラグイン (React) | `vite.config.ts` (poi 向けビルド) が `../sim-core` (wasm-pack) と `../data-worker/dist/maps` を使い、`../poi-plugin-sim-build` に出力。開発サーバ (`bun run dev`) も同じものを使う |
+| `sim-core/` | Rust → wasm のシミュレーションエンジン | テストが `../server/seed/routing` を読む |
+| `server/` | Cloudflare Worker + D1 (データ API、KCNav クローラ、推定器)。`web/dist` を静的アセットとして配る | `wrangler.toml` の `[assets]` が `../web/dist` |
+| `web/` | Web UI (React、vite)。シミュレーションはブラウザ内の Web Worker + wasm | `vite.config.ts` が `../sim-core` (wasm-pack) と `../server/dist/maps` を使い、`web/dist` に出力 |
+| `poi-plugin-sim/` | poi プラグイン (キャプチャ・送信・観測ログ、Web UI の埋め込み) | `@web/*` で `../web/src` の UI 部品を使い、`../poi-plugin-sim-build` に出力 |
+| `shared/` | プラグイン・Web UI・Worker が共有する TypeScript (パーサ、編成、推定、埋め込みのプロトコル) | — |
 | `docs/` | 設計・API・検証ドキュメント | — |
 
-ローカル専用のもの (`data-worker/.wrangler` の D1、`.dev.vars`、`poi-plugin-sim/myState.json`、ビルド出力) は `.gitignore` 済みです。
+ローカル専用のもの (`server/.wrangler` の D1、`.dev.vars`、`web/myState.json`、ビルド出力) は `.gitignore` 済みです。
 
 ## クイックスタート
 
@@ -80,7 +90,7 @@ cargo install wasm-pack
 ### 1. データ基盤を起動する
 
 ```sh
-cd data-worker
+cd server
 bun install
 cp .dev.vars.example .dev.vars          # ENVIRONMENT=development (localhost の /admin/* は認証なし) と IP_HASH_SALT
 bun run build:wasm                      # sim-core/pkg (推定器が wasm を読み込む)
@@ -107,12 +117,24 @@ bun run kcnav:status                                           # 進捗・ETA・
 
 > **KCNav の一括取得は、運営者の許可なく行わないでください** ([docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) の §1 と §10)。
 
-### 3. プラグインをビルドして poi に入れる
+### 3. Web UI を動かす
+
+```sh
+cd web
+bun install
+bun run dev           # http://localhost:5173 (/api は 127.0.0.1:8787 に中継。変更は HMR で反映)
+```
+
+poi なしのブラウザでは poi のデータが無いので、設定タブの「内蔵サンプルデータを使う」で同梱の艦・装備を使えます
+(開発サーバでは `web/myState.json` (poi の state のダンプ) か同梱サンプルを poi の代わりに読みます)。
+データ API と同じ Worker から配る形は `cd web && bun run build` → `cd server && bun run dev` → http://127.0.0.1:8787/ 。
+
+### 4. プラグインをビルドして poi に入れる
 
 ```sh
 cd poi-plugin-sim
 bun install
-bun run build         # wasm-pack (../sim-core) + vite → ../poi-plugin-sim-build
+bun run build         # 先に ../web の依存を入れ (prebuild: bun install --frozen-lockfile)、vite → ../poi-plugin-sim-build (wasm は含まない)
 ```
 
 poi のプラグインディレクトリにビルド出力をリンクします (macOS の例。他 OS は [poi-plugin-sim/README.md](poi-plugin-sim/README.md))。
@@ -124,16 +146,16 @@ npm pkg set dependencies.poi-plugin-sim-build="file:/絶対パス/kc-sim/poi-plu
 ln -s /絶対パス/kc-sim/poi-plugin-sim-build node_modules/poi-plugin-sim-build   # 作られなければ
 ```
 
-poi を再起動すると、プラグイン一覧に「シミュ」が現れます。設定タブの API ベース URL
-(既定 `http://127.0.0.1:8787`) をデータ基盤に合わせてください。
-
-開発用に、poi なしでブラウザで動かす場合は `cd poi-plugin-sim && bun run dev` (http://localhost:5173、同梱のサンプル艦隊で動作。変更を保存すると自動で再読み込み)。
+poi を再起動すると、プラグイン一覧に「シミュ」が現れます。**ウィンドウモードで開いてください** (タブ表示では Web UI を埋め込みません)。
+サーバ URL (既定 `https://kc-sim.lumpoler.workers.dev/`) は送信設定タブで変更できます。手元のサーバなら `http://127.0.0.1:8787/`。
 
 ### テスト
 
 ```sh
 (cd sim-core && cargo test)
-(cd data-worker && bun test)
+(cd server && bun test)
+(cd shared && bun test)
+(cd web && bun test && bun run typecheck)
 (cd poi-plugin-sim && bun test && bunx tsc --noEmit)
 ```
 
@@ -141,16 +163,17 @@ poi を再起動すると、プラグイン一覧に「シミュ」が現れま�
 
 | 更新したいもの | 手順 |
 |---|---|
-| マスターデータ・深海棲艦・装備ボーナス・海域グラフ | `cd data-worker && bun run ingest` (個別: `ingest:start2` / `ingest:abyssal` / `ingest:graph` / `ingest:fit`)。新しいリビジョンがあれば取り込み、出典は `GET /api/v1/sources` に残る |
+| マスターデータ・深海棲艦・装備ボーナス・海域グラフ | `cd server && bun run ingest` (個別: `ingest:start2` / `ingest:abyssal` / `ingest:graph` / `ingest:fit`)。新しいリビジョンがあれば取り込み、出典は `GET /api/v1/sources` に残る |
 | 敵編成 (海域の改修・イベント) | `bun run kcnav enqueue --maps <海域> --kinds enemycomps --batch --start <変更日> --refresh` のあと `kcnav:run`。海域のレイアウトが変わったら先に `--kinds map` |
-| ルーティング規則 | `data-worker/seed/routing/{W-M}.json` を編集 → `bun test` (検証) → `bun run ingest:routing`。確認できない条件には `uncertain: true` を付ける ([docs/ROUTING_DSL.md](docs/ROUTING_DSL.md)) |
+| ルーティング規則 | `server/seed/routing/{W-M}.json` を編集 → `bun test` (検証) → `bun run ingest:routing`。確認できない条件には `uncertain: true` を付ける ([docs/ROUTING_DSL.md](docs/ROUTING_DSL.md)) |
 | ルーティングの妥当性確認 | `bun run kcnav enqueue --kinds nodesummary …` → `bun run validate:routing` ([docs/VALIDATION.md](docs/VALIDATION.md)) |
-| オフライン用の静的バンドル | `bun run export:bundle` → `data-worker/dist/maps/*.json`。プラグインのビルド時に同梱される |
+| オフライン用の静的バンドル | `bun run export:bundle` (本番の D1 から作るなら `D1_REMOTE=1`) → `server/dist/maps/*.json`。Web UI のビルドが `web/dist/maps` に同梱し、Worker の静的アセットとして配る |
+| Web UI | `cd server && bun run deploy` (`web/` をビルドしてから Worker ごとデプロイ、[docs/DEPLOY.md](docs/DEPLOY.md)) |
 | プラグイン | `cd poi-plugin-sim && bun run build` (poi を再起動) |
 
 ## ライセンスと出典・許可について
 
-- **コード:** `poi-plugin-sim` は MIT (`poi-plugin-sim/LICENSE`)、`sim-core` は MIT OR Apache-2.0。
+- **コード:** `web` と `poi-plugin-sim` は MIT (`poi-plugin-sim/LICENSE`。`web/` は旧プラグインの UI を移したもの)、`sim-core` は MIT OR Apache-2.0。
 - **戦闘式** は KC3Kai / kancolle-replay (MIT, © 2016 fourinone41) の `kcsim.js`・`kcships.js` と
   en.kancollewiki.net の記述を参考に移植・検証しています。
 - **データの出典・ライセンス・許可の状況** は [docs/DATA_SOURCES.md §10](docs/DATA_SOURCES.md#10-licence--permission-status-of-shipped-data) に表でまとめています。要点:
@@ -174,10 +197,10 @@ poi を再起動すると、プラグイン一覧に「シミュ」が現れま�
   詳細は [docs/ESTIMATOR.md](docs/ESTIMATOR.md) の "Model limits"。
 - **ルーティング:** 一部の規則は確認できていません (`uncertain`)。経路がそれを通る場合、結果画面に警告が出ます。
   KCNav の統計との照合結果は [docs/VALIDATION.md](docs/VALIDATION.md)。
-- **装備ボーナス** は近似計算で、未対応の条件があります (`poi-plugin-sim/src/sim/fit.ts`)。
+- **装備ボーナス** は近似計算で、未対応の条件があります (`shared/sim/fit.ts`)。
 - **戦闘結果の現実性:** 公開されている数式・数値との一致は確認していますが、戦闘全体の結果分布を実測と照合したものではありません。
-- **poi 上の制約:** プラグインウィンドウの CSP により、ページ内の WebAssembly コンパイルと blob:/data: の Worker は禁止されています。
-  そのためシミュレーションは `file://` から読む Worker で実行します ([poi-plugin-sim/README.md](poi-plugin-sim/README.md))。
+- **poi 上の制約:** プラグインは Web UI を iframe で埋め込みます。poi のメインウィンドウは iframe にも Node.js を有効にする設定のため、
+  **ウィンドウモードでのみ** 埋め込みます (タブ表示では案内を出すだけ。観測ログ・送信設定は使えます)。詳しくは [poi-plugin-sim/README.md](poi-plugin-sim/README.md)。
 - ゲームにログインした状態での動作は、実機の poi では未確認です (未ログイン状態と合成データで確認)。
 
 ## ドキュメント
@@ -193,4 +216,5 @@ poi を再起動すると、プラグイン一覧に「シミュ」が現れま�
 | [docs/VALIDATION.md](docs/VALIDATION.md) | 戦闘式・ルーティングの検証結果 |
 | [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) | データの出典・ライセンス・許可の状況 |
 | [docs/SURVEY.md](docs/SURVEY.md) | 初期の調査メモ (履歴) |
-| [poi-plugin-sim/README.md](poi-plugin-sim/README.md) | プラグインのビルド・インストール・poi 上の注意 |
+| [web/README.md](web/README.md) | Web UI の構成・開発サーバ・ビルド |
+| [poi-plugin-sim/README.md](poi-plugin-sim/README.md) | プラグインのビルド・インストール・埋め込みのプロトコル・poi 上の注意 |

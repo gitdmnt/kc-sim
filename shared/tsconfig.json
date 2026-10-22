@@ -1,12 +1,12 @@
 {
-  // Code shared by poi-plugin-sim and data-worker. Must pass the strictest flags of both packages.
-  // Check: data-worker/node_modules/.bin/tsc -p shared
+  // Code shared by web, poi-plugin-sim and server. Must pass the strictest flags of all of them.
+  // Check: server/node_modules/.bin/tsc -p shared
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "lib": ["ES2023"],
-    "typeRoots": ["../data-worker/node_modules/@types"],
+    "typeRoots": ["../server/node_modules/@types"],
     "types": ["bun"],
     "strict": true,
     "noUncheckedIndexedAccess": true,

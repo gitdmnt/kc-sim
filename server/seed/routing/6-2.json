@@ -1,0 +1,125 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "6-2",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    { "id": "kc3-edges", "note": "adjacency from KC3Kai src/data/edges.json (World 6-2)" }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        { "when": { "m": "count", "types": ["CL", "DD"], "gte": 4 }, "to": "B" },
+        {
+          "when": {
+            "all": [
+              { "m": "count", "types": ["BBV", "CAV", "AV", "LHA"], "lte": 1 },
+              { "m": "count", "types": ["SS_CLASS"], "lte": 4 }
+            ]
+          },
+          "rules": [
+            { "when": { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 5 }, "to": "B" },
+            {
+              "when": { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 4 },
+              "random": [{ "to": "B", "p": 0.65 }, { "to": "C", "p": 0.35 }]
+            },
+            { "to": "C" }
+          ]
+        },
+        { "to": "C" }
+      ]
+    },
+    "B": {
+      "rules": [
+        { "when": { "m": "count", "types": ["CL", "DD"], "gte": 5 }, "to": "D" },
+        {
+          "when": {
+            "all": [{ "m": "count", "types": ["CV_CLASS"], "lte": 2 }, { "m": "count", "types": ["BB_CLASS"], "eq": 0 }]
+          },
+          "random": [{ "to": "C", "p": 0.7 }, { "to": "D", "p": 0.3 }]
+        },
+        { "to": "C" }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["SS_CLASS"], "eq": 6 },
+              { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 5 },
+              { "m": "count", "types": ["BB_CLASS", "CV_CLASS", "CA_CLASS"], "eq": 6 },
+              { "m": "count", "types": ["BB_CLASS", "CV_CLASS", "SS_CLASS"], "eq": 6 }
+            ]
+          },
+          "to": "A"
+        },
+        { "when": { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "lte": 2 }, "to": "E" },
+        { "to": "D" }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["DD"], "lte": 2 },
+              { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 1 },
+              { "m": "count", "types": ["CL", "DD"], "lte": 4 }
+            ]
+          },
+          "to": "F"
+        },
+        { "to": "H" }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["BB_CLASS"], "gte": 2 },
+              { "m": "count", "types": ["CV_CLASS"], "gte": 2 },
+              { "m": "count", "types": ["DD"], "lte": 1 }
+            ]
+          },
+          "to": "F"
+        },
+        { "when": { "m": "los", "cn": 3, "lt": 43 }, "to": "I" },
+        {
+          "when": { "m": "los", "cn": 3, "lt": 50 },
+          "random": [{ "to": "I", "p": 0.5 }, { "to": "J", "p": 0.5 }],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        },
+        { "to": "J" }
+      ]
+    },
+    "F": { "rules": [{ "to": "I" }] },
+    "H": { "rules": [{ "when": { "m": "los", "cn": 3, "lt": 32 }, "to": "G" }, { "to": "K" }] },
+    "I": {
+      "rules": [
+        { "when": { "m": "count", "types": ["SS_CLASS"], "gte": 4 }, "to": "G" },
+        {
+          "when": { "m": "los", "cn": 3, "lt": 35 },
+          "to": "G",
+          "uncertain": true,
+          "note": "threshold 35 marked '?'"
+        },
+        {
+          "when": { "m": "los", "cn": 3, "lt": 40 },
+          "random": [{ "to": "G", "p": 0.5 }, { "to": "K", "p": 0.5 }],
+          "uncertain": true,
+          "note": "threshold 35 marked '?'; text gives no ratio; compiled ratio used"
+        },
+        { "to": "K" }
+      ]
+    },
+    "J": { "rules": [{ "to": "K" }] },
+    "A": { "end": true },
+    "G": { "end": true },
+    "K": { "end": true, "note": "boss" }
+  }
+}

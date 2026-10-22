@@ -1,0 +1,536 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "7-3",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    { "id": "kc3-edges", "note": "adjacency from KC3Kai src/data/edges.json (World 7-3)" },
+    { "id": "ship-ids", "note": "countIds from Tibowl api_start2 remodel chains" }
+  ],
+  "defaults": { "phase": 1 },
+  "nodes": {
+    "Start": { "rules": [{ "to": "A" }] },
+    "A": {
+      "note": "no rule text; compiled only",
+      "rules": [
+        {
+          "when": { "m": "phase", "eq": 1 },
+          "rules": [
+            { "when": { "m": "ships", "eq": 1 }, "to": "C" },
+            {
+              "when": {
+                "any": [
+                  { "m": "count", "types": ["CA"], "eq": 0 },
+                  { "m": "count", "types": ["CV_CLASS"], "gte": 1 },
+                  { "m": "count", "types": ["DD_DE"], "eq": 0 },
+                  { "m": "ships", "gte": 5 }
+                ]
+              },
+              "to": "B"
+            },
+            {
+              "when": {
+                "all": [
+                  { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+                  { "m": "countIds", "ids": [471, 476], "gte": 1 }
+                ]
+              },
+              "to": "C"
+            },
+            {
+              "when": { "m": "ships", "eq": 4 },
+              "rules": [
+                {
+                  "when": {
+                    "any": [{ "m": "count", "types": ["CA"], "gte": 2 }, { "m": "count", "types": ["DD_DE"], "lte": 1 }]
+                  },
+                  "to": "B"
+                },
+                { "when": { "m": "onlyTypes", "types": ["CA", "CL", "DD_DE"] }, "to": "C" },
+                { "to": "B" }
+              ]
+            },
+            { "when": { "m": "onlyTypes", "types": ["CA", "CL", "DD_DE"] }, "to": "C" },
+            { "to": "B" }
+          ]
+        },
+        { "when": { "m": "ships", "eq": 1 }, "to": "C" },
+        { "when": { "m": "count", "types": ["CV_CLASS"], "gte": 1 }, "to": "B" },
+        {
+          "when": { "all": [{ "m": "count", "types": ["AO"], "eq": 1 }, { "m": "count", "types": ["DD_DE"], "gte": 3 }] },
+          "to": "C"
+        },
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["CA"], "eq": 0 },
+              { "m": "count", "types": ["DD_DE"], "eq": 0 },
+              {
+                "all": [
+                  { "m": "count", "types": ["BB_CLASS"], "gte": 1 },
+                  { "not": { "m": "countIds", "ids": [65, 194, 268], "gte": 1 } }
+                ]
+              }
+            ]
+          },
+          "to": "B"
+        },
+        {
+          "when": {
+            "all": [
+              { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+              { "m": "countIds", "ids": [471, 476], "gte": 1 }
+            ]
+          },
+          "to": "C"
+        },
+        {
+          "when": { "m": "ships", "gte": 5 },
+          "rules": [
+            {
+              "when": {
+                "any": [
+                  {
+                    "all": [
+                      { "not": { "m": "countIds", "ids": [65, 194, 268], "gte": 1 } },
+                      { "m": "speed", "eq": "slow" }
+                    ]
+                  },
+                  { "m": "count", "types": ["DD_DE"], "lte": 2 }
+                ]
+              },
+              "to": "B"
+            },
+            { "to": "C" }
+          ]
+        },
+        {
+          "when": { "m": "ships", "eq": 4 },
+          "rules": [
+            {
+              "when": {
+                "any": [{ "m": "count", "types": ["CA"], "gte": 2 }, { "m": "count", "types": ["DD_DE"], "lte": 1 }]
+              },
+              "to": "B"
+            },
+            { "when": { "m": "onlyTypes", "types": ["CA", "CL", "DD_DE"] }, "to": "C" },
+            { "to": "B" }
+          ]
+        },
+        { "when": { "m": "onlyTypes", "types": ["CA", "CL", "DD_DE"] }, "to": "C" },
+        { "to": "B" }
+      ]
+    },
+    "B": { "rules": [{ "to": "C" }] },
+    "C": {
+      "note": "no rule text; compiled only",
+      "rules": [
+        {
+          "when": { "m": "phase", "eq": 1 },
+          "rules": [
+            {
+              "when": {
+                "any": [
+                  { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 1 },
+                  { "m": "count", "types": ["DD_DE"], "eq": 0 },
+                  { "m": "ships", "gte": 5 }
+                ]
+              },
+              "to": "D"
+            },
+            {
+              "when": {
+                "all": [
+                  { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+                  { "m": "countIds", "ids": [471, 476], "gte": 1 }
+                ]
+              },
+              "rules": [
+                { "when": { "m": "count", "types": ["CA_CLASS"], "gte": 3 }, "to": "D" },
+                {
+                  "when": {
+                    "any": [
+                      { "m": "countIds", "ids": [64, 193, 267], "gte": 1 },
+                      { "m": "countIds", "ids": [62, 265, 319], "gte": 1 }
+                    ]
+                  },
+                  "to": "E"
+                },
+                { "when": { "m": "count", "types": ["DD_DE"], "lte": 1 }, "to": "D" },
+                { "to": "E" }
+              ]
+            },
+            {
+              "when": { "m": "ships", "eq": 4 },
+              "rules": [
+                {
+                  "when": {
+                    "any": [
+                      {
+                        "all": [
+                          { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+                          { "m": "count", "types": ["DD_DE"], "eq": 3 }
+                        ]
+                      },
+                      {
+                        "all": [
+                          { "m": "countIds", "ids": [471, 476], "gte": 1 },
+                          { "m": "count", "types": ["DD_DE"], "eq": 4 }
+                        ]
+                      }
+                    ]
+                  },
+                  "to": "E"
+                },
+                { "to": "D" }
+              ]
+            },
+            {
+              "when": { "m": "ships", "eq": 3 },
+              "rules": [
+                {
+                  "when": {
+                    "any": [
+                      { "m": "count", "types": ["CA_CLASS"], "gte": 2 },
+                      { "m": "count", "types": ["DD_DE"], "lte": 1 }
+                    ]
+                  },
+                  "to": "D"
+                },
+                { "when": { "m": "onlyTypes", "types": ["CA", "DD_DE"] }, "to": "E" },
+                { "to": "D" }
+              ]
+            },
+            { "to": "E" }
+          ]
+        },
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 1 },
+              { "m": "count", "types": ["DD_DE"], "eq": 0 }
+            ]
+          },
+          "to": "D"
+        },
+        { "when": { "m": "speed", "eq": "fastest" }, "to": "I" },
+        {
+          "when": { "m": "ships", "gte": 5 },
+          "rules": [
+            {
+              "when": { "all": [{ "m": "speed", "gte": "fastPlus" }, { "m": "count", "types": ["CL", "DD"], "gte": 4 }] },
+              "to": "I"
+            },
+            { "when": { "m": "ships", "eq": 6 }, "to": "D" },
+            {
+              "when": {
+                "all": [
+                  { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+                  { "m": "countIds", "ids": [471, 476], "gte": 1 }
+                ]
+              },
+              "rules": [
+                { "when": { "m": "count", "types": ["DD_DE"], "lte": 1 }, "to": "D" },
+                {
+                  "when": {
+                    "any": [
+                      { "m": "count", "types": ["CL"], "gte": 1 },
+                      { "m": "countIds", "ids": [64, 193, 267], "gte": 1 }
+                    ]
+                  },
+                  "to": "I"
+                },
+                { "to": "D" }
+              ]
+            },
+            {
+              "when": {
+                "all": [
+                  { "m": "speed", "gte": "fast" },
+                  { "m": "count", "types": ["CA"], "eq": 1 },
+                  { "m": "count", "types": ["CL"], "eq": 1 },
+                  { "m": "count", "types": ["DD"], "eq": 3 }
+                ]
+              },
+              "to": "I"
+            },
+            { "to": "D" }
+          ]
+        },
+        {
+          "when": { "m": "ships", "eq": 4 },
+          "rules": [
+            {
+              "when": {
+                "all": [
+                  { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+                  { "m": "countIds", "ids": [471, 476], "gte": 1 }
+                ]
+              },
+              "rules": [
+                { "when": { "m": "count", "types": ["CA_CLASS"], "gte": 3 }, "to": "D" },
+                {
+                  "when": {
+                    "any": [
+                      { "m": "countIds", "ids": [64, 193, 267], "gte": 1 },
+                      { "m": "countIds", "ids": [62, 265, 319], "gte": 1 }
+                    ]
+                  },
+                  "to": "E"
+                },
+                { "when": { "m": "count", "types": ["DD_DE"], "lte": 1 }, "to": "D" },
+                { "to": "E" }
+              ]
+            },
+            {
+              "when": {
+                "any": [
+                  {
+                    "all": [
+                      { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+                      { "m": "count", "types": ["DD_DE"], "eq": 3 }
+                    ]
+                  },
+                  {
+                    "all": [
+                      { "m": "countIds", "ids": [471, 476], "gte": 1 },
+                      { "m": "count", "types": ["DD_DE"], "eq": 4 }
+                    ]
+                  }
+                ]
+              },
+              "to": "E"
+            },
+            { "to": "D" }
+          ]
+        },
+        {
+          "when": {
+            "any": [{ "m": "count", "types": ["CA_CLASS"], "gte": 2 }, { "m": "count", "types": ["DD_DE"], "lte": 1 }]
+          },
+          "to": "D"
+        },
+        { "when": { "m": "onlyTypes", "types": ["CA", "DD_DE"] }, "to": "E" },
+        { "to": "D" }
+      ]
+    },
+    "D": {
+      "note": "no rule text; compiled only",
+      "rules": [
+        {
+          "when": { "m": "phase", "eq": 1 },
+          "rules": [
+            {
+              "when": {
+                "any": [
+                  { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 1 },
+                  { "m": "ships", "eq": 6 },
+                  { "m": "count", "types": ["CA_CLASS"], "gte": 4 },
+                  { "m": "count", "types": ["CAV"], "gte": 2 }
+                ]
+              },
+              "to": "F"
+            },
+            { "to": "E" }
+          ]
+        },
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["BB_CLASS"], "gte": 3 },
+              { "m": "count", "types": ["CV_CLASS"], "gte": 3 },
+              { "m": "count", "types": ["CAV"], "gte": 3 }
+            ]
+          },
+          "to": "F"
+        },
+        { "to": "G" }
+      ]
+    },
+    "G": {
+      "note": "no rule text; compiled only (phase 2 only)",
+      "rules": [
+        {
+          "when": {
+            "all": [
+              { "m": "count", "types": ["CA"], "eq": 0 },
+              { "m": "count", "types": ["DD_DE"], "gte": 2 },
+              { "any": [{ "m": "count", "types": ["AO"], "gte": 1 }, { "m": "count", "types": ["AV"], "gte": 2 }] }
+            ]
+          },
+          "to": "H"
+        },
+        { "when": { "m": "count", "types": ["SS_CLASS"], "gte": 1 }, "to": "I" },
+        { "when": { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 1 }, "to": "J" },
+        {
+          "when": {
+            "all": [
+              { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+              { "m": "countIds", "ids": [471, 476], "gte": 1 }
+            ]
+          },
+          "rules": [
+            { "when": { "m": "ships", "lte": 4 }, "to": "P" },
+            { "when": { "m": "count", "types": ["DD"], "lte": 2 }, "to": "J" },
+            { "when": { "m": "speed", "gte": "fastPlus" }, "to": "P" },
+            {
+              "when": { "any": [{ "m": "count", "types": ["CA_CLASS"], "gte": 3 }, { "m": "speed", "eq": "slow" }] },
+              "to": "J"
+            },
+            { "when": { "m": "countIds", "ids": [64, 193, 267], "gte": 1 }, "to": "P" },
+            { "to": "K" }
+          ]
+        },
+        {
+          "when": {
+            "any": [{ "m": "count", "types": ["DD_DE"], "lte": 2 }, { "m": "count", "types": ["CA_CLASS"], "gte": 3 }]
+          },
+          "to": "J"
+        },
+        { "to": "I" }
+      ]
+    },
+    "I": {
+      "note": "no rule text; compiled only (phase 2 only)",
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 1 },
+              { "m": "count", "types": ["CA_CLASS"], "gte": 3 },
+              { "m": "count", "types": ["DD_DE"], "eq": 0 }
+            ]
+          },
+          "to": "J"
+        },
+        {
+          "when": {
+            "all": [
+              { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+              { "m": "countIds", "ids": [471, 476], "gte": 1 }
+            ]
+          },
+          "rules": [
+            {
+              "when": { "m": "count", "types": ["DD_DE"], "gte": 3 },
+              "rules": [{ "when": { "m": "speed", "gte": "fastPlus" }, "to": "J" }, { "to": "M" }]
+            },
+            {
+              "when": { "m": "count", "types": ["DD_DE"], "eq": 2 },
+              "rules": [{ "when": { "m": "speed", "eq": "fastest" }, "to": "M" }, { "to": "L" }]
+            },
+            { "to": "L" }
+          ]
+        },
+        {
+          "when": { "all": [{ "m": "speed", "eq": "fastest" }, { "m": "count", "types": ["DD"], "gte": 3 }] },
+          "to": "J"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "any": [
+                  { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+                  { "m": "countIds", "ids": [471, 476], "gte": 1 }
+                ]
+              },
+              { "m": "countIds", "ids": [64, 193, 267], "gte": 1 },
+              { "m": "count", "types": ["DD_DE"], "gte": 3 }
+            ]
+          },
+          "to": "M"
+        },
+        { "to": "L" }
+      ]
+    },
+    "J": {
+      "note": "no rule text; compiled only (phase 2 only)",
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 1 },
+              { "m": "speed", "eq": "slow" },
+              { "m": "count", "types": ["CA_CLASS"], "gte": 4 }
+            ]
+          },
+          "to": "M"
+        },
+        {
+          "when": { "m": "count", "types": ["DD"], "gte": 3 },
+          "rules": [
+            {
+              "when": {
+                "any": [
+                  {
+                    "all": [
+                      { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+                      { "m": "countIds", "ids": [64, 193, 267], "gte": 1 }
+                    ]
+                  },
+                  {
+                    "all": [
+                      { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+                      { "m": "countIds", "ids": [471, 476], "gte": 1 }
+                    ]
+                  }
+                ]
+              },
+              "to": "P"
+            },
+            { "to": "M" }
+          ]
+        },
+        {
+          "when": {
+            "all": [
+              { "m": "count", "types": ["DD"], "eq": 2 },
+              { "m": "countIds", "ids": [65, 194, 268], "gte": 1 },
+              { "m": "countIds", "ids": [471, 476], "gte": 1 },
+              { "m": "countIds", "ids": [64, 193, 267], "gte": 1 }
+            ]
+          },
+          "to": "P"
+        },
+        { "to": "M" }
+      ]
+    },
+    "K": { "rules": [{ "to": "P" }] },
+    "L": { "rules": [{ "to": "M" }] },
+    "M": {
+      "note": "no rule text; compiled only (phase 2 only)",
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["STD_CV"], "gte": 1 },
+              { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 2 },
+              { "m": "count", "types": ["SS_CLASS"], "gte": 4 }
+            ]
+          },
+          "to": "N"
+        },
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["BATTLESHIP"], "maxSpeed": "slow", "gte": 1 },
+              { "m": "count", "types": ["AO"], "gte": 1 },
+              { "m": "count", "types": ["AV"], "gte": 2 }
+            ]
+          },
+          "to": "O"
+        },
+        { "to": "P" }
+      ]
+    },
+    "E": { "end": true, "note": "boss (phase 1)" },
+    "F": { "end": true },
+    "H": { "end": true },
+    "N": { "end": true },
+    "O": { "end": true },
+    "P": { "end": true, "note": "boss (phase 2)" }
+  }
+}

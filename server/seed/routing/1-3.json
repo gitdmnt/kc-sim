@@ -1,0 +1,354 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "1-3",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 1-3)"
+    }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "AO",
+              "AV"
+            ],
+            "gte": 1
+          },
+          "to": "A"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CV_CLASS"
+            ],
+            "gte": 1
+          },
+          "to": "C"
+        },
+        {
+          "random": [
+            {
+              "to": "A",
+              "p": 0.5
+            },
+            {
+              "to": "C",
+              "p": 0.5
+            }
+          ]
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "AO"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DE"
+                ],
+                "gte": 4
+              }
+            ]
+          },
+          "to": "D"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "AV"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 4
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "D",
+              "p": 0.8
+            },
+            {
+              "to": "E",
+              "p": 0.2
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "gte": 1
+          },
+          "to": "E"
+        },
+        {
+          "random": [
+            {
+              "to": "D",
+              "p": 0.5
+            },
+            {
+              "to": "E",
+              "p": 0.5
+            }
+          ]
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "to": "E"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "to": "B"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BATTLESHIP"
+                ],
+                "gte": 1,
+                "maxSpeed": "slow"
+              }
+            ]
+          },
+          "to": "H"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CAV"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 4
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL_CT"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "gte": 4
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "J"
+        },
+        {
+          "when": {
+            "m": "speed",
+            "gte": "fast"
+          },
+          "random": [
+            {
+              "to": "H",
+              "p": 0.4
+            },
+            {
+              "to": "J",
+              "p": 0.6
+            }
+          ]
+        },
+        {
+          "random": [
+            {
+              "to": "H",
+              "p": 0.6
+            },
+            {
+              "to": "J",
+              "p": 0.4
+            }
+          ]
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "AO"
+            ],
+            "gte": 1
+          },
+          "to": "G"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "AV",
+                  "CAV"
+                ],
+                "gte": 1
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL_CT"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "J"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "gte": 2
+          },
+          "random": [
+            {
+              "to": "G",
+              "p": 0.4
+            },
+            {
+              "to": "I",
+              "p": 0.2
+            },
+            {
+              "to": "J",
+              "p": 0.4
+            }
+          ]
+        },
+        {
+          "random": [
+            {
+              "to": "I",
+              "p": 0.6
+            },
+            {
+              "to": "J",
+              "p": 0.4
+            }
+          ]
+        }
+      ]
+    },
+    "G": {
+      "end": true
+    },
+    "I": {
+      "end": true
+    },
+    "J": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

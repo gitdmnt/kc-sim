@@ -1,0 +1,842 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "2-4",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 2-4)"
+    }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "to": "B"
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "eq": 6
+          },
+          "to": "G",
+          "uncertain": true,
+          "note": "'駆逐6隻でG?' marked '?' in text"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CL_CT"
+                ],
+                "eq": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 4
+              },
+              {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CA_CLASS"
+                    ],
+                    "eq": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "eq": 5
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DE"
+                    ],
+                    "eq": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "G",
+          "uncertain": true,
+          "note": "text: '(重巡級+駆逐+海防?)1隻' — DE marked '?'"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "lte": 2
+          },
+          "rules": [
+            {
+              "when": {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CV_CLASS"
+                    ],
+                    "gte": 3
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS",
+                      "STD_CV"
+                    ],
+                    "gte": 3
+                  }
+                ]
+              },
+              "to": "C"
+            },
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "STD_CV"
+                ],
+                "eq": 2
+              },
+              "random": [
+                {
+                  "to": "C",
+                  "p": 0.8
+                },
+                {
+                  "to": "G",
+                  "p": 0.2
+                }
+              ]
+            },
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 1
+              },
+              "random": [
+                {
+                  "to": "C",
+                  "p": 0.6
+                },
+                {
+                  "to": "G",
+                  "p": 0.4
+                }
+              ]
+            },
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "SS_CLASS"
+                ],
+                "gte": 1
+              },
+              "random": [
+                {
+                  "to": "C",
+                  "p": 0.6
+                },
+                {
+                  "to": "G",
+                  "p": 0.4
+                }
+              ],
+              "uncertain": true,
+              "note": "ratio only in compass supplementary comment ($co…$oc), not in rule text"
+            },
+            {
+              "random": [
+                {
+                  "to": "C",
+                  "p": 0.4
+                },
+                {
+                  "to": "G",
+                  "p": 0.6
+                }
+              ],
+              "uncertain": true,
+              "note": "ratio only in compass supplementary comment ($co…$oc), not in rule text"
+            }
+          ]
+        },
+        {
+          "random": [
+            {
+              "to": "C",
+              "p": 0.4
+            },
+            {
+              "to": "G",
+              "p": 0.6
+            }
+          ],
+          "uncertain": true,
+          "note": "ratio only in compass supplementary comment ($co…$oc), not in rule text"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "AS",
+              "AO"
+            ],
+            "gte": 1
+          },
+          "to": "G"
+        },
+        {
+          "random": [
+            {
+              "to": "F",
+              "p": 0.5
+            },
+            {
+              "to": "G",
+              "p": 0.5
+            }
+          ]
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "to": "D"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CVL"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.075
+            },
+            {
+              "to": "J",
+              "p": 0.925
+            }
+          ],
+          "uncertain": true,
+          "note": "text: J 90~95%, '(駆逐+海防?)' marked '?'; compiled midpoint"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CVL"
+            ],
+            "gte": 1
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.175
+            },
+            {
+              "to": "J",
+              "p": 0.825
+            }
+          ],
+          "uncertain": true,
+          "note": "text: J 80~85%; compiled midpoint"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "gte": 2
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.25
+            },
+            {
+              "to": "J",
+              "p": 0.75
+            }
+          ]
+        },
+        {
+          "to": "A"
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CL_CT"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 4
+              },
+              {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CA_CLASS"
+                    ],
+                    "eq": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL_CT"
+                    ],
+                    "eq": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "eq": 5
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "L"
+        },
+        {
+          "to": "I"
+        }
+      ]
+    },
+    "I": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CVL"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "gte": 1
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "E",
+              "p": 0.075
+            },
+            {
+              "to": "K",
+              "p": 0.925
+            }
+          ],
+          "uncertain": true,
+          "note": "text: K 90~95%; compiled midpoint"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CVL"
+            ],
+            "gte": 1
+          },
+          "random": [
+            {
+              "to": "E",
+              "p": 0.175
+            },
+            {
+              "to": "K",
+              "p": 0.825
+            }
+          ],
+          "uncertain": true,
+          "note": "text: K 80~85%; compiled midpoint"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CL"
+            ],
+            "gte": 1
+          },
+          "random": [
+            {
+              "to": "E",
+              "p": 0.25
+            },
+            {
+              "to": "K",
+              "p": 0.75
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Kマス寄り(75%前後)'"
+        },
+        {
+          "random": [
+            {
+              "to": "E",
+              "p": 0.7
+            },
+            {
+              "to": "K",
+              "p": 0.3
+            }
+          ],
+          "uncertain": true,
+          "note": "ratio only in compass supplementary comment ($co…$oc), not in rule text"
+        }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "gte": 4
+          },
+          "to": "L"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "eq": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "eq": 2
+              }
+            ]
+          },
+          "to": "M"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "STD_CV"
+            ],
+            "eq": 0
+          },
+          "to": "L"
+        },
+        {
+          "random": [
+            {
+              "to": "L",
+              "p": 0.35
+            },
+            {
+              "to": "M",
+              "p": 0.65
+            }
+          ]
+        }
+      ]
+    },
+    "K": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "AS",
+              "AO"
+            ],
+            "gte": 2
+          },
+          "to": "N"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "AV",
+              "AS",
+              "AO"
+            ],
+            "gte": 1
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 2
+              },
+              "random": [
+                {
+                  "to": "L",
+                  "p": 0.7
+                },
+                {
+                  "to": "N",
+                  "p": 0.3
+                }
+              ],
+              "uncertain": true,
+              "note": "ratio only in compass supplementary comment ($co…$oc), not in rule text"
+            },
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "eq": 1
+              },
+              "random": [
+                {
+                  "to": "L",
+                  "p": 0.4
+                },
+                {
+                  "to": "N",
+                  "p": 0.4
+                },
+                {
+                  "to": "O",
+                  "p": 0.2
+                }
+              ],
+              "uncertain": true,
+              "note": "text: L35~40%:N35~40%:O20~25%? marked '?'"
+            },
+            {
+              "random": [
+                {
+                  "to": "L",
+                  "p": 0.25
+                },
+                {
+                  "to": "N",
+                  "p": 0.35
+                },
+                {
+                  "to": "O",
+                  "p": 0.4
+                }
+              ],
+              "uncertain": true,
+              "note": "marked '?' in text"
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DE"
+            ],
+            "gte": 2
+          },
+          "random": [
+            {
+              "to": "L",
+              "p": 0.65
+            },
+            {
+              "to": "N",
+              "p": 0.35
+            }
+          ],
+          "uncertain": true,
+          "note": "ratio only in compass supplementary comment ($co…$oc), not in rule text"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "gte": 2
+          },
+          "to": "L"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "eq": 1
+          },
+          "random": [
+            {
+              "to": "L",
+              "p": 0.65
+            },
+            {
+              "to": "O",
+              "p": 0.35
+            }
+          ],
+          "uncertain": true,
+          "note": "marked '?' in text"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CAV"
+            ],
+            "gte": 1
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "BATTLESHIP"
+                ],
+                "gte": 1
+              },
+              "random": [
+                {
+                  "to": "L",
+                  "p": 0.35
+                },
+                {
+                  "to": "O",
+                  "p": 0.65
+                }
+              ],
+              "uncertain": true,
+              "note": "marked '?' in text; ratio only in compass supplementary comment ($co…$oc), not in rule text"
+            },
+            {
+              "random": [
+                {
+                  "to": "L",
+                  "p": 0.65
+                },
+                {
+                  "to": "O",
+                  "p": 0.35
+                }
+              ],
+              "uncertain": true,
+              "note": "marked '?' in text; ratio only in compass supplementary comment ($co…$oc), not in rule text"
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS"
+            ],
+            "gte": 2
+          },
+          "random": [
+            {
+              "to": "L",
+              "p": 0.225
+            },
+            {
+              "to": "O",
+              "p": 0.775
+            }
+          ],
+          "uncertain": true,
+          "note": "text: '?戦艦級2隻以上?' O 70~85% (all '?'); compiled uses 戦艦 (BB) ≥1 instead — text followed, ratio = compiled midpoint"
+        },
+        {
+          "random": [
+            {
+              "to": "L",
+              "p": 0.35
+            },
+            {
+              "to": "O",
+              "p": 0.65
+            }
+          ],
+          "uncertain": true,
+          "note": "marked '?' in text"
+        }
+      ]
+    },
+    "L": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "eq": 4
+          },
+          "to": "M"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "STD_CV"
+                ],
+                "lte": 2
+              }
+            ]
+          },
+          "to": "P"
+        },
+        {
+          "random": [
+            {
+              "to": "M",
+              "p": 0.6
+            },
+            {
+              "to": "P",
+              "p": 0.4
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Mマス寄り(60%?)'"
+        }
+      ]
+    },
+    "M": {
+      "rules": [
+        {
+          "to": "P"
+        }
+      ]
+    },
+    "A": {
+      "end": true
+    },
+    "D": {
+      "end": true
+    },
+    "N": {
+      "end": true
+    },
+    "O": {
+      "end": true
+    },
+    "P": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

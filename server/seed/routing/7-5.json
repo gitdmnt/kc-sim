@@ -1,0 +1,194 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "7-5",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    { "id": "kc3-edges", "note": "adjacency from KC3Kai src/data/edges.json (World 7-5)" }
+  ],
+  "defaults": { "select": { "F": "G", "H": "I", "O": "P" } },
+  "nodes": {
+    "Start": { "rules": [{ "to": "A" }] },
+    "A": { "rules": [{ "to": "B" }] },
+    "B": {
+      "rules": [
+        { "when": { "m": "speed", "gte": "fastPlus" }, "to": "D" },
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["STD_CV"], "gte": 2 },
+              { "m": "count", "types": ["BATTLESHIP"], "maxSpeed": "slow", "gte": 2 },
+              { "m": "count", "types": ["SS_CLASS"], "gte": 1 },
+              { "m": "count", "types": ["CL"], "eq": 0 },
+              { "m": "count", "types": ["DD_DE"], "lte": 1 }
+            ]
+          },
+          "to": "C"
+        },
+        { "when": { "m": "count", "types": ["DD_DE"], "gte": 3 }, "to": "D" },
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["STD_CV"], "gte": 1 },
+              { "m": "count", "types": ["CVL"], "gte": 2 },
+              { "m": "count", "types": ["BB_CLASS"], "gte": 3 },
+              { "m": "count", "types": ["CA_CLASS"], "gte": 3 }
+            ]
+          },
+          "to": "C"
+        },
+        { "to": "D" }
+      ]
+    },
+    "C": { "rules": [{ "to": "D" }] },
+    "D": {
+      "rules": [
+        { "when": { "m": "speed", "eq": "fastest" }, "to": "F" },
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["STD_CV"], "gte": 2 },
+              { "m": "count", "types": ["CVL"], "gte": 3 },
+              { "m": "count", "types": ["BB_CLASS", "STD_CV", "CA_CLASS"], "gte": 3 },
+              { "m": "count", "types": ["CL", "DD"], "eq": 0 }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "when": {
+            "any": [
+              { "m": "speed", "gte": "fastPlus" },
+              { "m": "count", "types": ["DD_DE"], "gte": 3 },
+              { "m": "count", "types": ["BB_CLASS"], "lte": 1 }
+            ]
+          },
+          "to": "F"
+        },
+        {
+          "when": { "any": [{ "m": "count", "types": ["DD_DE"], "lte": 1 }, { "m": "speed", "eq": "slow" }] },
+          "to": "E"
+        },
+        { "to": "F" }
+      ]
+    },
+    "E": { "rules": [{ "to": "F" }] },
+    "F": { "rules": [{ "select": ["G", "J"] }] },
+    "G": { "rules": [{ "to": "H" }] },
+    "H": { "rules": [{ "select": ["I", "K"] }] },
+    "I": {
+      "rules": [
+        {
+          "when": { "m": "los", "cn": 4, "lt": 53 },
+          "to": "L",
+          "uncertain": true,
+          "note": "Cn=4 marked '?' in text"
+        },
+        {
+          "when": { "m": "los", "cn": 4, "lt": 59 },
+          "random": [{ "to": "L", "p": 0.5 }, { "to": "M", "p": 0.5 }],
+          "uncertain": true,
+          "note": "Cn=4 marked '?' in text; text gives no ratio; compiled ratio used"
+        },
+        { "to": "M", "uncertain": true, "note": "Cn=4 marked '?' in text" }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  { "m": "count", "types": ["CVL"], "eq": 1 },
+                  { "m": "count", "types": ["CA_CLASS"], "eq": 2 },
+                  { "m": "count", "types": ["CL"], "eq": 1 },
+                  { "m": "count", "types": ["DD_DE"], "eq": 2 }
+                ]
+              },
+              { "m": "speed", "gte": "fastPlus" }
+            ]
+          },
+          "to": "O"
+        },
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["STD_CV"], "gte": 1 },
+              { "m": "count", "types": ["CVL"], "gte": 3 },
+              { "m": "count", "types": ["BATTLESHIP"], "maxSpeed": "slow", "gte": 2 },
+              { "m": "count", "types": ["BB_CLASS", "CA_CLASS"], "gte": 3 },
+              { "m": "count", "types": ["DD_DE"], "lte": 1 }
+            ]
+          },
+          "to": "N"
+        },
+        {
+          "when": { "any": [{ "m": "count", "types": ["DD_DE"], "gte": 3 }, { "m": "speed", "gte": "fast" }] },
+          "to": "O"
+        },
+        { "to": "N" }
+      ]
+    },
+    "L": { "rules": [{ "to": "M" }] },
+    "N": { "rules": [{ "to": "O" }] },
+    "O": { "rules": [{ "select": ["P", "Q"] }] },
+    "P": {
+      "rules": [
+        { "when": { "m": "los", "cn": 4, "lt": 58 }, "to": "S" },
+        {
+          "when": { "m": "los", "cn": 4, "lt": 63 },
+          "rules": [
+            {
+              "when": { "m": "speed", "eq": "fastest" },
+              "random": [{ "to": "S", "p": 0.333 }, { "to": "T", "p": 0.667 }],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            {
+              "when": {
+                "any": [
+                  { "m": "count", "types": ["STD_CV"], "gte": 1 },
+                  { "m": "count", "types": ["BB_CLASS", "CVL"], "gte": 2 },
+                  { "m": "count", "types": ["BB_CLASS", "CA_CLASS"], "gte": 3 },
+                  { "m": "count", "types": ["CL"], "eq": 0 }
+                ]
+              },
+              "random": [{ "to": "R", "p": 0.667 }, { "to": "S", "p": 0.333 }],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used; text 正規空母 (CV+CVB) followed; compiled counts CV only"
+            },
+            {
+              "random": [{ "to": "S", "p": 0.333 }, { "to": "T", "p": 0.667 }],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            }
+          ]
+        },
+        { "when": { "m": "speed", "eq": "fastest" }, "to": "T" },
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["STD_CV"], "gte": 1 },
+              { "m": "count", "types": ["BB_CLASS", "CVL"], "gte": 2 },
+              { "m": "count", "types": ["BB_CLASS", "CA_CLASS"], "gte": 3 },
+              { "m": "count", "types": ["CL"], "eq": 0 }
+            ]
+          },
+          "to": "R",
+          "uncertain": true,
+          "note": "text 正規空母 (CV+CVB) followed; compiled counts CV only"
+        },
+        { "to": "T" }
+      ]
+    },
+    "R": { "rules": [{ "to": "T" }] },
+    "K": { "end": true, "note": "boss (gauge 1)" },
+    "M": { "end": true },
+    "Q": { "end": true, "note": "boss (gauge 2)" },
+    "S": { "end": true },
+    "T": { "end": true, "note": "boss (gauge 3)" }
+  }
+}
