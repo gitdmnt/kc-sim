@@ -43,6 +43,20 @@ map, difficulty, mode, conditions, estimate settings; not the preset name or not
 Old results are dimmed and a 2 px bar shows progress. The seed is fixed, so fleet variants are compared on the same
 random stream. Map, mode, conditions and 自動 persist in `kcsim:workspace`, the preset in `kcsim:selectedPreset`.
 
+## Design system
+
+Tokens live in `src/styles.css` (`@theme`); primitives in `src/ui`. Icons: `lucide-react` (inline SVG, `currentColor`, works
+under the plugin's CSS scoping) and `ui/EquipIcon` (own-drawn equipment category glyphs by `api_type[3]`).
+
+- Spacing 4 / 8 / 12 / 16 / 24 px (`1 2 3 4 6`). One radius, `rounded-md`; `rounded-full` only for meters and dots.
+- Surfaces: page `ink-950` → panel `ink-900` (`Card`, full hairline `ink-800`) → raised/control `ink-800`. No one-sided borders,
+  inset-shadow stripes or corner decorations on boxes; separate list items with spacing or a full-width hairline.
+- Text: `xs` 11px (captions, column heads), `sm` 13px (body), `base` 14px (titles), `lg` 20px (key figures). Numbers tabular and
+  right-aligned in one column; units inline.
+- Color carries meaning only: `accent` = interactive/selected, `rank-*` = battle ranks, `hp-*` = damage states, node colors =
+  node types, `danger` = failure. No gradients, glows, colored frames for OK/NG, decorative badges or emoji.
+- Status is shown by icon shape + color or by a data bar, not by a tinted border.
+
 ## poi data
 
 | Where the page runs | poi state |

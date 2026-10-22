@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { normalizeForSearch } from "../fleet/catalog";
 import type { PickerOption } from "../fleet/catalog";
+import { ChevronDown } from "lucide-react";
 import { cx } from "./cx";
 
 interface Props {
@@ -8,7 +9,7 @@ interface Props {
   value: number | null;
   /** 選んだ選択肢も受け取る (同じ value の選択肢が複数あるとき用) */
   onChange: (value: number | null, option?: PickerOption) => void;
-  placeholder?: string;
+  placeholder?: React.ReactNode;
   /** 値が options に無いときの表示名 (例: 不明な艦) */
   fallbackLabel?: string;
   clearable?: boolean;
@@ -22,6 +23,12 @@ interface Props {
   menuClassName?: string;
   /** トリガーボタンへの追加クラス (高さなど) */
   buttonClassName?: string;
+  /** field: 枠付きの入力欄。ghost: 密な一覧の中の枠なし (ホバー・開いている間だけ面を出す) */
+  variant?: "field" | "ghost";
+  /** トリガーの先頭に置く要素 (アイコンなど) */
+  prefix?: React.ReactNode;
+  /** 一覧の各選択肢の先頭に置く要素 */
+  optionPrefix?: (o: PickerOption) => React.ReactNode;
   "aria-label"?: string;
 }
 
@@ -51,6 +58,9 @@ export const Combobox = ({
   className,
   menuClassName,
   buttonClassName,
+  variant = "field",
+  prefix,
+  optionPrefix,
   ...rest
 }: Props) => {
   const [open, setOpen] = useState(false);
@@ -134,20 +144,27 @@ export const Combobox = ({
           setOpen(true);
         }}
         className={cx(
-          "flex h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-ink-600 bg-ink-950/70 px-2.5 text-left text-sm transition-colors",
-          "hover:border-ink-500 focus-visible:outline-2 focus-visible:outline-accent-400 disabled:opacity-50",
-          open && "border-accent-500 ring-2 ring-accent-500/25",
+          "group/cb flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-sm transition-colors",
+          "focus-visible:outline-2 focus-visible:outline-accent-400 disabled:opacity-50",
+          variant === "field"
+            ? cx("border bg-ink-950 hover:border-ink-600", open ? "border-accent-500" : "border-ink-700")
+            : cx("hover:bg-ink-800", open && "bg-ink-800"),
           buttonClassName
         )}
         {...rest}
       >
-        <span className={cx("truncate", label ? "text-ink-50" : "text-ink-400")}>{label ?? placeholder}</span>
-        <span className="text-xs text-ink-400">▾</span>
+        {prefix}
+        <span className={cx("min-w-0 flex-1 truncate", label ? "text-ink-50" : "text-ink-500")}>{label ?? placeholder}</span>
+        <ChevronDown
+          size={14}
+          aria-hidden
+          className={cx("shrink-0 text-ink-500", variant === "ghost" && "opacity-0 group-hover/cb:opacity-100 group-focus-visible/cb:opacity-100")}
+        />
       </button>
 
       {open && (
-        <div className={cx("absolute left-0 z-40 w-full min-w-64 rounded-md border border-ink-500 bg-ink-800 shadow-2xl shadow-black/60", place.up ? "bottom-full mb-1" : "top-full mt-1", menuClassName)}>
-          <div className="border-b border-ink-600 p-1.5">
+        <div className={cx("absolute left-0 z-40 w-full min-w-64 rounded-md border border-ink-700 bg-ink-900 shadow-2xl shadow-black/60", place.up ? "bottom-full mb-1" : "top-full mt-1", menuClassName)}>
+          <div className="p-2 pb-1">
             <input
               autoFocus
               value={query}
@@ -169,7 +186,7 @@ export const Combobox = ({
                 }
               }}
               placeholder="名前・読みで検索"
-              className="h-7 w-full rounded border border-ink-600 bg-ink-950 px-2 text-sm text-ink-50 placeholder:text-ink-400 focus:border-accent-500 focus:outline-none"
+              className="h-8 w-full rounded-md border border-ink-700 bg-ink-950 px-2 text-sm text-ink-50 placeholder:text-ink-500 focus:border-accent-500 focus:outline-none"
             />
           </div>
           <div ref={listRef} role="listbox" style={{ maxHeight: place.listMax }} className="overflow-auto py-1">
@@ -185,7 +202,7 @@ export const Combobox = ({
             {rows.length === 0 && <div className="px-3 py-4 text-center text-xs text-ink-400">該当なし</div>}
             {rows.map((row) =>
               row.kind === "group" ? (
-                <div key={row.key} className="px-3 pt-2 pb-1 text-xs font-semibold text-ink-300">
+                <div key={row.key} className="px-3 pt-2 pb-1 text-xs text-ink-400">
                   {row.label}
                 </div>
               ) : (
@@ -198,12 +215,13 @@ export const Combobox = ({
                   onMouseEnter={() => setActive(row.index)}
                   onClick={() => choose(row.option.value, row.option)}
                   className={cx(
-                    "flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-1.5 text-left text-sm",
-                    row.index === active ? "bg-accent-600/25 text-ink-50" : row.option.dim ? "text-ink-400" : "text-ink-100",
+                    "flex w-full cursor-pointer items-center gap-2 px-3 py-1 text-left text-sm",
+                    row.index === active ? "bg-ink-800 text-ink-50" : row.option.dim ? "text-ink-400" : "text-ink-100",
                     isSelected(row.option) && "font-semibold text-accent-400"
                   )}
                 >
-                  <span className="truncate">{row.option.label}</span>
+                  {optionPrefix?.(row.option)}
+                  <span className="min-w-0 flex-1 truncate">{row.option.label}</span>
                   {row.option.sub && <span className="shrink-0 text-xs tabular-nums text-ink-400">{row.option.sub}</span>}
                 </button>
               )

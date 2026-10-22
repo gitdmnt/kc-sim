@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { X } from "lucide-react";
 import { cx } from "./cx";
 import { S } from "./strings";
 
@@ -35,9 +36,9 @@ const CloseButton = ({ onClose }: { onClose: () => void }) => (
     type="button"
     aria-label={S.common.close}
     onClick={onClose}
-    className="flex h-7 w-7 cursor-pointer items-center justify-center rounded text-ink-300 hover:bg-ink-700 hover:text-ink-50"
+    className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-ink-300 hover:bg-ink-700 hover:text-ink-50"
   >
-    ✕
+    <X size={16} aria-hidden />
   </button>
 );
 
@@ -56,17 +57,17 @@ export const Modal = ({ title, onClose, footer, className, children }: Props) =>
         aria-modal="true"
         aria-label={title}
         className={cx(
-          "kc-chart flex max-h-[90vh] w-full outline-none max-w-2xl flex-col rounded-md border border-ink-500 bg-ink-800 shadow-2xl shadow-black/60",
+          "flex max-h-[90vh] w-full outline-none max-w-2xl flex-col rounded-md border border-ink-700 bg-ink-900 shadow-2xl shadow-black/60",
           className
         )}
       >
-        <header className="flex items-center justify-between border-b border-dashed border-ink-600 px-4 py-3">
+        <header className="flex items-center justify-between px-4 pt-4 pb-2">
           <h2 className="text-base font-semibold text-ink-50">{title}</h2>
           <CloseButton onClose={onClose} />
         </header>
         <div className="min-h-0 flex-1 overflow-auto p-4">{children}</div>
         {footer && (
-          <footer className="flex items-center justify-end gap-2 border-t border-ink-600 px-4 py-3">
+          <footer className="flex items-center justify-end gap-2 px-4 pt-2 pb-4">
             {footer}
           </footer>
         )}
@@ -90,11 +91,11 @@ export const Drawer = ({ title, onClose, className, children }: Omit<Props, "foo
         aria-modal="true"
         aria-label={title}
         className={cx(
-          "flex h-full w-full outline-none max-w-xl flex-col border-l border-ink-500 bg-ink-800 shadow-2xl shadow-black/60",
+          "flex h-full w-full outline-none max-w-xl flex-col bg-ink-900 shadow-2xl shadow-black/60",
           className
         )}
       >
-        <header className="flex items-center justify-between border-b border-dashed border-ink-600 px-4 py-3">
+        <header className="flex items-center justify-between px-4 pt-4 pb-2">
           <h2 className="text-base font-semibold text-ink-50">{title}</h2>
           <CloseButton onClose={onClose} />
         </header>

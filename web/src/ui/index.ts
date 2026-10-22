@@ -13,6 +13,8 @@ export type { BadgeTone } from "./Badge";
 export { Table, Thead, Th, Tr, Td } from "./Table";
 export { Stat } from "./Stat";
 export { ProgressBar } from "./ProgressBar";
+export { StackedBar } from "./StackedBar";
+export type { BarPart } from "./StackedBar";
 export { EmptyState } from "./EmptyState";
 export { ToastProvider, useToast } from "./Toast";
 export { Modal, Drawer } from "./Modal";

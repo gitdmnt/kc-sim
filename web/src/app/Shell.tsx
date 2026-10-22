@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import { Compass } from "lucide-react";
 import { STORAGE_PREFIX } from "../fleet";
 import { Badge, S, Tabs, cx } from "../ui";
 import type { TabItem } from "../ui";
@@ -75,23 +76,19 @@ export const Shell = () => {
     <NavProvider value={nav}>
       <div className={cx("mx-auto flex max-w-[1600px] flex-col gap-2 px-2 pb-2", sortie ? "min-h-screen lg:h-screen lg:min-h-0" : "min-h-screen")}>
         {/* poi プラグインに埋め込まれているときは、プラグインのビューもこの行に並べる (macOS は左に信号ボタンの余白) */}
-        <header className="flex shrink-0 items-center gap-x-2 border-b border-ink-600" style={host ? { paddingLeft: host.insetLeft } : undefined}>
-          <h1 className={cx("shrink-0 items-center gap-2 text-base font-semibold tracking-wider text-ink-50", host ? "hidden" : "flex")} title={S.appTitle}>
-            <svg viewBox="-12 -12 24 24" className="h-5 w-5 text-brass-500" aria-hidden>
-              <circle r="10.5" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.6" />
-              <path d="M0-10L2.2-2.2L10 0L2.2 2.2L0 10L-2.2 2.2L-10 0L-2.2-2.2Z" fill="currentColor" opacity="0.35" />
-              <path d="M0-10L2.2-2.2L0 0L-2.2-2.2Z" fill="currentColor" />
-            </svg>
+        <header className="flex shrink-0 items-center gap-x-2 border-b border-ink-800" style={host ? { paddingLeft: host.insetLeft } : undefined}>
+          <h1 className={cx("mr-2 shrink-0 items-center gap-2 text-base font-semibold text-ink-50", host ? "hidden" : "flex")} title={S.appTitle}>
+            <Compass size={18} className="text-ink-400" aria-hidden />
             <span className="hidden 2xl:inline">{S.appTitle}</span>
           </h1>
-          <Tabs tabs={TABS} value={tab} size="sm" onChange={(id) => { setIntent(null); change(id); }} className="shrink-0 border-b-0" />
+          <Tabs tabs={TABS} value={tab} size="sm" onChange={(id) => { setIntent(null); change(id); }} className="shrink-0" />
           {host && host.views.length > 0 && (
             <Tabs
               tabs={host.views}
               value=""
               size="sm"
               onChange={openHostView}
-              className="shrink-0 border-b-0 border-l border-ink-600 pl-1"
+              className="ml-3 shrink-0"
             />
           )}
           <div ref={setToolbar} className="flex min-w-0 flex-1 justify-end py-1" />

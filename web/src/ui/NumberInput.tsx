@@ -42,8 +42,8 @@ export const NumberInput = ({ value, onChange, min, max, step = 1, className, ..
       }}
       onBlur={() => setDraft(String(value))}
       className={cx(
-        "h-8 [appearance:textfield] rounded-md border border-ink-600 bg-ink-900 px-2 text-right text-sm tabular-nums text-ink-50",
-        "[&::-webkit-inner-spin-button]:appearance-none hover:border-ink-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/60 disabled:opacity-40",
+        "h-8 [appearance:textfield] rounded-md border border-ink-700 bg-ink-950 px-2 text-right text-sm tabular-nums text-ink-50",
+        "[&::-webkit-inner-spin-button]:appearance-none hover:border-ink-600 focus:border-accent-500 focus:outline-none disabled:opacity-40",
         defaultWidth(className),
         className
       )}

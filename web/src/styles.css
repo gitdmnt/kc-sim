@@ -4,8 +4,16 @@
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 @source ".";
 
-/* 海図テーマ: 紺の地・方眼・真鍮の罫・海色のアクセント。
-   SVG からも var(--color-*) で参照するので static で常に出力する。 */
+/*
+ * デザインシステム (詳細と do/don't は web/README.md「Design system」)
+ *  - 間隔: 4 / 8 / 12 / 16 / 24 px (Tailwind の 1 / 2 / 3 / 4 / 6) だけを使う。
+ *  - 角丸: 面・操作部品は rounded-md (6px) の 1 種類。メーター・点は rounded-full。
+ *  - 面: 地 ink-950 → パネル ink-900 → 操作部品/持ち上げ ink-800。罫は全周の hairline (ink-800/700) か無し。
+ *    片側だけの罫・inset shadow の帯・四隅の飾りは使わない (角丸と組むと括弧のように歪んで見える)。
+ *  - 文字: xs 11px (注記・列見出し) / sm 13px (本文) / base 14px (見出し) / lg 20px (主要な数値)。数値は tabular。
+ *  - 色は意味だけを運ぶ: accent = 操作・選択中、rank-* = 勝敗、hp-* = 損傷、node 色 = マスの種別、danger = 失敗・危険。
+ * SVG からも var(--color-*) で参照するので static で常に出力する。
+ */
 @theme static {
   --color-*: initial;
   --color-white: #fff;
@@ -13,27 +21,27 @@
   --color-transparent: transparent;
 
   /* 紺 (地・面・罫・文字) */
-  --color-ink-950: #060c17;
-  --color-ink-900: #0a1322;
-  --color-ink-800: #0f1b2f;
-  --color-ink-700: #16253e;
-  --color-ink-600: #1f3150;
-  --color-ink-500: #3b5070;
+  --color-ink-950: #070d18;
+  --color-ink-900: #0d1626;
+  --color-ink-800: #142034;
+  --color-ink-700: #1d2c45;
+  --color-ink-600: #2a3d5c;
+  --color-ink-500: #4a5f80;
   --color-ink-400: #7f92ae;
   --color-ink-300: #a0b1c9;
   --color-ink-200: #c0cde0;
   --color-ink-100: #dde6f2;
   --color-ink-50: #f3f7fc;
 
-  /* 海色 (操作・データの強調) */
+  /* 操作・選択中 */
   --color-accent-700: #0f6f80;
   --color-accent-600: #168ea2;
   --color-accent-500: #2bb3c8;
   --color-accent-400: #7fd8e6;
 
-  /* 真鍮 (罫・見出しの印・選択中の目印) */
+  /* 金 (S 勝利・改修値) */
   --color-brass-600: #8f6a32;
-  --color-brass-500: #c49a55;
+  --color-brass-500: #c9a24f;
   --color-brass-400: #dcbd86;
   --color-brass-300: #eedcb4;
 
@@ -45,55 +53,48 @@
   --color-danger-500: #e2646d;
   --color-danger-400: #f49ca2;
 
+  /* 勝敗ランク: 良い (金・青緑) → 悪い (橙・赤) の順序尺度 */
+  --color-rank-ss: #ecd68f;
+  --color-rank-s: #c9a24f;
+  --color-rank-a: #3fa69b;
+  --color-rank-b: #6a7f9e;
+  --color-rank-c: #b9813a;
+  --color-rank-d: #c4434e;
+  --color-rank-e: #7d2a33;
+
+  /* 損傷状態 */
+  --color-hp-healthy: #3c8f6c;
+  --color-hp-light: #a9a04a;
+  --color-hp-moderate: #c27a1e;
+  --color-hp-heavy: #d0464f;
+  --color-hp-sunk: #4a5f80;
+
+  --text-xs: 11px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 20px;
+  --text-base: 14px;
+  --text-base--line-height: 22px;
+  --text-lg: 20px;
+  --text-lg--line-height: 26px;
+
+  --radius-md: 6px;
+
   --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Noto Sans JP",
     "Segoe UI", system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 .kcsim {
-  /* 方眼 (海図の罫) を地に敷く */
   background-color: var(--color-ink-950);
-  background-image:
-    radial-gradient(ellipse 120% 60% at 50% -10%, rgb(43 179 200 / 0.07), transparent 60%),
-    linear-gradient(rgb(127 216 230 / 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(127 216 230 / 0.035) 1px, transparent 1px);
-  background-size: 100% 100%, 32px 32px, 32px 32px;
-  background-attachment: fixed;
   color: var(--color-ink-100);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
   font-feature-settings: "tnum" 1;
   color-scheme: dark;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-}
-
-/* 面の四隅のうち左上・右下に真鍮の鉤 (海図の図郭) */
-.kc-chart {
-  position: relative;
-}
-.kc-chart::before,
-.kc-chart::after {
-  content: "";
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  pointer-events: none;
-}
-.kc-chart::before {
-  top: -1px;
-  left: -1px;
-  border-top: 1.5px solid var(--color-brass-500);
-  border-left: 1.5px solid var(--color-brass-500);
-  border-top-left-radius: 6px;
-}
-.kc-chart::after {
-  right: -1px;
-  bottom: -1px;
-  border-right: 1.5px solid var(--color-brass-500);
-  border-bottom: 1.5px solid var(--color-brass-500);
-  border-bottom-right-radius: 6px;
 }
 
 .kcsim ::selection {
@@ -107,7 +108,7 @@
 .kcsim ::-webkit-scrollbar-thumb {
   background: var(--color-ink-600);
   border-radius: 6px;
-  border: 2px solid var(--color-ink-900);
+  border: 2px solid var(--color-ink-950);
 }
 .kcsim ::-webkit-scrollbar-thumb:hover {
   background: var(--color-ink-500);

@@ -3,12 +3,13 @@ import { cx } from "./cx";
 
 export type BadgeTone = "neutral" | "accent" | "ok" | "warn" | "danger";
 
+/** 塗りだけの小さなラベル (罫なし)。状態を表すときだけ使い、飾りには使わない。 */
 const TONE: Record<BadgeTone, string> = {
-  neutral: "bg-ink-700/60 text-ink-200 border-ink-600",
-  accent: "bg-accent-500/12 text-accent-400 border-accent-500/35",
-  ok: "bg-ok-600/15 text-ok-400 border-ok-600/40",
-  warn: "bg-warn-600/15 text-warn-400 border-warn-600/45",
-  danger: "bg-danger-600/15 text-danger-400 border-danger-600/45",
+  neutral: "bg-ink-800 text-ink-200",
+  accent: "bg-accent-500/15 text-accent-400",
+  ok: "bg-ok-600/20 text-ok-400",
+  warn: "bg-warn-600/20 text-warn-400",
+  danger: "bg-danger-600/20 text-danger-400",
 };
 
 export const Badge = ({
@@ -24,11 +25,7 @@ export const Badge = ({
 }) => (
   <span
     title={title}
-    className={cx(
-      "inline-flex items-center rounded border px-1.5 py-px text-xs leading-4 font-medium whitespace-nowrap",
-      TONE[tone],
-      className
-    )}
+    className={cx("inline-flex items-center rounded-md px-1.5 text-xs leading-5 font-medium whitespace-nowrap", TONE[tone], className)}
   >
     {children}
   </span>

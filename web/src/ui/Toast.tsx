@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { CircleAlert, CircleCheck, Info } from "lucide-react";
 import { cx } from "./cx";
 
 type Tone = "info" | "ok" | "danger";
@@ -14,10 +15,11 @@ interface ToastApi {
 const Ctx = createContext<ToastApi>({ push: () => {} });
 export const useToast = () => useContext(Ctx);
 
-const TONE: Record<Tone, string> = {
-  info: "border-accent-600/50",
-  ok: "border-ok-600/60",
-  danger: "border-danger-600/60",
+/** 状態はアイコンの形と色で示す (枠の色では示さない) */
+const ICON: Record<Tone, React.ReactNode> = {
+  info: <Info size={16} className="shrink-0 text-accent-400" aria-hidden />,
+  ok: <CircleCheck size={16} className="shrink-0 text-ok-400" aria-hidden />,
+  danger: <CircleAlert size={16} className="shrink-0 text-danger-400" aria-hidden />,
 };
 
 export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
@@ -49,10 +51,10 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
             role="status"
             onClick={() => setItems((prev) => prev.filter((x) => x.id !== t.id))}
             className={cx(
-              "pointer-events-auto max-w-sm cursor-pointer rounded-md border bg-ink-800/95 px-3.5 py-2 text-sm text-ink-50 shadow-xl shadow-black/50 backdrop-blur-sm",
-              TONE[t.tone]
+              "pointer-events-auto flex max-w-sm cursor-pointer items-center gap-2 rounded-md border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-ink-50 shadow-xl shadow-black/50"
             )}
           >
+            {ICON[t.tone]}
             {t.message}
           </div>
         ))}

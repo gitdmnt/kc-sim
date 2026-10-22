@@ -10,6 +10,8 @@ interface Props {
   "aria-label"?: string;
   variant?: ButtonVariant;
   size?: "sm" | "md";
+  /** 正方形のアイコンボタン (aria-label 必須) */
+  icon?: boolean;
   disabled?: boolean;
   /** パネルをボタンの左端 (start) / 右端 (end) に揃える */
   align?: "start" | "end";
@@ -32,6 +34,7 @@ export const Popover = ({
   title,
   variant = "secondary",
   size = "md",
+  icon,
   disabled,
   align = "start",
   className,
@@ -82,11 +85,12 @@ export const Popover = ({
       <Button
         variant={variant}
         size={size}
+        icon={icon}
         disabled={disabled}
         title={title}
         aria-label={rest["aria-label"]}
         aria-expanded={open}
-        className={cx(open && "border-accent-500/70", buttonClassName)}
+        className={cx(open && "bg-ink-700 text-ink-50", buttonClassName)}
         onClick={toggle}
       >
         {label}
@@ -96,7 +100,7 @@ export const Popover = ({
           role="dialog"
           style={pos}
           className={cx(
-            "fixed z-40 overflow-auto rounded-md border border-ink-500 bg-ink-800 p-3 text-left shadow-2xl shadow-black/60",
+            "fixed z-40 overflow-auto rounded-md border border-ink-700 bg-ink-900 p-4 text-left shadow-2xl shadow-black/60",
             panelClassName
           )}
         >
