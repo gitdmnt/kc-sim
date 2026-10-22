@@ -465,6 +465,32 @@ export interface SortieNode {
   boss?: boolean;
   /** Enemy comps of battle-type nodes. A battle-type node without comps is treated as empty. */
   comps?: EnemyComp[];
+  /** `resource` / `landing` nodes: expected gain per visit (not applied to the ships). */
+  resource?: ResourceAmounts;
+  /** `maelstrom` nodes: loss definition. Without `rate` the node causes no loss (warned). */
+  maelstrom?: Maelstrom;
+}
+
+export interface ResourceAmounts {
+  fuel?: number;
+  ammo?: number;
+  steel?: number;
+  bauxite?: number;
+}
+
+/** Per-ship loss `min(max, floor(have × rate × (1 − radar reduction)))`; the radar reduction by the
+ *  number of afloat ships carrying a small/large radar (`types[2]` 12/13) is
+ *  0 / 25 / 40 / 50 / 55 / 58 / 60 % for 0…6+ ships. */
+export interface Maelstrom {
+  resource: "fuel" | "ammo";
+  rate?: number;
+  /** Per-ship cap. */
+  max?: number;
+  /** Strong maelstrom: with probability `highChance` (default 0) `rateHigh` is used instead. */
+  rateHigh?: number;
+  highChance?: number;
+  /** Default true. */
+  radarReducible?: boolean;
 }
 
 export interface SortieMap {
@@ -528,6 +554,17 @@ export interface GaugeInput {
   runs?: number;
   /** Sorties cap per run. Default 500. */
   maxSorties?: number;
+  /** Carry morale from sortie to sortie (full sortie simulation per run, also for `kill`; default
+   *  `runs` becomes 200). Absent: every sortie starts from the input morale. */
+  morale?: GaugeMorale;
+}
+
+/** Wait between two sorties: at least `waitMinutes`, and until every ship reaches `untilMorale`
+ *  (capped at 49). Natural recovery is +3 per 3 minutes up to 49 (none at ≥ 49). Sunk ships are
+ *  replaced by ships with the input morale. */
+export interface GaugeMorale {
+  waitMinutes?: number;
+  untilMorale?: number;
 }
 
 export interface SortieInput {
@@ -579,7 +616,44 @@ export interface SortieShipSummary {
   hpMissingMean: number;
   fuelUsedMean: number;
   ammoUsedMean: number;
+  /** Mean bauxite to refill lost aircraft per sortie (5 per plane, not reduced by marriage). */
+  bauxiteMean: number;
+  /** Mean number of aircraft slots wiped out (proficiency lost) per sortie. */
+  proficiencyLostMean: number;
+  /** Docking need at the end of the sortie (sunk ships: 0). */
+  repair: RepairSummary;
   damecon: { usedRate: number };
+}
+
+export interface Dist {
+  mean: number;
+  p50: number;
+  p90: number;
+}
+
+/** Docking cost per sortie: fuel / steel = floor(0.032 / 0.06 × fuelMax × HP lost); time in seconds =
+ *  (Lv ≤ 11: 10·Lv, else 5·Lv + 10·floor(√(Lv−11)) + 50) × ship-type factor × HP lost + 30. */
+export interface RepairSummary {
+  fuel: Dist;
+  steel: Dist;
+  timeSec: Dist;
+}
+
+/** Fleet docking need: fuel / steel summed over ships; `timeSec` = slowest ship (parallel docks),
+ *  `timeSecTotal` = sum (single dock). */
+export interface FleetRepairSummary extends RepairSummary {
+  timeSecTotal: Dist;
+}
+
+/** Present only when a node of the map has an effect configured. */
+export interface NodeEffectsSummary {
+  gainedMean: Required<ResourceAmounts>;
+  /** Included in `fuelUsedMean` / `ammoUsedMean`. */
+  maelstromFuelMean: number;
+  maelstromAmmoMean: number;
+  /** Anchorage repair: HP restored and repair materials used per sortie. */
+  anchorageHpMean: number;
+  anchorageMaterialsMean: number;
 }
 
 export interface GaugeSummary {
@@ -589,6 +663,10 @@ export interface GaugeSummary {
   expectedSorties: number | null;
   p50Sorties: number | null;
   p90Sorties: number | null;
+  /** With `GaugeInput.morale`: minutes spent waiting between sorties per cleared run. */
+  expectedWaitMinutes?: number;
+  p50WaitMinutes?: number;
+  p90WaitMinutes?: number;
   /** Runs that hit `maxSorties` without clearing. */
   cappedRate: number;
   runs: number;
@@ -619,6 +697,10 @@ export interface SortieSummary {
   nodesMean: number;
   fuelUsedMean: number;
   ammoUsedMean: number;
+  /** Fuel / ammo are resupply costs: ships of Lv ≥ 100 pay floor(0.85 × amount) (amount > 1). */
+  bauxiteMean: number;
+  repair: FleetRepairSummary;
+  effects?: NodeEffectsSummary;
   friend: SortieShipSummary[];
   gauge?: GaugeSummary;
   /** Deduplicated input/data problems met during the simulation (unknown node kinds, …). */
