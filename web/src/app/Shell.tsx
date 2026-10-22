@@ -91,7 +91,7 @@ export const Shell = () => {
               className="ml-3 shrink-0"
             />
           )}
-          <div ref={setToolbar} className="flex min-w-0 flex-1 justify-end py-1" />
+          <div ref={setToolbar} className="ml-4 flex min-w-0 flex-1 py-1" />
           <PoiBadge poi={poi} />
         </header>
 

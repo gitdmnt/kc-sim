@@ -89,7 +89,7 @@ try {
   await page.getByRole("button", { name: /^実行/ }).click();
   await waitResult(prev);
   console.log("manual:", await meta(page));
-  const kpi = await page.locator("section.kc-chart").first().innerText();
+  const kpi = await page.locator("[data-results]").first().innerText();
   console.log("---- sortie ----\n" + kpi.split("\n").slice(0, 24).join(" | "));
   await checkNoScroll("1280x800");
   await shot("workspace-1280");

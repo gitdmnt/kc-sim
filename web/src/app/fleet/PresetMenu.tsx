@@ -1,0 +1,153 @@
+import React, { useState } from "react";
+import { ArrowLeftRight, Copy, Download, Ellipsis, FilePlus, Trash } from "lucide-react";
+import { importFromPoi } from "../../fleet";
+import type { Preset } from "../../fleet";
+import { Button, ConfirmDialog, Field, NumberInput, Popover, Select, TextInput, S, useToast } from "../../ui";
+import { useApp } from "../context";
+import { IoModal } from "./IoModal";
+import { blankPreset } from "./presets";
+import type { PresetsApi } from "./presets";
+
+interface Props {
+  store: PresetsApi;
+  preset: Preset | null;
+  select: (id: string | null) => void;
+}
+
+/** poi の第 1〜4 艦隊 (state.info.fleets)。プラグインから開いていない・未ログインなら空 */
+export const usePoiFleets = (): unknown[] => {
+  const { state } = useApp();
+  return Array.isArray(state?.info?.fleets) ? state.info.fleets : [];
+};
+
+/** poi の艦隊を新しいプリセットとして取り込む */
+export const useImportPoi = (store: PresetsApi, select: (id: string | null) => void) => {
+  const { state } = useApp();
+  const toast = useToast();
+  return (i: number) => {
+    const p = importFromPoi(state, i);
+    if (!p) return toast.push(`第${i + 1}艦隊を取り込めませんでした`, "danger");
+    select(store.save(p).id);
+  };
+};
+
+/** ツールバーの「編成」: プリセットの切り替えと管理 (⋯: 名前・司令部Lv・メモ、poi から取り込み、新規・複製・入出力・削除)。 */
+export const PresetMenu = ({ store, preset, select }: Props) => {
+  const { presets, save, remove, refresh } = store;
+  const [io, setIo] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const poiFleets = usePoiFleets();
+  const importPoi = useImportPoi(store, select);
+  const patch = (p: Partial<Preset>) => preset && save({ ...preset, ...p });
+
+  const duplicate = () => {
+    if (!preset) return;
+    const { id: _id, ...rest } = preset;
+    const now = Date.now();
+    select(save({ ...rest, name: `${preset.name} のコピー`, createdAt: now, updatedAt: now }).id);
+  };
+
+  return (
+    <div className="flex min-w-0 items-center gap-1">
+      <Select className="h-7! w-44 min-w-24 shrink" value={preset?.id ?? ""} onChange={(e) => select(e.target.value)} aria-label={S.fleet.presets}>
+        {!preset && <option value="">{blankPreset().name}</option>}
+        {presets.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+          </option>
+        ))}
+      </Select>
+      <Popover
+        size="sm"
+        variant="ghost"
+        icon
+        label={<Ellipsis size={16} aria-hidden />}
+        title="プリセットの管理"
+        aria-label="プリセットの管理"
+        panelClassName="flex w-[22rem] flex-col gap-4"
+      >
+        {(close) => (
+          <>
+            {preset && (
+              <div className="grid grid-cols-[minmax(0,1fr)_5rem] gap-3">
+                <Field label={S.fleet.name}>
+                  <TextInput value={preset.name} onChange={(e) => patch({ name: e.target.value })} />
+                </Field>
+                <Field label={S.fleet.hq}>
+                  <NumberInput min={1} max={185} value={preset.hqLevel ?? 120} onChange={(v) => patch({ hqLevel: v })} />
+                </Field>
+                <Field label={S.fleet.note} className="col-span-2">
+                  <TextInput value={preset.note ?? ""} onChange={(e) => patch({ note: e.target.value })} />
+                </Field>
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <span className="flex flex-1 items-center gap-2 text-sm text-ink-300">
+                <Download size={14} aria-hidden />
+                {S.fleet.importPoi}
+              </span>
+              {[0, 1, 2, 3].map((i) => (
+                <Button
+                  key={i}
+                  size="sm"
+                  icon
+                  disabled={!poiFleets[i]}
+                  title={`第${i + 1}艦隊`}
+                  onClick={() => {
+                    importPoi(i);
+                    close();
+                  }}
+                >
+                  {i + 1}
+                </Button>
+              ))}
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+              <Button size="sm" onClick={() => (select(save(blankPreset()).id), close())}>
+                <FilePlus size={14} aria-hidden />
+                {S.fleet.newPreset}
+              </Button>
+              <Button size="sm" disabled={!preset} onClick={() => (duplicate(), close())}>
+                <Copy size={14} aria-hidden />
+                {S.common.duplicate}
+              </Button>
+              <Button size="sm" onClick={() => (setIo(true), close())}>
+                <ArrowLeftRight size={14} aria-hidden />
+                {S.fleet.importExport}
+              </Button>
+              <Button size="sm" variant="danger" disabled={!preset} onClick={() => (setConfirming(true), close())}>
+                <Trash size={14} aria-hidden />
+                {S.common.delete}
+              </Button>
+            </div>
+          </>
+        )}
+      </Popover>
+
+      {io && (
+        <IoModal
+          current={preset}
+          onClose={() => setIo(false)}
+          onImported={(imported) => {
+            // IoModal 内で store に保存済み。一覧だけ再読込する
+            refresh();
+            if (imported[0]) select(imported[0].id);
+          }}
+        />
+      )}
+      {confirming && preset && (
+        <ConfirmDialog
+          danger
+          title={`「${preset.name}」を削除`}
+          confirmLabel={S.common.delete}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => {
+            setConfirming(false);
+            remove(preset.id);
+            select(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};

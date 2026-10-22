@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { Play, RefreshCw, SlidersHorizontal, Square } from "lucide-react";
 import type { FitEntry } from "@shared/sim/fit";
 import { STORAGE_PREFIX } from "../../fleet";
 import { useMapData, useMapList } from "../../data/useMapData";
@@ -9,6 +10,7 @@ import { Button, EmptyState, Popover, Select, Tabs, S, cx } from "../../ui";
 import { useApp } from "../context";
 import { DataError } from "../DataState";
 import { FleetPanel } from "../fleet/FleetPanel";
+import { PresetMenu } from "../fleet/PresetMenu";
 import { usePresets } from "../fleet/presets";
 import { useIntentFor } from "../nav";
 import { updateSettings, useSettings } from "../settings";
@@ -37,7 +39,7 @@ const readSelected = (): string | null => {
 };
 
 /**
- * 出撃タブ: 海域・モード・実行 (ヘッダのツールバー)、艦隊編成 (左)、結果 (右) を 1 画面に置く。
+ * 出撃タブ: 海域・編成・モード/条件・実行 (ヘッダのツールバー、操作順に左から)、艦隊 (左)、結果 (右) を 1 画面に置く。
  * 入力が変わるたびに自動で計算し直す (useSimRun)。他のタブに移っても隠すだけで状態を保つ。
  */
 export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
@@ -153,115 +155,144 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
   const noMaster = catalog.shipOptions.length === 0;
   const loadError = (maps.error && !maps.data ? maps.error : null) ?? md.error;
 
-  const bar = (
-    <div className="flex min-w-0 items-center gap-1.5">
-      <Select
-        className="h-7! w-36 text-[13px]"
-        aria-label="海域"
-        value={prefs.map}
-        onChange={(e) => setPrefs({ map: e.target.value, node: null })}
-      >
-        {mapOptions.map((m) => (
-          <option key={m.key} value={m.key}>
-            {m.name && m.name !== m.key ? `${m.key} ${m.name}` : m.key}
-          </option>
-        ))}
-        {mapOptions.length === 0 && <option value={prefs.map}>{prefs.map}</option>}
-      </Select>
-      {diffs.length > 1 && (
-        <Select className="h-7! w-16 text-[13px]" aria-label="難易度" value={diff} onChange={(e) => setPrefs({ difficulty: Number(e.target.value) })}>
-          {diffs.map((d) => (
-            <option key={d} value={d}>
-              {DIFF[d] ?? d}
-            </option>
-          ))}
-        </Select>
-      )}
-      <Tabs<SimMode>
-        variant="pill"
-        size="sm"
-        value={mode}
-        onChange={(m) => setPrefs({ mode: m })}
-        tabs={[
-          { id: "sortie", label: "出撃" },
-          { id: "battle", label: "単一戦闘" },
-        ]}
-      />
-      {mode === "battle" && (
-        <>
-          <Select className="h-7! w-14 text-[13px]" aria-label="ノード" value={node ?? ""} disabled={compNodes.length === 0} onChange={(e) => setPrefs({ node: e.target.value })}>
-            {compNodes.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </Select>
-          <Select
-            className="h-7! w-40 min-w-24 text-[13px]"
-            aria-label="敵編成"
-            value={compId}
-            disabled={compList.length === 0}
-            onChange={(e) => setCfg({ compId: e.target.value, compNode: node ?? "" })}
-          >
-            <option value="all">全 {compList.length} 編成 (出現率)</option>
-            {compList.map((c) => (
-              <option key={c.id} value={c.id}>
-                {(c.weight * 100).toFixed(1)}% {c.main.slice(0, 3).map((s) => shipName(s.shipId)).join("、")}
-                {c.main.length > 3 ? "…" : ""}
-              </option>
-            ))}
-          </Select>
-        </>
-      )}
-      <Popover
-        size="sm"
-        label="条件"
-        align="end"
-        title="夜戦・撤退・ゲージ・陣形・回数"
-        panelClassName={mode === "sortie" ? "w-[34rem]" : "w-[28rem]"}
-      >
-        <Conditions
-          mode={mode}
-          prefs={prefs}
-          setPrefs={setPrefs}
-          routing={routing}
-          cfg={cfg}
-          setCfg={setCfg}
-          battleNodes={battleNodes}
-          bossSets={bossSets}
-          formation={preset?.formation ?? null}
-          setFormation={(formation) => preset && store.save({ ...preset, formation })}
-        />
-      </Popover>
-      <label className="flex shrink-0 cursor-pointer items-center gap-1 px-1 text-xs whitespace-nowrap text-ink-300" title={`入力を変えるたびに ${AUTO_COUNT.toLocaleString()} 回で再計算`}>
-        <input type="checkbox" className="h-3.5 w-3.5 cursor-pointer accent-accent-500" checked={prefs.auto} onChange={(e) => setPrefs({ auto: e.target.checked })} />
-        自動
-      </label>
-      {bigRun ? (
-        <Button size="sm" variant="danger" className="w-24" onClick={sim.cancel}>
-          中止
-        </Button>
-      ) : (
-        <Button size="sm" variant="primary" className="w-24" disabled={!built.req} onClick={() => sim.run(prefs.count)}>
-          実行 <span className="text-xs font-normal opacity-80">{fmtCount(prefs.count)}</span>
-        </Button>
-      )}
-    </div>
-  );
-
   const meta = sim.result && (
     <span
-      className="shrink-0 text-[11px] text-ink-400 tabular-nums"
+      className="shrink-0 text-xs text-ink-500 tabular-nums"
       title={`seed ${sim.result.value.seed} · ${(sim.result.ms / 1000).toFixed(2)} 秒${out?.kind === "sortie" && out.data.source === "bundle" ? " · 同梱データ" : ""}`}
     >
       {sim.result.count.toLocaleString()} {sim.result.value.kind === "sortie" ? "出撃" : "戦"}
     </span>
   );
 
+  const progress = sim.progress && (
+    <span
+      className="absolute inset-y-0 left-0 bg-white/25 transition-[width] duration-150"
+      role="progressbar"
+      aria-valuenow={sim.progress.done}
+      aria-valuemax={sim.progress.total}
+      style={{ width: `${(sim.progress.done / Math.max(1, sim.progress.total)) * 100}%` }}
+    />
+  );
+
+  // 左から操作の順: 海域 → 編成 → モード・条件 → 実行
+  const bar = (
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1">
+      <div className="flex shrink-0 items-center gap-1">
+        <Select className="h-7! w-36" aria-label="海域" value={prefs.map} onChange={(e) => setPrefs({ map: e.target.value, node: null })}>
+          {mapOptions.map((m) => (
+            <option key={m.key} value={m.key}>
+              {m.name && m.name !== m.key ? `${m.key} ${m.name}` : m.key}
+            </option>
+          ))}
+          {mapOptions.length === 0 && <option value={prefs.map}>{prefs.map}</option>}
+        </Select>
+        {diffs.length > 1 && (
+          <Select className="h-7! w-16" aria-label="難易度" value={diff} onChange={(e) => setPrefs({ difficulty: Number(e.target.value) })}>
+            {diffs.map((d) => (
+              <option key={d} value={d}>
+                {DIFF[d] ?? d}
+              </option>
+            ))}
+          </Select>
+        )}
+      </div>
+      <PresetMenu store={store} preset={preset} select={select} />
+      <div className="flex min-w-0 items-center gap-1">
+        <Tabs<SimMode>
+          className="shrink-0"
+          variant="pill"
+          size="sm"
+          value={mode}
+          onChange={(m) => setPrefs({ mode: m })}
+          tabs={[
+            { id: "sortie", label: "出撃" },
+            { id: "battle", label: "単一戦闘" },
+          ]}
+        />
+        {mode === "battle" && (
+          <>
+            <Select className="h-7! w-14 shrink-0" aria-label="ノード" value={node ?? ""} disabled={compNodes.length === 0} onChange={(e) => setPrefs({ node: e.target.value })}>
+              {compNodes.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </Select>
+            <Select
+              className="h-7! w-40 min-w-20 shrink"
+              aria-label="敵編成"
+              value={compId}
+              disabled={compList.length === 0}
+              onChange={(e) => setCfg({ compId: e.target.value, compNode: node ?? "" })}
+            >
+              <option value="all">全 {compList.length} 編成</option>
+              {compList.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {(c.weight * 100).toFixed(1)}% {c.main.slice(0, 3).map((s) => shipName(s.shipId)).join("、")}
+                  {c.main.length > 3 ? "…" : ""}
+                </option>
+              ))}
+            </Select>
+          </>
+        )}
+        <Popover
+          size="sm"
+          variant="ghost"
+          icon
+          label={<SlidersHorizontal size={16} aria-hidden />}
+          aria-label="条件"
+          align="end"
+          title="条件: 夜戦・撤退・ゲージ・陣形・回数"
+          panelClassName={mode === "sortie" ? "w-[34rem]" : "w-[28rem]"}
+        >
+          <Conditions
+            mode={mode}
+            prefs={prefs}
+            setPrefs={setPrefs}
+            routing={routing}
+            cfg={cfg}
+            setCfg={setCfg}
+            battleNodes={battleNodes}
+            bossSets={bossSets}
+            formation={preset?.formation ?? null}
+            setFormation={(formation) => preset && store.save({ ...preset, formation })}
+          />
+        </Popover>
+      </div>
+      <div className="ml-auto flex shrink-0 items-center gap-1">
+        <Button
+          size="sm"
+          variant="ghost"
+          icon
+          aria-pressed={prefs.auto}
+          className={prefs.auto ? "text-accent-400!" : "text-ink-500!"}
+          title={prefs.auto ? `自動: 入力を変えるたびに ${AUTO_COUNT.toLocaleString()} 回で再計算 (オン)` : "自動再計算 (オフ)"}
+          aria-label="自動"
+          onClick={() => setPrefs({ auto: !prefs.auto })}
+        >
+          <RefreshCw size={16} aria-hidden />
+        </Button>
+        {bigRun ? (
+          <Button size="sm" variant="danger" className="relative w-24 overflow-hidden" onClick={sim.cancel}>
+            {progress}
+            <Square size={12} aria-hidden />
+            中止
+          </Button>
+        ) : (
+          <Button size="sm" variant="primary" className="relative w-24 overflow-hidden" disabled={!built.req} aria-label={`実行 ${fmtCount(prefs.count)}`} onClick={() => sim.run(prefs.count)}>
+            {progress}
+            <Play size={14} aria-hidden />
+            {fmtCount(prefs.count)}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <>
       {toolbar && createPortal(bar, toolbar)}
-      <div className="grid grid-cols-1 gap-2 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_23rem] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_25rem]">
+      <div className="grid grid-cols-1 gap-2 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,11fr)_minmax(0,10fr)] lg:grid-rows-[minmax(0,1fr)]">
         {noMaster ? (
           poi.status === "waiting" ? (
             <EmptyState title={S.common.loading} />
@@ -279,13 +310,8 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
           <FleetPanel store={store} preset={preset} select={select} />
         )}
 
-        <section className="kc-chart relative flex min-h-0 flex-col rounded-md border border-ink-600 bg-ink-800/90 shadow-lg shadow-black/30">
-          {sim.progress && (
-            <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden rounded-t-md bg-ink-700" role="progressbar" aria-valuenow={sim.progress.done} aria-valuemax={sim.progress.total}>
-              <div className="h-full bg-accent-500 transition-[width] duration-150" style={{ width: `${(sim.progress.done / Math.max(1, sim.progress.total)) * 100}%` }} />
-            </div>
-          )}
-          <div className={cx("flex min-h-0 flex-1 flex-col gap-2 p-2.5 transition-opacity duration-200", (sim.stale || !out) && "opacity-45")}>
+        <section data-results className="flex min-h-0 flex-col rounded-md border border-ink-800 bg-ink-900">
+          <div className={cx("flex min-h-0 flex-1 flex-col gap-4 px-4 py-3 transition-opacity duration-200", (sim.stale || !out) && "opacity-45")}>
             {loadError && <DataError error={loadError} />}
             {error && <p className="text-xs text-danger-400">{error}</p>}
             {out?.kind === "sortie" ? (

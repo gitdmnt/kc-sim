@@ -70,7 +70,7 @@ export const Combobox = ({
   const trigger = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   // 開いた時点のトリガー位置から、下に出すか上に出すかと一覧の最大高さを決める
-  const [place, setPlace] = useState<{ up: boolean; listMax: number }>({ up: false, listMax: MENU_LIST_MAX });
+  const [place, setPlace] = useState<{ listMax: number; style: React.CSSProperties }>({ listMax: MENU_LIST_MAX, style: {} });
 
   const isSelected = (o: PickerOption) => (selectedKey !== undefined ? (o.key ?? String(o.value)) === selectedKey : o.value === value);
 
@@ -94,11 +94,16 @@ export const Combobox = ({
 
   useEffect(() => {
     if (!open) return;
-    const h = (e: MouseEvent) => {
+    // 外側のクリックで閉じる。fixed で置いたメニューは外側がスクロールすると位置がずれるので、そのときも閉じる
+    const h = (e: Event) => {
       if (!root.current?.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("scroll", h, true);
+    return () => {
+      document.removeEventListener("mousedown", h);
+      document.removeEventListener("scroll", h, true);
+    };
   }, [open]);
 
   useEffect(() => setActive(0), [query, open]);
@@ -112,7 +117,16 @@ export const Combobox = ({
     const below = view.innerHeight - r.bottom - MENU_GAP - MENU_MARGIN;
     const above = r.top - MENU_GAP - MENU_MARGIN;
     const up = below < MENU_FULL && above > below;
-    setPlace({ up, listMax: Math.max(MENU_LIST_MIN, Math.min(MENU_LIST_MAX, (up ? above : below) - MENU_SEARCH)) });
+    // スクロールする枠に切られないよう fixed で置く。画面の右半分にあるトリガーは右端を揃えて左へ広げる
+    const right = r.left > view.innerWidth / 2;
+    setPlace({
+      listMax: Math.max(MENU_LIST_MIN, Math.min(MENU_LIST_MAX, (up ? above : below) - MENU_SEARCH)),
+      style: {
+        minWidth: r.width,
+        ...(up ? { bottom: view.innerHeight - r.top + MENU_GAP } : { top: r.bottom + MENU_GAP }),
+        ...(right ? { right: view.innerWidth - r.right } : { left: r.left }),
+      },
+    });
   }, [open]);
 
   useEffect(() => {
@@ -154,7 +168,7 @@ export const Combobox = ({
         {...rest}
       >
         {prefix}
-        <span className={cx("min-w-0 flex-1 truncate", label ? "text-ink-50" : "text-ink-500")}>{label ?? placeholder}</span>
+        <span className={cx("min-w-0 flex-1 truncate", label ? "text-ink-50" : "text-ink-500")} title={label}>{label ?? placeholder}</span>
         <ChevronDown
           size={14}
           aria-hidden
@@ -163,7 +177,7 @@ export const Combobox = ({
       </button>
 
       {open && (
-        <div className={cx("absolute left-0 z-40 w-full min-w-64 rounded-md border border-ink-700 bg-ink-900 shadow-2xl shadow-black/60", place.up ? "bottom-full mb-1" : "top-full mt-1", menuClassName)}>
+        <div style={place.style} className={cx("fixed z-40 min-w-64 rounded-md border border-ink-700 bg-ink-900 shadow-2xl shadow-black/60", menuClassName)}>
           <div className="p-2 pb-1">
             <input
               autoFocus
