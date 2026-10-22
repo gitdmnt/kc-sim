@@ -156,7 +156,7 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
   const bar = (
     <div className="flex min-w-0 items-center gap-1.5">
       <Select
-        className="h-7! w-44 text-[13px]"
+        className="h-7! w-36 text-[13px]"
         aria-label="海域"
         value={prefs.map}
         onChange={(e) => setPrefs({ map: e.target.value, node: null })}
@@ -197,7 +197,7 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
             ))}
           </Select>
           <Select
-            className="h-7! w-48 text-[13px]"
+            className="h-7! w-40 min-w-24 text-[13px]"
             aria-label="敵編成"
             value={compId}
             disabled={compList.length === 0}
@@ -233,7 +233,7 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
           setFormation={(formation) => preset && store.save({ ...preset, formation })}
         />
       </Popover>
-      <label className="flex cursor-pointer items-center gap-1 px-1 text-xs text-ink-300" title={`入力を変えるたびに ${AUTO_COUNT.toLocaleString()} 回で再計算`}>
+      <label className="flex shrink-0 cursor-pointer items-center gap-1 px-1 text-xs whitespace-nowrap text-ink-300" title={`入力を変えるたびに ${AUTO_COUNT.toLocaleString()} 回で再計算`}>
         <input type="checkbox" className="h-3.5 w-3.5 cursor-pointer accent-accent-500" checked={prefs.auto} onChange={(e) => setPrefs({ auto: e.target.checked })} />
         自動
       </label>

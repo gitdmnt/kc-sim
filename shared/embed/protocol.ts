@@ -1,13 +1,19 @@
 // postMessage protocol between the poi plugin (parent, file://) and the web UI it embeds in an iframe.
 //
-//   web → plugin   ready        { v }                             once the web UI listens
+//   web → plugin   ready        { v, hostViews? }                 once the web UI listens; hostViews = it can show the
+//                                                                 plugin's views as tabs in its own header
 //   plugin → web   state        { info, const? }                  after every ready (const included), then on change
 //   plugin → web   presets      { json }                          the plugin's old presets, once per origin until acked
 //   web → plugin   presets-ack  { imported, skipped, persisted }  persisted = saved to storage that survives a reload
+//   plugin → web   host         { views, insetLeft }              after a ready with hostViews: the plugin's views (it
+//                                                                 hides its own tab bar) and the header's left inset
+//                                                                 (macOS window buttons over the iframe)
+//   web → plugin   open-view    { view }                          a host view's tab was clicked
 //
 // Every message is `{ src: "kcsim", v, type, ...fields }`. `v` is the sender's protocol version: adding an optional
-// field keeps it, any other change bumps it, and the web UI (deployed at once) keeps accepting the previous version
-// for at least one plugin release. Unknown types are ignored. The poi state never leaves the user's machine: the
+// field, or a message type the peer may ignore, keeps it; any other change bumps it, and the web UI (deployed at once)
+// keeps accepting the previous version for at least one plugin release. Unknown types are ignored, so a plugin only
+// hides its own tab bar after a ready with hostViews. The poi state never leaves the user's machine: the
 // plugin projects it to the keys below (what shared/fleet/poiImport.ts, the catalog and the map tab read; keep the
 // lists in step with them) and posts it only to the iframe's origin.
 
@@ -53,13 +59,32 @@ export interface PoiConst {
   $mapareas: unknown;
 }
 
+/** A plugin view the web UI shows as a tab (観測ログ, 送信設定). */
+export interface HostView {
+  id: string;
+  label: string;
+}
+
+export interface HostInfo {
+  views: HostView[];
+  /** px to keep free at the header's left (macOS window buttons) */
+  insetLeft: number;
+}
+
 export type WebMessage =
-  | { src: typeof EMBED_SOURCE; v: number; type: "ready" }
-  | { src: typeof EMBED_SOURCE; v: number; type: "presets-ack"; imported: number; skipped: number; persisted: boolean };
+  | { src: typeof EMBED_SOURCE; v: number; type: "ready"; hostViews?: boolean }
+  | { src: typeof EMBED_SOURCE; v: number; type: "presets-ack"; imported: number; skipped: number; persisted: boolean }
+  | { src: typeof EMBED_SOURCE; v: number; type: "open-view"; view: string };
 
 export type PluginMessage =
   | { src: typeof EMBED_SOURCE; v: number; type: "state"; info: PoiInfo; const?: PoiConst }
-  | { src: typeof EMBED_SOURCE; v: number; type: "presets"; json: string };
+  | { src: typeof EMBED_SOURCE; v: number; type: "presets"; json: string }
+  | ({ src: typeof EMBED_SOURCE; v: number; type: "host" } & HostInfo);
+
+const MAX_HOST_VIEWS = 4;
+const MAX_LABEL = 16;
+const MAX_INSET = 200;
+const isLabel = (v: unknown): v is string => typeof v === "string" && v.length > 0 && v.length <= MAX_LABEL;
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const isCount = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
@@ -111,7 +136,8 @@ export const readEnvelope = (data: unknown): (Record<string, unknown> & { v: num
 export const parseWebMessage = (data: unknown): WebMessage | null => {
   const m = readEnvelope(data);
   if (!m) return null;
-  if (m.type === "ready") return { src: EMBED_SOURCE, v: m.v, type: "ready" };
+  if (m.type === "ready") return { src: EMBED_SOURCE, v: m.v, type: "ready", ...(m.hostViews === true && { hostViews: true }) };
+  if (m.type === "open-view" && isLabel(m.view)) return { src: EMBED_SOURCE, v: m.v, type: "open-view", view: m.view };
   if (m.type === "presets-ack" && isCount(m.imported) && isCount(m.skipped) && typeof m.persisted === "boolean") {
     return { src: EMBED_SOURCE, v: m.v, type: "presets-ack", imported: m.imported, skipped: m.skipped, persisted: m.persisted };
   }
@@ -131,6 +157,11 @@ export const parsePluginMessage = (data: unknown): PluginMessage | null => {
   }
   if (m.type === "presets" && typeof m.json === "string" && m.json.length <= MAX_PRESETS_JSON) {
     return { src: EMBED_SOURCE, v: m.v, type: "presets", json: m.json };
+  }
+  if (m.type === "host" && Array.isArray(m.views) && m.views.length <= MAX_HOST_VIEWS && isCount(m.insetLeft) && m.insetLeft <= MAX_INSET) {
+    const views = m.views.filter((x): x is HostView => isObject(x) && isLabel(x.id) && isLabel(x.label));
+    if (views.length !== m.views.length) return null;
+    return { src: EMBED_SOURCE, v: m.v, type: "host", views: views.map(({ id, label }) => ({ id, label })), insetLeft: m.insetLeft };
   }
   return null;
 };

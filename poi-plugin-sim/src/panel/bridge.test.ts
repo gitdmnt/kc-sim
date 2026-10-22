@@ -111,4 +111,29 @@ describe("EmbedBridge", () => {
     expect(sent).toEqual([]);
     expect(versions).toEqual([]);
   });
+
+  test("host views: sent only to a web UI that shows them; open-view only for known views", () => {
+    const sent: PluginMessage[] = [];
+    const shown: boolean[] = [];
+    const opened: string[] = [];
+    const host = { views: [{ id: "log", label: "観測ログ" }], insetLeft: 80 };
+    const bridge = new EmbedBridge({
+      post: (m) => sent.push(m),
+      presetsJson: () => null,
+      presetsDone: () => true,
+      markPresetsDone: () => {},
+      host,
+      onHostViews: (s) => shown.push(s),
+      onOpenView: (v) => opened.push(v),
+    });
+    bridge.onMessage(ready);
+    expect(shown).toEqual([false]);
+    expect(sent).toEqual([]);
+    bridge.onMessage({ ...ready, hostViews: true });
+    expect(shown).toEqual([false, true]);
+    expect(sent).toEqual([{ src: "kcsim", v: 1, type: "host", ...host }]);
+    bridge.onMessage({ src: "kcsim", v: 1, type: "open-view", view: "upload" });
+    bridge.onMessage({ src: "kcsim", v: 1, type: "open-view", view: "log" });
+    expect(opened).toEqual(["log"]);
+  });
 });
