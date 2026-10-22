@@ -3,6 +3,8 @@ export { extractAttackEvents, extractEnemy, splitDamage } from "./parser";
 export { CaptureSession, isBattlePath, isResultPath } from "./session";
 export type { CaptureDeps, ObservationSink } from "./session";
 export { ObservationDb } from "./db";
+export { startAutoUpload, readAutoUploadStatus, AUTO_UPLOAD_STATUS_KEY } from "./autoUpload";
+export type { AutoUploader, AutoUploadOptions, AutoUploadStatus } from "./autoUpload";
 export type { ListBattlesQuery, UploadOptions } from "./db";
 export { startCapture, stopCapture, getCaptureDb, getObservationDb, fleetSnapshot } from "./plugin";
 export * from "./labels";

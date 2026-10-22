@@ -5,7 +5,7 @@ KanColle battle / sortie simulator plugin for [poi](https://github.com/poooi/poi
 - 艦隊編成: fleet presets (import from poi, JSON / DeckBuilder import & export)
 - 海域 / 敵艦データ: map graph, routing rules, enemy comps and hidden-stat estimates from the data API
 - シミュレーション: battle-level Monte Carlo (Rust → wasm, run in a Web Worker)
-- 観測ログ: records battle packets while you play (starts when poi loads the plugin, no window needed)
+- 観測ログ: records battle packets while you play (starts when poi loads the plugin, no window needed). Captured battles are uploaded to the data API automatically (debounced after each battle result and on returning to port, with periodic retry and exponential backoff; toggle in the 設定 tab)
 
 The Rust engine lives in the sibling repo/directory `../sim-core`; the data API in `../data-worker`.
 

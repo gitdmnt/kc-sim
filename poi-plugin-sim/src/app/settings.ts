@@ -11,6 +11,8 @@ export interface Settings {
   clientId: string;
   /** シミュレーションで推定タブの推定値 (n ≥ 30) を API の値より優先して使う */
   useEstimates: boolean;
+  /** 観測データを自動でデータ API (D1) に送信する (メインウィンドウの capture/autoUpload が読む) */
+  autoUpload: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -19,6 +21,7 @@ export const DEFAULT_SETTINGS: Settings = {
   useSampleState: false,
   clientId: "",
   useEstimates: false,
+  autoUpload: true,
 };
 
 const KEY = `${STORAGE_PREFIX}settings`;
@@ -40,8 +43,18 @@ let current = read();
 
 export const getSettings = () => current;
 
+const readStored = (): Partial<Settings> => {
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(KEY) : null;
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
 export const updateSettings = (patch: Partial<Settings>) => {
-  current = { ...current, ...patch };
+  // メインウィンドウとプラグインウィンドウは localStorage を共有する。古いメモリ上の値で上書きしないよう、保存値を土台にする。
+  current = { ...current, ...readStored(), ...patch };
   try {
     localStorage.setItem(KEY, JSON.stringify(current));
   } catch {
@@ -62,10 +75,20 @@ export const resetSettings = () => {
   listeners.forEach((l) => l());
 };
 
-const subscribe = (l: () => void) => {
+export const subscribeSettings = (l: () => void) => {
   listeners.add(l);
   return () => void listeners.delete(l);
 };
 
+// もう一方のウィンドウでの変更 (storage イベントは書き込んだ側以外にだけ届く) を取り込む。
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("storage", (e) => {
+    if (e.key !== null && e.key !== KEY) return;
+    const next = read();
+    current = { ...next, clientId: next.clientId || current.clientId };
+    listeners.forEach((l) => l());
+  });
+}
+
 export const useSettings = (): Settings =>
-  useSyncExternalStore(subscribe, getSettings, getSettings);
+  useSyncExternalStore(subscribeSettings, getSettings, getSettings);

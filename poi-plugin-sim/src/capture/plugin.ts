@@ -6,6 +6,8 @@
  * プラグインウィンドウ側 (別 BrowserWindow) では呼ばない。二重登録は window 上のフラグで防ぐ。
  */
 import { importFromPoi } from "../fleet/poiImport";
+import { startAutoUpload } from "./autoUpload";
+import type { AutoUploader, AutoUploadOptions } from "./autoUpload";
 import { ObservationDb } from "./db";
 import { CaptureSession } from "./session";
 import type { CaptureDeps } from "./session";
@@ -19,6 +21,8 @@ export interface StartCaptureOptions {
   db?: ObservationDb;
   resolveNode?: CaptureDeps["resolveNode"];
   target?: Pick<Window, "addEventListener" | "removeEventListener">;
+  /** 自動送信の差し替え (テスト用)。false なら自動送信しない。 */
+  autoUpload?: false | Partial<Omit<AutoUploadOptions, "db">>;
 }
 
 interface Running {
@@ -92,16 +96,29 @@ export const startCapture = (opts: StartCaptureOptions = {}): ObservationDb => {
     resolveNode: opts.resolveNode,
   });
 
+  let autoUploader: AutoUploader | undefined;
+  if (opts.autoUpload !== false) {
+    try {
+      autoUploader = startAutoUpload({ ...opts.autoUpload, db });
+    } catch (e) {
+      console.error("[kcsim] failed to start auto upload", e);
+    }
+  }
+
   const target = opts.target ?? window;
   const listener = (e: Event) => {
     const d = (e as CustomEvent).detail;
-    if (d && typeof d.path === "string") void session.handle(d.path, d.body, d.postBody);
+    if (d && typeof d.path === "string") {
+      void session.handle(d.path, d.body, d.postBody);
+      autoUploader?.onResponse(d.path);
+    }
   };
   target.addEventListener("game.response", listener);
 
   const running: Running = {
     db,
     stop: () => {
+      autoUploader?.stop();
       target.removeEventListener("game.response", listener);
       void db.close();
       delete g[GLOBAL_KEY];

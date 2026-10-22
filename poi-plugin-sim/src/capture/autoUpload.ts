@@ -1,0 +1,223 @@
+/**
+ * 観測の自動送信。poi のメインウィンドウ (キャプチャと同じコンテキスト) で動く。
+ * game.response の購読は capture/plugin.ts の既存リスナーが行い、path を `onResponse` に渡す。
+ *
+ * - battleresult と帰投 (api_port/port) のあとに、デバウンスして `uploadPending` を呼ぶ。
+ * - 保留が残っている限り、一定間隔で再試行する。
+ * - 失敗 (オフライン / 非 2xx) は指数バックオフ (上限あり)。poi には例外を投げず、キャプチャも止めない。
+ * - 送信は常に 1 本だけ (single-flight)。
+ *
+ * 状態表示 (最終成功時刻・直近のエラー) はプラグインウィンドウから読むため localStorage に書く。
+ * 保留数は IndexedDB が両ウィンドウで共有なので UI 側で直接数える。
+ */
+import { STORAGE_PREFIX } from "../fleet";
+import { getSettings, subscribeSettings } from "../app/settings";
+import type { Settings } from "../app/settings";
+import type { ObservationDb } from "./db";
+import { isResultPath } from "./session";
+
+export const DEBOUNCE_MS = 5_000;
+export const PERIODIC_MS = 5 * 60_000;
+export const BACKOFF_BASE_MS = 30_000;
+export const BACKOFF_MAX_MS = 30 * 60_000;
+
+/** `failures` 回連続で失敗したあとの待ち時間。 */
+export const backoffDelay = (
+  failures: number,
+  base = BACKOFF_BASE_MS,
+  max = BACKOFF_MAX_MS
+): number => Math.min(max, base * 2 ** Math.max(0, failures - 1));
+
+export interface AutoUploadStatus {
+  lastSuccessAt: number | null;
+  lastError: string | null;
+  lastErrorAt: number | null;
+}
+
+const STATUS_KEY = `${STORAGE_PREFIX}autoUploadStatus`;
+const EMPTY_STATUS: AutoUploadStatus = { lastSuccessAt: null, lastError: null, lastErrorAt: null };
+
+export const AUTO_UPLOAD_STATUS_KEY = STATUS_KEY;
+
+export const readAutoUploadStatus = (): AutoUploadStatus => {
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(STATUS_KEY) : null;
+    return { ...EMPTY_STATUS, ...(raw ? JSON.parse(raw) : {}) };
+  } catch {
+    return { ...EMPTY_STATUS };
+  }
+};
+
+const writeAutoUploadStatus = (s: AutoUploadStatus) => {
+  try {
+    localStorage.setItem(STATUS_KEY, JSON.stringify(s));
+  } catch {
+    // 保存できなくても送信は続ける
+  }
+};
+
+export interface AutoUploadOptions {
+  db: Pick<ObservationDb, "uploadPending" | "countPending">;
+  getSettings?: () => Pick<Settings, "autoUpload" | "apiBase" | "clientId">;
+  subscribeSettings?: (listener: () => void) => () => void;
+  fetch?: typeof fetch;
+  now?: () => number;
+  setTimer?: (fn: () => void, ms: number) => unknown;
+  clearTimer?: (handle: unknown) => void;
+  saveStatus?: (s: AutoUploadStatus) => void;
+  debounceMs?: number;
+  periodicMs?: number;
+  backoffBaseMs?: number;
+  backoffMaxMs?: number;
+}
+
+export interface AutoUploader {
+  /** デバウンス付きで送信を予約する。無効設定なら何もしない。 */
+  trigger(): void;
+  /** デバウンスを待たずに今送る。実行中ならそれに合流する。例外は投げない。 */
+  flush(): Promise<void>;
+  /** game.response の path を渡す。battleresult と帰投のときだけ送信を予約する。例外は投げない。 */
+  onResponse(path: unknown): void;
+  /** タイマーと設定の購読を全て解除する。 */
+  stop(): void;
+  status(): AutoUploadStatus;
+}
+
+const isUploadTrigger = (rawPath: string): boolean => {
+  const path = rawPath.replace(/^\/?kcsapi\//, "");
+  return isResultPath(path) || path === "api_port/port";
+};
+
+export const startAutoUpload = (opts: AutoUploadOptions): AutoUploader => {
+  const readSettings = opts.getSettings ?? getSettings;
+  const subscribe = opts.subscribeSettings ?? subscribeSettings;
+  const now = opts.now ?? Date.now;
+  const setTimer = opts.setTimer ?? ((fn, ms) => setTimeout(fn, ms));
+  const clearTimer = opts.clearTimer ?? ((h) => clearTimeout(h as Parameters<typeof clearTimeout>[0]));
+  const saveStatus = opts.saveStatus ?? writeAutoUploadStatus;
+  const debounceMs = opts.debounceMs ?? DEBOUNCE_MS;
+  const periodicMs = opts.periodicMs ?? PERIODIC_MS;
+
+  let stopped = false;
+  let debounceTimer: unknown = null;
+  let periodicTimer: unknown = null;
+  let inflight: Promise<void> | null = null;
+  let rerun = false;
+  let failures = 0;
+  let blockedUntil = 0;
+  let status: AutoUploadStatus = opts.saveStatus ? { ...EMPTY_STATUS } : readAutoUploadStatus();
+  let lastApiBase = readSettings().apiBase;
+
+  const enabled = () => {
+    const s = readSettings();
+    return s.autoUpload && s.apiBase !== "" && s.clientId !== "";
+  };
+
+  const setStatus = (patch: Partial<AutoUploadStatus>) => {
+    status = { ...status, ...patch };
+    try {
+      saveStatus(status);
+    } catch {
+      // ignore
+    }
+  };
+
+  const clearDebounce = () => {
+    if (debounceTimer !== null) clearTimer(debounceTimer);
+    debounceTimer = null;
+  };
+
+  const schedule = (delay: number) => {
+    clearDebounce();
+    debounceTimer = setTimer(() => {
+      debounceTimer = null;
+      void run();
+    }, delay);
+  };
+
+  const trigger = () => {
+    if (stopped || !enabled()) return;
+    schedule(Math.max(debounceMs, blockedUntil - now()));
+  };
+
+  const run = (): Promise<void> => {
+    if (stopped) return Promise.resolve();
+    if (inflight) {
+      rerun = true;
+      return inflight;
+    }
+    if (!enabled()) return Promise.resolve();
+    const { apiBase, clientId } = readSettings();
+    inflight = (async () => {
+      try {
+        if ((await opts.db.countPending()) === 0) return;
+        await opts.db.uploadPending(apiBase, { clientId, fetch: opts.fetch });
+        failures = 0;
+        blockedUntil = 0;
+        setStatus({ lastSuccessAt: now(), lastError: null, lastErrorAt: null });
+      } catch (e) {
+        failures += 1;
+        const wait = backoffDelay(failures, opts.backoffBaseMs, opts.backoffMaxMs);
+        blockedUntil = now() + wait;
+        setStatus({ lastError: e instanceof Error ? e.message : String(e), lastErrorAt: now() });
+        rerun = false;
+        if (!stopped) schedule(wait);
+      }
+    })()
+      .catch((e) => console.error("[kcsim] auto upload failed", e))
+      .finally(() => {
+        inflight = null;
+        if (rerun) {
+          rerun = false;
+          trigger();
+        }
+      });
+    return inflight;
+  };
+
+  const tickPeriodic = () => {
+    periodicTimer = setTimer(tickPeriodic, periodicMs);
+    if (enabled() && now() >= blockedUntil) void run();
+  };
+  periodicTimer = setTimer(tickPeriodic, periodicMs);
+
+  const onResponse = (path: unknown) => {
+    try {
+      if (typeof path === "string" && isUploadTrigger(path)) trigger();
+    } catch (err) {
+      console.error("[kcsim] auto upload trigger failed", err);
+    }
+  };
+
+  const unsubscribe = subscribe(() => {
+    if (stopped) return;
+    const s = readSettings();
+    if (!enabled()) {
+      clearDebounce();
+      return;
+    }
+    if (s.apiBase !== lastApiBase) {
+      lastApiBase = s.apiBase;
+      failures = 0;
+      blockedUntil = 0;
+    }
+    trigger();
+  });
+
+  // 前回までの未送信分
+  trigger();
+
+  return {
+    trigger,
+    onResponse,
+    flush: () => run(),
+    stop: () => {
+      stopped = true;
+      clearDebounce();
+      if (periodicTimer !== null) clearTimer(periodicTimer);
+      periodicTimer = null;
+      unsubscribe();
+    },
+    status: () => status,
+  };
+};
