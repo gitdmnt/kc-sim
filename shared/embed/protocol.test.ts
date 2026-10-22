@@ -95,7 +95,7 @@ describe("parseWebMessage", () => {
 
 describe("serverOrigin", () => {
   test("https anywhere, http only on this machine", () => {
-    expect(serverOrigin("https://kc-sim.lumpoler.workers.dev/")).toBe("https://kc-sim.lumpoler.workers.dev");
+    expect(serverOrigin("https://kc-sim.udama.net/")).toBe("https://kc-sim.udama.net");
     expect(serverOrigin(" https://example.com/app/ ")).toBe("https://example.com");
     expect(serverOrigin("http://127.0.0.1:8787/")).toBe("http://127.0.0.1:8787");
     expect(serverOrigin("http://localhost:5173")).toBe("http://localhost:5173");

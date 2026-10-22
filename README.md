@@ -147,7 +147,7 @@ ln -s /絶対パス/kc-sim/poi-plugin-sim-build node_modules/poi-plugin-sim-buil
 ```
 
 poi を再起動すると、プラグイン一覧に「シミュ」が現れます。**ウィンドウモードで開いてください** (タブ表示では Web UI を埋め込みません)。
-サーバ URL (既定 `https://kc-sim.lumpoler.workers.dev/`) は送信設定タブで変更できます。手元のサーバなら `http://127.0.0.1:8787/`。
+サーバ URL (既定 `https://kc-sim.udama.net/`) は送信設定タブで変更できます。手元のサーバなら `http://127.0.0.1:8787/`。
 
 ### テスト
 

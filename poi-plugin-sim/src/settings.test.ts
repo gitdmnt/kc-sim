@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { MemoryStorage } from "@web/fleet/storage";
 import { DEFAULT_SERVER_URL, getUploadSettings, migrateLegacySettings, updatePluginSettings } from "./settings";
 
-const NEW_PROD = "https://kc-sim.lumpoler.workers.dev";
+const NEW_PROD = "https://kc-sim.udama.net";
 const OLD_PROD = "https://kc-sim-data.lumpoler.workers.dev";
 
 const run = (entries: Record<string, unknown>) => {

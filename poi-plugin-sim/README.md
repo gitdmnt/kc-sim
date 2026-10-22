@@ -66,13 +66,14 @@ poi loads plugins from `~/Library/Application Support/poi/plugins/node_modules` 
    ```
 3. Restart poi. The plugin appears in the plugin drawer (chevron next to the plugin tab) as 「シミュ」 / *Simulator for Integrated Management*. Rebuilding updates it in place (restart poi or use the plugin reload).
 
-The server URL (default `https://kc-sim.lumpoler.workers.dev/`) is set in the 送信設定 tab: the iframe opens it and
+The server URL (default `https://kc-sim.udama.net/`) is set in the 送信設定 tab: the iframe opens it and
 observations are uploaded to its origin. Only `https://` URLs are accepted, plus `http://` on `localhost`, `127.0.0.1`
 and `[::1]` (a local `cd ../server && bun run dev` is `http://127.0.0.1:8787/` after `cd ../web && bun run build`).
 
 **Upgrading from the in-plugin UI** (first start, `src/settings.ts`): a fresh install uploads automatically. An upgrade
-whose old API base was the old production worker (`kc-sim-data.lumpoler.workers.dev`) or already the new one keeps
-its auto-upload setting, and its registration is moved to the new origin (same D1, so the client id stays valid).
+whose old API base was the old production worker (`kc-sim-data.lumpoler.workers.dev`) or already the new host
+(`kc-sim.udama.net`) keeps its auto-upload setting, and its registration is moved to the new origin (same D1, so the
+client id stays valid).
 Every other upgrade (the old default `http://127.0.0.1:8787`, or any other server) starts with auto upload **off**, so
 nothing is sent to production without the user turning it on. The old UI's keys (`kcsim:settings`, `kcsim:cache:*`,
 `kcsim:tab`, `kcsim:map`, `kcsim:selectedPreset`) are removed; presets, registration and upload state are kept.

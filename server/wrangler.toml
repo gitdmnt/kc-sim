@@ -34,10 +34,10 @@ ENVIRONMENT = "production"
 
 [env.production]
 name = "kc-sim"
-# Interim: served on kc-sim.lumpoler.workers.dev until a hostname is chosen. Cloudflare documents the Cache API
-# (caches.default) as needing a custom domain or zone route (docs/DEPLOY.md §7); the code works either way.
-workers_dev = true
-# routes = [{ pattern = "<api host>", custom_domain = true }]
+# Custom domain on the udama.net zone: Cloudflare creates the DNS record and certificate. The Cache API
+# (caches.default) needs a custom domain or zone route (docs/DEPLOY.md §7), so workers.dev stays off.
+workers_dev = false
+routes = [{ pattern = "kc-sim.udama.net", custom_domain = true }]
 
 [[env.production.d1_databases]]
 binding = "DB"

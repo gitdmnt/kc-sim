@@ -15,7 +15,7 @@ export interface PluginSettings {
   autoUpload: boolean;
 }
 
-export const DEFAULT_SERVER_URL = "https://kc-sim.lumpoler.workers.dev/";
+export const DEFAULT_SERVER_URL = "https://kc-sim.udama.net/";
 
 const DEFAULTS: PluginSettings = { serverUrl: DEFAULT_SERVER_URL, autoUpload: true };
 
