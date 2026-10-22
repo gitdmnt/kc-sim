@@ -114,7 +114,7 @@ const ShipDetailView = ({ id, equipById, max }: { id: number; equipById: (id: nu
         </>
       }
     >
-      <div className="grid max-w-3xl grid-cols-1 gap-x-12 gap-y-6 md:grid-cols-2">
+      <div className="grid max-w-3xl grid-cols-1 gap-x-6 gap-y-6 md:grid-cols-2">
         <MainStats ship={ship} max={max} />
         <dl className="grid auto-rows-[1.5rem] grid-cols-[3rem_minmax(0,1fr)] content-start items-center gap-x-3">
           <Row label="速力" value={ship.speed === null ? NA : (SPEED[ship.speed] ?? ship.speed)} />

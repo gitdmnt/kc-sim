@@ -2,11 +2,34 @@ import React, { useEffect, useState } from "react";
 import { serverOrigin } from "@shared/embed/protocol";
 import { AUTO_UPLOAD_STATUS_KEY, getObservationDb, getUploadClient, readAutoUploadStatus } from "../capture";
 import type { AutoUploadStatus } from "../capture";
-import { RotateCcw, Trash2 } from "lucide-react";
-import { Badge, Button, Card, Checkbox, ConfirmDialog, Field, TextInput, S, useToast } from "@web/ui";
+import { Ban, Check, CircleAlert, Clock, RotateCcw, Trash2 } from "lucide-react";
+import { Button, Card, Checkbox, ConfirmDialog, Field, TextInput, S, useToast } from "@web/ui";
 import { DEFAULT_SERVER_URL, updatePluginSettings, usePluginSettings } from "../settings";
 import { L } from "./strings";
 import { useRegistration } from "./useUploadClient";
+
+/**
+ * 送信の状況を 1 行で: 停止 > エラー > 未送信 > 送信済みの順に一番重要な 1 つをアイコン (形で区別) と短い文で出す。
+ * 詳細 (エラー文・最終成功時刻・登録 ID) は title。色は付けない。
+ */
+const UploadStatusLine = ({ banned, error, pending, lastSuccess, clientId }: { banned: boolean; error: string | null; pending: number; lastSuccess: string | null; clientId: string | null }) => {
+  const [icon, text, title] = banned
+    ? [<Ban key="i" size={14} aria-hidden />, L.log.uploadBanned, null]
+    : error
+      ? [<CircleAlert key="i" size={14} aria-hidden />, pending ? `送信エラー · 未送信 ${pending}` : "送信エラー", error]
+      : pending
+        ? [<Clock key="i" size={14} aria-hidden />, `未送信 ${pending}`, lastSuccess && `最終成功: ${lastSuccess}`]
+        : lastSuccess
+          ? [<Check key="i" size={14} aria-hidden />, "送信済み", `最終成功: ${lastSuccess}`]
+          : [null, null, null];
+  if (!text) return null;
+  return (
+    <span className="flex items-center gap-1 text-sm text-ink-300" title={[title, clientId && `登録 ID: ${clientId}`].filter(Boolean).join("\n") || undefined}>
+      <span className="text-ink-400">{icon}</span>
+      {text}
+    </span>
+  );
+};
 
 /** 自動送信の状況。送信はメインウィンドウで動くので、状態は localStorage (storage イベント) と共有の IndexedDB から読む。 */
 const useAutoUploadStatus = (tick: number): { status: AutoUploadStatus; pending: number | null; battles: number | null } => {
@@ -114,19 +137,13 @@ export const UploadSettings = () => {
             checked={settings.autoUpload}
             onChange={(e) => updatePluginSettings({ autoUpload: e.target.checked })}
           />
-          {upload.status.lastSuccessAt !== null && (
-            <Badge tone="ok" title={`最終成功: ${formatTime(upload.status.lastSuccessAt)}`}>
-              送信済み
-            </Badge>
-          )}
-          {upload.status.lastError && (
-            <Badge tone="danger" title={`${upload.status.lastError} (${formatTime(upload.status.lastErrorAt)})`}>
-              エラー
-            </Badge>
-          )}
-          {!!upload.pending && <Badge tone="neutral">{`未送信 ${upload.pending}`}</Badge>}
-          {regKind === "registered" && <Badge tone="neutral" title={registration.state.clientId}>登録済み</Badge>}
-          {regKind === "banned" && <Badge tone="danger">{L.log.uploadBanned}</Badge>}
+          <UploadStatusLine
+            banned={regKind === "banned"}
+            error={upload.status.lastError ? `${upload.status.lastError} (${formatTime(upload.status.lastErrorAt)})` : null}
+            pending={upload.pending ?? 0}
+            lastSuccess={upload.status.lastSuccessAt === null ? null : formatTime(upload.status.lastSuccessAt)}
+            clientId={regKind === "registered" ? registration.state.clientId : null}
+          />
           {(regKind === "banned" || upload.status.lastError) && (
             <Button size="sm" variant="secondary" onClick={() => void register()} disabled={registering || apiBase === ""}>
               再登録

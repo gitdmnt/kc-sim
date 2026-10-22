@@ -77,7 +77,7 @@ const ShipDetail = ({ name, shipId, rows, densityLoading }: { name: string; ship
       </section>
     ))}
     <div className="flex flex-wrap gap-4 text-xs text-ink-400">
-      <span><span className="mr-1 inline-block h-2 w-3 rounded-sm bg-accent-500/40" />事後</span>
+      <span><span className="mr-1 inline-block h-2 w-3 bg-accent-500/40" />事後</span>
       <span><span className="mr-1 inline-block w-3 border-t border-dashed border-ink-400 align-middle" />事前</span>
       <span><span className="mr-1 inline-block h-3 w-0.5 bg-ink-50 align-middle" />平均</span>
     </div>
@@ -205,7 +205,7 @@ export const EstimateTab = () => {
                         ) : (
                           <>
                             <span className="tabular-nums">{r.prior.value}</span>
-                            <span className={cx("ml-1.5 text-xs", CONF[r.prior.confidence].className)}>{CONF[r.prior.confidence].label}</span>
+                            <span className={cx("ml-2 text-xs", CONF[r.prior.confidence].className)}>{CONF[r.prior.confidence].label}</span>
                           </>
                         )}
                       </Td>
