@@ -4,12 +4,13 @@ import { getDataApi } from "../../data/api";
 import { useAbyssalData } from "../../data/names";
 import { useMapData, useMapList } from "../../data/useMapData";
 import type { MapSummary } from "@shared/data/types";
-import { Badge, Button, Card, Select, S } from "../../ui";
+import { RefreshCw, Route, Swords } from "lucide-react";
+import { Button, Card, Select, S } from "../../ui";
 import { useApp } from "../context";
 import { useNav } from "../nav";
 import { DataError, StaleBadge } from "../DataState";
 import { CompsPanel } from "./CompsPanel";
-import { MapGraph, NODE_TYPE_LABEL, typeKey } from "./MapGraph";
+import { MapGraph, NODE_COLOR, NODE_TYPE_LABEL, typeKey } from "./MapGraph";
 import { RoutingPanel, routingViewsFor } from "./RoutingPanel";
 
 const KEY = `${STORAGE_PREFIX}map`;
@@ -78,99 +79,106 @@ export const MapTab = () => {
   if (maps.loading && !maps.data) return <p className="text-sm text-ink-300">{S.common.loading}</p>;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-        <Card
-          title={
-            <span className="flex flex-wrap items-center gap-2">
-              <Select
-                className="w-52"
-                aria-label="ワールド"
-                value={world ?? ""}
-                onChange={(e) => {
-                  const w = Number(e.target.value);
-                  setWorld(w);
-                  const first = list.find((m) => m.world === w);
-                  if (first) pickMap(first.key);
-                }}
-              >
-                {worlds.map((w) => (
-                  <option key={w} value={w}>
-                    {worldName(w)}
+    <div className="grid grid-cols-1 gap-4 lg:h-[calc(100vh-3.75rem)] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
+      <Card
+        className="flex min-h-0 flex-col"
+        bodyClassName="flex min-h-0 flex-1 flex-col gap-4 overflow-auto"
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            <Select
+              className="w-52"
+              aria-label="ワールド"
+              value={world ?? ""}
+              onChange={(e) => {
+                const w = Number(e.target.value);
+                setWorld(w);
+                const first = list.find((m) => m.world === w);
+                if (first) pickMap(first.key);
+              }}
+            >
+              {worlds.map((w) => (
+                <option key={w} value={w}>
+                  {worldName(w)}
+                </option>
+              ))}
+            </Select>
+            <Select className="w-60" aria-label="マップ" title={d?.map.opetext || undefined} value={mapKey ?? ""} onChange={(e) => pickMap(e.target.value)}>
+              {list
+                .filter((m) => m.world === world)
+                .map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.name && m.name !== m.key ? `${m.key} ${m.name}` : m.key}
                   </option>
                 ))}
-              </Select>
-              <Select className="w-60" aria-label="マップ" title={d?.map.opetext || undefined} value={mapKey ?? ""} onChange={(e) => pickMap(e.target.value)}>
-                {list
-                  .filter((m) => m.world === world)
-                  .map((m) => (
-                    <option key={m.key} value={m.key}>
-                      {m.name && m.name !== m.key ? `${m.key} ${m.name}` : m.key}
-                    </option>
-                  ))}
-              </Select>
-            </span>
-          }
-          actions={
-            <>
-              {(maps.stale || detail.stale || md?.source === "bundle" || maps.data?.source === "bundle") && <StaleBadge />}
-              <Button size="sm" variant="ghost" onClick={() => { getDataApi().clearCache(); setTick((t) => t + 1); }} title="再読み込み">
-                ↻
-              </Button>
-            </>
-          }
-          bodyClassName="flex flex-col gap-3"
-        >
-          {detail.error ? (
-            <DataError error={detail.error} onRetry={() => setTick((t) => t + 1)} />
-          ) : !d ? (
-            <p className="text-sm text-ink-300">{S.common.loading}</p>
-          ) : (
-            <MapGraph nodes={d.nodes} edges={d.edges} selected={selected} onSelect={setSelected} targets={targets} withComps={compNodes} />
-          )}
-        </Card>
-
-        {d && (
-          <div ref={panelRef} className="scroll-mt-4 min-w-0">
-            {node ? (
-              <Card
-                title={
-                  <span className="flex items-center gap-2">
-                    ノード {node.letter}
-                    <Badge tone={node.isBoss ? "danger" : "neutral"}>{NODE_TYPE_LABEL[typeKey(node.type)]}</Badge>
-                  </span>
-                }
-                actions={
-                  <>
-                    {compNodes.has(node.letter) && (
-                      <Button size="sm" variant="primary" onClick={() => nav.go({ tab: "sortie", mode: "battle", map: d.map.key, node: node.letter })}>
-                        戦闘シミュ
-                      </Button>
-                    )}
-                    {d.routing && (
-                      <Button size="sm" onClick={() => nav.go({ tab: "sortie", mode: "sortie", map: d.map.key })}>
-                        出撃シミュ
-                      </Button>
-                    )}
-                  </>
-                }
-                bodyClassName="flex flex-col gap-5"
-              >
-                <section>
-                  <RoutingPanel doc={d.routing} letter={node.letter} views={views} />
-                </section>
-                <section>
-                  {compNodes.has(node.letter) ? (
-                    <CompsPanel sets={md!.comps[node.letter] ?? []} selection={md!.compSelection[node.letter]} names={names} />
-                  ) : (
-                    <p className="text-sm text-ink-400">編成なし</p>
-                  )}
-                </section>
-              </Card>
-            ) : null}
-          </div>
+            </Select>
+          </span>
+        }
+        actions={
+          <>
+            {(maps.stale || detail.stale || md?.source === "bundle" || maps.data?.source === "bundle") && <StaleBadge />}
+            <Button
+              size="sm"
+              variant="ghost"
+              icon
+              onClick={() => {
+                getDataApi().clearCache();
+                setTick((t) => t + 1);
+              }}
+              title="再読み込み"
+              aria-label="再読み込み"
+            >
+              <RefreshCw size={14} aria-hidden />
+            </Button>
+          </>
+        }
+      >
+        {detail.error ? (
+          <DataError error={detail.error} onRetry={() => setTick((t) => t + 1)} />
+        ) : !d ? (
+          <p className="text-sm text-ink-300">{S.common.loading}</p>
+        ) : (
+          <MapGraph nodes={d.nodes} edges={d.edges} selected={selected} onSelect={setSelected} targets={targets} withComps={compNodes} />
         )}
-      </div>
+      </Card>
+
+      {d && node && (
+        <div ref={panelRef} className="min-h-0 min-w-0">
+          <Card
+            className="flex h-full min-h-0 flex-col"
+            bodyClassName="flex min-h-0 flex-1 flex-col gap-6 overflow-auto"
+            title={
+              <span className="flex items-baseline gap-2">
+                <span className="inline-block h-2.5 w-2.5 self-center rounded-full" style={{ background: NODE_COLOR[typeKey(node.type)] }} aria-hidden />
+                {node.letter}
+                <span className="text-sm font-normal text-ink-400">{NODE_TYPE_LABEL[typeKey(node.type)]}</span>
+              </span>
+            }
+            actions={
+              <>
+                {compNodes.has(node.letter) && (
+                  <Button size="sm" variant="primary" onClick={() => nav.go({ tab: "sortie", mode: "battle", map: d.map.key, node: node.letter })}>
+                    <Swords size={14} aria-hidden />
+                    戦闘シミュ
+                  </Button>
+                )}
+                {d.routing && (
+                  <Button size="sm" onClick={() => nav.go({ tab: "sortie", mode: "sortie", map: d.map.key })}>
+                    <Route size={14} aria-hidden />
+                    出撃シミュ
+                  </Button>
+                )}
+              </>
+            }
+          >
+            <RoutingPanel doc={d.routing} letter={node.letter} views={views} />
+            {compNodes.has(node.letter) ? (
+              <CompsPanel sets={md!.comps[node.letter] ?? []} selection={md!.compSelection[node.letter]} names={names} />
+            ) : (
+              <p className="text-sm text-ink-400">編成なし</p>
+            )}
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

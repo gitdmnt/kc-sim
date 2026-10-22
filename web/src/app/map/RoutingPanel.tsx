@@ -2,28 +2,25 @@ import React, { useMemo } from "react";
 import { describeRule } from "../../data/routing";
 import type { RuleView } from "../../data/routing";
 import type { RoutingDoc } from "@shared/data/types";
-import { Badge, cx } from "../../ui";
+import { Info, TriangleAlert } from "lucide-react";
 
-// 枠は付けず、入れ子は左罫線のインデントだけで表す。不確実ルールだけ背景で目立たせる
-const RuleRow = ({ view, depth }: { view: RuleView; depth: number }) => (
-  <li className={cx("rounded px-2 py-1", view.uncertain && "bg-warn-600/10 ring-1 ring-warn-600/40")}>
+// 入れ子は字下げだけで表す。枠・罫・背景は付けず、不確実なルールは警告アイコンで示す
+const RuleRow = ({ view }: { view: RuleView }) => (
+  <li className="py-0.5">
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-      <span className={cx("shrink-0 text-xs font-semibold", view.condition ? "text-accent-400" : "text-ink-400")}>
-        {view.condition === null ? "上記以外" : "もし"}
-      </span>
-      {view.condition && <span className="text-ink-100">{view.condition}</span>}
-      {view.action && <span className="font-medium text-ink-50">{view.action}</span>}
-      {view.uncertain && <Badge tone="warn" title="条件・閾値・比率が未確認の推定ルール">不確実</Badge>}
-      {view.note && (
-        <span className="cursor-help text-xs text-ink-400" title={view.note} aria-label={`注記: ${view.note}`}>
-          ⓘ
-        </span>
+      {view.condition === null ? (
+        <span className="text-ink-400">上記以外</span>
+      ) : (
+        <span className="text-ink-100">{view.condition}</span>
       )}
+      {view.action && <span className="font-medium text-ink-50">{view.action}</span>}
+      {view.uncertain && <TriangleAlert size={14} className="shrink-0 text-warn-400" aria-label="不確実" role="img"><title>条件・閾値・比率が未確認の推定ルール</title></TriangleAlert>}
+      {view.note && <Info size={14} className="shrink-0 cursor-help text-ink-400" aria-label={`注記: ${view.note}`} role="img"><title>{view.note}</title></Info>}
     </div>
     {view.children.length > 0 && (
-      <ol className="mt-1 ml-2 flex flex-col gap-0.5 border-l border-ink-600 pl-2">
+      <ol className="ml-4 mt-1 flex flex-col gap-1">
         {view.children.map((c, i) => (
-          <RuleRow key={i} view={c} depth={depth + 1} />
+          <RuleRow key={i} view={c} />
         ))}
       </ol>
     )}
@@ -49,13 +46,13 @@ export const RoutingPanel = ({
   if (!doc) return <p className="text-sm text-ink-400">未登録</p>;
   if (!views || views.views.length === 0) return null;
   return (
-    <div className="flex flex-col gap-1.5">
-      <ol className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-2">
+      <ol className="flex flex-col gap-1">
         {views.views.map((v, i) => (
-          <RuleRow key={i} view={v} depth={0} />
+          <RuleRow key={i} view={v} />
         ))}
       </ol>
-      {select && <p className="text-xs text-ink-400" title="能動分岐の既定">既定: {select}</p>}
+      {select && <p className="text-xs text-ink-400">既定 {select}</p>}
     </div>
   );
 };
