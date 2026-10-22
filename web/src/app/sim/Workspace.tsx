@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Play, RefreshCw, SlidersHorizontal, Square } from "lucide-react";
 import type { FitEntry } from "@shared/sim/fit";
 import { STORAGE_PREFIX } from "../../fleet";
+import { abyssalName } from "../../data/names";
 import { useMapData, useMapList } from "../../data/useMapData";
 import { pickSet } from "../../sim/sortieAdapter";
 import type { SortieSettings } from "../../sim/sortieAdapter";
@@ -116,11 +117,9 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
   const nodeSet = node && data ? pickSet(data.comps[node] ?? [], diff)?.set : undefined;
   const compList = useMemo(() => [...(nodeSet?.comps ?? [])].sort((a, b) => b.weight - a.weight), [nodeSet]);
   const compId = cfg.compNode === node && compList.some((c) => String(c.id) === cfg.compId) ? cfg.compId : "all";
-  // 深海棲艦は名前が同じで elite / flagship が違う艦がいる (区別は yomi にある)
   const shipName = (id: number) => {
     const ship = data?.ships.get(id)?.ship;
-    if (!ship) return catalog.shipName(id);
-    return ship.yomi === "elite" || ship.yomi === "flagship" ? `${ship.name}${ship.yomi}` : ship.name;
+    return ship ? abyssalName(ship) : catalog.shipName(id);
   };
 
   // ---- 計算の入力 ----

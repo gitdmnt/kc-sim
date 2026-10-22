@@ -5,6 +5,14 @@ import type { ApiEquipment, ApiShip } from "@shared/data/types";
 import type { MapData } from "./mapData";
 import { useAsync } from "./useAsync";
 
+/** 深海棲艦は名前が同じで elite / flagship が違う艦がいる (区別は yomi にある) */
+export const abyssalShipLabel = (ship: Pick<ApiShip, "name" | "yomi">): string =>
+  ship.yomi === "elite" || ship.yomi === "flagship" ? `${ship.name} ${ship.yomi}` : ship.name;
+
+/** 深海棲艦の表示名。名前が同じで elite / flagship だけ違う艦がいる (区別は yomi にある) ので付け足す。 */
+export const abyssalName = (ship: { name: string; yomi: string | null }): string =>
+  ship.yomi === "elite" || ship.yomi === "flagship" ? `${ship.name}${ship.yomi}` : ship.name;
+
 /** 深海棲艦・深海装備の名前引き。API の一覧を優先し、無ければ poi の const を使う。 */
 export const useAbyssalData = (fallback?: MapData) => {
   const { catalog } = useApp();
@@ -26,7 +34,10 @@ export const useAbyssalData = (fallback?: MapData) => {
     // API の一覧に無い/取得できないときは海域データ (静的バンドル含む) の値を使う
     shipById: (id: number) => maps.s.get(id) ?? fallback?.ships.get(id)?.ship,
     equipById: (id: number) => maps.e.get(id) ?? fallback?.equips.get(id),
-    shipName: (id: number) => maps.s.get(id)?.name ?? fallback?.ships.get(id)?.ship.name ?? catalog.shipName(id),
+    shipName: (id: number) => {
+      const ship = maps.s.get(id) ?? fallback?.ships.get(id)?.ship;
+      return ship ? abyssalShipLabel(ship) : catalog.shipName(id);
+    },
     equipName: (id: number) => maps.e.get(id)?.name ?? fallback?.equips.get(id)?.name ?? `装備#${id}`,
   };
 };
