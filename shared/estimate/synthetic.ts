@@ -142,6 +142,98 @@ export interface CaptureOptions {
 /** 捕捉レコードと、各イベントの元になったエンジンのイベント (`source[k]` ↔ `events[k]`)。 */
 export type SyntheticRecord = BattleRecord & { source: SimEvent[] };
 
+const HIT_CODE: Record<AttackEvent["hit"], number> = { miss: 0, hit: 1, crit: 2 };
+const rawDamage = (e: AttackEvent) => e.damage + (e.protected ? 0.1 : 0);
+
+/** 砲撃・夜戦 (api_hougeki*): 1 イベント = 1 手番。 */
+const hougeki = (evs: AttackEvent[], night: boolean) => ({
+  api_at_eflag: evs.map((e) => (e.attackerSide === "enemy" ? 1 : 0)),
+  api_at_list: evs.map((e) => e.attackerIdx),
+  [night ? "api_sp_list" : "api_at_type"]: evs.map((e) => e.attackType ?? 0),
+  api_df_list: evs.map((e) => [e.defenderIdx]),
+  api_si_list: evs.map(() => [-1]),
+  api_cl_list: evs.map((e) => [HIT_CODE[e.hit]]),
+  api_damage: evs.map((e) => [rawDamage(e)]),
+});
+
+/** 雷撃 (api_opening_atack / api_raigeki) の *_list_items 形式。 */
+const torpedo = (evs: AttackEvent[], n: [number, number]) => {
+  const side = (s: "friend" | "enemy", size: number) => {
+    const rai: (number[] | null)[] = Array(size).fill(null);
+    const cl: (number[] | null)[] = Array(size).fill(null);
+    const dam: (number[] | null)[] = Array(size).fill(null);
+    for (const e of evs.filter((x) => x.attackerSide === s)) {
+      rai[e.attackerIdx] = [e.defenderIdx];
+      cl[e.attackerIdx] = [HIT_CODE[e.hit]];
+      dam[e.attackerIdx] = [rawDamage(e)];
+    }
+    return { rai, cl, dam };
+  };
+  const f = side("friend", n[0]);
+  const e = side("enemy", n[1]);
+  return {
+    api_frai_list_items: f.rai, api_fcl_list_items: f.cl, api_fydam_list_items: f.dam,
+    api_erai_list_items: e.rai, api_ecl_list_items: e.cl, api_eydam_list_items: e.dam,
+  };
+};
+
+/** 航空戦 stage3: 被弾した艦ごとにフラグと合計ダメージ (ゲームと同じく miss は残らない)。 */
+const stage3 = (evs: AttackEvent[], n: [number, number]) => {
+  const side = (defender: "friend" | "enemy", size: number) => {
+    const bak = Array<number>(size).fill(0);
+    const cl = Array<number>(size).fill(0);
+    const dam = Array<number>(size).fill(0);
+    for (const e of evs.filter((x) => x.defenderSide === defender)) {
+      bak[e.defenderIdx] = 1;
+      if (e.hit === "crit") cl[e.defenderIdx] = 1;
+      dam[e.defenderIdx] = (dam[e.defenderIdx] ?? 0) + rawDamage(e);
+    }
+    return { rai: Array<number>(size).fill(0), bak, cl, dam };
+  };
+  const f = side("friend", n[0]);
+  const e = side("enemy", n[1]);
+  return {
+    api_frai_flag: f.rai, api_fbak_flag: f.bak, api_fcl_flag: f.cl, api_fdam: f.dam,
+    api_erai_flag: e.rai, api_ebak_flag: e.bak, api_ecl_flag: e.cl, api_edam: e.dam,
+  };
+};
+
+/**
+ * 捕捉したイベントを、ゲームの戦闘応答 (api_data) の形に書き戻す。shared/capture/parser の
+ * extractEnemy / extractAttackEvents で同じ敵とイベントが取り出せる (航空戦は艦ごとに合算、雷撃は味方→敵の順)。
+ */
+export const battlePacket = (o: {
+  path: string; formation: number[]; friend: ShipInput[]; enemy: ShipInput[]; startHp: number[][]; events: AttackEvent[];
+}): Record<string, unknown> => {
+  const n: [number, number] = [o.friend.length, o.enemy.length];
+  const phase = (p: AttackPhase) => o.events.filter((e) => e.phase === p);
+  const night = o.path.includes("midnight");
+  const parts: [string, AttackEvent[], unknown][] = [
+    ["api_kouku", phase("air"), { api_stage3: stage3(phase("air"), n) }],
+    ["api_opening_taisen", phase("opening_asw"), hougeki(phase("opening_asw"), false)],
+    ["api_opening_atack", phase("opening_torpedo"), torpedo(phase("opening_torpedo"), n)],
+    ["api_hougeki1", phase("shelling1"), hougeki(phase("shelling1"), false)],
+    ["api_hougeki2", phase("shelling2"), hougeki(phase("shelling2"), false)],
+    ["api_raigeki", phase("closing_torpedo"), torpedo(phase("closing_torpedo"), n)],
+    ["api_hougeki", night ? phase("night") : [], hougeki(phase("night"), true)],
+  ];
+  return {
+    api_deck_id: 1,
+    api_formation: o.formation,
+    api_f_nowhps: o.startHp[0],
+    api_f_maxhps: o.friend.map((s) => s.maxHp),
+    api_ship_ke: o.enemy.map((s) => s.id ?? 0),
+    api_ship_lv: o.enemy.map((s) => s.level ?? 1),
+    api_e_nowhps: o.startHp[1],
+    api_e_maxhps: o.enemy.map((s) => s.maxHp),
+    api_eSlot: o.enemy.map((s) => [...s.slots.map((e) => e?.id ?? -1), -1, -1, -1, -1, -1].slice(0, 5)),
+    api_eParam: o.enemy.map((s) => [s.stats.firepower, s.stats.torpedo, s.stats.antiAir, s.stats.armor]),
+    api_flare_pos: [-1, -1],
+    api_touch_plane: [-1, -1],
+    ...Object.fromEntries(parts.filter(([, evs]) => evs.length > 0).map(([key, , value]) => [key, value])),
+  };
+};
+
 /** runBattle(input with options.log) の結果を昼戦・夜戦の捕捉レコードに変換する。 */
 export const captureFromRun = (input: BattleInput, out: RunBattleOutput, opts: CaptureOptions): SyntheticRecord[] => {
   const r = out.result;
@@ -198,7 +290,7 @@ export const captureFromRun = (input: BattleInput, out: RunBattleOutput, opts: C
       },
       enemyMasterIds: [...new Set(enemy.map((s) => s.id ?? 0))],
       pending: 1,
-      raw: { api_formation: formation, api_f_nowhps: startHp[0], api_e_nowhps: startHp[1], api_flare_pos: [-1, -1], api_touch_plane: [-1, -1] },
+      raw: battlePacket({ path, formation, friend, enemy, startHp, events: captured }),
     };
     return { battle, events: captured, source };
   };
