@@ -6,7 +6,7 @@ import { compSourceLabel } from "../../sim/sortieAdapter";
 import { StackedBar, Tabs } from "../../ui";
 import { MapGraph, NODE_COLOR, NODE_TYPE_LABEL, typeKey } from "../map/MapGraph";
 import { Assumptions } from "./Assumptions";
-import { DTable, DTr, Fact, Num, RateList, RateRow, Td, Th, pct, rankBar } from "./bars";
+import { DTable, DTr, Fact, Num, RankKey, RateList, RateRow, Td, Th, pct, rankBar } from "./bars";
 import type { SortieOutcome } from "./requests";
 
 const num = (v: number | null | undefined, d = 1) => (v === null || v === undefined ? "—" : v.toFixed(d));
@@ -109,8 +109,7 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
         <Fact
           label={clear ? `周回 (${clear.kind === "hp" ? "HP" : "撃破"}ゲージ)` : "周回"}
           value={num(sorties?.mean, 1)}
-          sub={sorties ? `中央 ${sorties.p50} · 90% ${sorties.p90}` : undefined}
-          title={clear ? `${clear.runs} 回試行` : "1 / 突破率 (幾何分布)"}
+          title={[`平均 ${num(sorties?.mean, 1)} 回`, sorties && `中央値 ${sorties.p50} 回 · 90% 点 ${sorties.p90} 回`, clear ? `${clear.runs} 回試行` : "1 / 突破率 (幾何分布)"].filter(Boolean).join("\n")}
         />
         <Fact label="ボス旗艦撃沈" value={pct(s.boss.flagshipSunkRate)} title={`平均旗艦ダメージ ${num(s.boss.flagshipDamageMean)}`} />
         <Fact label="戦闘" value={num(s.battlesMean, 2)} title={`平均 ${num(s.nodesMean, 2)} マス`} />
@@ -150,8 +149,11 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
             head={
               <>
                 <Th className="w-12 text-left">マス</Th>
-                <Th className="text-left" title="棒の長さ = 到達率、色 = そのマスでの勝敗">
-                  到達・勝敗
+                <Th className="text-left" title="棒の長さ = 到達率。戦闘マスは勝敗の色で塗り分け、戦闘の無いマスは細い線">
+                  <span className="flex items-center gap-3">
+                    到達・勝敗
+                    <RankKey />
+                  </span>
                 </Th>
                 <Th className="w-16">到達</Th>
                 {anyNight && <Th className="w-14">夜戦</Th>}
@@ -174,9 +176,13 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
                     </span>
                   </Td>
                   <Td>
-                    <StackedBar
-                      parts={n.battleRate > 0 ? rankBar(n.rankRates, n.reachRate * n.battleRate) : [{ label: "到達", value: n.reachRate, color: "var(--color-ink-600)" }]}
-                    />
+                    {n.battleRate > 0 ? (
+                      <StackedBar
+                        parts={[...rankBar(n.rankRates, n.reachRate * n.battleRate), { label: "戦闘なし", value: n.reachRate * (1 - n.battleRate), color: "var(--color-ink-600)" }]}
+                      />
+                    ) : (
+                      <div className="h-0.5 rounded-full bg-ink-600" style={{ width: `${n.reachRate * 100}%` }} title={`到達 ${pct(n.reachRate)} (戦闘なし)`} />
+                    )}
                   </Td>
                   <Num>{pct(n.reachRate)}</Num>
                   {anyNight && <Num>{n.battleRate > 0 ? pct(n.nightRate) : "—"}</Num>}

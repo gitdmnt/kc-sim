@@ -68,7 +68,7 @@ const Chip = ({ value, max, text, title, className, onChange }: ChipProps) => {
         e.preventDefault();
       }}
       className={cx(
-        "h-6 w-full cursor-pointer rounded-md text-xs tabular-nums transition-colors hover:bg-ink-800 focus-visible:outline-2 focus-visible:outline-accent-400",
+        "h-6 tall:h-7 w-full cursor-pointer rounded-md text-xs tabular-nums transition-colors hover:bg-ink-800 focus-visible:outline-2 focus-visible:outline-accent-400",
         value === 0 && "text-ink-500 opacity-0 group-hover/slot:opacity-100 focus-visible:opacity-100",
         className
       )}
@@ -105,7 +105,7 @@ export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, shipMaste
   const iconId = master?.api_type?.[3];
 
   return (
-    <div className={cx("group/slot h-6", SLOT_COLS)}>
+    <div className={cx("group/slot h-6 tall:h-7", SLOT_COLS)}>
       {iconId !== undefined ? (
         <EquipIcon iconId={iconId} title={catalog.equipTypeName(equip!.masterId)} />
       ) : noSlotSize ? (
@@ -116,7 +116,7 @@ export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, shipMaste
       <Combobox
         variant="ghost"
         menuClassName="min-w-80"
-        buttonClassName="h-6! px-1"
+        buttonClassName="h-6! tall:h-7! px-1"
         options={picker.options}
         optionPrefix={(o) => {
           const id = catalog.master.equips[o.value]?.api_type?.[3];
@@ -159,7 +159,7 @@ export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, shipMaste
       {equip && aircraft && !noSlotSize ? (
         <NumberInput
           variant="ghost"
-          className={cx("h-6! w-full px-1! text-xs!", slotSize === 0 ? "text-ink-500!" : "text-ink-300!")}
+          className={cx("h-6! tall:h-7! w-full px-1! text-xs!", slotSize === 0 ? "text-ink-500!" : "text-ink-300!")}
           min={0}
           max={99}
           value={slotSize}

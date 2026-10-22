@@ -23,6 +23,18 @@ export const shownZero = (s: string) => /^0(\.0+)?%?$/.test(s);
 export const rankBar = (rates: Record<Rank, number>, scale = 1): BarPart[] =>
   RANKS.map((k) => ({ label: k, value: rates[k] * scale, color: RANK_COLOR[k] }));
 
+/** 勝敗の色の凡例 (表の見出しに 1 回だけ置く)。D と E は同じ「敗北」側なのでまとめる。 */
+export const RankKey = () => (
+  <span className="flex items-center gap-2 text-xs text-ink-400" aria-hidden>
+    {(["SS", "S", "A", "B", "C", "D"] as const).map((k) => (
+      <span key={k} className="flex items-center gap-0.5">
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: RANK_COLOR[k] }} />
+        {k === "D" ? "D/E" : k}
+      </span>
+    ))}
+  </span>
+);
+
 export const STATE_PARTS = (s: { healthyRate: number; lightRate: number; moderateRate: number; heavyRate: number; sunkRate: number }): BarPart[] => [
   { label: "無傷", value: s.healthyRate, color: "var(--color-hp-healthy)" },
   { label: "小破", value: s.lightRate, color: "var(--color-hp-light)" },
@@ -50,14 +62,13 @@ export const RateRow = ({ label, parts, value, title, tone }: { label: string; p
 );
 
 /** 補助の数値: 見出しと値を左右に。2 列のグリッドに並べる。 */
-export const Fact = ({ label, value, sub, title, tone, icon }: { label: string; value: string; sub?: string; title?: string; tone?: "danger" | "warn"; icon?: React.ReactNode }) => (
+export const Fact = ({ label, value, title, tone, icon }: { label: string; value: string; title?: string; tone?: "danger" | "warn"; icon?: React.ReactNode }) => (
   <div title={title} className="flex min-w-0 items-baseline gap-2">
     <span className="flex min-w-0 items-center gap-1 truncate text-xs text-ink-400">
       {icon}
       {label}
     </span>
     <span className="flex-1" />
-    {sub && <span className="text-xs text-ink-500 tabular-nums">{sub}</span>}
     <span className={cx("text-sm font-medium tabular-nums", tone === "danger" ? "text-danger-400" : tone === "warn" ? "text-warn-400" : "text-ink-50")}>{value}</span>
   </div>
 );

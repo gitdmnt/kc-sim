@@ -77,6 +77,20 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
   const routing = data?.detail.routing ?? null;
   const mapOptions = (maps.data?.maps ?? []).filter((m) => (mode === "sortie" ? m.routing : m.compSetCount > 0) || m.key === prefs.map);
 
+  // 分岐規則 (los ルール・述語) が使う索敵の係数
+  const losCns = useMemo(() => {
+    const found = new Set<number>();
+    const walk = (v: unknown): void => {
+      if (Array.isArray(v)) return v.forEach(walk);
+      if (!v || typeof v !== "object") return;
+      const o = v as Record<string, unknown>;
+      if (typeof o.cn === "number") found.add(o.cn);
+      Object.values(o).forEach(walk);
+    };
+    walk(routing);
+    return [...found].sort();
+  }, [routing]);
+
   const diffs = useMemo(() => {
     const all = new Set<number>();
     Object.values(data?.comps ?? {}).forEach((sets) => sets.forEach((s) => all.add(s.difficulty)));
@@ -102,7 +116,12 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
   const nodeSet = node && data ? pickSet(data.comps[node] ?? [], diff)?.set : undefined;
   const compList = useMemo(() => [...(nodeSet?.comps ?? [])].sort((a, b) => b.weight - a.weight), [nodeSet]);
   const compId = cfg.compNode === node && compList.some((c) => String(c.id) === cfg.compId) ? cfg.compId : "all";
-  const shipName = (id: number) => data?.ships.get(id)?.ship.name ?? catalog.shipName(id);
+  // 深海棲艦は名前が同じで elite / flagship が違う艦がいる (区別は yomi にある)
+  const shipName = (id: number) => {
+    const ship = data?.ships.get(id)?.ship;
+    if (!ship) return catalog.shipName(id);
+    return ship.yomi === "elite" || ship.yomi === "flagship" ? `${ship.name}${ship.yomi}` : ship.name;
+  };
 
   // ---- 計算の入力 ----
   const [fit, setFit] = useState<FitEntry[] | null | undefined>(undefined);
@@ -307,7 +326,7 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
             />
           )
         ) : (
-          <FleetPanel store={store} preset={preset} select={select} />
+          <FleetPanel store={store} preset={preset} select={select} losCns={losCns} />
         )}
 
         <section data-results className="flex min-h-0 flex-col rounded-md border border-ink-800 bg-ink-900">

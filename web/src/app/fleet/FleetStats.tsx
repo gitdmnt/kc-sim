@@ -12,8 +12,11 @@ const Item = ({ icon, title, children }: { icon: React.ReactNode; title: string;
   </span>
 );
 
-/** 艦隊の制空・速力・索敵 (33式 Cn1〜4)・ドラム缶・電探を 1 行で。見出しはアイコンとツールチップ。 */
-export const FleetStats = ({ preset }: { preset: Preset }) => {
+/**
+ * 艦隊の制空・速力・索敵 (33式)・ドラム缶・電探を 1 行で。見出しはアイコンとツールチップ。
+ * 索敵は海域の分岐が使う係数 (cns) だけを出し、無ければ Cn1。Cn1〜4 の全部はツールチップ。
+ */
+export const FleetStats = ({ preset, cns }: { preset: Preset; cns: number[] }) => {
   const { catalog } = useApp();
   const sum = useMemo(() => summarizePreset(preset, catalog.master), [preset, catalog]);
   if (preset.ships.length === 0) return null;
@@ -26,12 +29,15 @@ export const FleetStats = ({ preset }: { preset: Preset }) => {
         {sum.speed === null ? "—" : (S.speeds[sum.speed] ?? sum.speed)}
       </Item>
       {sum.los && (
-        <Item icon={<Eye size={14} aria-hidden />} title={`${S.fleet.los} Cn1 / Cn2 / Cn3 / Cn4 (司令部Lv${preset.hqLevel ?? 120})`}>
-          <span className="flex gap-2">
-            {(["cn1", "cn2", "cn3", "cn4"] as const).map((k, i) => (
-              <span key={k}>
-                <span className="mr-0.5 text-xs font-normal text-ink-500">{i + 1}</span>
-                {sum.los![k].toFixed(1)}
+        <Item
+          icon={<Eye size={14} aria-hidden />}
+          title={`${S.fleet.los} (司令部Lv${preset.hqLevel ?? 120})\n${(["cn1", "cn2", "cn3", "cn4"] as const).map((k, i) => `Cn${i + 1} ${sum.los![k].toFixed(1)}`).join(" / ")}`}
+        >
+          <span className="flex gap-3">
+            {(cns.length > 0 ? cns : [1]).map((cn) => (
+              <span key={cn}>
+                <span className="mr-1 text-xs font-normal text-ink-400">Cn{cn}</span>
+                {sum.los![`cn${cn}` as "cn1"].toFixed(1)}
               </span>
             ))}
           </span>

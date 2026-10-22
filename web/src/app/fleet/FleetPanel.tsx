@@ -15,10 +15,12 @@ interface Props {
   store: PresetsApi;
   preset: Preset | null;
   select: (id: string | null) => void;
+  /** 選んだ海域の分岐が使う索敵の係数 (33式の Cn) */
+  losCns: number[];
 }
 
 /** 艦隊の編集: 上に艦隊の諸元、下に 1 隻 1 行。プリセットの切り替え・管理はツールバー (PresetMenu)。プリセットが無ければ最初の艦の追加で作る。 */
-export const FleetPanel = ({ store, preset, select }: Props) => {
+export const FleetPanel = ({ store, preset, select, losCns }: Props) => {
   const { catalog } = useApp();
   const poiFleets = usePoiFleets();
   const importPoi = useImportPoi(store, select);
@@ -27,11 +29,11 @@ export const FleetPanel = ({ store, preset, select }: Props) => {
 
   return (
     <section className="flex min-w-0 flex-col gap-2 rounded-md border border-ink-800 bg-ink-900 px-4 py-3 lg:min-h-0">
-      {preset && ships.length > 0 && <FleetStats preset={preset} />}
+      {preset && ships.length > 0 && <FleetStats preset={preset} cns={losCns} />}
 
       {/* 6 隻とも装備枠が多い艦隊で画面に収まらないときだけ、この枠の中でスクロールする */}
       {/* ゲームの編成画面と同じ 2 列 × 3 行 (1 2 / 3 4 / 5 6)。どの艦も同じ列構成なので装備の列が縦に揃う */}
-      <div className="-mx-4 grid grid-cols-1 content-start gap-x-6 gap-y-4 px-4 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+      <div className="-mx-4 grid grid-cols-1 content-start gap-x-6 gap-y-4 px-4 tall:gap-y-6 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         {ships.map((ship, i) => (
           <ShipRow
             key={i}

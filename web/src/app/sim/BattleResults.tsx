@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import type { ShipSummary, SimulationSummary } from "@sim-core";
 import { ProgressBar, StackedBar, Tabs } from "../../ui";
 import { Assumptions } from "./Assumptions";
-import { DTable, DTr, Fact, Num, RateList, RateRow, STATE_PARTS, Td, Th, pct, rankBar } from "./bars";
+import { CompMarks, FormationGlyph } from "./CompMarks";
+import { DTable, DTr, Num, RateList, RateRow, STATE_PARTS, Td, Th, pct, rankBar } from "./bars";
 import type { BattleOutcome } from "./requests";
 
 /** 主要な率 (結果がまだ無いときも同じ枠)。勝敗の棒は S → A → B 以上の順に区間が増える。 */
@@ -14,6 +15,7 @@ export const BattleRates = ({ s }: { s?: SimulationSummary }) => {
     <RateList>
       <RateRow label="S勝利以上" parts={ranks.slice(0, 2)} value={v(r && r.SS + r.S)} />
       <RateRow label="A勝利以上" parts={ranks.slice(0, 3)} value={v(r && r.SS + r.S + r.A)} />
+      <RateRow label="B勝利以上" parts={ranks.slice(0, 4)} value={v(r && r.SS + r.S + r.A + r.B)} />
       <RateRow label="敵旗艦撃沈" parts={[{ label: "敵旗艦撃沈", value: s?.enemyFlagshipSunkRate ?? 0, color: "var(--color-ink-400)" }]} value={v(s?.enemyFlagshipSunkRate)} />
       <RateRow
         label="大破あり"
@@ -22,6 +24,15 @@ export const BattleRates = ({ s }: { s?: SimulationSummary }) => {
         value={v(s?.friendHeavyAnyRate)}
         tone={s && s.friendHeavyAnyRate >= 0.1 ? "danger" : undefined}
       />
+      {s && s.friendSunkAnyRate >= 0.0005 && (
+        <RateRow
+          label="撃沈あり"
+          title="味方の誰かが撃沈"
+          parts={[{ label: "撃沈あり", value: s.friendSunkAnyRate, color: "var(--color-hp-sunk)" }]}
+          value={pct(s.friendSunkAnyRate)}
+          tone="danger"
+        />
+      )}
     </RateList>
   );
 };
@@ -66,26 +77,19 @@ type Detail = "comps" | "friend" | "enemy" | "notes";
 
 export const BattleResults = ({ out, meta, shipName }: { out: BattleOutcome; meta: React.ReactNode; shipName: (id: number) => string }) => {
   const s = out.total;
-  const r = s.rankRates;
   const multi = out.comps.length > 1;
   const [detail, setDetail] = useState<Detail>(multi ? "comps" : "friend");
   const [view, setView] = useState(0);
   const viewed = out.comps[Math.min(view, out.comps.length - 1)];
   const notes = out.assumptions.warnings.length;
-  // 一覧では全編成に共通する艦を省き、編成ごとの違いだけを見せる (全部共通なら全艦)
-  const common = new Set(out.comps[0]?.comp.main.map((x) => x.shipId) ?? []);
-  for (const c of out.comps) {
-    const ids = new Set(c.comp.main.map((x) => x.shipId));
-    for (const id of common) if (!ids.has(id)) common.delete(id);
-  }
+  // 艦の位置ごとに、全編成で同じ艦か (同じ位置は薄く出す)
+  const slots = Math.max(0, ...out.comps.map((c) => c.comp.main.length));
+  const first = out.comps[0]?.comp.main ?? [];
+  const same = Array.from({ length: slots }, (_, i) => multi && out.comps.every((c) => c.comp.main[i]?.shipId === first[i]?.shipId));
 
   return (
     <>
       <BattleRates s={s} />
-      <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-        <Fact label="B勝利以上" value={pct(r.SS + r.S + r.A + r.B)} />
-        {s.friendSunkAnyRate >= 0.0005 && <Fact label="味方撃沈あり" value={pct(s.friendSunkAnyRate)} tone="danger" />}
-      </div>
 
       <div className="flex items-center justify-between gap-2">
         <Tabs
@@ -108,7 +112,10 @@ export const BattleResults = ({ out, meta, shipName }: { out: BattleOutcome; met
           <DTable
             head={
               <>
-                <Th className="text-left">編成</Th>
+                <Th className="text-left" title="艦ごとの級 (カナ) と改/elite (e)/flagship (f)。全編成で同じ位置は薄く表示">
+                  編成
+                </Th>
+                <Th className="w-6" />
                 <Th className="w-14">出現</Th>
                 <Th className="w-28 text-left" title="この編成での勝敗">
                   勝敗
@@ -120,7 +127,6 @@ export const BattleResults = ({ out, meta, shipName }: { out: BattleOutcome; met
           >
             {out.comps.map((c, i) => {
               const ships = c.comp.main.map((x) => shipName(x.shipId)).join("、");
-              const distinct = c.comp.main.filter((x) => !common.has(x.shipId)).map((x) => shipName(x.shipId));
               const cr = c.summary.rankRates;
               return (
                 <DTr
@@ -131,8 +137,11 @@ export const BattleResults = ({ out, meta, shipName }: { out: BattleOutcome; met
                     setDetail("enemy");
                   }}
                 >
-                  <Td className="max-w-40 truncate text-ink-200" title={`${ships} (${c.count.toLocaleString()} 戦)`}>
-                    {multi && distinct.length > 0 ? distinct.join("、") : ships}
+                  <Td title={`${ships} (${c.count.toLocaleString()} 戦)`}>
+                    <CompMarks ids={c.comp.main.map((x) => x.shipId)} same={same} name={shipName} slots={slots} />
+                  </Td>
+                  <Td className="px-0">
+                    <FormationGlyph formation={c.comp.formation} />
                   </Td>
                   <Num>{pct(c.comp.weight)}</Num>
                   <Td>

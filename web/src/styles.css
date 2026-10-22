@@ -85,6 +85,9 @@
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
+/* 縦に余裕のある画面 (1280×800 など) では密な一覧の行を少し高くする */
+@custom-variant tall (@media (min-height: 780px));
+
 .kcsim {
   background-color: var(--color-ink-950);
   color: var(--color-ink-100);

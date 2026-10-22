@@ -33,14 +33,14 @@ export const ShipRow = ({ index, ship, onChange, onRemove }: Props) => {
   const stype = catalog.master.ships[ship.masterId]?.api_stype;
 
   return (
-    <div className="group/ship flex min-w-0 flex-col gap-1">
+    <div className="group/ship flex min-w-0 flex-col gap-1 tall:gap-2">
       <div className={HEAD_COLS}>
         <span className="text-xs text-ink-500 tabular-nums" title={catalog.shipTypeName(ship.masterId)}>
           {index + 1}
         </span>
         <Combobox
           variant="ghost"
-          buttonClassName="h-6! px-1 font-medium"
+          buttonClassName="h-6! tall:h-7! px-1 font-medium"
           prefix={
             <span className="w-7 shrink-0 text-xs font-normal text-ink-400" title={catalog.shipTypeName(ship.masterId)}>
               {stype !== undefined ? (STYPE_ABBR[stype] ?? "") : ""}
