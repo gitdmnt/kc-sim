@@ -1,0 +1,35 @@
+# dependencies / build output
+node_modules/
+target/
+pkg/
+dist/
+out/
+poi-plugin-sim-build/
+*.tsbuildinfo
+*.tgz
+
+# local Cloudflare state (D1 sqlite incl. KCNav raw response cache) and SQL scratch
+.wrangler/
+data-worker/.tmp/
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.db
+
+# secrets
+.dev.vars
+.env
+.env.*
+
+# local dumps
+poi-plugin-sim/myState.json
+myState.json
+*.code-workspace
+
+# logs / OS / editor
+*.log
+logs/
+.DS_Store
+.idea/
+.vscode/
