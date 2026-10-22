@@ -18,3 +18,4 @@ export { ToastProvider, useToast } from "./Toast";
 export { Modal, Drawer } from "./Modal";
 export { ConfirmDialog } from "./Confirm";
 export { Popover } from "./Popover";
+export { EquipIcon, equipIconCategory, EQUIP_CATEGORY_COLOR } from "./EquipIcon";
