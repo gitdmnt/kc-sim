@@ -638,12 +638,12 @@ impl Sortie {
             }
             let missing = self.friend.ships[i].max_hp - s.hp;
             let secs = repair_time_sec(self.stypes[i], self.friend.ships[i].level, missing) as f64;
+            let (f, t) = repair_cost(s.fuel_max, missing);
+            c[0] += f as f64;
+            c[2] += t as f64;
             if secs > 0.0 && self.bucket_above.is_some_and(|b| secs > b) {
                 c[4] += 1.0;
             } else {
-                let (f, t) = repair_cost(s.fuel_max, missing);
-                c[0] += f as f64;
-                c[2] += t as f64;
                 c[5] = c[5].max(secs);
             }
         }

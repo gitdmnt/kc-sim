@@ -617,8 +617,9 @@ export interface SortieInput {
 }
 
 export interface RepairPolicy {
-  /** Ships whose docking time exceeds this many seconds take an instant repair item (bucket) instead:
-   *  no docking fuel / steel / time for them, one bucket each. Only affects the resource totals.
+  /** Ships whose docking time exceeds this many seconds take an instant repair item (bucket): no
+   *  docking time for them, one bucket each; docking fuel and steel are still paid. Only affects the
+   *  resource totals.
    *  Default: never. */
   bucketAboveSec?: number;
 }

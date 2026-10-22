@@ -345,7 +345,7 @@ fn resources_per_sortie_combine_the_parts() {
 }
 
 #[test]
-fn buckets_replace_long_docking() {
+fn buckets_skip_long_docking_time() {
     let comp = json!({ "comps": [{ "weight": 1.0, "fleet": enemy_fleet() }] });
     let run = |above: Option<f64>| {
         let mut input = single_node_input("battle", comp.clone(), friend_fleet());
@@ -357,11 +357,12 @@ fn buckets_replace_long_docking() {
     assert!(none.resources_per_sortie.time_sec.mean > 0.0);
     // A threshold above every docking time changes nothing.
     assert_eq!(run(Some(1e9)).resources_per_sortie, none.resources_per_sortie);
-    // Threshold 0: every damaged ship takes a bucket, so docking costs and time vanish.
+    // Threshold 0: every damaged ship takes a bucket: docking time vanishes, fuel and steel are still paid.
     let all = run(Some(0.0));
     let r = &all.resources_per_sortie;
-    assert!(r.buckets.mean > 0.0 && r.time_sec.mean == 0.0 && r.steel.mean == 0.0);
-    assert!(r.fuel.mean < none.resources_per_sortie.fuel.mean);
+    assert!(r.buckets.mean > 0.0 && r.time_sec.mean == 0.0);
+    assert!((r.steel.mean - none.resources_per_sortie.steel.mean).abs() < 1e-9);
+    assert!((r.fuel.mean - none.resources_per_sortie.fuel.mean).abs() < 1e-9);
     // Resupply is untouched; the number of buckets is the number of damaged ships.
     assert!((r.ammo.mean - none.resources_per_sortie.ammo.mean).abs() < 1e-9);
     assert!(r.buckets.mean <= 6.0);
