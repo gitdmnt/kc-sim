@@ -82,7 +82,8 @@ cargo install wasm-pack
 ```sh
 cd data-worker
 bun install
-cp .dev.vars.example .dev.vars          # /admin/* 用の ADMIN_TOKEN
+cp .dev.vars.example .dev.vars          # ENVIRONMENT=development (localhost の /admin/* は認証なし) と IP_HASH_SALT
+bun run build:wasm                      # sim-core/pkg (推定器が wasm を読み込む)
 bun run migrate                         # D1 (ローカル) のスキーマ作成
 bun run ingest                          # start2・深海棲艦・海域グラフ・装備ボーナス・ルーティング種
 bun run dev                             # http://127.0.0.1:8787 で起動
