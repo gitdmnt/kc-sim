@@ -4,14 +4,15 @@ import type { CapturedBattle } from "../../capture";
 import { ENGAGEMENT_LABEL, FORMATION_ID_LABEL, battleKindLabel } from "../../capture/labels";
 import { normalizeForSearch } from "@web/fleet/catalog";
 import type { Catalog } from "@web/fleet/catalog";
-import { Badge, Button, Card, EmptyState, Select, Table, Td, TextInput, Th, Thead, Tr, S, useToast } from "@web/ui";
+import { Download, RefreshCw, Upload } from "lucide-react";
+import { Button, Card, EmptyState, Select, Table, Td, TextInput, Th, Thead, Tr, S, cx, useToast } from "@web/ui";
 import { formatDateTime, formatShortDateTime } from "@web/ui/format";
 import { serverOrigin } from "@shared/embed/protocol";
 import { usePluginSettings } from "../../settings";
 import { L } from "../strings";
 import { useUploadWaitSeconds } from "../useUploadClient";
 import { LogDetail } from "./LogDetail";
-import { downloadText, rankTone } from "./util";
+import { RANK_TEXT, downloadText } from "./util";
 
 const MAX_ROWS = 300;
 const RANKS = ["SS", "S", "A", "B", "C", "D", "E"];
@@ -88,24 +89,25 @@ export const LogTab = ({ catalog }: { catalog: Catalog }) => {
         title={S.common.count(rows.length)}
         actions={
           <>
-            <Button size="sm" variant="ghost" onClick={() => void load()} title={L.log.reload} aria-label={L.log.reload}>
-              ↻
+            <Button size="sm" variant="ghost" icon onClick={() => void load()} title={L.log.reload} aria-label={L.log.reload}>
+              <RefreshCw size={14} aria-hidden />
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => void exportJson()}>
-              {L.log.exportJson}
+            <Button size="sm" variant="ghost" icon onClick={() => void exportJson()} title={L.log.exportJson} aria-label={L.log.exportJson}>
+              <Download size={14} aria-hidden />
             </Button>
             {pending > 0 && (
               <Button size="sm" variant="primary" disabled={busy || wait > 0 || apiBase === ""} onClick={() => void upload()}>
+                <Upload size={14} aria-hidden />
                 {wait > 0 ? `${wait}s` : L.log.upload(pending)}
               </Button>
             )}
           </>
         }
-        bodyClassName="grid grid-cols-2 gap-3 md:grid-cols-3"
+        bodyClassName="flex flex-wrap items-center gap-2"
       >
-        <TextInput value={place} onChange={(e) => setPlace(e.target.value)} placeholder={L.log.filterMap} aria-label={L.log.filterMap} />
-        <TextInput value={enemy} onChange={(e) => setEnemy(e.target.value)} placeholder={L.log.filterEnemy} aria-label={L.log.filterEnemy} />
-        <Select value={rank} onChange={(e) => setRank(e.target.value)} aria-label={L.log.filterRank}>
+        <TextInput className="w-56" value={place} onChange={(e) => setPlace(e.target.value)} placeholder={L.log.filterMap} aria-label={L.log.filterMap} />
+        <TextInput className="w-40" value={enemy} onChange={(e) => setEnemy(e.target.value)} placeholder={L.log.filterEnemy} aria-label={L.log.filterEnemy} />
+        <Select className="w-36" value={rank} onChange={(e) => setRank(e.target.value)} aria-label={L.log.filterRank}>
           <option value="">
             {L.log.filterRank}: {L.log.all}
           </option>
@@ -124,7 +126,6 @@ export const LogTab = ({ catalog }: { catalog: Catalog }) => {
           <Thead>
             <tr>
               <Th>{L.log.map}</Th>
-              <Th>{L.log.node}</Th>
               <Th>{L.log.rank}</Th>
               <Th>{L.log.enemy}</Th>
               <Th>{L.log.kind}</Th>
@@ -136,11 +137,10 @@ export const LogTab = ({ catalog }: { catalog: Catalog }) => {
             {rows.slice(0, MAX_ROWS).map((b) => (
               <Tr key={b.id} onClick={() => setSelected(b)} selected={selected?.id === b.id}>
                 <Td className="whitespace-nowrap font-semibold text-ink-50 tabular-nums">
-                  {b.map?.map ?? "—"}
-                  {b.map?.difficulty ? <span className="ml-1 text-xs font-normal text-ink-400">難度{b.map.difficulty}</span> : null}
+                  {b.map?.map ?? "—"} {b.map?.node ?? ""}
+                  {b.map?.difficulty ? <span className="ml-2 text-xs font-normal text-ink-400">難度{b.map.difficulty}</span> : null}
                 </Td>
-                <Td className="font-semibold text-ink-50">{b.map?.node ?? "—"}</Td>
-                <Td>{b.result?.rank ? <Badge tone={rankTone(b.result.rank)}>{b.result.rank}</Badge> : <span className="text-ink-500">—</span>}</Td>
+                <Td>{b.result?.rank ? <span className={cx("font-semibold", RANK_TEXT[b.result.rank])}>{b.result.rank}</span> : <span className="text-ink-500">—</span>}</Td>
                 <Td className="max-w-80 truncate text-ink-100">{enemyNames(b) || "—"}</Td>
                 <Td className="whitespace-nowrap text-ink-300">{battleKindLabel(b.path)}</Td>
                 <Td className="whitespace-nowrap text-ink-300">

@@ -101,7 +101,7 @@ export const WebFrame = ({ serverUrl, poiState, onOpenSettings, host: hostInfo, 
         <>
           {webVersion !== null && webVersion > EMBED_VERSION && (
             <div
-              className="border-b border-warn-600/50 bg-warn-600/10 px-3 py-1 text-xs text-warn-400"
+              className="bg-warn-600/15 px-4 py-1 text-xs text-warn-400"
               title={`Web UI v${webVersion} / プラグイン v${EMBED_VERSION}`}
             >
               プラグインの更新があります

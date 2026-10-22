@@ -8,18 +8,18 @@ import {
   PHASE_LABEL,
   battleKindLabel,
 } from "../../capture/labels";
-import { Badge, Button, Drawer, ProgressBar, Table, Td, Th, Thead, Tr, S, useToast } from "@web/ui";
-import type { BadgeTone } from "@web/ui";
+import { Copy } from "lucide-react";
+import { Button, Drawer, ProgressBar, Table, Td, Th, Thead, Tr, S, cx, useToast } from "@web/ui";
 import { copyText } from "@web/app/fleet/clipboard";
 import type { Catalog } from "@web/fleet/catalog";
 import { L } from "../strings";
-import { rankTone } from "./util";
+import { RANK_TEXT } from "./util";
 
-const HIT_TONE: Record<string, BadgeTone> = { miss: "neutral", hit: "accent", crit: "warn" };
+const HIT_CLASS: Record<string, string> = { miss: "text-ink-500", hit: "text-ink-100", crit: "font-semibold text-warn-400" };
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <section className="mb-5">
-    <h4 className="mb-2 text-sm font-semibold text-ink-200">{title}</h4>
+  <section className="mb-6">
+    <h4 className="mb-2 text-xs text-ink-400">{title}</h4>
     {children}
   </section>
 );
@@ -61,29 +61,29 @@ export const LogDetail = ({ battle, catalog, onClose }: { battle: CapturedBattle
   const e = battle.enemy;
   return (
     <Drawer title={`${L.log.detail} — ${battle.map?.map ?? "?"} ${battle.map?.node ?? ""}`} onClose={onClose} className="max-w-3xl">
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        <Badge tone="neutral">{battleKindLabel(battle.path)}</Badge>
-        {battle.result?.rank && <Badge tone={rankTone(battle.result.rank)}>{battle.result.rank}</Badge>}
-        {e.engagement && <Badge tone="neutral">{ENGAGEMENT_LABEL[e.engagement]}</Badge>}
-        <span className="text-sm text-ink-300">
-          味方 {FORMATION_ID_LABEL[e.friendFormation ?? -1] ?? "—"} / 敵 {FORMATION_ID_LABEL[e.enemyFormation ?? -1] ?? "—"}
+      <div className="mb-6 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm text-ink-300">
+        <span>{battleKindLabel(battle.path)}</span>
+        {battle.result?.rank && <span className={cx("text-lg font-semibold", RANK_TEXT[battle.result.rank])}>{battle.result.rank}</span>}
+        {e.engagement && <span>{ENGAGEMENT_LABEL[e.engagement]}</span>}
+        <span className="text-ink-400">
+          {FORMATION_ID_LABEL[e.friendFormation ?? -1] ?? "—"} / {FORMATION_ID_LABEL[e.enemyFormation ?? -1] ?? "—"}
         </span>
       </div>
 
-      <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
         <Section title={L.log.friend}>
-          <ul className="flex flex-col gap-1.5">
+          <ul className="flex flex-col gap-3">
             {friendShips.length === 0 && <li className="text-sm text-ink-400">—</li>}
             {friendShips.map((s, i) => (
-              <li key={i} className="rounded bg-ink-900/60 px-2.5 py-1.5">
+              <li key={i}>
                 <div className="flex justify-between text-sm">
                   <span>{catalog.shipName(s.masterId)}</span>
-                  <span className="text-xs text-ink-300">Lv{s.level}</span>
+                  <span className="text-xs text-ink-400 tabular-nums">Lv{s.level}</span>
                 </div>
                 {friendMax[i] ? (
                   <>
                     <ProgressBar value={friendNow[i] ?? 0} max={friendMax[i]} className="mt-1" />
-                    <div className="mt-0.5 text-right text-xs text-ink-300 tabular-nums">
+                    <div className="mt-0.5 text-right text-xs text-ink-400 tabular-nums">
                       {friendNow[i]}/{friendMax[i]}
                     </div>
                   </>
@@ -93,17 +93,17 @@ export const LogDetail = ({ battle, catalog, onClose }: { battle: CapturedBattle
           </ul>
         </Section>
         <Section title={L.log.enemySide}>
-          <ul className="flex flex-col gap-1.5">
+          <ul className="flex flex-col gap-3">
             {enemyAll.map((s) => (
-              <li key={s.idx} className="rounded bg-ink-900/60 px-2.5 py-1.5">
+              <li key={s.idx}>
                 <div className="flex justify-between text-sm">
                   <span>{catalog.shipName(s.masterId)}</span>
-                  <span className="text-xs text-ink-300">{s.level ? `Lv${s.level}` : ""}</span>
+                  <span className="text-xs text-ink-400 tabular-nums">{s.level ? `Lv${s.level}` : ""}</span>
                 </div>
                 {s.maxHp ? (
                   <>
                     <ProgressBar value={s.nowHp ?? s.maxHp} max={s.maxHp} className="mt-1" />
-                    <div className="mt-0.5 flex justify-between text-xs text-ink-300 tabular-nums">
+                    <div className="mt-0.5 flex justify-between text-xs text-ink-400 tabular-nums">
                       <span>{s.params ? `火${s.params[0]} 雷${s.params[1]} 空${s.params[2]} 装${s.params[3]}` : ""}</span>
                       <span>
                         {s.nowHp}/{s.maxHp}
@@ -140,17 +140,17 @@ export const LogDetail = ({ battle, catalog, onClose }: { battle: CapturedBattle
                 <Tr key={ev.seq}>
                   <Td className="text-ink-400 tabular-nums">{ev.seq + 1}</Td>
                   <Td className="whitespace-nowrap">{PHASE_LABEL[ev.phase]}</Td>
-                  <Td className={ev.attackerSide === "friend" ? "text-accent-400" : "text-danger-400"}>
+                  <Td className={ev.attackerSide === "friend" ? "text-accent-400" : "text-ink-100"}>
                     {nameOf(ev.attackerSide, ev.attackerIdx)}
                   </Td>
                   <Td>{nameOf(ev.defenderSide, ev.defenderIdx)}</Td>
                   <Td className="text-ink-300">{ev.attackType ?? (ev.airKind ? { bomb: "爆撃", torpedo: "雷撃", both: "爆雷" }[ev.airKind] : "—")}</Td>
                   <Td>
-                    <Badge tone={HIT_TONE[ev.hit]}>{HIT_LABEL[ev.hit]}</Badge>
+                    <span className={HIT_CLASS[ev.hit]}>{HIT_LABEL[ev.hit]}</span>
                   </Td>
                   <Td className="text-right tabular-nums">
                     {ev.damage}
-                    {ev.protected && <span className="ml-1 text-xs text-warn-400">かばう</span>}
+                    {ev.protected && <span className="ml-1 text-xs text-ink-400">かばう</span>}
                   </Td>
                 </Tr>
               ))}
@@ -163,6 +163,7 @@ export const LogDetail = ({ battle, catalog, onClose }: { battle: CapturedBattle
         variant="ghost"
         onClick={async () => toast.push((await copyText(JSON.stringify(battle.raw, null, 2))) ? S.common.copied : "コピーに失敗しました", "ok")}
       >
+        <Copy size={14} aria-hidden />
         {L.log.copyRaw}
       </Button>
     </Drawer>

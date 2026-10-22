@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { serverOrigin } from "@shared/embed/protocol";
 import { AUTO_UPLOAD_STATUS_KEY, getObservationDb, getUploadClient, readAutoUploadStatus } from "../capture";
 import type { AutoUploadStatus } from "../capture";
+import { RotateCcw, Trash2 } from "lucide-react";
 import { Badge, Button, Card, Checkbox, ConfirmDialog, Field, TextInput, S, useToast } from "@web/ui";
 import { DEFAULT_SERVER_URL, updatePluginSettings, usePluginSettings } from "../settings";
 import { L } from "./strings";
@@ -84,8 +85,8 @@ export const UploadSettings = () => {
   const regKind = registration.state.kind;
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <Card bodyClassName="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
+      <Card bodyClassName="flex flex-col gap-6">
         <Field label={L.upload.serverUrl} hint={draftValid ? undefined : L.upload.serverUrlInvalid}>
           <div className="flex gap-2">
             <TextInput
@@ -100,6 +101,7 @@ export const UploadSettings = () => {
             />
             {settings.serverUrl !== DEFAULT_SERVER_URL && (
               <Button size="sm" variant="ghost" onClick={() => updatePluginSettings({ serverUrl: DEFAULT_SERVER_URL })}>
+                <RotateCcw size={14} aria-hidden />
                 {L.upload.reset}
               </Button>
             )}
@@ -132,12 +134,13 @@ export const UploadSettings = () => {
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-ink-700 pt-3">
+        <div className="flex items-center gap-4">
           <span className="text-sm text-ink-100">
             {L.upload.observations}
             <span className="ml-2 text-ink-400 tabular-nums">{upload.battles === null ? "—" : S.common.count(upload.battles)}</span>
           </span>
           <Button size="sm" variant="danger" onClick={() => setConfirmClear(true)}>
+            <Trash2 size={14} aria-hidden />
             {S.settings.deleteAll}
           </Button>
         </div>
