@@ -15,6 +15,16 @@ type KcwikiNodeTypes = Record<string, Record<string, { color: number; id: number
 export interface GraphNode { letter: string; x: number | null; y: number | null; color_no: number | null; event_id: number | null; event_kind: number | null; node_type: string | null; is_boss: boolean }
 export interface GraphMap { mapId: number; edges: { edge_id: number; from: string; to: string }[]; nodes: GraphNode[] }
 
+/** `seed/graph/edge-corrections.json` `maps`: map key ("6-4") -> edge id -> [from, to] in KC3 labels. */
+export type EdgeCorrections = Record<string, Record<string, [string, string]>>;
+
+/** Pure: returns KC3 edges with the corrections applied (a correction for an edge KC3 lacks is added). */
+export function applyEdgeCorrections(edges: Kc3Edges, corrections: EdgeCorrections): Kc3Edges {
+  const out: Kc3Edges = { ...edges };
+  for (const [key, fixes] of Object.entries(corrections)) out[`World ${key}`] = { ...out[`World ${key}`], ...fixes };
+  return out;
+}
+
 /** Pure: builds per-map graphs from the three raw documents. */
 export function buildGraphs(edges: Kc3Edges, coords: Kc3Nodes, types: KcwikiNodeTypes): GraphMap[] {
   const out: GraphMap[] = [];
@@ -50,7 +60,8 @@ export async function ingestMapGraph(): Promise<void> {
   const nodesF = await fetchGithub({ ...KC3, path: "src/data/nodes.json" });
   const typeDocs = await Promise.all(EVENT_NODE_TYPE_FILES.map((n) => fetchGithub({ ...KCWIKI, path: `db/node_types-${n}.json` })));
   const types: KcwikiNodeTypes = Object.assign({}, ...typeDocs.map((d) => JSON.parse(d.text)));
-  const graphs = buildGraphs(JSON.parse(edgesF.text), JSON.parse(nodesF.text), types);
+  const corrections: { maps: EdgeCorrections } = await Bun.file(new URL("../seed/graph/edge-corrections.json", import.meta.url).pathname).json();
+  const graphs = buildGraphs(applyEdgeCorrections(JSON.parse(edgesF.text), corrections.maps), JSON.parse(nodesF.text), types);
   const now = new Date().toISOString();
   const kc3 = sourceRef("kc3-edges");
   const kcwiki = sourceRef("kcwiki-node-types");
@@ -71,6 +82,8 @@ export async function ingestMapGraph(): Promise<void> {
     statements.push(...upsert("edges", g.edges.map((e) => ({
       map_id: g.mapId, edge_id: e.edge_id, from_letter: e.from, to_letter: e.to, source_id: kc3,
     })), ["map_id", "edge_id"]));
+    // Letters the corrected graph no longer has (e.g. a merged "Start") must not linger.
+    statements.push(`DELETE FROM nodes WHERE map_id = ${g.mapId} AND letter NOT IN (${g.nodes.map((n) => lit(n.letter)).join(", ")});`);
     // Keep values already set by other sources (KCNav map endpoint) when this source has none.
     for (const n of g.nodes) {
       const fromKcwiki = n.event_id !== null;

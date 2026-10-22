@@ -1,0 +1,8 @@
+{
+  "note": "Edge fixes over KC3Kai src/data/edges.json (KC3 labels). The routing seeds in ../routing were authored against the game's real map routes, which differ from KC3 on these maps. KC3 merges multiple start points into one \"Start\" (6-4, 6-5) and lists 7-4 edge 3 as A->C where the game has Start->C. Re-check against a KC3 update and drop an entry once KC3 agrees.",
+  "maps": {
+    "6-4": { "1": ["Start 1", "A"], "2": ["Start 1", "B"], "13": ["Start 2", "M"] },
+    "6-5": { "1": ["Start 1", "A"], "2": ["Start 2", "B"] },
+    "7-4": { "3": ["Start", "C"] }
+  }
+}

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { lit, upsert, sourceRef } from "../scripts/lib/sql";
 import { parseShipData } from "../scripts/ingest-abyssal";
-import { buildGraphs } from "../scripts/ingest-map-graph";
+import { applyEdgeCorrections, buildGraphs } from "../scripts/ingest-map-graph";
 import { nodeTypeFromEvent, normalizeLetter, parseMapKey } from "../src/maps";
 
 describe("sql builders", () => {
@@ -60,6 +60,15 @@ test("kcSHIPDATA parsing keeps provenance flags", () => {
   const est = Object.fromEntries(rows[1]!.estimates.map((e) => [e.stat, e.confidence]));
   expect(est).toEqual({ ev: "db_estimate", los: "placeholder", luck: "placeholder", tacc: "placeholder" });
   expect(rows[1]!.ship.flags).toEqual({ canOpTorp: "function", installtype: 2 });
+});
+
+test("edge corrections override KC3 edges and split merged starts", () => {
+  const kc3 = { "World 6-4": { "1": ["Start", "A"], "2": ["Start", "B"], "3": ["A", "B"] }, "World 7-4": { "1": ["Start", "A"], "3": ["A", "C"] } } as Record<string, Record<string, [string, string]>>;
+  const fixed = applyEdgeCorrections(kc3, { "6-4": { "1": ["Start 1", "A"], "2": ["Start 2", "B"] }, "7-4": { "3": ["Start", "C"] } });
+  expect(kc3["World 7-4"]!["3"]).toEqual(["A", "C"]);
+  const graphs = buildGraphs(fixed, {}, {});
+  expect(graphs.find((x) => x.mapId === 64)!.edges.map((e) => `${e.from}>${e.to}`)).toEqual(["Start1>A", "Start2>B", "A>B"]);
+  expect(graphs.find((x) => x.mapId === 74)!.edges.map((e) => `${e.from}>${e.to}`)).toEqual(["Start>A", "Start>C"]);
 });
 
 test("graph building normalises starts and attaches kcwiki node types", () => {
