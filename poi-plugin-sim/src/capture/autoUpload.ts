@@ -2,7 +2,7 @@
  * 観測の自動送信。poi のメインウィンドウ (キャプチャと同じコンテキスト) で動く。
  * game.response の購読は capture/plugin.ts の既存リスナーが行い、path を `onResponse` に渡す。
  *
- * - battleresult と帰投 (api_port/port) のあとに、デバウンスして送信する (uploadClient: トークン登録・60 秒に 1 回・1 回 200 件)。
+ * - battleresult と帰投 (api_port/port) のあとに、デバウンスして送信する (uploadClient: トークン登録・60 秒に 1 回・1 回 100 件・256 KiB まで)。
  *   間隔の間に溜まった分は次の送信でまとめて送る。保留が残っていれば間隔が空き次第続きを送る。
  * - 保留が残っている限り、一定間隔で再試行する。
  * - 429 は Retry-After の時刻に再試行する (失敗として数えない)。403 (拒否) は送信を止める。
@@ -162,7 +162,7 @@ export const startAutoUpload = (opts: AutoUploadOptions): AutoUploader => {
           failures = 0;
           blockedUntil = out.nextAt;
           setStatus({ lastSuccessAt: now(), lastError: null, lastErrorAt: null });
-          // 200 件を超えた分は次に送れるようになった時点で続ける
+          // 1 回に入りきらなかった分は次に送れるようになった時点で続ける
           if (out.remaining > 0 && !stopped) schedule(Math.max(0, out.nextAt - now()));
         } else if (out.status === "deferred") {
           // 429 や自分の送信間隔。失敗ではないのでバックオフしない。

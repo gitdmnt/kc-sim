@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import { beforeEach, describe, expect, test } from "bun:test";
-import { MAX_OBSERVATIONS_PER_REQUEST, MAX_REQUEST_BYTES, ObservationDb } from "./db";
+import { MAX_OBSERVATION_BYTES, MAX_OBSERVATIONS_PER_REQUEST, MAX_REQUEST_BYTES, ObservationDb } from "./db";
 import type { CapturedBattle } from "@shared/capture/types";
 import { UPLOAD_INTERVAL_MS, createUploadClient, memoryStore } from "./uploadClient";
 
@@ -60,7 +60,7 @@ const setup = () => {
       return respond({ status: 201 }, { clientId: `c-${server.registers}`, token: `tok-${server.registers}` });
     }
     const over = server.onObservations?.(req);
-    return respond(over ?? { status: 200 }, { accepted: 1 });
+    return respond(over ?? { status: 202 }, { queued: 1, duplicates: 0, pending: 1 });
   }) as unknown as typeof fetch;
   const store = memoryStore();
   const client = createUploadClient({ store, fetch: fakeFetch, now: () => t });
@@ -196,10 +196,10 @@ describe("limiter: at most one POST per 60 s", () => {
   });
 });
 
-describe("200-observation packing", () => {
-  test("packs 200 per request, oldest first, one request per interval", async () => {
+describe("100-observation packing", () => {
+  test("packs 100 per request, oldest first, one request per interval", async () => {
     const s = setup();
-    await addBattles(450);
+    await addBattles(250);
     const sizes: number[] = [];
     const firstIds: string[] = [];
     for (let i = 0; i < 3; i++) {
@@ -208,23 +208,23 @@ describe("200-observation packing", () => {
       const post = s.posts().at(-1)!;
       sizes.push(post.body.observations.length);
       firstIds.push(post.body.observations[0].clientObsId);
-      if (out.status === "sent") expect(out.remaining).toBe(450 - sizes.reduce((a, b) => a + b, 0));
+      if (out.status === "sent") expect(out.remaining).toBe(250 - sizes.reduce((a, b) => a + b, 0));
       expect((await s.client.send(db, BASE)).status).toBe("deferred"); // 同じ間隔のうちは次を送らない
       s.advance(UPLOAD_INTERVAL_MS);
     }
-    expect(MAX_OBSERVATIONS_PER_REQUEST).toBe(200);
-    expect(sizes).toEqual([200, 200, 50]);
-    expect(firstIds).toEqual(["b-0000", "b-0200", "b-0400"]);
+    expect(MAX_OBSERVATIONS_PER_REQUEST).toBe(100);
+    expect(sizes).toEqual([100, 100, 50]);
+    expect(firstIds).toEqual(["b-0000", "b-0100", "b-0200"]);
     expect(s.posts()).toHaveLength(3);
   });
 });
 
-describe("2 MB body cap", () => {
+describe("256 KiB body cap, 64 KiB per observation", () => {
   const big = (i: number, kb: number): CapturedBattle => ({ ...battle(i), raw: { pad: "x".repeat(kb * 1024) } });
 
   test("packs by serialized size as well as count, oldest first, and everything is eventually sent", async () => {
     const s = setup();
-    for (let i = 0; i < 40; i++) await db.saveBattle(big(i, 100), []); // ~100 KB each: about 20 fit under 2 MB
+    for (let i = 0; i < 40; i++) await db.saveBattle(big(i, 20), []); // ~20 KB each: about 12 fit under 250 KB
     const sizes: number[] = [];
     for (let guard = 0; guard < 10 && (await db.countPending(s.now())) > 0; guard++) {
       const out = await s.client.send(db, BASE);
@@ -241,13 +241,14 @@ describe("2 MB body cap", () => {
     expect(s.posts()[1].body.observations[0].clientObsId).toBe(`b-${String(sizes[0]).padStart(4, "0")}`);
   });
 
-  test("a single observation larger than the cap is dropped, not retried forever", async () => {
+  test("a single observation larger than 64 KiB is dropped (the server would reject it), not retried forever", async () => {
     const s = setup();
-    await db.saveBattle(big(0, 2100), []);
+    await db.saveBattle(big(0, 70), []);
     await db.saveBattle(big(1, 1), []);
     const out = await s.client.send(db, BASE);
     expect(out).toMatchObject({ status: "sent", sent: 1, remaining: 0 });
     expect(s.posts()[0].body.observations.map((o) => o.clientObsId)).toEqual(["b-0001"]);
+    expect(MAX_OBSERVATION_BYTES).toBe(64 * 1024);
     expect(await db.countPending(s.now())).toBe(0);
   });
 });

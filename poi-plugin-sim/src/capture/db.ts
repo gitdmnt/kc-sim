@@ -30,13 +30,18 @@ export interface ListBattlesQuery {
 }
 
 /** サーバが 1 リクエストで受け付ける観測数の上限 (docs/API.md §3) */
-export const MAX_OBSERVATIONS_PER_REQUEST = 200;
+export const MAX_OBSERVATIONS_PER_REQUEST = 100;
 
 /** fetch のうち使う部分 (typeof fetch は Bun で preconnect を要求するので、関数だけを求める) */
 export type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 
-/** サーバの本文の上限は 2 MB (超えると 413)。余裕を見て 1 リクエストの JSON をこの大きさ未満にする。 */
-export const MAX_REQUEST_BYTES = 2_000_000;
+/**
+ * サーバの本文の上限は 256 KiB (超えると 413、Workers Free の CPU 予算に収めるため)。余裕を見て 1 リクエストの
+ * JSON をこの大きさ未満にする。戦闘 60 件ほど。
+ */
+export const MAX_REQUEST_BYTES = 250_000;
+/** 観測 1 件の JSON の上限 (サーバは超えたものを too_large で拒否する)。 */
+export const MAX_OBSERVATION_BYTES = 64 * 1024;
 const REQUEST_OVERHEAD = `{"observations":[]}`.length;
 const utf8Bytes = (s: string): number => new TextEncoder().encode(s).length;
 
@@ -219,9 +224,9 @@ export class ObservationDb implements ObservationSink {
 
   /**
    * 未送信の戦闘と終わった出撃を、1 回の POST で `${apiBase}/api/v1/observations` に送る (docs/API.md §3)。
-   * 1 リクエストは最大 200 件かつ JSON が MAX_REQUEST_BYTES 未満になるまで古い順に詰める。
-   * 戦闘が先。2xx なら送った分を送信済みにする。map が null の戦闘 (演習等) は送らず、送信済み扱いにする。
-   * それだけで本文の上限を超える 1 件は送れないので捨てる (送信済み扱い)。
+   * 1 リクエストは最大 MAX_OBSERVATIONS_PER_REQUEST 件かつ JSON が MAX_REQUEST_BYTES 未満になるまで古い順に詰める。
+   * 戦闘が先。2xx なら送った分を送信済みにする (サーバは受け取って溜め、検証は後で行う)。map が null の戦闘
+   * (演習等) は送らず、送信済み扱いにする。MAX_OBSERVATION_BYTES を超える 1 件はサーバが拒否するので捨てる (送信済み扱い)。
    * 出撃中の出撃は送らない。STALE_SORTIE_MS 以上更新の無い出撃は endKind "unknown" で送る。
    * 送るものが無ければ POST しない。非 2xx は UploadHttpError、通信失敗はその例外 (どちらも未送信のまま)。
    * 送信間隔 (1 トークン 60 秒に 1 回) は呼び出し側 (uploadClient) が守る。
@@ -256,7 +261,7 @@ export class ObservationDb implements ObservationSink {
       if (batch.length >= MAX_OBSERVATIONS_PER_REQUEST) break;
       const json = JSON.stringify(p.kind === "battle" ? this.battleObservation(p.b) : sortieObservation(p.s));
       const size = utf8Bytes(json) + 1; // 区切りの ","
-      if (REQUEST_OVERHEAD + size > MAX_REQUEST_BYTES) {
+      if (size - 1 > MAX_OBSERVATION_BYTES) {
         console.warn(`[kcsim] observation too large to upload (${size} bytes), dropped`);
         dropped.push(p);
       } else if (bytes + size > MAX_REQUEST_BYTES) {
