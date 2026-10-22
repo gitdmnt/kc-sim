@@ -1,48 +1,38 @@
 {
   "name": "poi-plugin-sim",
-  "module": "src/index.ts",
   "type": "module",
-  "main": "../poi-plugin-sim-build/index.js",
+  "main": "../poi-plugin-sim-build/index.es",
   "devDependencies": {
+    "@kancolle/data": "^0.230101.0",
     "@tailwindcss/postcss": "^4.1.17",
     "@types/bun": "latest",
-    "@types/fs-extra": "^11.0.4",
     "@types/react": "^19.2.4",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "autoprefixer": "^10.4.22",
-    "electron": "^39.1.2",
-    "electron-builder": "^26.0.12",
-    "esbuild": "^0.27.0",
-    "fs-extra": "^11.3.2",
+    "fake-indexeddb": "^6.2.6",
+    "playwright-core": "^1.64.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
-    "vite-plugin-electron": "^0.29.0",
-    "vite-plugin-electron-renderer": "^0.14.6",
+    "vite": "^7.2.2",
     "vite-plugin-static-copy": "^3.1.4",
-    "vite-plugin-wasm": "^3.5.0"
+    "vite-tsconfig-paths": "^5.1.4"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@js-temporal/polyfill": "^0.5.1",
-    "@kancolle/data": "^0.230101.0",
     "@reduxjs/toolkit": "^2.10.1",
     "react": "^19.2.0",
-    "react-bootstrap": "^2.10.10",
     "react-dom": "^19.2.0",
-    "react-redux": "^9.2.0",
-    "redux": "^5.0.1",
-    "reselect": "^5.1.1",
-    "vite": "^7.2.2",
-    "vite-tsconfig-paths": "^5.1.4",
-    "zod": "^4.1.13"
+    "react-redux": "^9.2.0"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:wasm": "cd sim-core && wasm-pack build --target web --out-dir ../sim-core/pkg && cd ..",
-    "build:bun": "bun run build.mjs"
+    "build:wasm": "cd ../sim-core && wasm-pack build --target web",
+    "sample": "bun scripts/gen-sample-state.ts",
+    "screenshots": "bun scripts/screenshots.ts",
+    "test": "bun test",
+    "audit": "bun scripts/audit.ts"
   }
 }

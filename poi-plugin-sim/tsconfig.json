@@ -12,7 +12,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
+    "jsx": "react",
 
     /* Linting */
     "strict": true,
@@ -24,7 +24,9 @@
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"],
-      "@utils/*": ["utils/*"]
+      "@utils/*": ["utils/*"],
+      "@sim-core": ["../../sim-core/pkg/sim_core"],
+      "@sim-core/*": ["../../sim-core/pkg/*"]
     }
   },
   "include": ["src"]

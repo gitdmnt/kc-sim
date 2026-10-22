@@ -9,21 +9,24 @@ import {
 import { store } from "views/create-store";
 */
 
-let unsubscribeFunc;
-
 export const windowMode = true;
 
 const { i18n } = window;
 
-export { reducer, reactClass } from "./views";
+export { reactClass } from "./views";
+import { startCapture, stopCapture } from "./views";
 
+// 戦闘観測はプラグインウィンドウを開かなくても動くよう、ロード時に開始する。
 export function pluginDidLoad() {
   console.log("poi-plugin-sim loaded");
   console.log(`i18n instance:`, i18n);
+  try {
+    startCapture();
+  } catch (e) {
+    console.error("[kcsim] failed to start capture", e);
+  }
 }
 
 export function pluginWillUnload() {
-  if (unsubscribeFunc) {
-    unsubscribeFunc();
-  }
+  stopCapture();
 }

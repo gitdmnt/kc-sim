@@ -1,7 +1,7 @@
 {
   "name": "poi-plugin-sim-build",
   "version": "0.0.1",
-  "main": "index.js",
+  "main": "index.es",
   "description": "My super duper poi plugin",
   "author": {
     "name": "gitdmnt",

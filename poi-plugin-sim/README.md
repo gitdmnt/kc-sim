@@ -1,72 +1,58 @@
 # poi-plugin-sim
 
-## about
+KanColle battle / sortie simulator plugin for [poi](https://github.com/poooi/poi) (window-mode plugin).
 
-A developing KanColle sortie simulator plugin for poi browser.
+- 艦隊編成: fleet presets (import from poi, JSON / DeckBuilder import & export)
+- 海域 / 敵艦データ: map graph, routing rules, enemy comps and hidden-stat estimates from the data API
+- シミュレーション: battle-level Monte Carlo (Rust → wasm, run in a Web Worker)
+- 観測ログ: records battle packets while you play (starts when poi loads the plugin, no window needed)
 
-This repository is only for its frontend development. For backend, see [another repository "sim-core"](https://github.com/gitdmnt/sim-core)
+The Rust engine lives in the sibling repo/directory `../sim-core`; the data API in `../data-worker`.
 
-## developing features
+## Build
 
-- [ ] 不明事項 (DBを実装してデータを集めるべき？)
-  - [ ] 深海棲艦のマスクステータス
-  - [ ] 戦闘開始時の索敵判定条件
-- [ ] 戦闘の実装
-  - [ ] 戦闘フェーズの実装
-    - [ ] 索敵
-    - [ ] 噴式強襲
-    - [ ] 煙幕
-    - [ ] 基地航空隊
-    - [ ] 友軍艦隊 (機動部隊)
-    - [ ] 航空戦 
-      - [ ] 制空権  
-      - [ ] 触接
-    - [ ] 支援艦隊
-    - [ ] 先制対潜
-    - [ ] 開幕雷撃
-    - [ ] 交戦形態決定
-    - [ ] 砲撃戦
-      - [x] 1巡目
-        - [x] 順序決定ロジック
-      - [x] 2巡目
-      - [ ] 対水上艦火力計算
-        - [ ] 基本攻撃力の決定
-          - [ ] 空母系以外
-            - [ ] 改修ボーナス
-          - [ ] 空母系
-            - [x] 基本
-            - [ ] 改修ボーナス
-            - [ ] 航空要員ボーナス
-        - [ ] キャップ前補正  
-          - [x] 交戦形態補正
-          - [ ] 攻撃側陣形補正
-          - [ ] 夜間特殊攻撃補正
-          - [ ] 駆逐艦D砲補正
-          - [x] 損傷補正
-          - [ ] 旧対潜シナジー補正
-          - [ ] 新対潜シナジー補正
-          - [ ] 軽巡軽量砲補正
-          - [ ] 伊重巡フィット砲補正
-        - [x] キャップ
-        - [ ] キャップ後補正
-          - [ ] 航空戦触接補正
-          - [ ] 昼間特殊攻撃補正
-          - [ ] 潜水艦隊攻撃補正
-          - [ ] 徹甲弾補正
-          - [ ] 対姫補正
-          - [ ] 海域特効
-          - [ ] クリティカル補正
-          - [ ] 熟練度クリティカル補正
-      - [ ] 対潜火力計算
-      - [ ] 対地火力計算
-      - [ ] 装甲計算
-      - [ ] 水上爆撃機
-      - [ ] 対潜攻撃
-      - [x] 砲撃戦
-      - [ ] 射程の延長
-    - [ ] 雷撃戦
-    - [ ] 友軍艦隊
-    - [ ] 夜戦
-  - [ ] 補正の実装
-  - [x] 損傷状態
-- [ ] 構造体の説明
+Requirements: [bun](https://bun.sh) ≥ 1.3, Rust with the `wasm32-unknown-unknown` target, `wasm-pack`.
+
+```sh
+cd poi-plugin-sim
+bun install
+bun run build                 # wasm-pack (../sim-core) + vite → ../poi-plugin-sim-build
+SKIP_WASM_BUILD=1 bun run build   # reuse an existing ../sim-core/pkg
+```
+
+Output (`../poi-plugin-sim-build`): `index.es`, `package.json` (`main: index.es`), `views/index.js`
+(the UI, wasm bytes embedded), `views/sim.worker.js` (the simulation worker), `i18n/`.
+
+Other commands: `bun test`, `bunx tsc --noEmit`, `bun dev` (stand-alone dev page using `dev/sampleState.json`),
+`bun run sample` (regenerate the sample state), `bun run screenshots` (needs the data API on :8787).
+
+## Install into poi
+
+poi loads plugins from `~/Library/Application Support/poi/plugins/node_modules` (macOS;
+`%APPDATA%\poi\plugins\node_modules` on Windows, `~/.config/poi/plugins/node_modules` on Linux).
+
+1. Build (above).
+2. Link the build output as a plugin. Using a `file:` dependency keeps it from being pruned by poi's own `npm install` at startup:
+   ```sh
+   cd "$HOME/Library/Application Support/poi/plugins"
+   cp package.json package.json.bak            # back up first
+   npm pkg set dependencies.poi-plugin-sim-build="file:/ABSOLUTE/PATH/TO/poi-plugin-sim-build"
+   ln -s /ABSOLUTE/PATH/TO/poi-plugin-sim-build node_modules/poi-plugin-sim-build   # if npm did not create it
+   ```
+3. Restart poi. The plugin appears in the plugin drawer (chevron next to the plugin tab) as 「シミュ」 / *Simulator for Integrated Management*. Rebuilding updates it in place (restart poi or use the plugin reload).
+
+The data API base URL (default `http://127.0.0.1:8787`) is set in the plugin's 設定 tab.
+Run it with `cd data-worker && bun run dev`.
+
+## Notes for poi
+
+- poi's plugin window has a strict CSP (`script-src 'self' file://* 'unsafe-inline'`): no `blob:`/`data:` workers and
+  no in-page WebAssembly compilation. The simulation therefore runs in a worker loaded from
+  `file://…/views/sim.worker.js`, which receives the wasm bytes by message. Keep `sim.worker.js` next to `index.js`.
+- Observation capture (`startCapture`) is started from `pluginDidLoad` in poi's main window, listens to `game.response`,
+  and stores battles in IndexedDB (`kcsim`).
+- Styles are scoped to `.kcsim` and injected only while the plugin UI is mounted.
+
+## Verification notes
+
+Checked with poi 12.0.1 (macOS) on 2026-10-22 using an isolated profile (`--user-data-dir`), not logged in.

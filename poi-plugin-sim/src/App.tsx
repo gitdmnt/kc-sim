@@ -1,50 +1,49 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo } from "react";
+import { connect } from "react-redux";
 /* @ts-ignore */
 import styles from "../assets/styles.css?inline";
+import sampleState from "../dev/sampleState.json";
+import { AppProvider } from "./app/context";
+import { Shell } from "./app/Shell";
+import { useSettings } from "./app/settings";
+import { buildCatalog } from "./fleet/catalog";
+import { ToastProvider } from "./ui";
 
-import { getFleets } from "./utils/poiAPIWrapper";
-import { BattleSim } from "./BattleSim";
-import init from "../sim-core/pkg/sim_core";
-import { connect } from "react-redux";
-import { DebugMenu } from "./DebugMenu";
+interface PoiProps {
+  poiInfo: any;
+  poiConst: any;
+}
 
-/* @ts-ignore */
-import * as kcdb from "@kancolle/data";
-
-const App = ({ state }: { state: any }) => {
-  const [wasmInitialized, setWasmInitialized] = useState(false);
-
-  console.error(state);
-
-  const fleets = getFleets(state);
-
-  useEffect(() => {
-    // WASMモジュールを初期化
-    init()
-      .then(() => {
-        setWasmInitialized(true);
-        console.log("WASM module initialized.");
-      })
-      .catch(console.error);
-  }, []); // このeffectはコンポーネントのマウント時に一度だけ実行
-
-  // WASMの初期化が完了するまでローディング表示などを行う
-  if (!wasmInitialized) {
-    return <div>Loading WebAssembly module...</div>;
-  }
+const App = ({ poiInfo, poiConst }: PoiProps) => {
+  const { useSampleState } = useSettings();
+  const state = useMemo(
+    () => (useSampleState ? sampleState : { info: poiInfo, const: poiConst }),
+    [useSampleState, poiInfo, poiConst]
+  );
+  // master data は poi 側で不変なので const の参照が変わらない限り作り直さない
+  const catalog = useMemo(() => buildCatalog(state), [state.const]);
+  const value = useMemo(() => ({ state, catalog }), [state, catalog]);
 
   return (
-    <>
+    // スタイルは .kcsim 配下に閉じ込めてあり、<style> はこのコンポーネントが
+    // マウントされている間だけ存在する (アンマウントで poi 本体に残らない)。
+    <div className="kcsim">
       <style>{styles}</style>
-      <div className="bg-gray-100 p-4 min-h-dvh flex flex-col gap-4 h-full overflow-auto">
-        <DebugMenu />
-        <BattleSim friend={fleets} stage={""} />
-      </div>
-    </>
+      <AppProvider value={value}>
+        <ToastProvider>
+          <Shell />
+        </ToastProvider>
+      </AppProvider>
+    </div>
   );
 };
 
-const ConnectedApp = connect((state: any) => ({ state }))(App);
+// poi の state 全体ではなく info / const だけ購読して再描画を減らす
+// (mapState の戻り値は浅く比較されるので、スライスをそのまま props にする)
+const ConnectedApp = connect((state: any): PoiProps => ({
+  poiInfo: state?.info,
+  poiConst: state?.const,
+}))(App);
 
 // poi will render this component in the plugin panel
 export class reactClass extends React.Component {
