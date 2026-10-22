@@ -52,10 +52,10 @@ export const LogDetail = ({ battle, catalog, onClose }: { battle: CapturedBattle
     if (idx < 0) return side === "friend" ? "味方航空隊" : "敵航空隊";
     if (side === "friend") {
       const ship = idx < 6 ? friendShips[idx] : battle.fleet?.escort?.[idx - 6];
-      return ship ? catalog.shipName(ship.masterId) : `味方#${idx + 1}`;
+      return ship ? catalog.shipName(ship.masterId) : "不明";
     }
     const e = enemyAll.find((s) => s.idx === idx);
-    return e ? catalog.shipName(e.masterId) : `敵#${idx + 1}`;
+    return e ? catalog.shipName(e.masterId) : "不明";
   };
 
   const e = battle.enemy;
@@ -73,7 +73,7 @@ export const LogDetail = ({ battle, catalog, onClose }: { battle: CapturedBattle
       <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
         <Section title={L.log.friend}>
           <ul className="flex flex-col gap-1.5">
-            {friendShips.length === 0 && <li className="text-sm text-ink-400">艦隊スナップショットなし</li>}
+            {friendShips.length === 0 && <li className="text-sm text-ink-400">—</li>}
             {friendShips.map((s, i) => (
               <li key={i} className="rounded bg-ink-900/60 px-2.5 py-1.5">
                 <div className="flex justify-between text-sm">
@@ -121,7 +121,7 @@ export const LogDetail = ({ battle, catalog, onClose }: { battle: CapturedBattle
         {events === null ? (
           <div className="text-sm text-ink-400">{S.common.loading}</div>
         ) : events.length === 0 ? (
-          <div className="text-sm text-ink-400">イベントなし (未対応の戦闘形式)</div>
+          <div className="text-sm text-ink-400">—</div>
         ) : (
           <Table className="max-h-[28rem]">
             <Thead>

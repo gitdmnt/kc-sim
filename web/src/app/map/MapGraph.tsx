@@ -176,22 +176,7 @@ export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps,
             {NODE_TYPE_LABEL[t]}
           </span>
         ))}
-        {withComps.size > 0 && !edgeRates && (
-          <span className="flex items-center gap-1">
-            <svg viewBox="-9 -9 18 18" className="h-3.5 w-3.5" aria-hidden>
-              <circle r={6.5} fill="var(--color-ink-500)" />
-              <circle cx={5} cy={-5} r={3} fill="var(--color-ink-50)" stroke="var(--color-ink-950)" strokeWidth={1} />
-            </svg>
-            白点: 敵編成データあり
-          </span>
-        )}
-        {targets.size > 0 && (
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-full border-2 border-accent-500" />
-            青枠: 行き先候補
-          </span>
-        )}
-        {unplaced > 0 && <span className="text-warn-400">座標なし {unplaced} ノード (非表示)</span>}
+        {unplaced > 0 && <span className="text-warn-400" title={`座標なし ${unplaced} ノード`}>+{unplaced}</span>}
       </div>
     </div>
   );

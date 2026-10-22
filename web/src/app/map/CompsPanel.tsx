@@ -76,7 +76,7 @@ const CompSourceBadge = ({ set, selection }: { set: EnemyCompSet; selection?: Co
 
 export const CompsPanel = ({ sets, names, selection }: { sets: EnemyCompSet[]; names: Names; selection?: CompSelection[] }) => {
   const [difficulty, setDifficulty] = useState<number | null>(null);
-  if (sets.length === 0) return <p className="text-sm text-ink-400">敵編成データがありません。</p>;
+  if (sets.length === 0) return <p className="text-sm text-ink-400">編成なし</p>;
 
   const diffs = [...new Set(sets.map((s) => s.difficulty))].sort();
   const diff = difficulty !== null && diffs.includes(difficulty) ? difficulty : diffs[diffs.length - 1];
@@ -97,8 +97,8 @@ export const CompsPanel = ({ sets, names, selection }: { sets: EnemyCompSet[]; n
             ))}
           </Select>
         )}
-        <span className="min-w-0 flex-1" title={`期間 ${set.periodStart?.slice(0, 10) ?? "?"} 〜 ${set.periodEnd?.slice(0, 10) ?? "現在"} / ソース ${set.source}`}>
-          試行 {set.totalCount.toLocaleString()} 回
+        <span className="min-w-0 flex-1" title={`期間 ${set.periodStart?.slice(0, 10) ?? "?"} 〜 ${set.periodEnd?.slice(0, 10) ?? "現在"}`}>
+          {set.totalCount.toLocaleString()} 回
           <CompSourceBadge set={set} selection={selection?.find((s) => s.difficulty === set.difficulty)} />
         </span>
         {STAT_COLS.map((h) => (

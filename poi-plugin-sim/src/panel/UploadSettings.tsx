@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { serverOrigin } from "@shared/embed/protocol";
 import { AUTO_UPLOAD_STATUS_KEY, getObservationDb, getUploadClient, readAutoUploadStatus } from "../capture";
 import type { AutoUploadStatus } from "../capture";
-import { Button, Card, Checkbox, ConfirmDialog, Field, TextInput, S, useToast } from "@web/ui";
+import { Badge, Button, Card, Checkbox, ConfirmDialog, Field, TextInput, S, useToast } from "@web/ui";
 import { DEFAULT_SERVER_URL, updatePluginSettings, usePluginSettings } from "../settings";
 import { L } from "./strings";
-import { useRegistration, useUploadWaitSeconds } from "./useUploadClient";
+import { useRegistration } from "./useUploadClient";
 
 /** 自動送信の状況。送信はメインウィンドウで動くので、状態は localStorage (storage イベント) と共有の IndexedDB から読む。 */
 const useAutoUploadStatus = (tick: number): { status: AutoUploadStatus; pending: number | null; battles: number | null } => {
@@ -48,7 +48,6 @@ export const UploadSettings = () => {
   const upload = useAutoUploadStatus(tick);
   const apiBase = serverOrigin(settings.serverUrl) ?? "";
   const registration = useRegistration(apiBase);
-  const wait = useUploadWaitSeconds();
   const draftValid = serverOrigin(draft) !== null;
 
   // 別のウィンドウで変わったら入力欄も追従する
@@ -58,7 +57,7 @@ export const UploadSettings = () => {
     setRegistering(true);
     try {
       const r = await getUploadClient().register(apiBase);
-      toast.push(r.status === "registered" ? "登録しました" : `登録が制限されています。${Math.max(1, Math.ceil((r.until - Date.now()) / 1000))} 秒後にやり直してください`, "info");
+      toast.push(r.status === "registered" ? "登録しました" : `登録は ${Math.max(1, Math.ceil((r.until - Date.now()) / 1000))} 秒後に可能`, "info");
     } catch (e) {
       toast.push((e as Error).message, "danger");
     } finally {
@@ -78,70 +77,70 @@ export const UploadSettings = () => {
     }
   };
 
+  // 有効な URL だけ、Enter / フォーカスが外れたときに保存する
+  const commit = () => {
+    if (draftValid && draft.trim() !== settings.serverUrl) updatePluginSettings({ serverUrl: draft.trim() });
+  };
+  const regKind = registration.state.kind;
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <Card title={L.upload.server}>
-        <Field label={L.upload.serverUrl} hint={draftValid ? L.upload.serverUrlHint : L.upload.serverUrlInvalid}>
+      <Card bodyClassName="flex flex-col gap-4">
+        <Field label={L.upload.serverUrl} hint={draftValid ? undefined : L.upload.serverUrlInvalid}>
           <div className="flex gap-2">
             <TextInput
               className="flex-1"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              onBlur={commit}
+              onKeyDown={(e) => e.key === "Enter" && commit()}
               spellCheck={false}
               placeholder={DEFAULT_SERVER_URL}
               aria-invalid={!draftValid}
             />
-            <Button size="sm" disabled={!draftValid || draft.trim() === settings.serverUrl} onClick={() => updatePluginSettings({ serverUrl: draft.trim() })}>
-              {S.common.save}
-            </Button>
-            <Button size="sm" variant="ghost" disabled={settings.serverUrl === DEFAULT_SERVER_URL} onClick={() => updatePluginSettings({ serverUrl: DEFAULT_SERVER_URL })}>
-              {L.upload.reset}
-            </Button>
+            {settings.serverUrl !== DEFAULT_SERVER_URL && (
+              <Button size="sm" variant="ghost" onClick={() => updatePluginSettings({ serverUrl: DEFAULT_SERVER_URL })}>
+                {L.upload.reset}
+              </Button>
+            )}
           </div>
         </Field>
-        <div className="mt-3 flex flex-col gap-2">
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Checkbox
             label="観測ログを自動送信"
-            hint="戦闘後・帰投時に送信し、失敗したら再試行します"
             checked={settings.autoUpload}
             onChange={(e) => updatePluginSettings({ autoUpload: e.target.checked })}
           />
-          <div className="text-sm text-ink-300">
-            最終成功: {formatTime(upload.status.lastSuccessAt)} / 未送信 {upload.pending ?? "—"} 件
-            {wait > 0 && <span> / 次の送信まで {wait} 秒</span>}
-            {upload.status.lastError && (
-              <span className="text-danger-400">
-                {" "}
-                / 直近のエラー: {upload.status.lastError} ({formatTime(upload.status.lastErrorAt)})
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-ink-300">
-            <span>
-              登録:{" "}
-              {registration.state.kind === "none" && "未登録 (最初の送信時にサーバへ登録します)"}
-              {registration.state.kind === "registered" && (
-                <>
-                  登録済み <span className="text-ink-400">({registration.state.clientId})</span>
-                </>
-              )}
-              {registration.state.kind === "banned" && <span className="text-danger-400">サーバに拒否されました (403)。送信を停止しています</span>}
-            </span>
+          {upload.status.lastSuccessAt !== null && (
+            <Badge tone="ok" title={`最終成功: ${formatTime(upload.status.lastSuccessAt)}`}>
+              送信済み
+            </Badge>
+          )}
+          {upload.status.lastError && (
+            <Badge tone="danger" title={`${upload.status.lastError} (${formatTime(upload.status.lastErrorAt)})`}>
+              エラー
+            </Badge>
+          )}
+          {!!upload.pending && <Badge tone="neutral">{`未送信 ${upload.pending}`}</Badge>}
+          {regKind === "registered" && <Badge tone="neutral" title={registration.state.clientId}>登録済み</Badge>}
+          {regKind === "banned" && <Badge tone="danger">{L.log.uploadBanned}</Badge>}
+          {(regKind === "banned" || upload.status.lastError) && (
             <Button size="sm" variant="secondary" onClick={() => void register()} disabled={registering || apiBase === ""}>
-              {registration.state.kind === "none" ? "登録" : "再登録"}
+              再登録
             </Button>
-          </div>
+          )}
         </div>
-      </Card>
 
-      <Card title={S.settings.data} bodyClassName="flex items-center justify-between gap-3">
-        <span className="text-sm text-ink-100">
-          {L.upload.observations}
-          <span className="ml-2 text-ink-400 tabular-nums">{upload.battles === null ? "—" : S.common.count(upload.battles)}</span>
-        </span>
-        <Button size="sm" variant="danger" onClick={() => setConfirmClear(true)}>
-          {S.settings.deleteAll}
-        </Button>
+        <div className="flex items-center justify-between gap-3 border-t border-ink-700 pt-3">
+          <span className="text-sm text-ink-100">
+            {L.upload.observations}
+            <span className="ml-2 text-ink-400 tabular-nums">{upload.battles === null ? "—" : S.common.count(upload.battles)}</span>
+          </span>
+          <Button size="sm" variant="danger" onClick={() => setConfirmClear(true)}>
+            {S.settings.deleteAll}
+          </Button>
+        </div>
       </Card>
 
       {confirmClear && (

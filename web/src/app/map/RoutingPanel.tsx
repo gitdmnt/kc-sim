@@ -46,9 +46,8 @@ export const RoutingPanel = ({
   views: { views: RuleView[]; end: boolean } | null;
 }) => {
   const select = useMemo(() => doc?.defaults?.select?.[letter], [doc, letter]);
-  if (!doc) return <p className="text-sm text-ink-400">この海域のルーティングは未登録です。</p>;
-  if (!views) return <p className="text-sm text-ink-400">このノードからの分岐はありません。</p>;
-  if (views.end && views.views.length === 0) return <p className="text-sm text-ink-400">終端ノードです。</p>;
+  if (!doc) return <p className="text-sm text-ink-400">未登録</p>;
+  if (!views || views.views.length === 0) return null;
   return (
     <div className="flex flex-col gap-1.5">
       <ol className="flex flex-col gap-0.5">
@@ -56,7 +55,7 @@ export const RoutingPanel = ({
           <RuleRow key={i} view={v} depth={0} />
         ))}
       </ol>
-      {select && <p className="text-xs text-ink-400">能動分岐の既定: {select}</p>}
+      {select && <p className="text-xs text-ink-400" title="能動分岐の既定">既定: {select}</p>}
     </div>
   );
 };

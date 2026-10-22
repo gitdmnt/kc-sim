@@ -23,8 +23,8 @@ export const LogTab = ({ catalog }: { catalog: Catalog }) => {
 
   const [battles, setBattles] = useState<CapturedBattle[] | null>(null);
   const [pending, setPending] = useState(0);
-  const [map, setMap] = useState("");
-  const [node, setNode] = useState("");
+  // 「1-1」または「1-1 A」(海域 マス)
+  const [place, setPlace] = useState("");
   const [enemy, setEnemy] = useState("");
   const [rank, setRank] = useState("");
   const [selected, setSelected] = useState<CapturedBattle | null>(null);
@@ -33,15 +33,15 @@ export const LogTab = ({ catalog }: { catalog: Catalog }) => {
 
   const load = useCallback(async () => {
     try {
-      const m = map.trim();
-      const list = await db.listBattles({ map: m || undefined, node: m && node.trim() ? node.trim() : undefined });
+      const [m, n] = place.trim().split(/\s+/);
+      const list = await db.listBattles({ map: m || undefined, node: m && n ? n : undefined });
       setBattles(list.reverse());
       setPending(await db.countPending());
     } catch (e) {
       console.error("[kcsim] failed to load observations", e);
       setBattles([]);
     }
-  }, [db, map, node]);
+  }, [db, place]);
 
   useEffect(() => {
     void load();
@@ -85,7 +85,7 @@ export const LogTab = ({ catalog }: { catalog: Catalog }) => {
   return (
     <div className="flex flex-col gap-4">
       <Card
-        title={`${L.log.title} (${S.common.count(rows.length)})`}
+        title={S.common.count(rows.length)}
         actions={
           <>
             <Button size="sm" variant="ghost" onClick={() => void load()} title={L.log.reload} aria-label={L.log.reload}>
@@ -94,21 +94,16 @@ export const LogTab = ({ catalog }: { catalog: Catalog }) => {
             <Button size="sm" variant="ghost" onClick={() => void exportJson()}>
               {L.log.exportJson}
             </Button>
-            <Button size="sm" variant="primary" disabled={busy || pending === 0 || wait > 0 || apiBase === ""} onClick={() => void upload()}>
-              {pending > 0 && wait > 0 ? L.log.uploadWait(wait) : L.log.upload(pending)}
-            </Button>
+            {pending > 0 && (
+              <Button size="sm" variant="primary" disabled={busy || wait > 0 || apiBase === ""} onClick={() => void upload()}>
+                {wait > 0 ? `${wait}s` : L.log.upload(pending)}
+              </Button>
+            )}
           </>
         }
-        bodyClassName="grid grid-cols-2 gap-3 md:grid-cols-4"
+        bodyClassName="grid grid-cols-2 gap-3 md:grid-cols-3"
       >
-        <TextInput value={map} onChange={(e) => setMap(e.target.value)} placeholder={L.log.filterMap} aria-label={L.log.filterMap} />
-        <TextInput
-          value={node}
-          onChange={(e) => setNode(e.target.value)}
-          placeholder={L.log.filterNode}
-          disabled={!map.trim()}
-          aria-label={L.log.filterNode}
-        />
+        <TextInput value={place} onChange={(e) => setPlace(e.target.value)} placeholder={L.log.filterMap} aria-label={L.log.filterMap} />
         <TextInput value={enemy} onChange={(e) => setEnemy(e.target.value)} placeholder={L.log.filterEnemy} aria-label={L.log.filterEnemy} />
         <Select value={rank} onChange={(e) => setRank(e.target.value)} aria-label={L.log.filterRank}>
           <option value="">
@@ -123,7 +118,7 @@ export const LogTab = ({ catalog }: { catalog: Catalog }) => {
       </Card>
 
       {battles !== null && rows.length === 0 ? (
-        <EmptyState title={L.log.empty} description={L.log.emptyHint} className="py-16" />
+        <EmptyState title={L.log.empty} className="py-16" />
       ) : (
         <Table>
           <Thead>

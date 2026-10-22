@@ -75,18 +75,20 @@ export const WebFrame = ({ serverUrl, poiState }: { serverUrl: string; poiState:
   return (
     <div ref={hostRef} className="flex min-h-0 flex-1 flex-col">
       {origin === null ? (
-        <EmptyState className="py-16" title="サーバ URL が正しくありません" description="送信設定タブで https の URL を設定してください。" />
+        <EmptyState className="py-16" title="サーバ URL が正しくありません" />
       ) : host !== null && !canEmbedIn(host) ? (
         <EmptyState
           className="py-16"
-          title="ウィンドウモードで開いてください"
-          description="シミュレータは外部のページ (サーバの Web UI) を埋め込みます。poi のタブ表示では埋め込んだページで Node.js が有効になりうるため表示しません。poi の設定 → プラグイン で、このプラグインのウィンドウモードをオンにしてください (観測ログ・送信設定はタブ表示でも使えます)。"
+          title="ウィンドウモードが必要です"
         />
       ) : (
         <>
           {webVersion !== null && webVersion > EMBED_VERSION && (
-            <div className="border-b border-warn-600/50 bg-warn-600/10 px-3 py-1 text-xs text-warn-400">
-              プラグインの更新があります (Web UI のプロトコル v{webVersion}、プラグイン v{EMBED_VERSION})。
+            <div
+              className="border-b border-warn-600/50 bg-warn-600/10 px-3 py-1 text-xs text-warn-400"
+              title={`Web UI v${webVersion} / プラグイン v${EMBED_VERSION}`}
+            >
+              プラグインの更新があります
             </div>
           )}
           {embeddable && (
