@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { normalizeForSearch } from "../fleet/catalog";
 import type { PickerOption } from "../fleet/catalog";
 import { cx } from "./cx";
@@ -24,6 +24,13 @@ interface Props {
   buttonClassName?: string;
   "aria-label"?: string;
 }
+
+const MENU_LIST_MAX = 288; // 一覧の最大高さ (px)
+const MENU_LIST_MIN = 96;
+const MENU_SEARCH = 44; // 検索欄の高さ
+const MENU_GAP = 4;
+const MENU_MARGIN = 8; // 画面端との余白
+const MENU_FULL = MENU_LIST_MAX + MENU_SEARCH + 8; // これだけ下に空きが無ければ上へ出すことを考える
 
 type Row =
   | { kind: "group"; label: string; key: string }
@@ -52,6 +59,8 @@ export const Combobox = ({
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  // 開いた時点のトリガー位置から、下に出すか上に出すかと一覧の最大高さを決める
+  const [place, setPlace] = useState<{ up: boolean; listMax: number }>({ up: false, listMax: MENU_LIST_MAX });
 
   const isSelected = (o: PickerOption) => (selectedKey !== undefined ? (o.key ?? String(o.value)) === selectedKey : o.value === value);
 
@@ -83,6 +92,18 @@ export const Combobox = ({
   }, [open]);
 
   useEffect(() => setActive(0), [query, open]);
+
+  useLayoutEffect(() => {
+    const el = trigger.current;
+    if (!open || !el) return;
+    const view = el.ownerDocument.defaultView;
+    if (!view) return;
+    const r = el.getBoundingClientRect();
+    const below = view.innerHeight - r.bottom - MENU_GAP - MENU_MARGIN;
+    const above = r.top - MENU_GAP - MENU_MARGIN;
+    const up = below < MENU_FULL && above > below;
+    setPlace({ up, listMax: Math.max(MENU_LIST_MIN, Math.min(MENU_LIST_MAX, (up ? above : below) - MENU_SEARCH)) });
+  }, [open]);
 
   useEffect(() => {
     listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
@@ -125,7 +146,7 @@ export const Combobox = ({
       </button>
 
       {open && (
-        <div className={cx("absolute top-full left-0 z-40 mt-1 w-full min-w-64 rounded-md border border-ink-500 bg-ink-800 shadow-2xl shadow-black/60", menuClassName)}>
+        <div className={cx("absolute left-0 z-40 w-full min-w-64 rounded-md border border-ink-500 bg-ink-800 shadow-2xl shadow-black/60", place.up ? "bottom-full mb-1" : "top-full mt-1", menuClassName)}>
           <div className="border-b border-ink-600 p-1.5">
             <input
               autoFocus
@@ -151,7 +172,7 @@ export const Combobox = ({
               className="h-7 w-full rounded border border-ink-600 bg-ink-950 px-2 text-sm text-ink-50 placeholder:text-ink-400 focus:border-accent-500 focus:outline-none"
             />
           </div>
-          <div ref={listRef} role="listbox" className="max-h-72 overflow-auto py-1">
+          <div ref={listRef} role="listbox" style={{ maxHeight: place.listMax }} className="overflow-auto py-1">
             {clearable && value !== null && (
               <button
                 type="button"
