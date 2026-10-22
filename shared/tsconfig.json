@@ -1,5 +1,5 @@
 {
-  // Code shared by poi-plugin-sim and server. Must pass the strictest flags of both packages.
+  // Code shared by web, poi-plugin-sim and server. Must pass the strictest flags of all of them.
   // Check: server/node_modules/.bin/tsc -p shared
   "compilerOptions": {
     "target": "ES2022",

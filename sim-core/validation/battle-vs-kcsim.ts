@@ -13,11 +13,11 @@
 // https://github.com/KC3Kai/kancolle-replay (MIT) in KCR_DIR.
 import { readFileSync, writeFileSync } from "node:fs";
 import vm from "node:vm";
-import { importFromPoi, masterFromPoi } from "../../poi-plugin-sim/src/fleet/poiImport";
-import { DataApi } from "../../poi-plugin-sim/src/data/api";
-import { MemoryStorage } from "../../poi-plugin-sim/src/fleet/storage";
-import { loadMapData } from "../../poi-plugin-sim/src/data/mapData";
-import { buildSortieInput } from "../../poi-plugin-sim/src/sim/sortieAdapter";
+import { importFromPoi, masterFromPoi } from "../../shared/fleet/poiImport";
+import { DataApi } from "../../web/src/data/api";
+import { MemoryStorage } from "../../web/src/fleet/storage";
+import { loadMapData } from "../../web/src/data/mapData";
+import { buildSortieInput } from "../../web/src/sim/sortieAdapter";
 import { initSync, runBattle, simulateSortie } from "../pkg/sim_core.js";
 import type { EquipmentInput, EquipmentStats, FleetInput, Formation, ShipInput, SortieInput, SortieSummary } from "../pkg/sim_core.js";
 
@@ -119,7 +119,7 @@ const CASES: Case[] = [
 
 // ------------------------------------------------------------- plugin pipeline ----
 
-const state: unknown = JSON.parse(readFileSync(`${ROOT}poi-plugin-sim/dev/sampleState.json`, "utf8"));
+const state: unknown = JSON.parse(readFileSync(`${ROOT}web/src/sampleState.json`, "utf8"));
 const master = masterFromPoi(state);
 const api = new DataApi({ baseUrl: () => API, storage: new MemoryStorage() });
 

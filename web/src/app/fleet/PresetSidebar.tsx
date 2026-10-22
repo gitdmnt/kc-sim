@@ -1,0 +1,150 @@
+import React, { useMemo, useState } from "react";
+import type { Preset } from "../../fleet";
+import { normalizeForSearch } from "../../fleet/catalog";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, TextInput, S } from "../../ui";
+import { cx } from "../../ui";
+import { useApp } from "../context";
+
+interface Props {
+  presets: Preset[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onCreate: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onImportPoi: (fleetIndex: number) => void;
+  onOpenIo: () => void;
+}
+
+const SOURCE_LABEL: Record<NonNullable<Preset["source"]>, string> = {
+  manual: "手動",
+  poi: "poi",
+  deckbuilder: "DeckBuilder",
+  import: "JSON",
+};
+
+const formatDate = (t: number) => {
+  const d = new Date(t);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
+export const PresetSidebar = ({
+  presets,
+  selectedId,
+  onSelect,
+  onCreate,
+  onDuplicate,
+  onDelete,
+  onImportPoi,
+  onOpenIo,
+}: Props) => {
+  const { catalog, state } = useApp();
+  // poi プラグインから開いていない (または未ログイン) ときは艦隊が無い
+  const hasPoiFleets = Array.isArray(state?.info?.fleets) && state.info.fleets.length > 0;
+  const [query, setQuery] = useState("");
+  const [confirming, setConfirming] = useState(false);
+
+  const filtered = useMemo(() => {
+    const q = normalizeForSearch(query);
+    if (!q) return presets;
+    return presets.filter((p) => {
+      const hay = normalizeForSearch(
+        `${p.name}${p.note ?? ""}${p.ships.map((s) => catalog.shipName(s.masterId)).join("")}`
+      );
+      return hay.includes(q);
+    });
+  }, [presets, query, catalog]);
+
+  const selected = presets.find((p) => p.id === selectedId);
+
+  return (
+    <Card
+      title={S.fleet.presets}
+      className="flex h-fit flex-col"
+      bodyClassName="flex flex-col gap-3 p-3"
+      actions={
+        // 選択中プリセットへの操作
+        <>
+          <Button variant="ghost" size="sm" disabled={!selected} onClick={onDuplicate}>
+            {S.common.duplicate}
+          </Button>
+          <Button variant="danger" size="sm" disabled={!selected} onClick={() => setConfirming(true)}>
+            {S.common.delete}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex items-center gap-1.5">
+        <span className="shrink-0 text-sm text-ink-200">{S.fleet.importPoi}</span>
+        {[0, 1, 2, 3].map((i) => (
+          <Button
+            key={i}
+            className="flex-1 px-0"
+            disabled={!hasPoiFleets}
+            onClick={() => onImportPoi(i)}
+            title={hasPoiFleets ? `第${i + 1}艦隊` : "poi プラグインから開くと poi の艦隊を取り込めます"}
+          >
+            {i + 1}
+          </Button>
+        ))}
+      </div>
+      <div className="flex gap-1.5">
+        <Button size="sm" className="flex-1" onClick={onCreate}>
+          ＋ {S.fleet.newPreset}
+        </Button>
+        <Button size="sm" className="flex-1" onClick={onOpenIo}>
+          {S.fleet.importExport}
+        </Button>
+      </div>
+
+      <TextInput
+        className="mt-1"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={S.fleet.searchPlaceholder}
+        aria-label={S.fleet.searchPlaceholder}
+      />
+      <ul className="-mx-1 flex max-h-[28rem] flex-col gap-1 overflow-auto px-1">
+        {filtered.map((p) => (
+          <li key={p.id}>
+            <button
+              type="button"
+              onClick={() => onSelect(p.id)}
+              className={cx(
+                "w-full cursor-pointer rounded-md border px-3 py-2 text-left transition-colors",
+                p.id === selectedId
+                  ? "border-accent-500/70 bg-accent-600/15"
+                  : "border-transparent bg-ink-900/40 hover:bg-ink-700/70"
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-sm font-medium text-ink-50">{p.name}</span>
+                {p.source && <Badge tone={p.source === "poi" ? "ok" : "neutral"}>{SOURCE_LABEL[p.source]}</Badge>}
+              </div>
+              <div className="mt-0.5 truncate text-xs text-ink-400">
+                {p.ships[0] && `${catalog.shipName(p.ships[0].masterId)} · `}
+                {p.ships.length}隻 · {formatDate(p.updatedAt)}
+              </div>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {presets.length === 0 && <EmptyState className="py-6" title={S.fleet.emptyList} description={S.fleet.emptyListHint} />}
+
+      {confirming && selected && (
+        <ConfirmDialog
+          danger
+          title={`「${selected.name}」を削除`}
+          message="このプリセットを削除します。取り消せません。"
+          confirmLabel={S.common.delete}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => {
+            setConfirming(false);
+            onDelete();
+          }}
+        />
+      )}
+    </Card>
+  );
+};

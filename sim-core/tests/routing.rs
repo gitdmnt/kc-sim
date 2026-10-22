@@ -208,7 +208,7 @@ fn golden_routes_5_5_speed_and_select() {
     assert!(err.contains("config.selects.F"), "{err}");
 }
 
-/// Shared with poi-plugin-sim `fleet/calc.test.ts` (tests/fixtures/los33-vectors.json).
+/// Shared with web `src/fleet/calc.test.ts` (tests/fixtures/los33-vectors.json).
 #[test]
 fn los_formula_33_shared_vectors() {
     let doc: Value = serde_json::from_str(include_str!("fixtures/los33-vectors.json")).unwrap();

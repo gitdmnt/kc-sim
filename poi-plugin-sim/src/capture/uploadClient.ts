@@ -8,7 +8,7 @@
  * - 状態 (トークン・次に送れる時刻) は localStorage にあるので、メインウィンドウの自動送信と
  *   プラグインウィンドウの手動送信が同じ間隔を共有する。
  */
-import { STORAGE_PREFIX } from "../fleet";
+import { STORAGE_PREFIX } from "../settings";
 import { UploadHttpError, parseRetryAfter } from "./db";
 import type { FetchFn, ObservationDb } from "./db";
 

@@ -5,6 +5,7 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "types": ["vite/client", "bun"],
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -23,12 +24,12 @@
     /* Path Resolution */
     "baseUrl": "./src",
     "paths": {
-      "@/*": ["*"],
-      "@utils/*": ["utils/*"],
+      "@web/*": ["../../web/src/*"],
       "@shared/*": ["../../shared/*"],
-      "@sim-core": ["../../sim-core/pkg/sim_core"],
-      "@sim-core/*": ["../../sim-core/pkg/*"]
+      // web/src のファイルも、このパッケージの React の型を使う (型が 2 組あると JSX の型が合わない)
+      "react": ["../node_modules/@types/react"],
+      "react/*": ["../node_modules/@types/react/*"]
     }
   },
-  "include": ["src", "dev"]
+  "include": ["src", "dev", "vite.config.ts"]
 }

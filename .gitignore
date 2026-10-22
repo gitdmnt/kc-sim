@@ -23,7 +23,7 @@ server/.tmp/
 .env.*
 
 # local dumps
-poi-plugin-sim/myState.json
+web/myState.json
 myState.json
 *.code-workspace
 
