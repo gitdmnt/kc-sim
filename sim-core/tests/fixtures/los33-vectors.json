@@ -1,0 +1,218 @@
+{
+ "about": "Formula 33 (判定式(33)) test vectors shared by sim-core routing::los33 and poi-plugin-sim fleet/calc.ts mapLos33. Expected values are unrounded; sim-core floors to 2 decimals. nakedLos includes visible equipment bonus LoS. Coefficients: torpedo bomber 0.8, carrier recon (9/94) 1.0, seaplane recon 1.2, seaplane bomber 1.1, others (incl. dive bombers, radars) 0.6; improvement × √★: carrier recon 1.2, seaplane recon 1.2, seaplane bomber 1.15, small radar 1.25, large radar (13/93) 1.4, flying boat 1.2 (kcsim getELoS).",
+ "vectors": [
+  {
+   "name": "sample 第4艦隊 (2-5): carrier recon ★10 counts 1.2√★",
+   "hq": 120,
+   "ships": [
+    {
+     "nakedLos": 40,
+     "equips": [
+      {
+       "cat": 6,
+       "los": 0,
+       "improvement": 0
+      },
+      {
+       "cat": 6,
+       "los": 0,
+       "improvement": 0
+      },
+      {
+       "cat": 8,
+       "los": 1,
+       "improvement": 0
+      },
+      {
+       "cat": 9,
+       "los": 9,
+       "improvement": 10
+      }
+     ]
+    },
+    {
+     "nakedLos": 40,
+     "equips": [
+      {
+       "cat": 6,
+       "los": 0,
+       "improvement": 0
+      },
+      {
+       "cat": 6,
+       "los": 0,
+       "improvement": 0
+      },
+      {
+       "cat": 8,
+       "los": 1,
+       "improvement": 0
+      },
+      {
+       "cat": 9,
+       "los": 7,
+       "improvement": 10
+      }
+     ]
+    },
+    {
+     "nakedLos": 32,
+     "equips": [
+      {
+       "cat": 10,
+       "los": 5,
+       "improvement": 10
+      },
+      {
+       "cat": 2,
+       "los": 0,
+       "improvement": 0
+      },
+      {
+       "cat": 12,
+       "los": 5,
+       "improvement": 10
+      }
+     ]
+    },
+    {
+     "nakedLos": 22,
+     "equips": [
+      {
+       "cat": 1,
+       "los": 0,
+       "improvement": 0
+      },
+      {
+       "cat": 5,
+       "los": 0,
+       "improvement": 0
+      },
+      {
+       "cat": 12,
+       "los": 5,
+       "improvement": 10
+      }
+     ]
+    },
+    {
+     "nakedLos": 22,
+     "equips": [
+      {
+       "cat": 1,
+       "los": 0,
+       "improvement": 0
+      },
+      {
+       "cat": 5,
+       "los": 0,
+       "improvement": 0
+      },
+      {
+       "cat": 12,
+       "los": 5,
+       "improvement": 10
+      }
+     ]
+    },
+    {
+     "nakedLos": 22,
+     "equips": [
+      {
+       "cat": 5,
+       "los": 0,
+       "improvement": 0
+      },
+      {
+       "cat": 5,
+       "los": 0,
+       "improvement": 0
+      }
+     ]
+    }
+   ],
+   "expected": {
+    "cn1": 36.2354831200616,
+    "cn2": 88.09375407048702,
+    "cn3": 139.95202502091246,
+    "cn4": 191.81029597133792
+   }
+  },
+  {
+   "name": "every coefficient class, 5 ships, HQ 100",
+   "hq": 100,
+   "ships": [
+    {
+     "nakedLos": 49,
+     "equips": [
+      {
+       "cat": 7,
+       "los": 3,
+       "improvement": 0
+      },
+      {
+       "cat": 11,
+       "los": 6,
+       "improvement": 4
+      }
+     ]
+    },
+    {
+     "nakedLos": 16,
+     "equips": [
+      {
+       "cat": 13,
+       "los": 10,
+       "improvement": 9
+      },
+      {
+       "cat": 41,
+       "los": 9,
+       "improvement": 2
+      }
+     ]
+    },
+    {
+     "nakedLos": 60,
+     "equips": [
+      {
+       "cat": 94,
+       "los": 10,
+       "improvement": 5
+      },
+      {
+       "cat": 93,
+       "los": 13,
+       "improvement": 1
+      }
+     ]
+    },
+    {
+     "nakedLos": 9,
+     "equips": [
+      {
+       "cat": 8,
+       "los": 2,
+       "improvement": 3
+      },
+      {
+       "cat": 6,
+       "los": 1,
+       "improvement": 0
+      }
+     ]
+    },
+    {
+     "nakedLos": 30,
+     "equips": []
+    }
+   ],
+   "expected": {
+    "cn1": 38.61470760537486,
+    "cn2": 88.00622294328325,
+    "cn3": 137.39773828119164,
+    "cn4": 186.7892536191
+   }
+  }
+ ]
+}

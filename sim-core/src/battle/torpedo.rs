@@ -1,0 +1,70 @@
+//! Opening and closing torpedo salvos (kcsim `torpedoPhase`, KC3Kai/kancolle-replay,
+//! MIT © fourinone41). All targets and attack powers are fixed before any torpedo lands.
+
+use super::calc;
+use super::{Battle, List};
+use crate::formulas::{self, Roll};
+use crate::model::{AttackKind, SpecialAttack};
+use crate::ship::{ShipCore, ShipState};
+
+fn can_open_torp(c: &ShipCore, st: &ShipState) -> bool {
+    st.hp > 0 && (c.has_midget_sub || (c.class.is_sub() && c.level >= 10.0 && !c.no_opening_torpedo))
+}
+
+fn can_close_torp(c: &ShipCore, st: &ShipState) -> bool {
+    st.hp > 0 && c.has_torp_stat && st.hp_ratio(c.max_hp) > 0.5
+}
+
+impl<'a> Battle<'a> {
+    pub(super) fn torpedo_phase(&mut self, opening: bool) {
+        let mut targets = [List::default(), List::default()];
+        for side in 0..2 {
+            for &i in self.surface(side).as_slice() {
+                if !self.core(side, i).is_installation {
+                    targets[side].push(i);
+                }
+            }
+        }
+        // (side, attacker, target, covered, power)
+        let mut shots: Vec<(usize, usize, usize, bool, f64)> = Vec::with_capacity(14);
+        for side in 0..2 {
+            let def = 1 - side;
+            if targets[def].is_empty() {
+                continue;
+            }
+            let order = {
+                let mut l = self.surface(side);
+                for &s in self.subs(side).as_slice() {
+                    l.push(s);
+                }
+                l
+            };
+            for &a in order.as_slice() {
+                let c = self.core(side, a);
+                let st = &self.st[side][a];
+                let ok = if opening { can_open_torp(c, st) } else { can_close_torp(c, st) };
+                if !ok {
+                    continue;
+                }
+                let ratio = st.hp_ratio(c.max_hp);
+                let power = calc::torpedo_power(&self.unit(side, a), self.eng, ratio);
+                let (t, covered) = self.choose_target(def, targets[def].as_slice(), 0);
+                shots.push((side, a, t, covered, power));
+            }
+        }
+        for (side, a, d, covered, power) in shots {
+            let def = 1 - side;
+            let acc = calc::torpedo_acc(&self.unit(side, a), &self.unit(def, d), power);
+            let roll = formulas::roll_hit(self.rng(), &acc.hc, 1.0);
+            let hp_before = self.st[def][d].hp;
+            let mut real = 0;
+            if roll != Roll::Miss {
+                let ammo = self.unit(side, a).ammo_mod();
+                let armor = self.core(def, d).ar;
+                let dmg = formulas::damage_common(self.rng(), power, roll, armor, ammo, hp_before);
+                real = self.take_damage(def, d, dmg);
+            }
+            self.record(AttackKind::Torpedo, SpecialAttack::Normal, side, a, d, covered, None, roll, real, hp_before, &acc.hc);
+        }
+    }
+}

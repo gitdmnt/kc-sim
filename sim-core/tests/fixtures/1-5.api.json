@@ -1,0 +1,2276 @@
+{
+ "_note": "Fetched once from the local data-worker (GET /api/v1/maps/1-5, …/nodes/{F,J}/enemy-comps, /ships/{id}, /equipments/{id}) on 2026-10-22.",
+ "map": {
+  "map": {
+   "id": 15,
+   "key": "1-5",
+   "world": 1,
+   "no": 5,
+   "name": "鎮守府近海",
+   "opetext": "鎮守府近海対潜哨戒",
+   "isEvent": false,
+   "maxHp": null,
+   "requiredDefeatCount": 4
+  },
+  "nodes": [
+   {
+    "letter": "A",
+    "x": 533,
+    "y": 223,
+    "colorNo": 4,
+    "eventId": 4,
+    "eventKind": null,
+    "type": "battle",
+    "isBoss": false
+   },
+   {
+    "letter": "B",
+    "x": 635,
+    "y": 461,
+    "colorNo": 90,
+    "eventId": 6,
+    "eventKind": null,
+    "type": "empty",
+    "isBoss": false
+   },
+   {
+    "letter": "C",
+    "x": 712,
+    "y": 322,
+    "colorNo": 4,
+    "eventId": 4,
+    "eventKind": null,
+    "type": "battle",
+    "isBoss": false
+   },
+   {
+    "letter": "D",
+    "x": 747,
+    "y": 185,
+    "colorNo": 4,
+    "eventId": 4,
+    "eventKind": null,
+    "type": "battle",
+    "isBoss": false
+   },
+   {
+    "letter": "E",
+    "x": 832,
+    "y": 346,
+    "colorNo": 4,
+    "eventId": 4,
+    "eventKind": null,
+    "type": "battle",
+    "isBoss": false
+   },
+   {
+    "letter": "F",
+    "x": 899,
+    "y": 260,
+    "colorNo": 4,
+    "eventId": 4,
+    "eventKind": null,
+    "type": "battle",
+    "isBoss": false
+   },
+   {
+    "letter": "G",
+    "x": 974,
+    "y": 363,
+    "colorNo": 90,
+    "eventId": 6,
+    "eventKind": null,
+    "type": "empty",
+    "isBoss": false
+   },
+   {
+    "letter": "H",
+    "x": 1021,
+    "y": 498,
+    "colorNo": 4,
+    "eventId": 4,
+    "eventKind": null,
+    "type": "battle",
+    "isBoss": false
+   },
+   {
+    "letter": "I",
+    "x": 1070,
+    "y": 343,
+    "colorNo": 4,
+    "eventId": 4,
+    "eventKind": null,
+    "type": "battle",
+    "isBoss": false
+   },
+   {
+    "letter": "J",
+    "x": 808,
+    "y": 522,
+    "colorNo": 5,
+    "eventId": 5,
+    "eventKind": null,
+    "type": "boss",
+    "isBoss": true
+   },
+   {
+    "letter": "Start",
+    "x": 457,
+    "y": 435,
+    "colorNo": null,
+    "eventId": null,
+    "eventKind": null,
+    "type": "start",
+    "isBoss": false
+   }
+  ],
+  "edges": [
+   {
+    "id": 1,
+    "from": "Start",
+    "to": "A"
+   },
+   {
+    "id": 2,
+    "from": "C",
+    "to": "B"
+   },
+   {
+    "id": 3,
+    "from": "E",
+    "to": "C"
+   },
+   {
+    "id": 4,
+    "from": "A",
+    "to": "D"
+   },
+   {
+    "id": 5,
+    "from": "D",
+    "to": "E"
+   },
+   {
+    "id": 6,
+    "from": "D",
+    "to": "F"
+   },
+   {
+    "id": 7,
+    "from": "F",
+    "to": "G"
+   },
+   {
+    "id": 8,
+    "from": "G",
+    "to": "H"
+   },
+   {
+    "id": 9,
+    "from": "F",
+    "to": "I"
+   },
+   {
+    "id": 10,
+    "from": "C",
+    "to": "J"
+   },
+   {
+    "id": 11,
+    "from": "E",
+    "to": "J"
+   },
+   {
+    "id": 12,
+    "from": "G",
+    "to": "J"
+   }
+  ],
+  "routing": {
+   "map": "1-5",
+   "sources": [
+    {
+     "id": "compass",
+     "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+     "id": "kc3-edges",
+     "note": "adjacency from KC3Kai src/data/edges.json (World 1-5)"
+    }
+   ],
+   "nodes": {
+    "Start": {
+     "rules": [
+      {
+       "to": "A"
+      }
+     ]
+    },
+    "A": {
+     "rules": [
+      {
+       "to": "D"
+      }
+     ]
+    },
+    "D": {
+     "rules": [
+      {
+       "when": {
+        "m": "ships",
+        "eq": 1
+       },
+       "to": "E"
+      },
+      {
+       "when": {
+        "m": "ships",
+        "gte": 5
+       },
+       "rules": [
+        {
+         "when": {
+          "m": "count",
+          "types": [
+           "SS_CLASS"
+          ],
+          "gte": 1
+         },
+         "to": "F"
+        },
+        {
+         "note": "text says only 'ランダム'; ratio assumed 50/50",
+         "uncertain": true,
+         "random": [
+          {
+           "to": "E",
+           "p": 0.5
+          },
+          {
+           "to": "F",
+           "p": 0.5
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "when": {
+        "any": [
+         {
+          "m": "onlyTypes",
+          "types": [
+           "DE"
+          ]
+         },
+         {
+          "m": "count",
+          "types": [
+           "AO"
+          ],
+          "gte": 1
+         }
+        ]
+       },
+       "to": "E"
+      },
+      {
+       "to": "F"
+      }
+     ]
+    },
+    "E": {
+     "rules": [
+      {
+       "when": {
+        "m": "ships",
+        "gte": 5
+       },
+       "to": "C"
+      },
+      {
+       "when": {
+        "m": "onlyTypes",
+        "types": [
+         "DE"
+        ]
+       },
+       "to": "J"
+      },
+      {
+       "to": "C"
+      }
+     ]
+    },
+    "C": {
+     "rules": [
+      {
+       "when": {
+        "m": "onlyTypes",
+        "types": [
+         "DE"
+        ]
+       },
+       "to": "J"
+      },
+      {
+       "when": {
+        "all": [
+         {
+          "m": "count",
+          "types": [
+           "CL"
+          ],
+          "eq": 1
+         },
+         {
+          "m": "count",
+          "types": [
+           "DE"
+          ],
+          "eq": 4
+         },
+         {
+          "m": "ships",
+          "eq": 5
+         }
+        ]
+       },
+       "note": "marked '?' in source text",
+       "uncertain": true,
+       "to": "J"
+      },
+      {
+       "when": {
+        "all": [
+         {
+          "m": "ships",
+          "lte": 4
+         },
+         {
+          "m": "count",
+          "types": [
+           "AO"
+          ],
+          "gte": 1
+         }
+        ]
+       },
+       "random": [
+        {
+         "to": "B",
+         "p": 0.5
+        },
+        {
+         "to": "J",
+         "p": 0.5
+        }
+       ]
+      },
+      {
+       "to": "B"
+      }
+     ]
+    },
+    "F": {
+     "rules": [
+      {
+       "when": {
+        "any": [
+         {
+          "m": "count",
+          "types": [
+           "BATTLESHIP",
+           "STD_CV",
+           "SS_CLASS"
+          ],
+          "gte": 1
+         },
+         {
+          "m": "count",
+          "types": [
+           "CVL"
+          ],
+          "gte": 2
+         },
+         {
+          "m": "count",
+          "types": [
+           "CL"
+          ],
+          "gte": 3
+         }
+        ]
+       },
+       "note": "'戦艦' read as FBB+BB (not BBV)",
+       "to": "I"
+      },
+      {
+       "to": "G"
+      }
+     ]
+    },
+    "G": {
+     "rules": [
+      {
+       "when": {
+        "m": "ships",
+        "gte": 5
+       },
+       "to": "H"
+      },
+      {
+       "to": "J"
+      }
+     ]
+    },
+    "B": {
+     "end": true
+    },
+    "H": {
+     "end": true
+    },
+    "I": {
+     "end": true
+    },
+    "J": {
+     "end": true,
+     "note": "boss"
+    }
+   }
+  },
+  "enemyCompNodes": [
+   "F",
+   "J"
+  ]
+ },
+ "enemyComps": {
+  "F": {
+   "map": "1-5",
+   "node": "F",
+   "sets": [
+    {
+     "difficulty": 0,
+     "periodStart": "2026-08-22",
+     "periodEnd": null,
+     "totalCount": 40779,
+     "retrievedAt": "2026-10-21T18:40:45.590Z",
+     "source": "kcnav",
+     "comps": [
+      {
+       "id": 30,
+       "kcnavMasterId": 114980132,
+       "formation": 4,
+       "count": 10112,
+       "weight": 0.24797076926849604,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1533,
+         "level": 50,
+         "hp": 34,
+         "fp": 0,
+         "tp": 74,
+         "aa": 0,
+         "ar": 27,
+         "equips": [
+          1515,
+          1514,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      },
+      {
+       "id": 29,
+       "kcnavMasterId": 114980345,
+       "formation": 4,
+       "count": 10053,
+       "weight": 0.24652394614875303,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1533,
+         "level": 50,
+         "hp": 34,
+         "fp": 0,
+         "tp": 74,
+         "aa": 0,
+         "ar": 27,
+         "equips": [
+          1515,
+          1514,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1532,
+         "level": 50,
+         "hp": 27,
+         "fp": 0,
+         "tp": 64,
+         "aa": 0,
+         "ar": 21,
+         "equips": [
+          1515,
+          1513,
+          1513,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      },
+      {
+       "id": 28,
+       "kcnavMasterId": 114980292,
+       "formation": 4,
+       "count": 9592,
+       "weight": 0.2352191078741509,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1533,
+         "level": 50,
+         "hp": 34,
+         "fp": 0,
+         "tp": 74,
+         "aa": 0,
+         "ar": 27,
+         "equips": [
+          1515,
+          1514,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1532,
+         "level": 50,
+         "hp": 27,
+         "fp": 0,
+         "tp": 64,
+         "aa": 0,
+         "ar": 21,
+         "equips": [
+          1515,
+          1513,
+          1513,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1532,
+         "level": 50,
+         "hp": 27,
+         "fp": 0,
+         "tp": 64,
+         "aa": 0,
+         "ar": 21,
+         "equips": [
+          1515,
+          1513,
+          1513,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      },
+      {
+       "id": 27,
+       "kcnavMasterId": 114980355,
+       "formation": 4,
+       "count": 9481,
+       "weight": 0.23249711861497338,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1533,
+         "level": 50,
+         "hp": 34,
+         "fp": 0,
+         "tp": 74,
+         "aa": 0,
+         "ar": 27,
+         "equips": [
+          1515,
+          1514,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1532,
+         "level": 50,
+         "hp": 27,
+         "fp": 0,
+         "tp": 64,
+         "aa": 0,
+         "ar": 21,
+         "equips": [
+          1515,
+          1513,
+          1513,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1532,
+         "level": 50,
+         "hp": 27,
+         "fp": 0,
+         "tp": 64,
+         "aa": 0,
+         "ar": 21,
+         "equips": [
+          1515,
+          1513,
+          1513,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1532,
+         "level": 50,
+         "hp": 27,
+         "fp": 0,
+         "tp": 64,
+         "aa": 0,
+         "ar": 21,
+         "equips": [
+          1515,
+          1513,
+          1513,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      },
+      {
+       "id": 32,
+       "kcnavMasterId": 114980462,
+       "formation": 4,
+       "count": 946,
+       "weight": 0.02319821476740479,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1531,
+         "level": 50,
+         "hp": 24,
+         "fp": 0,
+         "tp": 52,
+         "aa": 0,
+         "ar": 9,
+         "equips": [
+          1514,
+          1514,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      },
+      {
+       "id": 31,
+       "kcnavMasterId": 114980284,
+       "formation": 4,
+       "count": 595,
+       "weight": 0.01459084332622183,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1533,
+         "level": 50,
+         "hp": 34,
+         "fp": 0,
+         "tp": 74,
+         "aa": 0,
+         "ar": 27,
+         "equips": [
+          1515,
+          1514,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      }
+     ]
+    }
+   ]
+  },
+  "J": {
+   "map": "1-5",
+   "node": "J",
+   "sets": [
+    {
+     "difficulty": 0,
+     "periodStart": "2026-08-22",
+     "periodEnd": null,
+     "totalCount": 54114,
+     "retrievedAt": "2026-10-21T18:40:45.590Z",
+     "source": "kcnav",
+     "comps": [
+      {
+       "id": 35,
+       "kcnavMasterId": 114980417,
+       "formation": 4,
+       "count": 13482,
+       "weight": 0.2491407029604169,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1535,
+         "level": 50,
+         "hp": 44,
+         "fp": 0,
+         "tp": 96,
+         "aa": 0,
+         "ar": 36,
+         "equips": [
+          1515,
+          1515,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1533,
+         "level": 50,
+         "hp": 34,
+         "fp": 0,
+         "tp": 74,
+         "aa": 0,
+         "ar": 27,
+         "equips": [
+          1515,
+          1514,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      },
+      {
+       "id": 36,
+       "kcnavMasterId": 114980121,
+       "formation": 4,
+       "count": 13388,
+       "weight": 0.2474036293750231,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1535,
+         "level": 50,
+         "hp": 44,
+         "fp": 0,
+         "tp": 96,
+         "aa": 0,
+         "ar": 36,
+         "equips": [
+          1515,
+          1515,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      },
+      {
+       "id": 33,
+       "kcnavMasterId": 114980262,
+       "formation": 4,
+       "count": 13013,
+       "weight": 0.2404738145396755,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1572,
+         "level": 50,
+         "hp": 48,
+         "fp": 30,
+         "tp": 135,
+         "aa": 0,
+         "ar": 42,
+         "equips": [
+          1515,
+          1515,
+          1515,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1533,
+         "level": 50,
+         "hp": 34,
+         "fp": 0,
+         "tp": 74,
+         "aa": 0,
+         "ar": 27,
+         "equips": [
+          1515,
+          1514,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1533,
+         "level": 50,
+         "hp": 34,
+         "fp": 0,
+         "tp": 74,
+         "aa": 0,
+         "ar": 27,
+         "equips": [
+          1515,
+          1514,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      },
+      {
+       "id": 34,
+       "kcnavMasterId": 114980154,
+       "formation": 4,
+       "count": 12862,
+       "weight": 0.23768340909930888,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1572,
+         "level": 50,
+         "hp": 48,
+         "fp": 30,
+         "tp": 135,
+         "aa": 0,
+         "ar": 42,
+         "equips": [
+          1515,
+          1515,
+          1515,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1533,
+         "level": 50,
+         "hp": 34,
+         "fp": 0,
+         "tp": 74,
+         "aa": 0,
+         "ar": 27,
+         "equips": [
+          1515,
+          1514,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      },
+      {
+       "id": 37,
+       "kcnavMasterId": 114983066,
+       "formation": 4,
+       "count": 924,
+       "weight": 0.017075063754296484,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1535,
+         "level": 50,
+         "hp": 44,
+         "fp": 0,
+         "tp": 96,
+         "aa": 0,
+         "ar": 36,
+         "equips": [
+          1515,
+          1515,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      },
+      {
+       "id": 38,
+       "kcnavMasterId": 114980284,
+       "formation": 4,
+       "count": 226,
+       "weight": 0.004176368407436153,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1533,
+         "level": 50,
+         "hp": 34,
+         "fp": 0,
+         "tp": 74,
+         "aa": 0,
+         "ar": 27,
+         "equips": [
+          1515,
+          1514,
+          1514,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      },
+      {
+       "id": 39,
+       "kcnavMasterId": 114980099,
+       "formation": 4,
+       "count": 219,
+       "weight": 0.0040470118638429985,
+       "airpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "lbasAirpower": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": [
+        {
+         "shipId": 1532,
+         "level": 50,
+         "hp": 27,
+         "fp": 0,
+         "tp": 64,
+         "aa": 0,
+         "ar": 21,
+         "equips": [
+          1515,
+          1513,
+          1513,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        },
+        {
+         "shipId": 1530,
+         "level": 50,
+         "hp": 19,
+         "fp": 0,
+         "tp": 42,
+         "aa": 0,
+         "ar": 7,
+         "equips": [
+          1513,
+          1513,
+          -1,
+          -1,
+          -1
+         ]
+        }
+       ],
+       "escort": []
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "ships": {
+  "1530": {
+   "ship": {
+    "id": 1530,
+    "name": "潜水カ級",
+    "nameEn": "SS Ka-Class",
+    "yomi": "",
+    "stype": 13,
+    "ctype": 1,
+    "speed": 5,
+    "range": 1,
+    "slotNum": 2,
+    "isAbyssal": true,
+    "hp": 19,
+    "fp": 0,
+    "tp": 42,
+    "aa": 0,
+    "ar": 7,
+    "luck": null,
+    "maxStats": null,
+    "slots": [
+     0,
+     0
+    ],
+    "equips": [
+     1513,
+     1513
+    ],
+    "flags": {
+     "canOpTorp": "function"
+    }
+   },
+   "estimates": [
+    {
+     "stat": "acc",
+     "value": 20,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "asw",
+     "value": 0,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "ev",
+     "value": 1,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "los",
+     "value": 6,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "luck",
+     "value": 1,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    }
+   ],
+   "best": {
+    "acc": {
+     "value": 20,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "asw": {
+     "value": 0,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "ev": {
+     "value": 1,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "los": {
+     "value": 6,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "luck": {
+     "value": 1,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    }
+   }
+  },
+  "1531": {
+   "ship": {
+    "id": 1531,
+    "name": "潜水ヨ級",
+    "nameEn": "SS Yo-Class",
+    "yomi": "",
+    "stype": 13,
+    "ctype": 1,
+    "speed": 5,
+    "range": 1,
+    "slotNum": 2,
+    "isAbyssal": true,
+    "hp": 24,
+    "fp": 0,
+    "tp": 52,
+    "aa": 0,
+    "ar": 9,
+    "luck": null,
+    "maxStats": null,
+    "slots": [
+     0,
+     0
+    ],
+    "equips": [
+     1514,
+     1514
+    ],
+    "flags": {
+     "canOpTorp": "function"
+    }
+   },
+   "estimates": [
+    {
+     "stat": "acc",
+     "value": 25,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "asw",
+     "value": 0,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "ev",
+     "value": 1,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "los",
+     "value": 7,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "luck",
+     "value": 5,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    }
+   ],
+   "best": {
+    "acc": {
+     "value": 25,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "asw": {
+     "value": 0,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "ev": {
+     "value": 1,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "los": {
+     "value": 7,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "luck": {
+     "value": 5,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    }
+   }
+  },
+  "1532": {
+   "ship": {
+    "id": 1532,
+    "name": "潜水カ級",
+    "nameEn": "SS Ka-Class Elite",
+    "yomi": "elite",
+    "stype": 13,
+    "ctype": 1,
+    "speed": 5,
+    "range": 1,
+    "slotNum": 3,
+    "isAbyssal": true,
+    "hp": 27,
+    "fp": 0,
+    "tp": 64,
+    "aa": 0,
+    "ar": 21,
+    "luck": null,
+    "maxStats": null,
+    "slots": [
+     0,
+     0,
+     0
+    ],
+    "equips": [
+     1515,
+     1513,
+     1513
+    ],
+    "flags": null
+   },
+   "estimates": [
+    {
+     "stat": "acc",
+     "value": 55,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "asw",
+     "value": 0,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "ev",
+     "value": 5,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "los",
+     "value": 8,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "luck",
+     "value": 10,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    }
+   ],
+   "best": {
+    "acc": {
+     "value": 55,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "asw": {
+     "value": 0,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "ev": {
+     "value": 5,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "los": {
+     "value": 8,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "luck": {
+     "value": 10,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    }
+   }
+  },
+  "1533": {
+   "ship": {
+    "id": 1533,
+    "name": "潜水ヨ級",
+    "nameEn": "SS Yo-Class Elite",
+    "yomi": "elite",
+    "stype": 13,
+    "ctype": 1,
+    "speed": 5,
+    "range": 1,
+    "slotNum": 3,
+    "isAbyssal": true,
+    "hp": 34,
+    "fp": 0,
+    "tp": 74,
+    "aa": 0,
+    "ar": 27,
+    "luck": null,
+    "maxStats": null,
+    "slots": [
+     0,
+     0,
+     0
+    ],
+    "equips": [
+     1515,
+     1514,
+     1514
+    ],
+    "flags": null
+   },
+   "estimates": [
+    {
+     "stat": "acc",
+     "value": 65,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "asw",
+     "value": 0,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "ev",
+     "value": 5,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "los",
+     "value": 9,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "luck",
+     "value": 10,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    }
+   ],
+   "best": {
+    "acc": {
+     "value": 65,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "asw": {
+     "value": 0,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "ev": {
+     "value": 5,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "los": {
+     "value": 9,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "luck": {
+     "value": 10,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    }
+   }
+  },
+  "1535": {
+   "ship": {
+    "id": 1535,
+    "name": "潜水ヨ級",
+    "nameEn": "SS Yo-Class Flagship",
+    "yomi": "flagship",
+    "stype": 13,
+    "ctype": 1,
+    "speed": 5,
+    "range": 1,
+    "slotNum": 3,
+    "isAbyssal": true,
+    "hp": 44,
+    "fp": 0,
+    "tp": 96,
+    "aa": 0,
+    "ar": 36,
+    "luck": null,
+    "maxStats": null,
+    "slots": [
+     0,
+     0,
+     0
+    ],
+    "equips": [
+     1515,
+     1515,
+     1514
+    ],
+    "flags": null
+   },
+   "estimates": [
+    {
+     "stat": "acc",
+     "value": 70,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "asw",
+     "value": 0,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "ev",
+     "value": 10,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "los",
+     "value": 10,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "luck",
+     "value": 20,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    }
+   ],
+   "best": {
+    "acc": {
+     "value": 70,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "asw": {
+     "value": 0,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "ev": {
+     "value": 10,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "los": {
+     "value": 10,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "luck": {
+     "value": 20,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    }
+   }
+  },
+  "1572": {
+   "ship": {
+    "id": 1572,
+    "name": "潜水ソ級",
+    "nameEn": "SS So-Class Flagship",
+    "yomi": "flagship",
+    "stype": 13,
+    "ctype": 1,
+    "speed": 5,
+    "range": 1,
+    "slotNum": 3,
+    "isAbyssal": true,
+    "hp": 48,
+    "fp": 30,
+    "tp": 135,
+    "aa": 0,
+    "ar": 42,
+    "luck": null,
+    "maxStats": null,
+    "slots": [
+     0,
+     0,
+     0
+    ],
+    "equips": [
+     1515,
+     1515,
+     1515
+    ],
+    "flags": null
+   },
+   "estimates": [
+    {
+     "stat": "acc",
+     "value": 80,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "asw",
+     "value": 0,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "ev",
+     "value": 15,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "los",
+     "value": 18,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    },
+    {
+     "stat": "luck",
+     "value": 45,
+     "confidence": "datamined",
+     "sd": null,
+     "n": null,
+     "source": "kancolle-replay-shipdata",
+     "note": null,
+     "updatedAt": "2026-10-21T18:27:28.856Z"
+    }
+   ],
+   "best": {
+    "acc": {
+     "value": 80,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "asw": {
+     "value": 0,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "ev": {
+     "value": 15,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "los": {
+     "value": 18,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    },
+    "luck": {
+     "value": 45,
+     "confidence": "datamined",
+     "source": "kancolle-replay-shipdata"
+    }
+   }
+  }
+ },
+ "equipments": {
+  "1513": {
+   "equipment": {
+    "id": 1513,
+    "name": "21inch魚雷前期型",
+    "type": [
+     2,
+     3,
+     5,
+     5,
+     0
+    ],
+    "typeId": 5,
+    "icon": 5,
+    "fp": 0,
+    "tp": 2,
+    "aa": 0,
+    "ar": 0,
+    "bomb": 0,
+    "asw": 0,
+    "los": 0,
+    "acc": 0,
+    "ev": 0,
+    "luck": 0,
+    "range": 1,
+    "radius": null,
+    "cost": null,
+    "isAbyssal": true
+   }
+  },
+  "1514": {
+   "equipment": {
+    "id": 1514,
+    "name": "21inch魚雷後期型",
+    "type": [
+     2,
+     3,
+     5,
+     5,
+     0
+    ],
+    "typeId": 5,
+    "icon": 5,
+    "fp": 0,
+    "tp": 5,
+    "aa": 0,
+    "ar": 0,
+    "bomb": 0,
+    "asw": 0,
+    "los": 0,
+    "acc": 0,
+    "ev": 0,
+    "luck": 0,
+    "range": 1,
+    "radius": null,
+    "cost": null,
+    "isAbyssal": true
+   }
+  },
+  "1515": {
+   "equipment": {
+    "id": 1515,
+    "name": "高速深海魚雷",
+    "type": [
+     2,
+     3,
+     5,
+     5,
+     0
+    ],
+    "typeId": 5,
+    "icon": 5,
+    "fp": 0,
+    "tp": 10,
+    "aa": 0,
+    "ar": 0,
+    "bomb": 0,
+    "asw": 0,
+    "los": 0,
+    "acc": 0,
+    "ev": 0,
+    "luck": 0,
+    "range": 1,
+    "radius": null,
+    "cost": null,
+    "isAbyssal": true
+   }
+  }
+ }
+}

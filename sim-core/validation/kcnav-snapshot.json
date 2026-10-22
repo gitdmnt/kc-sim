@@ -1,0 +1,3541 @@
+{
+ "retrievedAt": "2026-10-21T20:19:02.216Z",
+ "maps": {
+  "1-5": {
+   "map": {
+    "id": 15,
+    "key": "1-5",
+    "world": 1,
+    "no": 5,
+    "name": "鎮守府近海",
+    "opetext": "鎮守府近海対潜哨戒",
+    "isEvent": false,
+    "maxHp": null,
+    "requiredDefeatCount": 4
+   },
+   "nodes": [
+    {
+     "letter": "A",
+     "x": 533,
+     "y": 223,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "B",
+     "x": 635,
+     "y": 461,
+     "colorNo": 90,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "C",
+     "x": 712,
+     "y": 322,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "D",
+     "x": 747,
+     "y": 185,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "E",
+     "x": 832,
+     "y": 346,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "F",
+     "x": 899,
+     "y": 260,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "G",
+     "x": 974,
+     "y": 363,
+     "colorNo": 90,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "H",
+     "x": 1021,
+     "y": 498,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "I",
+     "x": 1070,
+     "y": 343,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "J",
+     "x": 808,
+     "y": 522,
+     "colorNo": 5,
+     "eventId": 5,
+     "eventKind": null,
+     "type": "boss",
+     "isBoss": true
+    },
+    {
+     "letter": "Start",
+     "x": 457,
+     "y": 435,
+     "colorNo": null,
+     "eventId": null,
+     "eventKind": null,
+     "type": "start",
+     "isBoss": false
+    }
+   ],
+   "edges": [
+    {
+     "id": 1,
+     "from": "Start",
+     "to": "A"
+    },
+    {
+     "id": 2,
+     "from": "C",
+     "to": "B"
+    },
+    {
+     "id": 3,
+     "from": "E",
+     "to": "C"
+    },
+    {
+     "id": 4,
+     "from": "A",
+     "to": "D"
+    },
+    {
+     "id": 5,
+     "from": "D",
+     "to": "E"
+    },
+    {
+     "id": 6,
+     "from": "D",
+     "to": "F"
+    },
+    {
+     "id": 7,
+     "from": "F",
+     "to": "G"
+    },
+    {
+     "id": 8,
+     "from": "G",
+     "to": "H"
+    },
+    {
+     "id": 9,
+     "from": "F",
+     "to": "I"
+    },
+    {
+     "id": 10,
+     "from": "C",
+     "to": "J"
+    },
+    {
+     "id": 11,
+     "from": "E",
+     "to": "J"
+    },
+    {
+     "id": 12,
+     "from": "G",
+     "to": "J"
+    }
+   ],
+   "routing": {
+    "map": "1-5",
+    "sources": [
+     {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+     },
+     {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 1-5)"
+     }
+    ],
+    "nodes": {
+     "Start": {
+      "rules": [
+       {
+        "to": "A"
+       }
+      ]
+     },
+     "A": {
+      "rules": [
+       {
+        "to": "D"
+       }
+      ]
+     },
+     "D": {
+      "rules": [
+       {
+        "when": {
+         "m": "ships",
+         "eq": 1
+        },
+        "to": "E"
+       },
+       {
+        "when": {
+         "m": "ships",
+         "gte": 5
+        },
+        "rules": [
+         {
+          "when": {
+           "m": "count",
+           "types": [
+            "SS_CLASS"
+           ],
+           "gte": 1
+          },
+          "to": "F"
+         },
+         {
+          "note": "text says only 'ランダム'; ratio assumed 50/50",
+          "uncertain": true,
+          "random": [
+           {
+            "to": "E",
+            "p": 0.5
+           },
+           {
+            "to": "F",
+            "p": 0.5
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "when": {
+         "any": [
+          {
+           "m": "onlyTypes",
+           "types": [
+            "DE"
+           ]
+          },
+          {
+           "m": "count",
+           "types": [
+            "AO"
+           ],
+           "gte": 1
+          }
+         ]
+        },
+        "to": "E"
+       },
+       {
+        "to": "F"
+       }
+      ]
+     },
+     "E": {
+      "rules": [
+       {
+        "when": {
+         "m": "ships",
+         "gte": 5
+        },
+        "to": "C"
+       },
+       {
+        "when": {
+         "m": "onlyTypes",
+         "types": [
+          "DE"
+         ]
+        },
+        "to": "J"
+       },
+       {
+        "to": "C"
+       }
+      ]
+     },
+     "C": {
+      "rules": [
+       {
+        "when": {
+         "m": "onlyTypes",
+         "types": [
+          "DE"
+         ]
+        },
+        "to": "J"
+       },
+       {
+        "when": {
+         "all": [
+          {
+           "m": "count",
+           "types": [
+            "CL"
+           ],
+           "eq": 1
+          },
+          {
+           "m": "count",
+           "types": [
+            "DE"
+           ],
+           "eq": 4
+          },
+          {
+           "m": "ships",
+           "eq": 5
+          }
+         ]
+        },
+        "note": "marked '?' in source text",
+        "uncertain": true,
+        "to": "J"
+       },
+       {
+        "when": {
+         "all": [
+          {
+           "m": "ships",
+           "lte": 4
+          },
+          {
+           "m": "count",
+           "types": [
+            "AO"
+           ],
+           "gte": 1
+          }
+         ]
+        },
+        "random": [
+         {
+          "to": "B",
+          "p": 0.5
+         },
+         {
+          "to": "J",
+          "p": 0.5
+         }
+        ]
+       },
+       {
+        "to": "B"
+       }
+      ]
+     },
+     "F": {
+      "rules": [
+       {
+        "when": {
+         "any": [
+          {
+           "m": "count",
+           "types": [
+            "BATTLESHIP",
+            "STD_CV",
+            "SS_CLASS"
+           ],
+           "gte": 1
+          },
+          {
+           "m": "count",
+           "types": [
+            "CVL"
+           ],
+           "gte": 2
+          },
+          {
+           "m": "count",
+           "types": [
+            "CL"
+           ],
+           "gte": 3
+          }
+         ]
+        },
+        "note": "'戦艦' read as FBB+BB (not BBV)",
+        "to": "I"
+       },
+       {
+        "to": "G"
+       }
+      ]
+     },
+     "G": {
+      "rules": [
+       {
+        "when": {
+         "m": "ships",
+         "gte": 5
+        },
+        "to": "H"
+       },
+       {
+        "to": "J"
+       }
+      ]
+     },
+     "B": {
+      "end": true
+     },
+     "H": {
+      "end": true
+     },
+     "I": {
+      "end": true
+     },
+     "J": {
+      "end": true,
+      "note": "boss"
+     }
+    }
+   },
+   "enemyCompNodes": [
+    "A",
+    "C",
+    "D",
+    "E",
+    "F",
+    "H",
+    "I",
+    "J"
+   ]
+  },
+  "2-5": {
+   "map": {
+    "id": 25,
+    "key": "2-5",
+    "world": 2,
+    "no": 5,
+    "name": "沖ノ島沖",
+    "opetext": "沖ノ島沖戦闘哨戒",
+    "isEvent": false,
+    "maxHp": null,
+    "requiredDefeatCount": 4
+   },
+   "nodes": [
+    {
+     "letter": "A",
+     "x": 242,
+     "y": 146,
+     "colorNo": 90,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "B",
+     "x": 319,
+     "y": 265,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "C",
+     "x": 403,
+     "y": 469,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "D",
+     "x": 551,
+     "y": 516,
+     "colorNo": 90,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "E",
+     "x": 560,
+     "y": 357,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "F",
+     "x": 580,
+     "y": 173,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "G",
+     "x": 751,
+     "y": 461,
+     "colorNo": 3,
+     "eventId": 3,
+     "eventKind": null,
+     "type": "maelstrom",
+     "isBoss": false
+    },
+    {
+     "letter": "H",
+     "x": 789,
+     "y": 226,
+     "colorNo": 90,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "I",
+     "x": 817,
+     "y": 299,
+     "colorNo": 90,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "J",
+     "x": 860,
+     "y": 200,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "K",
+     "x": 877,
+     "y": 529,
+     "colorNo": 90,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "L",
+     "x": 916,
+     "y": 370,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "M",
+     "x": 945,
+     "y": 151,
+     "colorNo": 2,
+     "eventId": 2,
+     "eventKind": null,
+     "type": "resource",
+     "isBoss": false
+    },
+    {
+     "letter": "N",
+     "x": 1055,
+     "y": 474,
+     "colorNo": 2,
+     "eventId": 2,
+     "eventKind": null,
+     "type": "resource",
+     "isBoss": false
+    },
+    {
+     "letter": "O",
+     "x": 1043,
+     "y": 312,
+     "colorNo": 5,
+     "eventId": 5,
+     "eventKind": null,
+     "type": "boss",
+     "isBoss": true
+    },
+    {
+     "letter": "Start",
+     "x": 178,
+     "y": 384,
+     "colorNo": null,
+     "eventId": null,
+     "eventKind": null,
+     "type": "start",
+     "isBoss": false
+    }
+   ],
+   "edges": [
+    {
+     "id": 1,
+     "from": "B",
+     "to": "A"
+    },
+    {
+     "id": 2,
+     "from": "Start",
+     "to": "B"
+    },
+    {
+     "id": 3,
+     "from": "Start",
+     "to": "C"
+    },
+    {
+     "id": 4,
+     "from": "C",
+     "to": "D"
+    },
+    {
+     "id": 5,
+     "from": "C",
+     "to": "E"
+    },
+    {
+     "id": 6,
+     "from": "B",
+     "to": "F"
+    },
+    {
+     "id": 7,
+     "from": "E",
+     "to": "G"
+    },
+    {
+     "id": 8,
+     "from": "I",
+     "to": "H"
+    },
+    {
+     "id": 9,
+     "from": "E",
+     "to": "I"
+    },
+    {
+     "id": 10,
+     "from": "F",
+     "to": "J"
+    },
+    {
+     "id": 11,
+     "from": "G",
+     "to": "K"
+    },
+    {
+     "id": 12,
+     "from": "G",
+     "to": "L"
+    },
+    {
+     "id": 13,
+     "from": "J",
+     "to": "M"
+    },
+    {
+     "id": 14,
+     "from": "L",
+     "to": "N"
+    },
+    {
+     "id": 15,
+     "from": "I",
+     "to": "O"
+    },
+    {
+     "id": 16,
+     "from": "F",
+     "to": "E"
+    },
+    {
+     "id": 17,
+     "from": "J",
+     "to": "H"
+    },
+    {
+     "id": 18,
+     "from": "G",
+     "to": "I"
+    },
+    {
+     "id": 19,
+     "from": "J",
+     "to": "O"
+    },
+    {
+     "id": 20,
+     "from": "L",
+     "to": "O"
+    }
+   ],
+   "routing": {
+    "map": "2-5",
+    "sources": [
+     {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+     },
+     {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 2-5)"
+     }
+    ],
+    "nodes": {
+     "Start": {
+      "rules": [
+       {
+        "when": {
+         "m": "count",
+         "types": [
+          "SS_CLASS"
+         ],
+         "gte": 4
+        },
+        "to": "B"
+       },
+       {
+        "when": {
+         "all": [
+          {
+           "m": "count",
+           "types": [
+            "SS_CLASS"
+           ],
+           "gte": 1
+          },
+          {
+           "m": "count",
+           "types": [
+            "BB_CLASS"
+           ],
+           "lte": 3
+          },
+          {
+           "any": [
+            {
+             "m": "count",
+             "types": [
+              "CV_CLASS"
+             ],
+             "gte": 1
+            },
+            {
+             "m": "count",
+             "types": [
+              "AV"
+             ],
+             "gte": 2
+            }
+           ]
+          }
+         ]
+        },
+        "note": "ratio not stated in source; 50/50 assumed",
+        "uncertain": true,
+        "random": [
+         {
+          "to": "B",
+          "p": 0.5
+         },
+         {
+          "to": "C",
+          "p": 0.5
+         }
+        ]
+       },
+       {
+        "when": {
+         "any": [
+          {
+           "m": "count",
+           "types": [
+            "CV_CLASS"
+           ],
+           "gte": 1
+          },
+          {
+           "m": "count",
+           "types": [
+            "AV"
+           ],
+           "gte": 2
+          }
+         ]
+        },
+        "to": "C"
+       },
+       {
+        "when": {
+         "any": [
+          {
+           "m": "equipShips",
+           "equip": {
+            "group": "DRUM"
+           },
+           "gte": 2
+          },
+          {
+           "m": "count",
+           "types": [
+            "DD_DE"
+           ],
+           "gte": 4
+          },
+          {
+           "all": [
+            {
+             "m": "count",
+             "types": [
+              "CL"
+             ],
+             "gte": 1
+            },
+            {
+             "m": "count",
+             "types": [
+              "DD_DE"
+             ],
+             "gte": 3
+            }
+           ]
+          }
+         ]
+        },
+        "to": "B"
+       },
+       {
+        "when": {
+         "any": [
+          {
+           "m": "count",
+           "types": [
+            "BB_CLASS"
+           ],
+           "gte": 1
+          },
+          {
+           "all": [
+            {
+             "m": "count",
+             "types": [
+              "CL",
+              "CLT"
+             ],
+             "gte": 1
+            },
+            {
+             "m": "count",
+             "types": [
+              "CAV"
+             ],
+             "gte": 2
+            }
+           ]
+          },
+          {
+           "all": [
+            {
+             "m": "count",
+             "types": [
+              "CL",
+              "CLT"
+             ],
+             "gte": 1
+            },
+            {
+             "m": "count",
+             "types": [
+              "CAV"
+             ],
+             "gte": 1
+            },
+            {
+             "m": "count",
+             "types": [
+              "CA_CLASS",
+              "CL",
+              "CLT"
+             ],
+             "gte": 5
+            }
+           ]
+          }
+         ]
+        },
+        "note": "third clause follows the source text (重巡級+軽巡+雷巡); the compiled rule uses CAV+CL+CLT instead",
+        "uncertain": true,
+        "to": "C"
+       },
+       {
+        "when": {
+         "m": "ships",
+         "eq": 6
+        },
+        "note": "80% marked '?'",
+        "uncertain": true,
+        "random": [
+         {
+          "to": "B",
+          "p": 0.8
+         },
+         {
+          "to": "C",
+          "p": 0.2
+         }
+        ]
+       },
+       {
+        "note": "'かなりCマス寄り?' (95%)",
+        "uncertain": true,
+        "random": [
+         {
+          "to": "B",
+          "p": 0.05
+         },
+         {
+          "to": "C",
+          "p": 0.95
+         }
+        ]
+       }
+      ]
+     },
+     "B": {
+      "rules": [
+       {
+        "when": {
+         "m": "count",
+         "types": [
+          "SS_CLASS"
+         ],
+         "gte": 3
+        },
+        "to": "A"
+       },
+       {
+        "to": "F"
+       }
+      ]
+     },
+     "C": {
+      "rules": [
+       {
+        "when": {
+         "any": [
+          {
+           "m": "count",
+           "types": [
+            "CV_CLASS"
+           ],
+           "gte": 3
+          },
+          {
+           "m": "count",
+           "types": [
+            "BB_CLASS"
+           ],
+           "gte": 3
+          }
+         ]
+        },
+        "to": "D"
+       },
+       {
+        "when": {
+         "any": [
+          {
+           "all": [
+            {
+             "m": "count",
+             "types": [
+              "CL"
+             ],
+             "gte": 1
+            },
+            {
+             "m": "count",
+             "types": [
+              "DD"
+             ],
+             "gte": 2
+            }
+           ]
+          },
+          {
+           "all": [
+            {
+             "m": "count",
+             "types": [
+              "CAV"
+             ],
+             "gte": 2
+            },
+            {
+             "m": "count",
+             "types": [
+              "DD"
+             ],
+             "gte": 2
+            }
+           ]
+          }
+         ]
+        },
+        "to": "E"
+       },
+       {
+        "random": [
+         {
+          "to": "D",
+          "p": 0.3
+         },
+         {
+          "to": "E",
+          "p": 0.7
+         }
+        ]
+       }
+      ]
+     },
+     "E": {
+      "rules": [
+       {
+        "when": {
+         "m": "count",
+         "types": [
+          "BB_CLASS"
+         ],
+         "gte": 1
+        },
+        "to": "G"
+       },
+       {
+        "when": {
+         "all": [
+          {
+           "m": "count",
+           "types": [
+            "CL"
+           ],
+           "gte": 1
+          },
+          {
+           "m": "count",
+           "types": [
+            "DD_DE"
+           ],
+           "gte": 4
+          }
+         ]
+        },
+        "to": "I"
+       },
+       {
+        "when": {
+         "any": [
+          {
+           "m": "speed",
+           "eq": "slow"
+          },
+          {
+           "m": "count",
+           "types": [
+            "STD_CV",
+            "CA_CLASS"
+           ],
+           "gte": 2
+          }
+         ]
+        },
+        "to": "G"
+       },
+       {
+        "when": {
+         "all": [
+          {
+           "m": "count",
+           "types": [
+            "CL"
+           ],
+           "gte": 1
+          },
+          {
+           "m": "count",
+           "types": [
+            "DD"
+           ],
+           "gte": 3
+          }
+         ]
+        },
+        "to": "I"
+       },
+       {
+        "to": "G"
+       }
+      ]
+     },
+     "F": {
+      "rules": [
+       {
+        "when": {
+         "m": "speed",
+         "eq": "slow"
+        },
+        "to": "J"
+       },
+       {
+        "when": {
+         "any": [
+          {
+           "m": "count",
+           "types": [
+            "DD"
+           ],
+           "gte": 3
+          },
+          {
+           "all": [
+            {
+             "m": "count",
+             "types": [
+              "CL"
+             ],
+             "gte": 1
+            },
+            {
+             "m": "count",
+             "types": [
+              "DD"
+             ],
+             "gte": 2
+            }
+           ]
+          }
+         ]
+        },
+        "to": "E"
+       },
+       {
+        "random": [
+         {
+          "to": "E",
+          "p": 0.35
+         },
+         {
+          "to": "J",
+          "p": 0.65
+         }
+        ]
+       }
+      ]
+     },
+     "G": {
+      "rules": [
+       {
+        "when": {
+         "any": [
+          {
+           "all": [
+            {
+             "m": "count",
+             "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+             ],
+             "lte": 1
+            },
+            {
+             "m": "count",
+             "types": [
+              "DD_DE"
+             ],
+             "gte": 4
+            }
+           ]
+          },
+          {
+           "all": [
+            {
+             "m": "count",
+             "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+             ],
+             "eq": 0
+            },
+            {
+             "m": "count",
+             "types": [
+              "CL"
+             ],
+             "gte": 1
+            },
+            {
+             "m": "count",
+             "types": [
+              "DD"
+             ],
+             "gte": 3
+            }
+           ]
+          }
+         ]
+        },
+        "to": "I"
+       },
+       {
+        "when": {
+         "m": "los",
+         "cn": 1,
+         "lt": 37
+        },
+        "note": "threshold 37 marked '?'",
+        "uncertain": true,
+        "to": "K"
+       },
+       {
+        "when": {
+         "m": "los",
+         "cn": 1,
+         "lt": 41
+        },
+        "note": "threshold 41 marked '?'; ratio inside the band unknown",
+        "uncertain": true,
+        "random": [
+         {
+          "to": "K",
+          "p": 0.5
+         },
+         {
+          "to": "L",
+          "p": 0.5
+         }
+        ]
+       },
+       {
+        "to": "L"
+       }
+      ]
+     },
+     "I": {
+      "rules": [
+       {
+        "when": {
+         "m": "los",
+         "cn": 1,
+         "lt": 31
+        },
+        "to": "H"
+       },
+       {
+        "when": {
+         "m": "los",
+         "cn": 1,
+         "lt": 34
+        },
+        "note": "ratio inside the band unknown",
+        "uncertain": true,
+        "random": [
+         {
+          "to": "H",
+          "p": 0.5
+         },
+         {
+          "to": "O",
+          "p": 0.5
+         }
+        ]
+       },
+       {
+        "to": "O"
+       }
+      ]
+     },
+     "J": {
+      "rules": [
+       {
+        "when": {
+         "m": "los",
+         "cn": 1,
+         "lt": 42
+        },
+        "note": "threshold 42 marked '?'",
+        "uncertain": true,
+        "to": "H"
+       },
+       {
+        "when": {
+         "m": "los",
+         "cn": 1,
+         "lt": 49
+        },
+        "note": "threshold 49 marked '?'",
+        "uncertain": true,
+        "rules": [
+         {
+          "when": {
+           "m": "count",
+           "types": [
+            "BB_CLASS",
+            "CV_CLASS"
+           ],
+           "gte": 4
+          },
+          "random": [
+           {
+            "to": "H",
+            "p": 0.333
+           },
+           {
+            "to": "M",
+            "p": 0.333
+           },
+           {
+            "to": "O",
+            "p": 0.334
+           }
+          ]
+         },
+         {
+          "random": [
+           {
+            "to": "H",
+            "p": 0.5
+           },
+           {
+            "to": "O",
+            "p": 0.5
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "when": {
+         "m": "count",
+         "types": [
+          "BB_CLASS",
+          "CV_CLASS"
+         ],
+         "gte": 4
+        },
+        "random": [
+         {
+          "to": "M",
+          "p": 0.5
+         },
+         {
+          "to": "O",
+          "p": 0.5
+         }
+        ]
+       },
+       {
+        "to": "O"
+       }
+      ]
+     },
+     "L": {
+      "rules": [
+       {
+        "when": {
+         "all": [
+          {
+           "m": "count",
+           "types": [
+            "CL"
+           ],
+           "gte": 1
+          },
+          {
+           "m": "count",
+           "types": [
+            "DD"
+           ],
+           "gte": 2
+          }
+         ]
+        },
+        "to": "O"
+       },
+       {
+        "when": {
+         "m": "count",
+         "types": [
+          "BB_CLASS",
+          "CV_CLASS"
+         ],
+         "eq": 0
+        },
+        "note": "60% marked '?'",
+        "uncertain": true,
+        "random": [
+         {
+          "to": "N",
+          "p": 0.4
+         },
+         {
+          "to": "O",
+          "p": 0.6
+         }
+        ]
+       },
+       {
+        "note": "60% marked '?'",
+        "uncertain": true,
+        "random": [
+         {
+          "to": "N",
+          "p": 0.6
+         },
+         {
+          "to": "O",
+          "p": 0.4
+         }
+        ]
+       }
+      ]
+     },
+     "A": {
+      "end": true
+     },
+     "D": {
+      "end": true
+     },
+     "H": {
+      "end": true
+     },
+     "K": {
+      "end": true
+     },
+     "M": {
+      "end": true
+     },
+     "N": {
+      "end": true
+     },
+     "O": {
+      "end": true,
+      "note": "boss"
+     }
+    }
+   },
+   "enemyCompNodes": [
+    "B",
+    "C",
+    "E",
+    "F",
+    "J",
+    "L",
+    "O"
+   ]
+  },
+  "5-5": {
+   "map": {
+    "id": 55,
+    "key": "5-5",
+    "world": 5,
+    "no": 5,
+    "name": "サーモン海域北方",
+    "opetext": "第二次サーモン海戦",
+    "isEvent": false,
+    "maxHp": null,
+    "requiredDefeatCount": 5
+   },
+   "nodes": [
+    {
+     "letter": "A",
+     "x": 186,
+     "y": 367,
+     "colorNo": 90,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "B",
+     "x": 383,
+     "y": 219,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "C",
+     "x": 386,
+     "y": 460,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "D",
+     "x": 435,
+     "y": 399,
+     "colorNo": 3,
+     "eventId": 3,
+     "eventKind": null,
+     "type": "maelstrom",
+     "isBoss": false
+    },
+    {
+     "letter": "E",
+     "x": 453,
+     "y": 505,
+     "colorNo": 2,
+     "eventId": 2,
+     "eventKind": null,
+     "type": "resource",
+     "isBoss": false
+    },
+    {
+     "letter": "F",
+     "x": 481,
+     "y": 296,
+     "colorNo": 91,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "G",
+     "x": 516,
+     "y": 528,
+     "colorNo": 11,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "H",
+     "x": 559,
+     "y": 366,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "I",
+     "x": 592,
+     "y": 553,
+     "colorNo": 90,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "J",
+     "x": 624,
+     "y": 245,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "K",
+     "x": 652,
+     "y": 151,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "L",
+     "x": 661,
+     "y": 454,
+     "colorNo": 3,
+     "eventId": 3,
+     "eventKind": null,
+     "type": "maelstrom",
+     "isBoss": false
+    },
+    {
+     "letter": "M",
+     "x": 750,
+     "y": 524,
+     "colorNo": 11,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "N",
+     "x": 776,
+     "y": 364,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "O",
+     "x": 839,
+     "y": 468,
+     "colorNo": 90,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "P",
+     "x": 873,
+     "y": 266,
+     "colorNo": 4,
+     "eventId": 4,
+     "eventKind": null,
+     "type": "battle",
+     "isBoss": false
+    },
+    {
+     "letter": "Q",
+     "x": 1009,
+     "y": 221,
+     "colorNo": 90,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "R",
+     "x": 1036,
+     "y": 526,
+     "colorNo": 90,
+     "eventId": 6,
+     "eventKind": null,
+     "type": "empty",
+     "isBoss": false
+    },
+    {
+     "letter": "S",
+     "x": 1047,
+     "y": 390,
+     "colorNo": 5,
+     "eventId": 5,
+     "eventKind": null,
+     "type": "boss",
+     "isBoss": true
+    },
+    {
+     "letter": "Start",
+     "x": 178,
+     "y": 166,
+     "colorNo": null,
+     "eventId": null,
+     "eventKind": null,
+     "type": "start",
+     "isBoss": false
+    }
+   ],
+   "edges": [
+    {
+     "id": 1,
+     "from": "Start",
+     "to": "A"
+    },
+    {
+     "id": 2,
+     "from": "Start",
+     "to": "B"
+    },
+    {
+     "id": 3,
+     "from": "A",
+     "to": "C"
+    },
+    {
+     "id": 4,
+     "from": "F",
+     "to": "D"
+    },
+    {
+     "id": 5,
+     "from": "C",
+     "to": "E"
+    },
+    {
+     "id": 6,
+     "from": "B",
+     "to": "F"
+    },
+    {
+     "id": 7,
+     "from": "E",
+     "to": "G"
+    },
+    {
+     "id": 8,
+     "from": "D",
+     "to": "H"
+    },
+    {
+     "id": 9,
+     "from": "G",
+     "to": "I"
+    },
+    {
+     "id": 10,
+     "from": "F",
+     "to": "J"
+    },
+    {
+     "id": 11,
+     "from": "B",
+     "to": "K"
+    },
+    {
+     "id": 12,
+     "from": "H",
+     "to": "L"
+    },
+    {
+     "id": 13,
+     "from": "I",
+     "to": "M"
+    },
+    {
+     "id": 14,
+     "from": "H",
+     "to": "N"
+    },
+    {
+     "id": 15,
+     "from": "M",
+     "to": "O"
+    },
+    {
+     "id": 16,
+     "from": "H",
+     "to": "P"
+    },
+    {
+     "id": 17,
+     "from": "P",
+     "to": "Q"
+    },
+    {
+     "id": 18,
+     "from": "O",
+     "to": "R"
+    },
+    {
+     "id": 19,
+     "from": "O",
+     "to": "S"
+    },
+    {
+     "id": 20,
+     "from": "E",
+     "to": "H"
+    },
+    {
+     "id": 21,
+     "from": "I",
+     "to": "L"
+    },
+    {
+     "id": 22,
+     "from": "M",
+     "to": "L"
+    },
+    {
+     "id": 23,
+     "from": "N",
+     "to": "M"
+    },
+    {
+     "id": 24,
+     "from": "L",
+     "to": "N"
+    },
+    {
+     "id": 25,
+     "from": "N",
+     "to": "O"
+    },
+    {
+     "id": 26,
+     "from": "J",
+     "to": "P"
+    },
+    {
+     "id": 27,
+     "from": "K",
+     "to": "P"
+    },
+    {
+     "id": 28,
+     "from": "P",
+     "to": "S"
+    }
+   ],
+   "routing": {
+    "map": "5-5",
+    "sources": [
+     {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+     },
+     {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 5-5)"
+     }
+    ],
+    "defaults": {
+     "select": {
+      "F": "D"
+     }
+    },
+    "nodes": {
+     "Start": {
+      "rules": [
+       {
+        "when": {
+         "any": [
+          {
+           "m": "count",
+           "types": [
+            "DD"
+           ],
+           "gte": 4
+          },
+          {
+           "m": "equipShips",
+           "equip": {
+            "group": "DRUM"
+           },
+           "gte": 4
+          },
+          {
+           "m": "equipShips",
+           "equip": {
+            "group": "LANDING_CRAFT"
+           },
+           "gte": 4
+          }
+         ]
+        },
+        "to": "A"
+       },
+       {
+        "to": "B"
+       }
+      ]
+     },
+     "A": {
+      "rules": [
+       {
+        "to": "C"
+       }
+      ]
+     },
+     "C": {
+      "rules": [
+       {
+        "to": "E"
+       }
+      ]
+     },
+     "B": {
+      "rules": [
+       {
+        "when": {
+         "any": [
+          {
+           "m": "count",
+           "types": [
+            "STD_CV"
+           ],
+           "gte": 3
+          },
+          {
+           "m": "count",
+           "types": [
+            "BB_CLASS",
+            "CLT"
+           ],
+           "gte": 4
+          },
+          {
+           "m": "count",
+           "types": [
+            "CLT"
+           ],
+           "gte": 3
+          },
+          {
+           "m": "count",
+           "types": [
+            "DD"
+           ],
+           "lte": 1
+          }
+         ]
+        },
+        "to": "K"
+       },
+       {
+        "to": "F"
+       }
+      ]
+     },
+     "E": {
+      "rules": [
+       {
+        "when": {
+         "any": [
+          {
+           "m": "speed",
+           "eq": "fastest"
+          },
+          {
+           "all": [
+            {
+             "m": "count",
+             "types": [
+              "DD"
+             ],
+             "gte": 2
+            },
+            {
+             "m": "speed",
+             "gte": "fastPlus"
+            }
+           ]
+          }
+         ]
+        },
+        "to": "H"
+       },
+       {
+        "to": "G"
+       }
+      ]
+     },
+     "F": {
+      "rules": [
+       {
+        "note": "active branch (能動分岐)",
+        "select": [
+         "D",
+         "J"
+        ]
+       }
+      ]
+     },
+     "D": {
+      "rules": [
+       {
+        "to": "H"
+       }
+      ]
+     },
+     "G": {
+      "rules": [
+       {
+        "to": "I"
+       }
+      ]
+     },
+     "J": {
+      "rules": [
+       {
+        "to": "P"
+       }
+      ]
+     },
+     "K": {
+      "rules": [
+       {
+        "to": "P"
+       }
+      ]
+     },
+     "L": {
+      "rules": [
+       {
+        "to": "N"
+       }
+      ]
+     },
+     "H": {
+      "rules": [
+       {
+        "when": {
+         "m": "speed",
+         "eq": "fastest"
+        },
+        "to": "N"
+       },
+       {
+        "when": {
+         "m": "count",
+         "types": [
+          "BB_CLASS",
+          "CV_CLASS"
+         ],
+         "gte": 4
+        },
+        "to": "P"
+       },
+       {
+        "when": {
+         "m": "count",
+         "types": [
+          "DD"
+         ],
+         "lte": 1
+        },
+        "to": "L"
+       },
+       {
+        "to": "N"
+       }
+      ]
+     },
+     "I": {
+      "rules": [
+       {
+        "when": {
+         "all": [
+          {
+           "m": "count",
+           "types": [
+            "BB_CLASS",
+            "CV_CLASS"
+           ],
+           "eq": 3
+          },
+          {
+           "m": "count",
+           "types": [
+            "DD"
+           ],
+           "gte": 2
+          }
+         ]
+        },
+        "to": "L"
+       },
+       {
+        "to": "M"
+       }
+      ]
+     },
+     "M": {
+      "rules": [
+       {
+        "when": {
+         "m": "visited",
+         "node": "N"
+        },
+        "to": "O"
+       },
+       {
+        "when": {
+         "any": [
+          {
+           "m": "count",
+           "types": [
+            "BB_CLASS",
+            "CV_CLASS"
+           ],
+           "gte": 4
+          },
+          {
+           "m": "count",
+           "types": [
+            "DD"
+           ],
+           "lte": 1
+          }
+         ]
+        },
+        "to": "L"
+       },
+       {
+        "to": "O"
+       }
+      ]
+     },
+     "N": {
+      "rules": [
+       {
+        "when": {
+         "any": [
+          {
+           "m": "visited",
+           "node": "M"
+          },
+          {
+           "m": "speed",
+           "gte": "fastPlus"
+          },
+          {
+           "m": "count",
+           "types": [
+            "AO"
+           ],
+           "gte": 1
+          }
+         ]
+        },
+        "to": "O"
+       },
+       {
+        "when": {
+         "any": [
+          {
+           "m": "count",
+           "types": [
+            "STD_CV"
+           ],
+           "gte": 1
+          },
+          {
+           "m": "count",
+           "types": [
+            "BB_CLASS",
+            "CVL"
+           ],
+           "gte": 3
+          },
+          {
+           "m": "count",
+           "types": [
+            "DD"
+           ],
+           "lte": 1
+          }
+         ]
+        },
+        "to": "M"
+       },
+       {
+        "to": "O"
+       }
+      ]
+     },
+     "O": {
+      "rules": [
+       {
+        "when": {
+         "m": "speed",
+         "gte": "fastPlus"
+        },
+        "to": "S"
+       },
+       {
+        "when": {
+         "m": "los",
+         "cn": 2,
+         "lt": 63
+        },
+        "to": "R"
+       },
+       {
+        "when": {
+         "any": [
+          {
+           "m": "los",
+           "cn": 2,
+           "lt": 66
+          },
+          {
+           "m": "count",
+           "types": [
+            "SS_CLASS"
+           ],
+           "gte": 1
+          }
+         ]
+        },
+        "note": "ratio inside the band unknown",
+        "uncertain": true,
+        "random": [
+         {
+          "to": "S",
+          "p": 0.5
+         },
+         {
+          "to": "R",
+          "p": 0.5
+         }
+        ]
+       },
+       {
+        "to": "S"
+       }
+      ]
+     },
+     "P": {
+      "rules": [
+       {
+        "when": {
+         "m": "speed",
+         "eq": "fastest"
+        },
+        "to": "S"
+       },
+       {
+        "when": {
+         "m": "speed",
+         "eq": "fastPlus"
+        },
+        "rules": [
+         {
+          "when": {
+           "m": "count",
+           "types": [
+            "SS_CLASS"
+           ],
+           "gte": 1
+          },
+          "uncertain": true,
+          "random": [
+           {
+            "to": "Q",
+            "p": 0.5
+           },
+           {
+            "to": "S",
+            "p": 0.5
+           }
+          ]
+         },
+         {
+          "when": {
+           "m": "count",
+           "types": [
+            "BB_CLASS",
+            "CV_CLASS"
+           ],
+           "lte": 5
+          },
+          "to": "S"
+         },
+         {
+          "uncertain": true,
+          "random": [
+           {
+            "to": "Q",
+            "p": 0.5
+           },
+           {
+            "to": "S",
+            "p": 0.5
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "when": {
+         "m": "los",
+         "cn": 2,
+         "lt": 73
+        },
+        "to": "Q"
+       },
+       {
+        "when": {
+         "any": [
+          {
+           "m": "los",
+           "cn": 2,
+           "lt": 80
+          },
+          {
+           "m": "count",
+           "types": [
+            "SS_CLASS"
+           ],
+           "gte": 1
+          },
+          {
+           "m": "count",
+           "types": [
+            "BB_CLASS",
+            "CV_CLASS"
+           ],
+           "gte": 5
+          }
+         ]
+        },
+        "random": [
+         {
+          "to": "S",
+          "p": 0.666
+         },
+         {
+          "to": "Q",
+          "p": 0.334
+         }
+        ]
+       },
+       {
+        "to": "S"
+       }
+      ]
+     },
+     "Q": {
+      "end": true
+     },
+     "R": {
+      "end": true
+     },
+     "S": {
+      "end": true,
+      "note": "boss"
+     }
+    }
+   },
+   "enemyCompNodes": [
+    "B",
+    "C",
+    "G",
+    "H",
+    "J",
+    "K",
+    "M",
+    "N",
+    "P",
+    "S"
+   ]
+  }
+ },
+ "counts": [
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 0,
+   "runs": 115695,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 1,
+   "runs": 115695,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 2,
+   "runs": 67,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 3,
+   "runs": 393,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 4,
+   "runs": 114512,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 5,
+   "runs": 29371,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 6,
+   "runs": 78677,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 7,
+   "runs": 73940,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 8,
+   "runs": 59,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 9,
+   "runs": 105,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 10,
+   "runs": 9,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 11,
+   "runs": 26116,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22",
+   "edgeId": 12,
+   "runs": 73845,
+   "retrievedAt": "2026-10-21T20:01:34.289Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 0,
+   "runs": 99855,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 1,
+   "runs": 99855,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 2,
+   "runs": 48,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 3,
+   "runs": 238,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 4,
+   "runs": 99022,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 5,
+   "runs": 28108,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 6,
+   "runs": 69190,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 7,
+   "runs": 65470,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 8,
+   "runs": 32,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 9,
+   "runs": 83,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 10,
+   "runs": 9,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 11,
+   "runs": 26116,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 12,
+   "runs": 65392,
+   "retrievedAt": "2026-10-21T20:03:45.306Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 0,
+   "runs": 15840,
+   "retrievedAt": "2026-10-21T20:05:56.336Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 1,
+   "runs": 15840,
+   "retrievedAt": "2026-10-21T20:05:56.336Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 2,
+   "runs": 19,
+   "retrievedAt": "2026-10-21T20:05:56.336Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 3,
+   "runs": 155,
+   "retrievedAt": "2026-10-21T20:05:56.336Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 4,
+   "runs": 15490,
+   "retrievedAt": "2026-10-21T20:05:56.336Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 5,
+   "runs": 1263,
+   "retrievedAt": "2026-10-21T20:05:56.336Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 6,
+   "runs": 9487,
+   "retrievedAt": "2026-10-21T20:05:56.336Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 7,
+   "runs": 8470,
+   "retrievedAt": "2026-10-21T20:05:56.336Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 8,
+   "runs": 27,
+   "retrievedAt": "2026-10-21T20:05:56.336Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 9,
+   "runs": 22,
+   "retrievedAt": "2026-10-21T20:05:56.336Z"
+  },
+  {
+   "map": "1-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 12,
+   "runs": 8453,
+   "retrievedAt": "2026-10-21T20:05:56.336Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 0,
+   "runs": 22334,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 1,
+   "runs": 2,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 2,
+   "runs": 7158,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 3,
+   "runs": 15176,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 4,
+   "runs": 149,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 5,
+   "runs": 13710,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 6,
+   "runs": 6823,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 7,
+   "runs": 1691,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 8,
+   "runs": 366,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 9,
+   "runs": 12185,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 10,
+   "runs": 4361,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 11,
+   "runs": 299,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 12,
+   "runs": 1376,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 14,
+   "runs": 77,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 15,
+   "runs": 11827,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 16,
+   "runs": 2074,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 17,
+   "runs": 212,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 18,
+   "runs": 6,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 19,
+   "runs": 3429,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22",
+   "edgeId": 20,
+   "runs": 880,
+   "retrievedAt": "2026-10-21T20:02:39.797Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 0,
+   "runs": 6366,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 1,
+   "runs": 2,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 2,
+   "runs": 4451,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 3,
+   "runs": 1915,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 4,
+   "runs": 85,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 5,
+   "runs": 1529,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 6,
+   "runs": 4315,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 7,
+   "runs": 1279,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 8,
+   "runs": 1,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 9,
+   "runs": 14,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 10,
+   "runs": 4253,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 11,
+   "runs": 235,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 12,
+   "runs": 1036,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 14,
+   "runs": 33,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 15,
+   "runs": 13,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 17,
+   "runs": 204,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 19,
+   "runs": 3367,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&maxSpeed=5",
+   "edgeId": 20,
+   "runs": 696,
+   "retrievedAt": "2026-10-21T20:04:50.825Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 0,
+   "runs": 15968,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 2,
+   "runs": 2707,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 3,
+   "runs": 13261,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 4,
+   "runs": 64,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 5,
+   "runs": 12181,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 6,
+   "runs": 2508,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 7,
+   "runs": 412,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 8,
+   "runs": 365,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 9,
+   "runs": 12171,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 10,
+   "runs": 108,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 11,
+   "runs": 64,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 12,
+   "runs": 340,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 14,
+   "runs": 44,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 15,
+   "runs": 11814,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 16,
+   "runs": 2074,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 17,
+   "runs": 8,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 18,
+   "runs": 6,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 19,
+   "runs": 62,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "2-5",
+   "query": "start=2026-08-22&minSpeed=10",
+   "edgeId": 20,
+   "runs": 184,
+   "retrievedAt": "2026-10-21T20:07:01.847Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 0,
+   "runs": 42506,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 1,
+   "runs": 2606,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 2,
+   "runs": 39900,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 3,
+   "runs": 2599,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 4,
+   "runs": 9592,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 5,
+   "runs": 2030,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 6,
+   "runs": 10145,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 7,
+   "runs": 2026,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 8,
+   "runs": 9591,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 9,
+   "runs": 834,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 10,
+   "runs": 444,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 11,
+   "runs": 5055,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 13,
+   "runs": 828,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 14,
+   "runs": 8378,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 15,
+   "runs": 644,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 16,
+   "runs": 15,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 17,
+   "runs": 1079,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 18,
+   "runs": 134,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 19,
+   "runs": 8390,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 20,
+   "runs": 2,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 22,
+   "runs": 1,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 23,
+   "runs": 40,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 24,
+   "runs": 1,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 25,
+   "runs": 7875,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 26,
+   "runs": 381,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 27,
+   "runs": 4414,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22",
+   "edgeId": 28,
+   "runs": 2466,
+   "retrievedAt": "2026-10-21T20:08:07.362Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 0,
+   "runs": 42398,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 1,
+   "runs": 2600,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 2,
+   "runs": 39798,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 3,
+   "runs": 2594,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 4,
+   "runs": 9526,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 5,
+   "runs": 2028,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 6,
+   "runs": 10058,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 7,
+   "runs": 2026,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 8,
+   "runs": 9525,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 9,
+   "runs": 834,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 10,
+   "runs": 423,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 11,
+   "runs": 5053,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 13,
+   "runs": 828,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 14,
+   "runs": 8317,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 15,
+   "runs": 644,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 16,
+   "runs": 15,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 17,
+   "runs": 1079,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 18,
+   "runs": 134,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 19,
+   "runs": 8330,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 22,
+   "runs": 1,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 23,
+   "runs": 40,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 24,
+   "runs": 1,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 25,
+   "runs": 7816,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 26,
+   "runs": 363,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 27,
+   "runs": 4413,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=10",
+   "edgeId": 28,
+   "runs": 2457,
+   "retrievedAt": "2026-10-21T20:11:23.902Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 0,
+   "runs": 108,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 1,
+   "runs": 6,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 2,
+   "runs": 102,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 3,
+   "runs": 5,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 4,
+   "runs": 66,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 5,
+   "runs": 2,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 6,
+   "runs": 87,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 8,
+   "runs": 66,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 10,
+   "runs": 21,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 11,
+   "runs": 2,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 14,
+   "runs": 61,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 19,
+   "runs": 60,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 20,
+   "runs": 2,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 25,
+   "runs": 59,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 26,
+   "runs": 18,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 27,
+   "runs": 1,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&maxSpeed=15&minSpeed=15",
+   "edgeId": 28,
+   "runs": 9,
+   "retrievedAt": "2026-10-21T20:10:18.381Z"
+  },
+  {
+   "map": "5-5",
+   "query": "start=2026-08-22&minSpeed=20",
+   "edgeId": 0,
+   "runs": 0,
+   "retrievedAt": "2026-10-21T20:09:12.870Z"
+  }
+ ]
+}
