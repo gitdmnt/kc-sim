@@ -39,11 +39,13 @@ interface Props {
   /** 出撃シミュレーション結果: 辺の通過率 (key = "from>to") とノードの到達率ラベル */
   edgeRates?: Map<string, number>;
   nodeBadges?: Map<string, string>;
+  /** 親の高さいっぱいに描く (縦横比は保って中央寄せ)。凡例は点だけにして図の隅に重ねる */
+  fill?: boolean;
 }
 
 const R = 15;
 
-export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps, edgeRates, nodeBadges }: Props) => {
+export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps, edgeRates, nodeBadges, fill }: Props) => {
   const placed = useMemo(() => nodes.filter((n) => n.x !== null && n.y !== null), [nodes]);
   const pos = useMemo(() => new Map(placed.map((n) => [n.letter, n])), [placed]);
 
@@ -60,11 +62,11 @@ export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps,
   const unplaced = nodes.length - placed.length;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={fill ? "relative h-full min-h-0" : "flex flex-col gap-2"}>
       <svg
         viewBox={`${box.x} ${box.y} ${box.w} ${box.h}`}
-        className="w-full rounded-md bg-ink-950"
-        style={{ maxHeight: "34rem", aspectRatio: `${box.w} / ${box.h}` }}
+        className={fill ? "h-full w-full rounded-md bg-ink-950" : "w-full rounded-md bg-ink-950"}
+        style={fill ? undefined : { maxHeight: "34rem", aspectRatio: `${box.w} / ${box.h}` }}
         role="img"
         aria-label="海域マップ"
       >
@@ -155,11 +157,11 @@ export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps,
         })}
       </svg>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-300">
+      <div className={fill ? "absolute bottom-3 left-3 flex items-center gap-2 text-xs text-ink-300" : "flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-300"}>
         {[...new Set(nodes.map((n) => typeKey(n.type)))].map((t) => (
-          <span key={t} className="flex items-center gap-1">
+          <span key={t} className="flex items-center gap-1" title={NODE_TYPE_LABEL[t]}>
             <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: NODE_COLOR[t] }} />
-            {NODE_TYPE_LABEL[t]}
+            {!fill && NODE_TYPE_LABEL[t]}
           </span>
         ))}
         {unplaced > 0 && <span className="text-warn-400" title={`座標なし ${unplaced} ノード`}>+{unplaced}</span>}

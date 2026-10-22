@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { getDataApi } from "../../data/api";
-import { useAbyssalData } from "../../data/names";
-import type { ApiEquipment, ApiShip, HiddenStat, ShipEstimate } from "@shared/data/types";
+import { abyssalName, useAbyssalData } from "../../data/names";
+import type { ApiEquipment, ApiShip, Confidence, HiddenStat, ShipEstimate } from "@shared/data/types";
 import { useAsync } from "../../data/useAsync";
 import { normalizeForSearch } from "../../fleet/catalog";
-import { ArrowRight } from "lucide-react";
-import { Button, Card, EquipIcon, ProgressBar, Select, Stat, TextInput, cx, S } from "../../ui";
+import { ArrowRight, Calculator, Check, CircleHelp } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Button, Card, EquipIcon, ProgressBar, Select, TextInput, cx, S } from "../../ui";
 import { useApp } from "../context";
 import { useNav } from "../nav";
 import { DataError, StaleBadge } from "../DataState";
@@ -19,7 +20,7 @@ const SPEED: Record<number, string> = { 0: "陸上", 5: "低速", 10: "高速", 
 const NA = <span className="text-ink-500">—</span>;
 const fmt = (v: number | null | undefined) => (v === null || v === undefined ? NA : String(v));
 
-/** 採用されなかった推定候補 (採用値は上の Stat に出すので重複させない) */
+/** 採用されなかった推定候補 (採用値は上の一覧に出すので重複させない) */
 const OtherEstimates = ({ estimates }: { estimates: ShipEstimate[] }) => (
   <ul className="mt-2 flex flex-col gap-1 text-sm">
     {STAT_ORDER.flatMap((stat) => estimates.filter((e) => e.stat === stat)).map((e, i) => (
@@ -58,7 +59,7 @@ type MainKey = (typeof MAIN_STATS)[number][1];
 
 /** 主要 5 能力を、深海棲艦全体の最大値に対する棒で示す */
 const MainStats = ({ ship, max }: { ship: ApiShip; max: Record<MainKey, number> }) => (
-  <div className="grid grid-cols-[3rem_minmax(0,1fr)_3rem] items-center gap-x-3 gap-y-1">
+  <div className="grid auto-rows-[1.5rem] grid-cols-[3rem_minmax(0,1fr)_3rem] items-center gap-x-3">
     {MAIN_STATS.map(([label, k]) => (
       <React.Fragment key={k}>
         <span className="text-xs text-ink-400">{label}</span>
@@ -68,6 +69,15 @@ const MainStats = ({ ship, max }: { ship: ApiShip; max: Record<MainKey, number> 
     ))}
   </div>
 );
+
+const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
+  <>
+    <dt className="text-xs text-ink-400">{label}</dt>
+    <dd className="text-sm tabular-nums text-ink-50">{value}</dd>
+  </>
+);
+
+const CONF_ICON: Partial<Record<Confidence | "none", LucideIcon>> = { observed: Check, datamined: Check, db_estimate: Calculator, placeholder: CircleHelp };
 
 const ShipDetailView = ({ id, equipById, max }: { id: number; equipById: (id: number) => ApiEquipment | undefined; max: Record<MainKey, number> }) => {
   const res = useAsync(() => getDataApi().ship(id), [id]);
@@ -80,9 +90,6 @@ const ShipDetailView = ({ id, equipById, max }: { id: number; equipById: (id: nu
   const isBest = (e: ShipEstimate) => best[e.stat]?.source === e.source && best[e.stat]?.value === e.value;
   const adopted = STAT_ORDER.filter((s) => best[s]);
   const others = estimates.filter((e) => !isBest(e));
-  // 採用値の確度が全項目同じなら見出しに 1 回だけ出す
-  const confs = new Set(adopted.map((s) => best[s]!.confidence));
-  const sharedConf = adopted.length > 1 && confs.size === 1 ? best[adopted[0]]!.confidence : null;
 
   return (
     <Card
@@ -90,7 +97,7 @@ const ShipDetailView = ({ id, equipById, max }: { id: number; equipById: (id: nu
       bodyClassName="flex min-h-0 flex-1 flex-col gap-6 overflow-auto"
       title={
         <span className="flex items-baseline gap-2">
-          {ship.name}
+          {abyssalName(ship)}
           <span className="text-sm font-normal text-ink-400">{stype}</span>
           <span className="text-xs font-normal text-ink-400 tabular-nums">No.{ship.id}</span>
         </span>
@@ -107,40 +114,34 @@ const ShipDetailView = ({ id, equipById, max }: { id: number; equipById: (id: nu
         </>
       }
     >
-      <div className="flex max-w-md flex-col gap-4">
+      <div className="grid max-w-3xl grid-cols-1 gap-x-12 gap-y-6 md:grid-cols-2">
         <MainStats ship={ship} max={max} />
-        <div className="flex gap-6">
-        <Stat label="速力" value={ship.speed === null ? NA : (SPEED[ship.speed] ?? ship.speed)} />
-        <Stat label="射程" value={ship.range === null ? NA : (RANGE[ship.range] ?? ship.range)} />
-        <Stat label="搭載" value={ship.slots?.length ? ship.slots.join("/") : NA} />
-        {ship.luck !== null && ship.luck !== undefined && <Stat label="運" value={ship.luck} />}
-        </div>
+        <dl className="grid auto-rows-[1.5rem] grid-cols-[3rem_minmax(0,1fr)] content-start items-center gap-x-3">
+          <Row label="速力" value={ship.speed === null ? NA : (SPEED[ship.speed] ?? ship.speed)} />
+          <Row label="射程" value={ship.range === null ? NA : (RANGE[ship.range] ?? ship.range)} />
+          <Row label="搭載" value={ship.slots?.length ? ship.slots.join("/") : NA} />
+          {adopted.map((st) => {
+            const b = best[st]!;
+            const row = estimates.find((e) => e.stat === st && isBest(e));
+            const detail = [CONF[b.confidence].label, b.source, row?.sd != null && `±${row.sd}`, row?.n != null && `n=${row.n}`, row?.note].filter(Boolean).join(" / ");
+            const Icon = CONF_ICON[b.confidence] ?? Calculator;
+            return (
+              <Row
+                key={st}
+                label={STAT_LABEL[st]}
+                value={
+                  <span className="inline-flex items-center gap-1" title={detail}>
+                    {b.value}
+                    <Icon size={12} className={CONF[b.confidence].className} aria-label={CONF[b.confidence].label} />
+                  </span>
+                }
+              />
+            );
+          })}
+          {ship.luck !== null && ship.luck !== undefined && !best.luck && <Row label="運" value={ship.luck} />}
+        </dl>
       </div>
 
-      {adopted.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <div className="text-xs text-ink-400">
-            推定{sharedConf && <span className={cx("ml-2", CONF[sharedConf].className)}>{CONF[sharedConf].label}</span>}
-          </div>
-          <div className="flex max-w-md gap-6">
-            {adopted.map((s) => {
-              const b = best[s]!;
-              const row = estimates.find((e) => e.stat === s && isBest(e));
-              const detail = [b.source, row?.sd != null && `±${row.sd}`, row?.n != null && `n=${row.n}`, row?.note].filter(Boolean).join(" / ");
-              return (
-                <Stat
-                  key={s}
-                  label={STAT_LABEL[s]}
-                  value={b.value}
-                  sub={sharedConf ? undefined : CONF[b.confidence].label}
-                  subTone={b.confidence === "observed" ? "ok" : "accent"}
-                  title={detail}
-                />
-              );
-            })}
-          </div>
-        </section>
-      )}
       {!!ship.equips?.length && <EquipList ids={ship.equips} equipById={equipById} />}
       {others.length > 0 && (
         <details>
@@ -176,7 +177,7 @@ export const EnemyTab = () => {
     return (data.ships ?? []).filter(
       (s: ApiShip) =>
         (!stype || String(s.stype) === stype) &&
-        (!q || normalizeForSearch(`${s.name}${s.nameEn ?? ""}${s.id}`).includes(q))
+        (!q || normalizeForSearch(`${s.name}${s.yomi ?? ""}${s.nameEn ?? ""}${s.id}`).includes(q))
     );
   }, [data.ships, query, stype]);
 
@@ -213,7 +214,7 @@ export const EnemyTab = () => {
                   s.id === current ? "bg-accent-500/12 text-ink-50" : "text-ink-100 hover:bg-ink-800"
                 )}
               >
-                <span className="truncate">{s.name}</span>
+                <span className="truncate">{abyssalName(s)}</span>
                 <span className="shrink-0 text-xs text-ink-400">{catalog.shipTypes[s.stype] ?? ""}</span>
               </button>
             </li>

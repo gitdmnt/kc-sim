@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { STORAGE_PREFIX } from "../fleet";
 import { getDataApi } from "../data/api";
-import { Card, Checkbox, ConfirmDialog, Button, Field, NumberInput, S, useToast } from "../ui";
+import { Card, Checkbox, ConfirmDialog, Button, Field, NumberInput, S, cx, useToast } from "../ui";
 import { getPresetStore } from "./fleet/presets";
 import { resetSettings, updateSettings, useSettings } from "./settings";
 
@@ -55,17 +55,18 @@ export const SettingsTab = () => {
   ];
 
   return (
-    <Card bodyClassName="flex flex-col gap-6">
+    <Card className="max-w-xl" bodyClassName="flex flex-col gap-6">
       <section className="flex flex-col gap-3">
         <h4 className="text-xs text-ink-400">シミュレーション</h4>
-        <Checkbox
-          label="サーバの推定値を使う"
-          hint="観測 30 回以上の推定値"
-          checked={settings.useEstimates}
-          onChange={(e) => updateSettings({ useEstimates: e.target.checked })}
-        />
-        <Field label="観測を優先する遭遇数" hint="これ以上の観測があるノードは KCNav ではなく観測の敵編成を使う" className="w-fit">
-          <NumberInput className="w-24" value={settings.minObserved} min={1} max={100000} onChange={(minObserved) => updateSettings({ minObserved })} />
+        <div title="観測 30 回以上の推定値">
+          <Checkbox
+            label="サーバの推定値を使う"
+            checked={settings.useEstimates}
+            onChange={(e) => updateSettings({ useEstimates: e.target.checked })}
+          />
+        </div>
+        <Field label="観測を優先する遭遇数" className="w-fit">
+          <NumberInput title="これ以上の観測があるノードは KCNav ではなく観測の敵編成を使う" className="w-24" value={settings.minObserved} min={1} max={100000} onChange={(minObserved) => updateSettings({ minObserved })} />
         </Field>
         {/* 普段は出撃タブの空状態から入る。オンのときは戻せるよう常に出す */}
         {(import.meta.env.DEV || settings.useSampleState) && (
@@ -82,7 +83,7 @@ export const SettingsTab = () => {
                 {r.label}
                 {r.count !== undefined && <span className="ml-2 text-ink-400 tabular-nums">{S.common.count(r.count)}</span>}
               </span>
-              <Button size="sm" variant={r.danger ? "danger" : "secondary"} className="w-fit" onClick={() => setConfirm(r.action)}>
+              <Button size="sm" className={cx("w-24", r.danger && "text-danger-400!")} onClick={() => setConfirm(r.action)}>
                 {r.danger && <Trash2 size={14} aria-hidden />}
                 {r.button}
               </Button>

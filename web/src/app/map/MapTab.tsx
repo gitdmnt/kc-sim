@@ -82,7 +82,7 @@ export const MapTab = () => {
     <div className="grid grid-cols-1 gap-4 lg:h-[calc(100vh-3.75rem)] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
       <Card
         className="flex min-h-0 flex-col"
-        bodyClassName="flex min-h-0 flex-1 flex-col gap-4 overflow-auto"
+        bodyClassName="min-h-0 flex-1"
         title={
           <span className="flex flex-wrap items-center gap-2">
             <Select
@@ -137,7 +137,7 @@ export const MapTab = () => {
         ) : !d ? (
           <p className="text-sm text-ink-300">{S.common.loading}</p>
         ) : (
-          <MapGraph nodes={d.nodes} edges={d.edges} selected={selected} onSelect={setSelected} targets={targets} withComps={compNodes} />
+          <MapGraph nodes={d.nodes} edges={d.edges} selected={selected} onSelect={setSelected} targets={targets} withComps={compNodes} fill />
         )}
       </Card>
 
