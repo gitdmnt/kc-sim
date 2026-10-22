@@ -138,8 +138,18 @@ export interface CapturedSortie {
   cells: CapturedCell[];
   fleet: CapturedFleet | null;
   features: SortieFleetFeatures | null;
+  /**
+   * api_req_map/start・next の応答 (api_data) を到達順に。サーバが cells / cellData をここから導き直す。
+   * 古い記録には無い。
+   */
+  packets?: MapPacket[];
   /** 1=未アップロード, 0=済 */
   pending: 0 | 1;
+}
+
+export interface MapPacket {
+  path: "api_req_map/start" | "api_req_map/next";
+  body: unknown;
 }
 
 /** 戦闘開始時の燃料・弾薬 (poi の api_fuel / api_bull と master の最大値)。 */

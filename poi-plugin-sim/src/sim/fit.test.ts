@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { computeFitBonus, fitToEquipmentStats } from "./fit";
-import type { FitEntry } from "./fit";
+import { computeFitBonus, fitToEquipmentStats } from "@shared/sim/fit";
+import type { FitEntry } from "@shared/sim/fit";
 
 const recon: FitEntry = {
   id: 0, ids: null, types: [9],

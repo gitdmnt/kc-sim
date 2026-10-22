@@ -1,1 +1,1 @@
-export type { EnemyBuild, FriendBuild } from "../../sim/adapter";
+export type { EnemyBuild, FriendBuild } from "@shared/sim/adapter";

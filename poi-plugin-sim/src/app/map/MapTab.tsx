@@ -4,7 +4,7 @@ import { getDataApi } from "../../data/api";
 import { useAbyssalData } from "../../data/names";
 import { useMapData, useMapList } from "../../data/useMapData";
 import { countUncertain } from "../../data/routing";
-import type { MapSummary } from "../../data/types";
+import type { MapSummary } from "@shared/data/types";
 import { Badge, Button, Card, EmptyState, Select, S } from "../../ui";
 import { useApp } from "../context";
 import { useNav } from "../nav";

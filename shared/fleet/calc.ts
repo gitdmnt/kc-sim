@@ -61,15 +61,15 @@ export const slotFighterPower = (
   const star = equip.improvement;
   const starBonus = FIGHTER_LIKE.has(t) ? 0.2 * star : t === 7 && aa > 0 ? 0.25 * star : 0;
   const prof = clampProf(equip.proficiency);
-  const typeBonus = FIGHTER_LIKE.has(t)
+  const typeBonus = (FIGHTER_LIKE.has(t)
     ? FIGHTER_BONUS[prof]
     : t === 11
       ? SEAPLANE_BOMBER_BONUS[prof]
-      : 0;
+      : 0) ?? 0;
   const base = (aa + starBonus) * Math.sqrt(slotSize);
   // 対空 0 の機体 (偵察機など) は熟練度ボーナスも付かない
   if (aa <= 0) return 0;
-  return Math.floor(base + Math.sqrt(INTERNAL_PROFICIENCY[prof] / 10) + typeBonus);
+  return Math.floor(base + Math.sqrt((INTERNAL_PROFICIENCY[prof] ?? 0) / 10) + typeBonus);
 };
 
 const slotSizeOf = (ship: PresetShip, idx: number, shipMasterMaxeq?: number[]) =>

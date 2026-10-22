@@ -5,7 +5,7 @@ import { compSourceLabel } from "../../sim/sortieAdapter";
 import { Badge, Card, ProgressBar, Stat, Table, Td, Th, Thead, Tr } from "../../ui";
 import { MapGraph } from "../map/MapGraph";
 import type { MapData } from "../../data/mapData";
-import type { EnemyCompSet } from "../../data/types";
+import type { EnemyCompSet } from "@shared/data/types";
 import { NumTd, RANKS, RANK_COLOR, RankLegend, StackedBar, pct } from "./bars";
 
 export interface SortieRunMeta {

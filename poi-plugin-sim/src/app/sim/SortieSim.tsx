@@ -8,11 +8,11 @@ import { runSortieInWorker } from "../../sim/client";
 import type { SimHandle } from "../../sim/client";
 import { buildSortieInput, flagNames, hasStartRules, selectNodes, startNodes } from "../../sim/sortieAdapter";
 import type { SortieSettings } from "../../sim/sortieAdapter";
-import { makeApplyEstimates } from "../../estimate/estimate";
-import { estimatesForSimulation } from "../../estimate/store";
+import { SERVER_ESTIMATOR_SOURCE } from "@shared/data/types";
 import type { SortieSummary } from "@sim-core";
 import { useIntentFor } from "../nav";
 import { useApp } from "../context";
+import { getSettings } from "../settings";
 import { BundleBanner, DataError } from "../DataState";
 import { usePresets } from "../fleet/presets";
 import { SortieResults } from "./SortieResults";
@@ -124,17 +124,18 @@ export const SortieSim = () => {
         hqLevel: preset.hqLevel ?? 120,
         applyFit,
       };
-      // 設定で有効なら推定タブの推定値 (n ≥ 30) を API の値より優先する
-      const est = estimatesForSimulation();
-      const build = buildSortieInput(preset, catalog.master, md, st, { fitBonuses: fit, apply: est && makeApplyEstimates(est.results) });
+      // 設定が有効ならサーバの推定値 (estimator:server、n ≥ 30) を使う。無効なら無視する。
+      const useServerEstimates = getSettings().useEstimates;
+      const build = buildSortieInput(preset, catalog.master, md, st, { fitBonuses: fit, useServerEstimates });
       const notes: string[] = [];
-      if (est) {
-        const ids = new Set(build.enemyBuilds.flatMap((b) => b.reliability.map((r) => r.shipId)));
-        const used = est.results.filter((r) => ids.has(r.shipId));
+      if (useServerEstimates) {
+        const used = new Map(
+          build.enemyBuilds.flatMap((b) => b.reliability).filter((r) => r.source === SERVER_ESTIMATOR_SOURCE).map((r) => [`${r.shipId}:${r.stat}`, r])
+        );
         notes.push(
-          used.length > 0
-            ? `推定タブの推定値 (${new Date(est.at).toLocaleString()}、n ≥ 30) を ${new Set(used.map((r) => r.shipId)).size} 隻・${used.length} 項目に使用 (API の値より優先)`
-            : "推定値を使う設定ですが、この海域の敵艦には n ≥ 30 の推定値がありません"
+          used.size > 0
+            ? `サーバの推定値 (n ≥ 30) を ${new Set([...used.values()].map((r) => r.shipId)).size} 隻・${used.size} 項目に使用 (API の他の値より優先)`
+            : "推定値を使う設定ですが、この海域の敵艦にはサーバの推定値がありません"
         );
       }
       const { gauge, ...bare } = build.input;

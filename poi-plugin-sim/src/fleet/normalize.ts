@@ -4,7 +4,7 @@ import type {
   PresetFleetType,
   PresetFormation,
   PresetShip,
-} from "./types";
+} from "@shared/fleet/types";
 
 const FORMATIONS: PresetFormation[] = [
   "line_ahead",

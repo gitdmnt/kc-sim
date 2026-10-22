@@ -11,8 +11,8 @@
  * - 艦隊内の位置と艦数は警戒陣のときだけ効く。
  * 合成データの一致テスト (recovery.test.ts) が、正規化後の確率がエンジンのログと一致することを確認する。
  */
-import { hitProbabilityGrid } from "@sim-core";
-import type { AttackQuery, HitGridQuery, ShipInput } from "@sim-core";
+import { hitProbabilityGrid } from "../../sim-core/pkg/sim_core";
+import type { AttackQuery, HitGridQuery, ShipInput } from "../../sim-core/pkg/sim_core";
 import type { ObservationRole } from "./types";
 
 export type GridFn = (grid: HitGridQuery) => Float64Array;

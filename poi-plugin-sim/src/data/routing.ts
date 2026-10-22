@@ -1,5 +1,5 @@
 /** ROUTING_DSL (docs/ROUTING_DSL.md) を日本語の説明に変換する。表示専用の純粋関数。 */
-import type { Predicate, Rule } from "./types";
+import type { Predicate, Rule } from "@shared/data/types";
 
 const TYPE_NAME: Record<string, string> = {
   DE: "海防艦", DD: "駆逐艦", CL: "軽巡", CLT: "重雷装巡洋艦", CA: "重巡", CAV: "航空巡洋艦",

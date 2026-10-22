@@ -1,5 +1,5 @@
 /** 敵艦の隠しステータス推定器の公開型 (docs/ESTIMATOR.md)。 */
-import type { AttackQuery } from "@sim-core";
+import type { AttackQuery } from "../../sim-core/pkg/sim_core";
 import type { AttackEvent, CapturedBattle, HitKind } from "../capture/types";
 import type { Confidence } from "../data/types";
 

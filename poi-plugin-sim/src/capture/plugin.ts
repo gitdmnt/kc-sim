@@ -5,13 +5,13 @@
  * プラグインウィンドウを開かなくても動く (poi の plugin-manager がロード時に呼ぶ)。
  * プラグインウィンドウ側 (別 BrowserWindow) では呼ばない。二重登録は window 上のフラグで防ぐ。
  */
-import { summarizeFleet } from "../fleet/calc";
+import { summarizeFleet } from "@shared/fleet/calc";
 import { importFromPoi, masterFromPoi } from "../fleet/poiImport";
 import { startAutoUpload } from "./autoUpload";
 import type { AutoUploader, AutoUploadOptions } from "./autoUpload";
 import { ObservationDb } from "./db";
 import { CaptureSession } from "./session";
-import type { CapturedFleet, ShipSupply, SortieFleetFeatures } from "./types";
+import type { CapturedFleet, ShipSupply, SortieFleetFeatures } from "@shared/capture/types";
 
 const GLOBAL_KEY = "__kcsimCapture";
 

@@ -1,15 +1,13 @@
-/** パラメータ推定タブ: 観測ログから敵艦の回避・命中・運を推定し、送信・シミュレーションに使う。 */
-import React, { useEffect, useMemo, useState } from "react";
+/** パラメータ推定タブ: サーバが全プレイヤーの観測から推定した敵艦の隠しステータスを表示する (GET /api/v1/estimates)。 */
+import React, { useMemo, useState } from "react";
 import { useIntentFor } from "../nav";
-import { getObservationDb } from "../../capture";
+import { getDataApi } from "../../data/api";
 import { useAbyssalData } from "../../data/names";
-import type { Confidence } from "../../data/types";
+import { ESTIMATE_MIN_N } from "@shared/data/types";
+import type { Confidence, EstimatedStat, EstimateRow } from "@shared/data/types";
+import { useAsync } from "../../data/useAsync";
 import { normalizeForSearch } from "../../fleet/catalog";
-import { ESTIMATE_MIN_N } from "../../estimate/store";
-import type { EstimatedStat, EstimateResult, SkipReason } from "../../estimate/types";
-import { useEstimator } from "../../estimate/useEstimator";
-import { Badge, Button, Card, Checkbox, EmptyState, ProgressBar, S, Select, Stat, Table, Td, TextInput, Th, Thead, Tr, cx, useToast } from "../../ui";
-import { useApp } from "../context";
+import { Badge, Button, Card, Checkbox, EmptyState, S, Select, Stat, Table, Td, TextInput, Th, Thead, Tr, cx } from "../../ui";
 import { useSettings } from "../settings";
 import { DensityPlot } from "./DensityPlot";
 import { formatShortDateTime } from "../log/util";
@@ -24,23 +22,12 @@ const CONF: Record<Confidence | "none", { label: string; className: string }> = 
   unknown: { label: "不明", className: "text-ink-500" },
   none: { label: "なし", className: "text-ink-500" },
 };
-const SKIP_LABEL: Record<SkipReason, string> = {
-  air: "航空戦",
-  protected: "かばう",
-  cutin: "モデル外の特殊攻撃",
-  unsupportedBattle: "対象外の戦闘 (連合艦隊など)",
-  friendData: "味方データ不足",
-  enemyData: "敵データ不足",
-  inconsistent: "不整合",
-  sameSide: "同陣営",
-};
-
 const f1 = (v: number) => v.toFixed(1);
 
 /** 事前の中心が 90% 信用区間の外 = データが事前の値を否定している */
-const shifted = (r: EstimateResult) => r.n > 0 && r.prior.value !== null && (r.prior.value < r.ci90[0] || r.prior.value > r.ci90[1]);
+const shifted = (r: EstimateRow) => r.n > 0 && r.prior.value !== null && (r.prior.value < r.ci90[0] || r.prior.value > r.ci90[1]);
 
-const Shift = ({ r }: { r: EstimateResult }) => {
+const Shift = ({ r }: { r: EstimateRow }) => {
   if (r.prior.value === null || r.n === 0) return <span className="text-ink-500">—</span>;
   const d = r.mean - r.prior.value;
   const text = `${d >= 0 ? "+" : "−"}${f1(Math.abs(d))}`;
@@ -54,7 +41,7 @@ const Shift = ({ r }: { r: EstimateResult }) => {
 };
 
 /** 識別性についての注意 (推定値ごと) */
-const notes = (r: EstimateResult): string[] => {
+const notes = (r: EstimateRow): string[] => {
   const out: string[] = [];
   if (r.n === 0) out.push("観測なし (事前分布のまま)");
   else if (r.sd > 0.8 * r.prior.sd) out.push(`観測でほぼ絞れていない (事後 sd は事前の ${Math.round((100 * r.sd) / r.prior.sd)}%)`);
@@ -65,7 +52,7 @@ const notes = (r: EstimateResult): string[] => {
   return out;
 };
 
-const ShipDetail = ({ name, shipId, rows }: { name: string; shipId: number; rows: EstimateResult[] }) => (
+const ShipDetail = ({ name, shipId, rows, densityLoading }: { name: string; shipId: number; rows: EstimateRow[]; densityLoading: boolean }) => (
   <Card
     title={
       <span className="flex items-center gap-2">
@@ -97,7 +84,7 @@ const ShipDetail = ({ name, shipId, rows }: { name: string; shipId: number; rows
         {r.density ? (
           <DensityPlot density={r.density} ci90={r.ci90} mean={r.mean} priorValue={r.prior.value} label={STAT_LABEL[r.stat]} />
         ) : (
-          <p className="rounded-md bg-ink-900/70 px-3 py-4 text-center text-sm text-ink-400">分布は推定直後のみ表示されます</p>
+          <p className="rounded-md bg-ink-900/70 px-3 py-4 text-center text-sm text-ink-400">{densityLoading ? S.common.loading : "分布を取得できませんでした"}</p>
         )}
         {notes(r).map((n) => (
           <p key={n} className="mt-1 text-sm text-ink-300">
@@ -124,12 +111,9 @@ const ShipDetail = ({ name, shipId, rows }: { name: string; shipId: number; rows
 type SortKey = "id" | "n" | "shift";
 
 export const EstimateTab = () => {
-  const { catalog } = useApp();
   const settings = useSettings();
   const names = useAbyssalData();
-  const toast = useToast();
-  const est = useEstimator(catalog.master);
-  const [battleCount, setBattleCount] = useState<number | null>(null);
+  const [reload, setReload] = useState(0);
   const [query, setQuery] = useState("");
   const [stat, setStat] = useState<EstimatedStat | "">("");
   const [onlyShifted, setOnlyShifted] = useState(false);
@@ -137,52 +121,35 @@ export const EstimateTab = () => {
   const [sort, setSort] = useState<SortKey>("id");
   const intent = useIntentFor("estimate");
   const [selected, setSelected] = useState<number | null>(intent?.shipId ?? null);
-  const [uploading, setUploading] = useState(false);
 
-  const result = est.result;
-  useEffect(() => {
-    getObservationDb()
-      .countBattles()
-      .then(setBattleCount, () => setBattleCount(null));
-  }, [result]);
+  const list = useAsync(() => getDataApi().estimates({ density: false }, reload > 0), [settings.apiBase, reload]);
+  const all = list.data?.estimates;
 
   const byShip = useMemo(() => {
-    const m = new Map<number, EstimateResult[]>();
-    for (const r of result?.results ?? []) m.set(r.shipId, [...(m.get(r.shipId) ?? []), r]);
+    const m = new Map<number, EstimateRow[]>();
+    for (const r of all ?? []) m.set(r.shipId, [...(m.get(r.shipId) ?? []), r]);
     return m;
-  }, [result]);
+  }, [all]);
 
   const rows = useMemo(() => {
     const q = normalizeForSearch(query);
-    const list = (result?.results ?? []).filter(
+    const filtered = (all ?? []).filter(
       (r) =>
         (!stat || r.stat === stat) &&
         (!onlyShifted || shifted(r)) &&
         (!onlyEnough || r.n >= ESTIMATE_MIN_N) &&
         (!q || normalizeForSearch(`${names.shipName(r.shipId)}${r.shipId}`).includes(q))
     );
-    const shift = (r: EstimateResult) => (r.prior.value === null || r.n === 0 ? 0 : Math.abs(r.mean - r.prior.value) / Math.max(r.sd, 0.5));
-    const key: Record<SortKey, (r: EstimateResult) => number> = { id: (r) => r.shipId, n: (r) => -r.n, shift: (r) => -shift(r) };
-    return [...list].sort((a, b) => key[sort](a) - key[sort](b) || a.shipId - b.shipId);
-  }, [result, query, stat, onlyShifted, onlyEnough, sort, names]);
+    const shift = (r: EstimateRow) => (r.prior.value === null || r.n === 0 ? 0 : Math.abs(r.mean - r.prior.value) / Math.max(r.sd, 0.5));
+    const key: Record<SortKey, (r: EstimateRow) => number> = { id: (r) => r.shipId, n: (r) => -r.n, shift: (r) => -shift(r) };
+    return [...filtered].sort((a, b) => key[sort](a) - key[sort](b) || a.shipId - b.shipId);
+  }, [all, query, stat, onlyShifted, onlyEnough, sort, names]);
 
   const current = selected ?? rows[0]?.shipId ?? null;
-  const uploadable = (result?.results ?? []).filter((r) => r.n >= ESTIMATE_MIN_N).length;
-  const running = est.status === "running";
-
-  const upload = async () => {
-    setUploading(true);
-    try {
-      const n = await est.upload();
-      toast.push(`推定値 ${n} 件を送信しました`, "ok");
-    } catch (e) {
-      toast.push((e as Error).message, "danger");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const skipped = Object.entries(result?.observe.skipped ?? {}).filter(([, n]) => (n ?? 0) > 0) as [SkipReason, number][];
+  // 分布 (事前・事後) は 1 隻ずつ取る
+  const detail = useAsync(current === null ? null : () => getDataApi().estimates({ shipId: current, density: true }, reload > 0), [settings.apiBase, current, reload]);
+  const detailRows = detail.data?.estimates.filter((r) => r.shipId === current);
+  const usable = (all ?? []).filter((r) => r.n >= ESTIMATE_MIN_N).length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -191,70 +158,32 @@ export const EstimateTab = () => {
         actions={
           <>
             {settings.useEstimates ? <Badge tone="ok">シミュレーションで使用中</Badge> : <Badge tone="neutral" title="設定タブで切り替え">シミュレーション未使用</Badge>}
-            {result && (
-              <Button size="sm" variant="ghost" onClick={est.clear} disabled={running}>
-                結果を消去
-              </Button>
-            )}
+            <Button size="sm" variant="ghost" onClick={() => setReload((n) => n + 1)} disabled={list.loading} title="サーバから取り直す" aria-label="再読み込み">
+              ↻
+            </Button>
           </>
         }
         bodyClassName="flex flex-col gap-3"
       >
-        <div className="flex flex-wrap items-center gap-3">
-          {running ? (
-            <Button variant="danger" onClick={est.cancel}>
-              キャンセル
-            </Button>
-          ) : (
-            <Button variant="primary" onClick={() => void est.run()}>
-              {result ? "再推定" : "推定を実行"}
-            </Button>
-          )}
-          <Button onClick={() => void upload()} disabled={running || uploading || uploadable === 0} title={`n ≥ ${ESTIMATE_MIN_N} の推定値 (${uploadable} 件) を data API に送ります`}>
-            {uploading ? "送信中…" : "API に送信"}
-          </Button>
-          {running && (
-            <div className="min-w-48 flex-1">
-              <ProgressBar value={est.progress?.done ?? 0} max={est.progress?.total || 1} tone="accent" className="h-2.5" />
-              <div className="mt-1 text-xs text-ink-300 tabular-nums">
-                {est.progress?.total ? `計算中 ${est.progress.done.toLocaleString()} / ${est.progress.total.toLocaleString()}` : S.common.loading}
-              </div>
-            </div>
-          )}
-          {!running && result && <span className="text-xs text-ink-400">最終推定: {formatShortDateTime(result.at)}</span>}
-        </div>
-        {est.error && <p className="text-sm text-danger-400">{est.error.message}</p>}
-
-        {result && (
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <div className="grid w-full grid-cols-2 gap-2 sm:w-[28rem]">
-              <Stat
-                size="lg"
-                label="推定した敵艦"
-                value={byShip.size}
-                sub={result.priorErrors.length ? `事前分布の取得失敗 ${result.priorErrors.length}` : undefined}
-              />
-              <Stat size="lg" label="送信対象の推定値" value={uploadable} sub={`n ≥ ${ESTIMATE_MIN_N} · シミュレーションにも使用`} />
-            </div>
-            <div className="flex min-w-0 flex-col gap-1">
-              <span className="text-sm text-ink-300 tabular-nums">
-                使った戦闘 {result.observe.battles.toLocaleString()} / {battleCount?.toLocaleString() ?? "—"} · 命中判定 {result.observe.observations.toLocaleString()}
-              </span>
-              {skipped.length > 0 && (
-                <span className="text-xs text-ink-400 tabular-nums" title="航空戦は miss が記録されないため使いません">
-                  未使用: {skipped.map(([k, n]) => `${SKIP_LABEL[k]} ${n.toLocaleString()}`).join(" · ")}
-                </span>
-              )}
-            </div>
+        <p className="text-sm text-ink-300">
+          データサーバが全プレイヤーの観測 (命中・ミス) からベイズ推定した、敵艦の回避・命中・運です。
+          {list.data?.updatedAt && <span className="ml-2 text-xs text-ink-400">最終推定: {formatShortDateTime(Date.parse(list.data.updatedAt))}</span>}
+        </p>
+        {list.error && <p className="text-sm text-danger-400">{list.error.message}</p>}
+        {all && all.length > 0 && (
+          <div className="grid w-full grid-cols-2 gap-2 sm:w-[28rem]">
+            <Stat size="lg" label="推定された敵艦" value={byShip.size} />
+            <Stat size="lg" label="シミュレーションで使える推定値" value={usable} sub={`n ≥ ${ESTIMATE_MIN_N}`} />
           </div>
         )}
       </Card>
 
-      {!result ? (
+      {list.loading && !all ? (
+        <EmptyState title={S.common.loading} />
+      ) : !all || all.length === 0 ? (
         <EmptyState
           title="推定結果がありません"
-          description="観測ログの命中・ミスから、敵艦の回避・命中・運をベイズ推定します。"
-          action={!running && <Button variant="primary" onClick={() => void est.run()}>推定を実行</Button>}
+          description="サーバがまだ観測から推定していません。観測ログを送信すると、サーバが推定して表示します。"
         />
       ) : (
         <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_30rem]">
@@ -337,14 +266,19 @@ export const EstimateTab = () => {
             <details className="text-sm text-ink-300">
               <summary className="cursor-pointer text-xs text-ink-400">表の見方</summary>
               <p className="mt-1">
-                n は推定に効いた命中判定の数 (回避: 味方の攻撃、命中: 敵の攻撃、運: 両方)。n &lt; {ESTIMATE_MIN_N} は灰色で、送信・シミュレーションに使いません。
-                事前は API の値で、推定器自身の送信値は二重計上を避けるため使いません。
+                n は推定に効いた命中判定の数 (回避: 味方の攻撃、命中: 敵の攻撃、運: 両方)。n &lt; {ESTIMATE_MIN_N} は灰色で、シミュレーションに使いません。
+                事前は API の値で、推定器自身の過去の値は二重計上を避けるため使いません。
               </p>
             </details>
           </Card>
 
           {current !== null && byShip.has(current) && (
-            <ShipDetail name={names.shipName(current)} shipId={current} rows={byShip.get(current)!} />
+            <ShipDetail
+              name={names.shipName(current)}
+              shipId={current}
+              rows={detailRows && detailRows.length > 0 ? detailRows : byShip.get(current)!}
+              densityLoading={detail.loading}
+            />
           )}
         </div>
       )}

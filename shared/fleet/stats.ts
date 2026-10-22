@@ -61,8 +61,8 @@ const computed = (value: number): ResolvedStat => ({ value, source: "computed" }
 /** [lv1, lv99] を level で補間。1要素なら固定値、それ以外は null。 */
 const scaleByLevel = (range: number[] | undefined, level: number): number | null => {
   if (!Array.isArray(range) || range.length === 0) return null;
-  if (range.length === 1) return range[0];
-  const [min, max] = range;
+  const [min, max] = range as [number, ...number[]];
+  if (max === undefined) return min;
   return Math.floor(min + ((max - min) * Math.min(level, 99)) / 99);
 };
 

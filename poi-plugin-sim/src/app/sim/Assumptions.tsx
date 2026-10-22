@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge } from "../../ui";
 import type { BadgeTone } from "../../ui";
-import type { EstimateResult } from "../../estimate/types";
+import { SERVER_ESTIMATOR_SOURCE } from "@shared/data/types";
 import type { EnemyBuild, FriendBuild } from "./types";
 
 const STAT_LABEL: Record<string, string> = { ev: "回避", asw: "対潜", los: "索敵", luck: "運", acc: "命中(隠し)", tacc: "雷撃命中(基礎)" };
@@ -17,20 +17,16 @@ export interface AssumptionData {
   friend: FriendBuild;
   enemy: EnemyBuild[];
   applyFit: boolean;
-  /** 推定タブの推定値 (n ≥ 30) をシミュレーションに使ったとき、その推定値と推定時刻 */
-  estimates?: { results: EstimateResult[]; at: number };
+  /** 設定「シミュレーションで推定値を使う」が有効だった (サーバの推定値 = estimator:server を使った) */
+  serverEstimates?: boolean;
 }
 
 export const Assumptions = ({ data }: { data: AssumptionData }) => {
-  // 艦×ステータスごとに一意化。推定タブの値で上書きされた項目は「観測」として数える
-  const local = new Map((data.estimates?.results ?? []).map((r) => [`${r.shipId}:${r.stat}`, r]));
+  // 艦×ステータスごとに一意化
   const seen = new Map<string, EnemyBuild["reliability"][number]>();
   for (const e of data.enemy) for (const r of e.reliability) seen.set(`${r.shipId}:${r.stat}`, r);
-  const all = [...seen.entries()].map(([key, r]) => {
-    const l = local.get(key);
-    return l ? { ...r, confidence: "observed", value: Math.round(l.mean * 10) / 10 } : r;
-  });
-  const used = all.filter((r) => local.has(`${r.shipId}:${r.stat}`));
+  const all = [...seen.values()];
+  const used = all.filter((r) => r.source === SERVER_ESTIMATOR_SOURCE);
   const counts = new Map<string, number>();
   all.forEach((r) => counts.set(r.confidence, (counts.get(r.confidence) ?? 0) + 1));
   const weak = all.filter((r) => r.confidence !== "datamined" && r.confidence !== "observed");
@@ -86,28 +82,23 @@ export const Assumptions = ({ data }: { data: AssumptionData }) => {
           )}
         </section>
 
-        {data.estimates && (
+        {data.serverEstimates && (
           <section>
-            <h4 className="mb-1.5 font-semibold text-ok-400">推定タブの推定値を使用</h4>
+            <h4 className="mb-1.5 font-semibold text-ok-400">サーバの推定値を使用</h4>
             {used.length === 0 ? (
-              <p className="text-ink-300">この敵編成の艦には n ≥ 30 の推定値がありません。</p>
+              <p className="text-ink-300">この敵編成の艦にはサーバの推定値 (n ≥ 30) がありません。</p>
             ) : (
               <>
-                <p className="mb-1.5 text-ink-300">
-                  {new Date(data.estimates.at).toLocaleString()} の推定 (n ≥ 30) を {usedShips.size} 隻・{used.length} 項目に適用
-                </p>
+                <p className="mb-1.5 text-ink-300">サーバが観測から求めた推定 (n ≥ 30) を {usedShips.size} 隻・{used.length} 項目に適用</p>
                 <ul className="flex flex-col gap-1">
                   {[...usedShips.entries()].map(([id, e]) => (
                     <li key={id} className="flex flex-wrap items-center gap-1.5">
                       <span className="text-ink-100">{e.name}</span>
-                      {e.items.map((r) => {
-                        const l = local.get(`${r.shipId}:${r.stat}`)!;
-                        return (
-                          <Badge key={r.stat} tone="ok" title={`90% CI [${l.ci90[0]}, ${l.ci90[1]}]、n=${l.n}`}>
-                            {STAT_LABEL[r.stat]} {l.mean.toFixed(1)} ± {l.sd.toFixed(1)}
-                          </Badge>
-                        );
-                      })}
+                      {e.items.map((r) => (
+                        <Badge key={r.stat} tone="ok" title={r.n === null ? undefined : `n=${r.n}`}>
+                          {STAT_LABEL[r.stat]} {r.value === null ? "—" : Math.round(r.value * 10) / 10}
+                        </Badge>
+                      ))}
                     </li>
                   ))}
                 </ul>

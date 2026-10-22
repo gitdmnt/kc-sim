@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import type { Preset } from "../../fleet";
-import { summarizePreset } from "../../fleet/calc";
+import { summarizePreset } from "@shared/fleet/calc";
 import { Button, Card, Stat, S, cx } from "../../ui";
 import { useNav } from "../nav";
 import { useApp } from "../context";

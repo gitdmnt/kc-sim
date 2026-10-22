@@ -2,9 +2,11 @@
  * 観測の自動送信。poi のメインウィンドウ (キャプチャと同じコンテキスト) で動く。
  * game.response の購読は capture/plugin.ts の既存リスナーが行い、path を `onResponse` に渡す。
  *
- * - battleresult と帰投 (api_port/port) のあとに、デバウンスして `uploadPending` を呼ぶ。
+ * - battleresult と帰投 (api_port/port) のあとに、デバウンスして送信する (uploadClient: トークン登録・60 秒に 1 回・1 回 200 件)。
+ *   間隔の間に溜まった分は次の送信でまとめて送る。保留が残っていれば間隔が空き次第続きを送る。
  * - 保留が残っている限り、一定間隔で再試行する。
- * - 失敗 (オフライン / 非 2xx) は指数バックオフ (上限あり)。poi には例外を投げず、キャプチャも止めない。
+ * - 429 は Retry-After の時刻に再試行する (失敗として数えない)。403 (拒否) は送信を止める。
+ * - 失敗 (オフライン / 5xx) は指数バックオフ (上限あり)。poi には例外を投げず、キャプチャも止めない。
  * - 送信は常に 1 本だけ (single-flight)。
  *
  * 状態表示 (最終成功時刻・直近のエラー) はプラグインウィンドウから読むため localStorage に書く。
@@ -15,11 +17,14 @@ import { getSettings, subscribeSettings } from "../app/settings";
 import type { Settings } from "../app/settings";
 import type { ObservationDb } from "./db";
 import { isResultPath } from "./session";
+import { getUploadClient } from "./uploadClient";
+import type { UploadClient } from "./uploadClient";
 
 export const DEBOUNCE_MS = 5_000;
 export const PERIODIC_MS = 5 * 60_000;
 export const BACKOFF_BASE_MS = 30_000;
 export const BACKOFF_MAX_MS = 30 * 60_000;
+export const BANNED_MESSAGE = "サーバに拒否されました (403)。送信を停止しました";
 
 /** `failures` 回連続で失敗したあとの待ち時間。 */
 export const backoffDelay = (
@@ -58,9 +63,10 @@ const writeAutoUploadStatus = (s: AutoUploadStatus) => {
 
 export interface AutoUploadOptions {
   db: Pick<ObservationDb, "uploadPending" | "countPending">;
-  getSettings?: () => Pick<Settings, "autoUpload" | "apiBase" | "clientId">;
+  /** 既定は localStorage を共有する uploadClient (手動送信と同じ間隔・トークン) */
+  client?: Pick<UploadClient, "send" | "state">;
+  getSettings?: () => Pick<Settings, "autoUpload" | "apiBase">;
   subscribeSettings?: (listener: () => void) => () => void;
-  fetch?: typeof fetch;
   now?: () => number;
   setTimer?: (fn: () => void, ms: number) => unknown;
   clearTimer?: (handle: unknown) => void;
@@ -91,6 +97,7 @@ const isUploadTrigger = (rawPath: string): boolean => {
 export const startAutoUpload = (opts: AutoUploadOptions): AutoUploader => {
   const readSettings = opts.getSettings ?? getSettings;
   const subscribe = opts.subscribeSettings ?? subscribeSettings;
+  const client = opts.client ?? getUploadClient();
   const now = opts.now ?? Date.now;
   const setTimer = opts.setTimer ?? ((fn, ms) => setTimeout(fn, ms));
   const clearTimer = opts.clearTimer ?? ((h) => clearTimeout(h as Parameters<typeof clearTimeout>[0]));
@@ -110,7 +117,7 @@ export const startAutoUpload = (opts: AutoUploadOptions): AutoUploader => {
 
   const enabled = () => {
     const s = readSettings();
-    return s.autoUpload && s.apiBase !== "" && s.clientId !== "";
+    return s.autoUpload && s.apiBase !== "" && client.state(s.apiBase).kind !== "banned";
   };
 
   const setStatus = (patch: Partial<AutoUploadStatus>) => {
@@ -147,14 +154,24 @@ export const startAutoUpload = (opts: AutoUploadOptions): AutoUploader => {
       return inflight;
     }
     if (!enabled()) return Promise.resolve();
-    const { apiBase, clientId } = readSettings();
+    const { apiBase } = readSettings();
     inflight = (async () => {
       try {
-        if ((await opts.db.countPending()) === 0) return;
-        await opts.db.uploadPending(apiBase, { clientId, fetch: opts.fetch });
-        failures = 0;
-        blockedUntil = 0;
-        setStatus({ lastSuccessAt: now(), lastError: null, lastErrorAt: null });
+        const out = await client.send(opts.db, apiBase);
+        if (out.status === "sent") {
+          failures = 0;
+          blockedUntil = out.nextAt;
+          setStatus({ lastSuccessAt: now(), lastError: null, lastErrorAt: null });
+          // 200 件を超えた分は次に送れるようになった時点で続ける
+          if (out.remaining > 0 && !stopped) schedule(Math.max(0, out.nextAt - now()));
+        } else if (out.status === "deferred") {
+          // 429 や自分の送信間隔。失敗ではないのでバックオフしない。
+          blockedUntil = out.until;
+          if (!stopped) schedule(Math.max(0, out.until - now()));
+        } else if (out.status === "banned") {
+          clearDebounce();
+          setStatus({ lastError: BANNED_MESSAGE, lastErrorAt: now() });
+        }
       } catch (e) {
         failures += 1;
         const wait = backoffDelay(failures, opts.backoffBaseMs, opts.backoffMaxMs);

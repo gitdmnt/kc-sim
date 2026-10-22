@@ -7,9 +7,7 @@ export interface Settings {
   bundleBase: string;
   /** poi の state の代わりに同梱サンプルを使う */
   useSampleState: boolean;
-  /** 観測データ送信用の匿名クライアント ID。初回に生成して保存する */
-  clientId: string;
-  /** シミュレーションで推定タブの推定値 (n ≥ 30) を API の値より優先して使う */
+  /** シミュレーションでサーバの推定値 (estimator:server の best) を使う */
   useEstimates: boolean;
   /** 観測データを自動でデータ API (D1) に送信する (メインウィンドウの capture/autoUpload が読む) */
   autoUpload: boolean;
@@ -21,7 +19,6 @@ export const DEFAULT_SETTINGS: Settings = {
   apiBase: "http://127.0.0.1:8787",
   bundleBase: "",
   useSampleState: false,
-  clientId: "",
   useEstimates: false,
   autoUpload: true,
   minObserved: 30,
@@ -38,9 +35,6 @@ const read = (): Settings => {
     return { ...DEFAULT_SETTINGS };
   }
 };
-
-const newClientId = () =>
-  `poi-${globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`}`;
 
 let current = read();
 
@@ -66,15 +60,13 @@ export const updateSettings = (patch: Partial<Settings>) => {
   listeners.forEach((l) => l());
 };
 
-if (!current.clientId) updateSettings({ clientId: newClientId() });
-
 export const resetSettings = () => {
   try {
     localStorage.removeItem(KEY);
   } catch {
     // ignore
   }
-  current = { ...DEFAULT_SETTINGS, clientId: current.clientId };
+  current = { ...DEFAULT_SETTINGS };
   listeners.forEach((l) => l());
 };
 
@@ -87,8 +79,7 @@ export const subscribeSettings = (l: () => void) => {
 if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
   window.addEventListener("storage", (e) => {
     if (e.key !== null && e.key !== KEY) return;
-    const next = read();
-    current = { ...next, clientId: next.clientId || current.clientId };
+    current = read();
     listeners.forEach((l) => l());
   });
 }

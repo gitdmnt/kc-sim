@@ -6,7 +6,7 @@
  * 戦闘前の艦隊スナップショット (観測値 = 素 + 装備)、HP は各パケットの開始時の値。
  * 照明弾・接触はエンジンの結果に無いので「無し」として書く (検証用の艦隊はそれらを積まない)。
  */
-import type { AttackEvent as SimEvent, BattleInput, Engagement, EquipmentInput, Formation, RunBattleOutput, ShipInput, SpecialAttack } from "@sim-core";
+import type { AttackEvent as SimEvent, BattleInput, Engagement, EquipmentInput, Formation, RunBattleOutput, ShipInput, SpecialAttack } from "../../sim-core/pkg/sim_core";
 import type { AttackEvent, AttackPhase, CapturedBattle, CapturedEnemyShip } from "../capture/types";
 import type { ApiEquipment, ApiShip } from "../data/types";
 import type { EquipMaster, MasterData, PresetEquip, PresetShip, ShipMaster } from "../fleet/types";
@@ -73,7 +73,7 @@ export const syntheticWorld = (friend: ShipInput[], enemy: ShipInput[]): { maste
     for (const e of equipAll(s)) {
       const st = e.stats ?? {};
       apiEquips.set(e.id, {
-        id: e.id, name: `#${e.id}`, type: e.types, typeId: e.types[2], icon: e.types[3], fp: st.firepower ?? 0, tp: st.torpedo ?? 0,
+        id: e.id, name: `#${e.id}`, type: e.types, typeId: e.types[2] ?? 0, icon: e.types[3] ?? null, fp: st.firepower ?? 0, tp: st.torpedo ?? 0,
         aa: st.antiAir ?? 0, ar: st.armor ?? 0, bomb: st.bombing ?? 0, asw: st.asw ?? 0, los: st.los ?? 0, acc: st.accuracy ?? 0,
         ev: st.evasion ?? 0, luck: st.luck ?? 0, range: st.range ?? null, radius: null, cost: null, isAbyssal: true,
       });
@@ -158,7 +158,7 @@ export const captureFromRun = (input: BattleInput, out: RunBattleOutput, opts: C
     const source: SimEvent[] = [];
     for (const e of evs) {
       const side = e.attackerSide === "friend" ? 0 : 1;
-      hp[1 - side][e.defender] = e.defenderHpAfter;
+      hp[1 - side]![e.defender] = e.defenderHpAfter;
       // 航空戦 stage3 は命中した対象しか分からない
       if (e.kind === "air" && e.hit === "miss") continue;
       source.push(e);
@@ -190,11 +190,11 @@ export const captureFromRun = (input: BattleInput, out: RunBattleOutput, opts: C
         supply: friend.map((s) => ({ fuel: s.fuel ?? s.fuelMax ?? 100, fuelMax: s.fuelMax ?? 100, ammo: s.ammo ?? s.ammoMax ?? 100, ammoMax: s.ammoMax ?? 100 })),
       },
       enemy: {
-        ships: enemy.map((s, i) => enemyShip(s, i, startHp[1][i])),
+        ships: enemy.map((s, i) => enemyShip(s, i, startHp[1]![i]!)),
         escort: [],
-        friendFormation: formation[0],
-        enemyFormation: formation[1],
-        engagement: formation[2],
+        friendFormation: formation[0] ?? null,
+        enemyFormation: formation[1] ?? null,
+        engagement: formation[2] ?? null,
       },
       enemyMasterIds: [...new Set(enemy.map((s) => s.id ?? 0))],
       pending: 1,

@@ -8,7 +8,7 @@
  * 未対応: shipS・shipNationality・requiresNum(Type)・bonusSR/AR/AccR のみのエントリ。
  *   これらは `skipped` として数えるだけで加算しない。結果は本物のゲーム内の値と一致するとは限らない。
  */
-import type { EquipmentStats } from "@sim-core";
+import type { EquipmentStats } from "../../sim-core/pkg/sim_core";
 
 export interface FitBonusDef {
   shipX?: number[];

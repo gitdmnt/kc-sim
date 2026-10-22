@@ -8,7 +8,7 @@
  * rf = 改修値, mas = 熟練度。luck/hp/asw は改修込みの実数値 (任意, 無指定は -1/欠落)。
  */
 import { normalizePreset } from "./normalize";
-import type { MasterData, Preset, PresetEquip, PresetShip } from "./types";
+import type { MasterData, Preset, PresetEquip, PresetShip } from "@shared/fleet/types";
 
 export interface DeckBuilderItem {
   id: number;

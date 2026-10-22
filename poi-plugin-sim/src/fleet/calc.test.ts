@@ -5,8 +5,8 @@ import {
   mapLos33,
   slotFighterPower,
   summarizeFleet,
-} from "./calc";
-import type { EquipMaster, MasterData, PresetShip } from "./types";
+} from "@shared/fleet/calc";
+import type { EquipMaster, MasterData, PresetShip } from "@shared/fleet/types";
 // Shared with sim-core routing::los33 (sim-core/tests/routing.rs los_formula_33_shared_vectors).
 import losVectors from "../../../sim-core/tests/fixtures/los33-vectors.json";
 

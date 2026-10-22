@@ -1,6 +1,6 @@
 /** poi の state.const から、ピッカー用の選択肢と名前引きを作る。 */
 import { masterFromPoi } from "./poiImport";
-import type { MasterData } from "./types";
+import type { MasterData } from "@shared/fleet/types";
 
 export interface PickerOption {
   value: number;

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FORMATION_NAME } from "../../data/routing";
-import type { CompSelection, CompShip, EnemyComp, EnemyCompSet } from "../../data/types";
+import type { CompSelection, CompShip, EnemyComp, EnemyCompSet } from "@shared/data/types";
 import { compSourceLabel } from "../../sim/sortieAdapter";
 import { Badge, ProgressBar, Select, cx } from "../../ui";
 

@@ -25,6 +25,7 @@
     "paths": {
       "@/*": ["*"],
       "@utils/*": ["utils/*"],
+      "@shared/*": ["../../shared/*"],
       "@sim-core": ["../../sim-core/pkg/sim_core"],
       "@sim-core/*": ["../../sim-core/pkg/*"]
     }

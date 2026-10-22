@@ -1,6 +1,6 @@
 import React from "react";
 import type { PresetEquip } from "../../fleet";
-import { isAircraft } from "../../fleet/calc";
+import { isAircraft } from "@shared/fleet/calc";
 import { Combobox, NumberInput, S, cx } from "../../ui";
 import { useApp } from "../context";
 

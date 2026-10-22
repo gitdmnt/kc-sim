@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import type { MapEdge, MapNode, NodeType } from "../../data/types";
+import type { MapEdge, MapNode, NodeType } from "@shared/data/types";
 
 export const NODE_COLOR: Record<string, string> = {
   start: "var(--color-accent-600)",

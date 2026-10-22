@@ -1,16 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import sample from "../../dev/sampleState.json";
-import type { ApiEquipment, ApiShip, ShipDetail } from "../data/types";
+import { SERVER_ESTIMATOR_SOURCE } from "@shared/data/types";
+import type { ApiEquipment, ApiShip, ShipDetail } from "@shared/data/types";
 import { importFromPoi, masterFromPoi } from "../fleet";
 import type { MasterData, Preset } from "../fleet";
 import {
   buildBattleInput,
   buildEnemyShips,
   buildFriendShips,
-  defaultApplyEstimates,
+  applyBest,
+  bestEstimates,
   enemyFormationOf,
   friendFormationOf,
-} from "./adapter";
+} from "@shared/sim/adapter";
 
 const master: MasterData = {
   ships: { 1: { api_id: 1, api_name: "テスト艦", api_stype: 3, api_ctype: 7, api_leng: 2, api_soku: 10, api_maxeq: [0, 6, 0], api_taik: [30, 40] } },
@@ -118,22 +120,62 @@ describe("buildEnemyShips", () => {
 
   test("acc → hiddenAccuracy, tacc → torpedoAccuracy", () => {
     const ship = { shipType: 2, maxHp: 20, stats: { firepower: 5, torpedo: 15, antiAir: 6, armor: 5 }, slots: [] };
-    const s = defaultApplyEstimates(ship, { shipId: 1501, best: { acc: { value: 12, confidence: "observed", source: "estimator:poi" } } });
+    const s = applyBest(ship, { acc: { value: 12, confidence: "observed", source: SERVER_ESTIMATOR_SOURCE } });
     expect(s.hiddenAccuracy).toBe(12);
     expect(s.torpedoAccuracy).toBeUndefined();
-    const t = defaultApplyEstimates(ship, { shipId: 1501, best: { tacc: { value: 70, confidence: "datamined", source: "kancolle-replay-shipdata" } } });
+    const t = applyBest(ship, { tacc: { value: 70, confidence: "datamined", source: "kancolle-replay-shipdata" } });
     expect(t.torpedoAccuracy).toBe(70);
     expect(t.hiddenAccuracy).toBeUndefined();
   });
 
-  test("applyEstimates hook replaces the default mapping", () => {
-    const r = buildEnemyShips(
-      [{ shipId: 1501, level: 1, hp: 20, fp: 5, tp: 15, aa: 6, ar: 5, equips: [] }],
-      lookup,
-      (ship, ctx) => ({ ...defaultApplyEstimates(ship, ctx), hiddenAccuracy: 9, stats: { ...ship.stats, evasion: 99 } })
-    );
-    expect(r.input[0].hiddenAccuracy).toBe(9);
-    expect(r.input[0].stats.evasion).toBe(99);
+  test("skipHiddenStats leaves only the visible stats (the estimator decides the hidden ones)", () => {
+    const r = buildEnemyShips([{ shipId: 1501, level: 1, hp: 20, fp: 5, tp: 15, aa: 6, ar: 5, equips: [] }], lookup, { skipHiddenStats: true });
+    expect(r.input[0].stats).toEqual({ firepower: 5, torpedo: 15, antiAir: 6, armor: 5 });
+    expect(r.input[0].torpedoAccuracy).toBeUndefined();
+    expect(r.reliability).toEqual([]);
+  });
+
+  describe("server estimates (estimator:server) follow the setting", () => {
+    const row = (stat: "ev" | "acc", value: number, confidence: "observed" | "datamined", source: string, n: number | null = null) =>
+      ({ stat, value, confidence, sd: null, n, source, note: null, updatedAt: "2026-10-22T00:00:00Z" }) as const;
+    const detail: ShipDetail = {
+      ship: ships.get(1501)!,
+      estimates: [
+        row("ev", 17.5, "observed", SERVER_ESTIMATOR_SOURCE, 812),
+        row("ev", 14, "datamined", "kancolle-replay-shipdata"),
+        row("acc", 12, "observed", SERVER_ESTIMATOR_SOURCE, 400),
+      ],
+      best: {
+        ev: { value: 17.5, confidence: "observed", source: SERVER_ESTIMATOR_SOURCE },
+        acc: { value: 12, confidence: "observed", source: SERVER_ESTIMATOR_SOURCE },
+        asw: { value: 25, confidence: "datamined", source: "x" },
+      },
+    };
+    const withServer = new Map(details).set(1501, detail);
+    const lk = { ...lookup, detail: (i: number) => withServer.get(i) };
+    const comp = [{ shipId: 1501, level: 1, hp: 20, fp: 5, tp: 15, aa: 6, ar: 5, equips: [] as number[] }];
+
+    test("on (default): the server's best is used", () => {
+      for (const opts of [undefined, { useServerEstimates: true }]) {
+        const r = buildEnemyShips(comp, lk, opts);
+        expect(r.input[0].stats.evasion).toBe(17.5);
+        expect(r.input[0].hiddenAccuracy).toBe(12);
+        expect(r.reliability.find((x) => x.stat === "ev")).toMatchObject({ confidence: "observed", source: SERVER_ESTIMATOR_SOURCE, n: 812 });
+      }
+    });
+
+    test("off: the server's values are ignored; the next best source or 0 is used", () => {
+      const r = buildEnemyShips(comp, lk, { useServerEstimates: false });
+      expect(r.input[0].stats.evasion).toBe(14);
+      expect(r.input[0].stats.asw).toBe(25);
+      expect(r.input[0].hiddenAccuracy).toBeUndefined();
+      expect(r.reliability.find((x) => x.stat === "ev")).toMatchObject({ confidence: "datamined", source: "kancolle-replay-shipdata", n: null });
+      expect(r.reliability.find((x) => x.stat === "acc")).toMatchObject({ confidence: "unknown", value: null });
+    });
+
+    test("bestEstimates without a server row returns best untouched", () => {
+      expect(bestEstimates(details.get(1501), false)).toBe(details.get(1501)!.best);
+    });
   });
 });
 

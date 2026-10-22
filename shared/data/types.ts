@@ -195,9 +195,63 @@ export interface ShipEstimate {
   confidence: Confidence;
   sd: number | null;
   n: number | null;
+  /** 推定器 (estimator:server) の 90% 信用区間。それ以外の出典は null */
+  ci90?: [number, number] | null;
   source: string;
   note: string | null;
   updatedAt: string;
+}
+
+/** サーバが観測から推定する隠しステータス (`GET /api/v1/estimates`)。acc は sim-core の hiddenAccuracy。 */
+export type EstimatedStat = "ev" | "acc" | "luck";
+
+/** サーバの推定値の出典 (`estimates.source` / `best.*.source`)。 */
+export const SERVER_ESTIMATOR_SOURCE = "estimator:server";
+
+/** `best` / シミュレーションにサーバの推定値を使う最小観測数 (サーバが ships の estimates に載せる条件と同じ)。 */
+export const ESTIMATE_MIN_N = 30;
+
+/** 事前分布の出どころ。 */
+export interface EstimatePrior {
+  /** API の estimates.source。値が無いときは "flat" */
+  source: string;
+  confidence: Confidence | "none";
+  value: number | null;
+  /** グリッド上の事前分布の標準偏差 (平坦なら一様分布の sd) */
+  sd: number;
+}
+
+/** グリッド上の周辺分布 (値 = min + i·step、確率の和 1)。 */
+export interface EstimateDensity {
+  min: number;
+  step: number;
+  posterior: number[];
+  prior: number[];
+}
+
+export interface EstimateRow {
+  shipId: number;
+  stat: EstimatedStat;
+  /** 事後平均 */
+  mean: number;
+  /** 事後標準偏差 */
+  sd: number;
+  /** 等裾 90% 信用区間 */
+  ci90: [number, number];
+  /** この値に効いた命中判定の数 (ev: 被弾側, acc: 攻撃側, luck: 両方) */
+  n: number;
+  priorSource: string;
+  prior: EstimatePrior;
+  /** `density=1` を付けた (shipId 指定の) 問い合わせだけ */
+  density?: EstimateDensity;
+  updatedAt: string;
+}
+
+export interface EstimatesResponse {
+  source: string;
+  /** サーバが最後に推定した時刻。まだ無ければ null */
+  updatedAt: string | null;
+  estimates: EstimateRow[];
 }
 
 export interface ShipDetail {

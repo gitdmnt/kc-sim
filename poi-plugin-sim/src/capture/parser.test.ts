@@ -9,7 +9,7 @@ import {
   mapStart15,
   midnightBattle,
 } from "./fixtures";
-import { extractAttackEvents, extractCellData, extractEnemy, extractMapCell, splitDamage } from "./parser";
+import { extractAttackEvents, extractCellData, extractEnemy, extractMapCell, splitDamage } from "@shared/capture/parser";
 
 describe("map packets (api_req_map/start, next)", () => {
   test("start: first cell without api_from_no", () => {

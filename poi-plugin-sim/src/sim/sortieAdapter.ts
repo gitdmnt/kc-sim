@@ -11,11 +11,11 @@ import type {
   SortieNode,
 } from "@sim-core";
 import type { MapData } from "../data/mapData";
-import type { EnemyCompSet, RoutingDoc, Rule, Predicate } from "../data/types";
-import type { MasterData, Preset } from "../fleet/types";
-import { buildEnemyShips, buildFriendShips, enemyFormationOf } from "./adapter";
-import type { ApplyEstimates, EnemyBuild, FriendBuild } from "./adapter";
-import type { FitEntry } from "./fit";
+import type { EnemyCompSet, RoutingDoc, Rule, Predicate } from "@shared/data/types";
+import type { MasterData, Preset } from "@shared/fleet/types";
+import { buildEnemyShips, buildFriendShips, enemyFormationOf } from "@shared/sim/adapter";
+import type { BuildEnemyOptions, EnemyBuild, FriendBuild } from "@shared/sim/adapter";
+import type { FitEntry } from "@shared/sim/fit";
 
 /** 指定難易度の最新セットを選ぶ。無ければ最も高い難易度に代替 (fallback=true)。 */
 export const pickSet = (sets: EnemyCompSet[], difficulty: number): { set: EnemyCompSet; fallback: boolean } | undefined => {
@@ -33,14 +33,14 @@ export const compSourceLabel = (set: Pick<EnemyCompSet, "source" | "totalCount">
 export const toSimComps = (
   set: EnemyCompSet,
   data: Pick<MapData, "ships" | "equips">,
-  apply?: ApplyEstimates
+  opts: BuildEnemyOptions = {}
 ): { comps: SimComp[]; builds: EnemyBuild[] } => {
   const lookup = {
     ship: (id: number) => data.ships.get(id)?.ship,
     equip: (id: number) => data.equips.get(id),
     detail: (id: number) => data.ships.get(id),
   };
-  const builds = set.comps.map((c) => buildEnemyShips(c.main, lookup, apply));
+  const builds = set.comps.map((c) => buildEnemyShips(c.main, lookup, opts));
   return {
     builds,
     comps: set.comps.map((c, i) => ({ weight: c.weight, fleet: { ships: builds[i].input, formation: enemyFormationOf(c) } })),
@@ -139,7 +139,7 @@ export const buildSortieInput = (
   master: MasterData,
   data: MapData,
   s: SortieSettings,
-  opts: { fitBonuses?: FitEntry[]; apply?: ApplyEstimates; topPaths?: number } = {}
+  opts: BuildEnemyOptions & { fitBonuses?: FitEntry[]; topPaths?: number } = {}
 ): SortieBuild => {
   const warnings: string[] = [];
   const routing = data.detail.routing;
@@ -158,7 +158,7 @@ export const buildSortieInput = (
     const picked = pickSet(sets, s.difficulty);
     if (!picked) continue;
     if (picked.fallback) warnings.push(`ノード ${n.letter}: 難易度 ${s.difficulty} の編成が無く、難易度 ${picked.set.difficulty} で代替`);
-    const { comps, builds } = toSimComps(picked.set, data, opts.apply);
+    const { comps, builds } = toSimComps(picked.set, data, opts);
     nodes[n.letter].comps = comps;
     compSets[n.letter] = picked.set;
     enemyBuilds.push(...builds);
@@ -173,7 +173,7 @@ export const buildSortieInput = (
   if (s.gaugeInput) {
     gauge = { kind: s.gaugeInput.kind, remaining: s.gaugeInput.remaining };
     if (s.gaugeInput.kind === "hp") {
-      if (s.gaugeInput.finalSet) gauge.finalComps = toSimComps(s.gaugeInput.finalSet, data, opts.apply).comps;
+      if (s.gaugeInput.finalSet) gauge.finalComps = toSimComps(s.gaugeInput.finalSet, data, opts).comps;
       if (s.gaugeInput.finalThreshold) gauge.finalThreshold = s.gaugeInput.finalThreshold;
     }
   }

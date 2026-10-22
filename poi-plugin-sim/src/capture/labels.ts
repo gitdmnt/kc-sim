@@ -1,5 +1,5 @@
 /** 観測ログ表示用の日本語ラベル。 */
-import type { AttackPhase, HitKind } from "./types";
+import type { AttackPhase, HitKind } from "@shared/capture/types";
 
 export const PHASE_LABEL: Record<AttackPhase, string> = {
   air: "航空戦",

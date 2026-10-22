@@ -114,6 +114,18 @@ describe("DataApi cache", () => {
     await expect(bad.api.maps()).rejects.toBeInstanceOf(DataApiError);
   });
 
+  test("estimates: query string, cache, and fresh bypasses the cache", async () => {
+    const body = { source: "estimator:server", updatedAt: null, estimates: [] };
+    const { api, calls } = mk([json(body), json(body), json(body)]);
+    await api.estimates({ density: false });
+    await api.estimates({ density: false });
+    await api.estimates({ shipId: 1501, stat: "ev", minN: 30, density: true });
+    expect(calls).toEqual(["http://x/api/v1/estimates?density=0", "http://x/api/v1/estimates?shipId=1501&stat=ev&minN=30&density=1"]);
+    await api.estimates({ density: false }, true);
+    expect(calls).toHaveLength(3);
+    expect(calls[2]).toBe(calls[0]);
+  });
+
   test("clearCache empties memory and storage", async () => {
     const { api, calls, storage } = mk([json({ maps: [1] }), json({ maps: [1] })]);
     await api.maps();

@@ -7,7 +7,7 @@ import {
   mapStart15, midnightBattle,
 } from "./fixtures";
 import { CaptureSession, isBattlePath, isResultPath } from "./session";
-import type { CapturedFleet } from "./types";
+import type { CapturedFleet } from "@shared/capture/types";
 import { fleetSnapshot, startCapture, stopCapture } from "./plugin";
 
 const fleet: CapturedFleet = {
@@ -128,38 +128,41 @@ describe("CaptureSession + ObservationDb", () => {
     const bodies: any[] = [];
     let ok = true;
     const fakeFetch = (async (url: string, init: any) => {
-      bodies.push({ url, body: JSON.parse(init.body) });
+      bodies.push({ url, init, body: JSON.parse(init.body) });
       return { ok, status: ok ? 200 : 500, statusText: "x" };
     }) as unknown as typeof fetch;
-    const opts = { fetch: fakeFetch, clientId: "poi-test" };
+    const opts = { fetch: fakeFetch, token: "tok-test" };
 
     ok = false;
     await expect(db.uploadPending("https://api.example/", opts)).rejects.toThrow("500");
     ok = true;
     bodies.length = 0;
-    expect(await db.uploadPending("https://api.example/", { ...opts, batchSize: 3 })).toBe(5);
-    expect(bodies).toHaveLength(2);
+    expect(await db.uploadPending("https://api.example/", opts)).toEqual({ sent: 5, remaining: 0 });
+    expect(bodies).toHaveLength(1);
     expect(bodies[0].url).toBe("https://api.example/api/v1/observations");
-    expect(bodies[0].body.clientId).toBe("poi-test");
-    expect(bodies[0].body.observations).toHaveLength(3);
+    expect(bodies[0].init.headers.Authorization).toBe("Bearer tok-test");
+    expect(Object.keys(bodies[0].body)).toEqual(["observations"]);
+    expect(bodies[0].body.observations).toHaveLength(5);
     const o = bodies[0].body.observations[0];
     expect(Object.keys(o).sort()).toEqual(
-      ["cell", "clientObsId", "difficulty", "enemy", "fleet", "kind", "map", "node", "observedAt", "raw"].sort()
+      ["cell", "clientObsId", "difficulty", "fleet", "kind", "map", "node", "observedAt", "raw"].sort()
     );
     expect(o).toMatchObject({ map: "1-2", node: "1", cell: 1, difficulty: 3, kind: "battle" });
     // battles first, then the finished sortie
-    expect(bodies[1].body.observations.map((x: any) => x.kind)).toEqual(["battle", "sortie"]);
-    const s = bodies[1].body.observations[1];
+    expect(bodies[0].body.observations.map((x: any) => x.kind)).toEqual(["battle", "battle", "battle", "battle", "sortie"]);
+    const s = bodies[0].body.observations[4];
     expect(s).toMatchObject({ map: "1-2", difficulty: 3, kind: "sortie", sortie: { endKind: "retreat", deckId: 1, combined: null } });
     expect(s.sortie.cells.map((c: any) => [c.no, c.battles.length])).toEqual([[1, 1], [5, 2]]);
     expect(new Date(o.observedAt).toISOString()).toBe(o.observedAt);
     expect(o.raw.path).toBe("api_req_sortie/battle");
     expect(o.raw.raw).toEqual(dayBattle);
     expect(o.raw.result).toMatchObject({ rank: "S" });
-    expect(o.raw.events.length).toBeGreaterThan(10);
+    // the server re-derives the enemy and attack events from raw.raw, so neither is sent
+    expect(o.raw.events).toBeUndefined();
+    expect(o.enemy).toBeUndefined();
     // battles without a map are never sent but no longer pending
     expect(await db.countPending()).toBe(0);
-    expect(await db.uploadPending("https://api.example", opts)).toBe(0);
+    expect(await db.uploadPending("https://api.example", opts)).toEqual({ sent: 0, remaining: 0 });
   });
 
   test("errors in sink never reject when no handler throws", async () => {
@@ -237,13 +240,16 @@ describe("CaptureSession + ObservationDb", () => {
       bodies.push(JSON.parse(init.body));
       return { ok: true, status: 200, statusText: "OK" };
     }) as unknown as typeof fetch;
-    expect(await db.uploadPending("http://x", { fetch: fakeFetch, clientId: "c", now: () => t })).toBe(6);
+    expect(await db.uploadPending("http://x", { fetch: fakeFetch, token: "c", now: () => t })).toEqual({ sent: 6, remaining: 0 });
     const obs = bodies.flatMap((b) => b.observations);
     const battle = obs.find((o: any) => o.kind === "battle");
     expect(battle).toMatchObject({ map: "1-5", cell: 1, difficulty: 0, layout: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] });
     expect(battle.raw.sortieId).toMatch(/^s-/);
     const sortie = obs.find((o: any) => o.kind === "sortie");
-    expect(Object.keys(sortie).sort()).toEqual(["clientObsId", "difficulty", "fleet", "kind", "layout", "map", "observedAt", "sortie"]);
+    expect(Object.keys(sortie).sort()).toEqual(["clientObsId", "difficulty", "fleet", "kind", "layout", "map", "observedAt", "raw", "sortie"]);
+    // raw map packets in visit order (the server re-derives cells / cellData from them)
+    expect(sortie.raw.packets.map((p: any) => p.path)).toEqual(["api_req_map/start", "api_req_map/next", "api_req_map/next", "api_req_map/next", "api_req_map/next"]);
+    expect(sortie.raw.packets[0].body).toEqual(mapStart15);
     expect(sortie.sortie.endKind).toBe("boss");
     expect(sortie.sortie.cells[4]).toEqual({
       no: 12, from: 7, colorNo: 5, eventId: 5, eventKind: 1, bossCellNo: 12, next: 0, selectCells: null,
@@ -252,7 +258,7 @@ describe("CaptureSession + ObservationDb", () => {
     expect(await db.countPending(t)).toBe(0);
     expect(await db.countPending(t + STALE_SORTIE_MS)).toBe(1);
     bodies.length = 0;
-    expect(await db.uploadPending("http://x", { fetch: fakeFetch, clientId: "c", now: () => t + STALE_SORTIE_MS })).toBe(1);
+    expect(await db.uploadPending("http://x", { fetch: fakeFetch, token: "c", now: () => t + STALE_SORTIE_MS })).toEqual({ sent: 1, remaining: 0 });
     expect(bodies[0].observations[0].sortie).toMatchObject({ endKind: "unknown", endedAt: null });
   });
 });

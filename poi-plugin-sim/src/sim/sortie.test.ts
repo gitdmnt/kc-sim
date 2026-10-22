@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import type { SortieSummary } from "@sim-core";
 import { DataApi } from "../data/api";
 import { loadMapData } from "../data/mapData";
-import type { MapBundle, RoutingDoc } from "../data/types";
+import type { MapBundle, RoutingDoc } from "@shared/data/types";
 import { MemoryStorage } from "../fleet/storage";
-import type { MasterData, Preset } from "../fleet/types";
+import type { MasterData, Preset } from "@shared/fleet/types";
 import {
   buildSortieInput, compSourceLabel, flagNames, hasStartRules, pickSet, selectNodes, startNodes, uncertainNodes,
 } from "./sortieAdapter";

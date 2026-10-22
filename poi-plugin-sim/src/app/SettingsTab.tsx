@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { STORAGE_PREFIX } from "../fleet";
-import { AUTO_UPLOAD_STATUS_KEY, getObservationDb, readAutoUploadStatus } from "../capture";
+import { AUTO_UPLOAD_STATUS_KEY, getObservationDb, getUploadClient, readAutoUploadStatus } from "../capture";
 import type { AutoUploadStatus } from "../capture";
 import { getDataApi } from "../data/api";
 import { Button, Card, Checkbox, ConfirmDialog, Field, TextInput, S, useToast } from "../ui";
 import { getPresetStore } from "./fleet/presets";
-import { useApp } from "./context";
 import { resetSettings, updateSettings, useSettings } from "./settings";
 import { NumberInput } from "../ui/NumberInput";
+import { useRegistration, useUploadWaitSeconds } from "./useUploadClient";
 
 /** 自動送信の状況。送信はメインウィンドウで動くので、状態は localStorage (storage イベント) と共有の IndexedDB から読む。 */
 const useAutoUploadStatus = (): { status: AutoUploadStatus; pending: number | null } => {
@@ -47,27 +47,23 @@ export const SettingsTab = () => {
   const [confirm, setConfirm] = useState<Action | null>(null);
   const [counts, setCounts] = useState<{ presets: number; battles: number | null }>({ presets: 0, battles: null });
   const [tick, setTick] = useState(0);
-  const { state, catalog } = useApp();
-  const [seeding, setSeeding] = useState(false);
   const upload = useAutoUploadStatus();
+  const registration = useRegistration(settings.apiBase);
+  const wait = useUploadWaitSeconds();
+  const [registering, setRegistering] = useState(false);
 
-  // 開発用: runBattle のログから合成の観測を作る。開発サーバのみ (本番ビルドでは三項演算ごと消える)。
-  // 静的 import するとメインスレッド用の wasm 初期化が本番バンドルに入るので、動的 import にしている。
-  const seed = import.meta.env.DEV
-    ? async () => {
-        setSeeding(true);
-        try {
-          const { seedSyntheticObservations, TRUE_SHIFT } = await import("../estimate/devSeed");
-          const r = await seedSyntheticObservations(state, catalog.master, getObservationDb(), getDataApi(), { seed: Date.now() % 100_000 });
-          toast.push(`合成の戦闘 ${r.battles} 件を投入しました (真値 = API の値 + 回避 ${TRUE_SHIFT.ev} / 命中 ${TRUE_SHIFT.acc})`, "ok");
-          setTick((t) => t + 1);
-        } catch (e) {
-          toast.push((e as Error).message, "danger");
-        } finally {
-          setSeeding(false);
-        }
-      }
-    : undefined;
+  const register = async () => {
+    setRegistering(true);
+    try {
+      const r = await getUploadClient().register(settings.apiBase);
+      toast.push(r.status === "registered" ? "登録しました" : `登録が制限されています。${Math.max(1, Math.ceil((r.until - Date.now()) / 1000))} 秒後にやり直してください`, "info");
+    } catch (e) {
+      toast.push((e as Error).message, "danger");
+    } finally {
+      registration.refresh();
+      setRegistering(false);
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -148,6 +144,7 @@ export const SettingsTab = () => {
           />
           <div className="text-sm text-ink-300">
             最終成功: {formatTime(upload.status.lastSuccessAt)} / 未送信 {upload.pending ?? "—"} 件
+            {wait > 0 && <span> / 次の送信まで {wait} 秒</span>}
             {upload.status.lastError && (
               <span className="text-danger-400">
                 {" "}
@@ -155,13 +152,28 @@ export const SettingsTab = () => {
               </span>
             )}
           </div>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-ink-300">
+            <span>
+              登録:{" "}
+              {registration.state.kind === "none" && "未登録 (最初の送信時にサーバへ登録します)"}
+              {registration.state.kind === "registered" && (
+                <>
+                  登録済み <span className="text-ink-400">({registration.state.clientId})</span>
+                </>
+              )}
+              {registration.state.kind === "banned" && <span className="text-danger-400">サーバに拒否されました (403)。送信を停止しています</span>}
+            </span>
+            <Button size="sm" variant="secondary" onClick={() => void register()} disabled={registering || settings.apiBase === ""}>
+              {registration.state.kind === "none" ? "登録" : "再登録"}
+            </Button>
+          </div>
         </div>
       </Card>
 
       <Card title="推定値" bodyClassName="flex flex-col gap-3">
         <Checkbox
           label="シミュレーションで推定値を使う"
-          hint="パラメータ推定の値 (観測 30 回以上) を API の値より優先します"
+          hint="サーバが観測から求めた推定値 (観測 30 回以上) を使います。オフのときは使いません"
           checked={settings.useEstimates}
           onChange={(e) => updateSettings({ useEstimates: e.target.checked })}
         />
@@ -180,14 +192,6 @@ export const SettingsTab = () => {
           checked={settings.useSampleState}
           onChange={(e) => updateSettings({ useSampleState: e.target.checked })}
         />
-        {seed && (
-          <div className="flex items-center gap-3">
-            <Button onClick={() => void seed()} disabled={seeding} title="第1艦隊と実在の深海棲艦で 500 戦を sim-core で回し、観測ログに追加します (送信対象外)">
-              {seeding ? "投入中…" : "合成データ投入"}
-            </Button>
-            <span className="text-xs text-ink-400">開発用 · 送信対象外</span>
-          </div>
-        )}
       </Card>
 
       <Card title={S.settings.data} bodyClassName="flex flex-col divide-y divide-ink-700">

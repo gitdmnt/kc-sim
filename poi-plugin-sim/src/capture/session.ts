@@ -3,7 +3,7 @@
  * 艦隊スナップショットの取得 (getFleet) と保存先 (sink) は外から注入する。
  * マス番号 (api_no) からノード名への変換はしない (サーバが edges から引く。docs/API.md §3)。
  */
-import { extractAttackEvents, extractCellData, extractEnemy, extractMapCell } from "./parser";
+import { extractAttackEvents, extractCellData, extractEnemy, extractMapCell } from "@shared/capture/parser";
 import type {
   BattleResultInfo,
   CapturedBattle,
@@ -14,7 +14,7 @@ import type {
   SortieEnd,
   SortieFleetFeatures,
   StoredEvent,
-} from "./types";
+} from "@shared/capture/types";
 
 export interface ObservationSink {
   saveBattle(battle: CapturedBattle, events: StoredEvent[]): Promise<void>;
@@ -100,7 +100,7 @@ export class CaptureSession {
         this.difficultyByMap.set(`${area}-${mapNo}`, rank);
       }
     } else if (path === "api_req_map/start" || path === "api_req_map/next") {
-      await this.onMapNode(path === "api_req_map/start", body, postBody);
+      await this.onMapNode(path, body, postBody);
     } else if (path === "api_port/port") {
       this.combinedFlag = toNum(body?.api_combined_flag) ?? this.combinedFlag;
       await this.endSortie();
@@ -119,7 +119,8 @@ export class CaptureSession {
     await this.deps.sink.saveSortie({ ...s, endKind: sortieEndKind(s.cells.at(-1)), endedAt: now, updatedAt: now });
   }
 
-  private async onMapNode(isStart: boolean, body: any, postBody: any) {
+  private async onMapNode(path: "api_req_map/start" | "api_req_map/next", body: any, postBody: any) {
+    const isStart = path === "api_req_map/start";
     const area = toNum(body?.api_maparea_id) ?? this.map?.area;
     const mapNo = toNum(body?.api_mapinfo_no) ?? this.map?.mapNo;
     const cell = extractMapCell(body);
@@ -157,6 +158,7 @@ export class CaptureSession {
     const sortie = this.sortie?.map === key ? this.sortie : null;
     if (sortie) {
       sortie.cells.push({ ...cell, battles: [] });
+      (sortie.packets ??= []).push({ path, body });
       sortie.updatedAt = now;
       await this.deps.sink.saveSortie(sortie);
     }

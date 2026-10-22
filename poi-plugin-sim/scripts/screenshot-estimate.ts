@@ -1,7 +1,7 @@
 /**
  * パラメータ推定タブのスクリーンショット (docs/screenshots/16-estimate.png)。
- * dev サーバ (port 5211) を起動し、設定タブの「合成データ投入」で runBattle のログから観測を作ってから推定する。
- * data API (settings の apiBase、既定 http://127.0.0.1:8787) が動いていること。`bun scripts/screenshot-estimate.ts`
+ * dev サーバ (port 5211) を起動し、data API (settings の apiBase、既定 http://127.0.0.1:8787) の推定値 (GET /api/v1/estimates) を表示する。
+ * API が動いていて、サーバが推定済みであること。`bun scripts/screenshot-estimate.ts`
  */
 import { chromium } from "playwright-core";
 import { existsSync, readdirSync } from "node:fs";
@@ -49,15 +49,9 @@ try {
   await page.reload();
 
   const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).click();
-  await tab("設定");
-  await page.getByRole("button", { name: "合成データ投入" }).click();
-  await page.getByText(/合成の戦闘 \d+ 件を投入しました/).waitFor({ timeout: 120_000 });
-  await page.getByText(/合成の戦闘 \d+ 件を投入しました/).waitFor({ state: "detached", timeout: 30_000 });
-
   await tab("パラメータ推定");
-  await page.getByRole("button", { name: "推定を実行" }).first().click();
-  await page.getByText("事前との差").waitFor({ timeout: 120_000 });
-  await page.getByText("最終推定:").waitFor({ timeout: 120_000 });
+  await page.getByText("事前との差").waitFor({ timeout: 30_000 });
+  await page.getByText("最終推定:").waitFor({ timeout: 30_000 });
   // ずれの大きい艦を選ぶ
   await page.getByLabel("並び順").selectOption("shift");
   await page.locator("tbody tr").first().click();

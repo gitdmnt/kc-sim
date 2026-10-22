@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { getDataApi } from "../../data/api";
 import { useAbyssalData } from "../../data/names";
-import type { ApiEquipment, ApiShip, Confidence, HiddenStat, ShipEstimate } from "../../data/types";
+import type { ApiEquipment, ApiShip, Confidence, HiddenStat, ShipEstimate } from "@shared/data/types";
 import { useAsync } from "../../data/useAsync";
 import { normalizeForSearch } from "../../fleet/catalog";
 import { Badge, Button, Card, EmptyState, Select, Stat, Table, Td, TextInput, Th, Thead, Tr, cx, S } from "../../ui";

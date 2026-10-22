@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useApp } from "../app/context";
 import { getDataApi } from "./api";
-import type { ApiEquipment, ApiShip } from "./types";
+import type { ApiEquipment, ApiShip } from "@shared/data/types";
 import type { MapData } from "./mapData";
 import { useAsync } from "./useAsync";
 

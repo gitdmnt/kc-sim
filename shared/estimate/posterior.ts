@@ -72,19 +72,19 @@ export const axisForPrior = (axis: Axis, p: PriorSpec, sd: number | null): Axis 
 export const logPrior = (values: number[], p: PriorSpec, sd: number | null): Float64Array => {
   const out = new Float64Array(values.length);
   if (p.value !== null && sd !== null) {
-    for (let i = 0; i < values.length; i++) out[i] = -((values[i] - p.value) ** 2) / (2 * sd * sd);
+    for (let i = 0; i < values.length; i++) out[i] = -((values[i]! - p.value) ** 2) / (2 * sd * sd);
   }
   const z = logSumExp(out);
-  for (let i = 0; i < out.length; i++) out[i] -= z;
+  for (let i = 0; i < out.length; i++) out[i]! -= z;
   return out;
 };
 
 export const logSumExp = (v: ArrayLike<number>): number => {
   let m = -Infinity;
-  for (let i = 0; i < v.length; i++) if (v[i] > m) m = v[i];
+  for (let i = 0; i < v.length; i++) if (v[i]! > m) m = v[i]!;
   if (m === -Infinity) return -Infinity;
   let s = 0;
-  for (let i = 0; i < v.length; i++) s += Math.exp(v[i] - m);
+  for (let i = 0; i < v.length; i++) s += Math.exp(v[i]! - m);
   return m + Math.log(s);
 };
 
@@ -108,16 +108,16 @@ export interface Summary {
 
 export const summarize = (m: Marginal): Summary => {
   let mean = 0;
-  for (let i = 0; i < m.values.length; i++) mean += m.p[i] * m.values[i];
+  for (let i = 0; i < m.values.length; i++) mean += m.p[i]! * m.values[i]!;
   let v = 0;
-  for (let i = 0; i < m.values.length; i++) v += m.p[i] * (m.values[i] - mean) ** 2;
+  for (let i = 0; i < m.values.length; i++) v += m.p[i]! * (m.values[i]! - mean) ** 2;
   const quantile = (q: number) => {
     let c = 0;
     for (let i = 0; i < m.values.length; i++) {
-      c += m.p[i];
-      if (c >= q - 1e-12) return m.values[i];
+      c += m.p[i]!;
+      if (c >= q - 1e-12) return m.values[i]!;
     }
-    return m.values[m.values.length - 1];
+    return m.values[m.values.length - 1]!;
   };
   return { mean, sd: Math.sqrt(v), ci90: [quantile(0.05), quantile(0.95)] };
 };
@@ -125,14 +125,23 @@ export const summarize = (m: Marginal): Summary => {
 const normalize = (lp: Float64Array): Float64Array => {
   const z = logSumExp(lp);
   const p = new Float64Array(lp.length);
-  for (let i = 0; i < lp.length; i++) p[i] = Math.exp(lp[i] - z);
+  for (let i = 0; i < lp.length; i++) p[i] = Math.exp(lp[i]! - z);
   return p;
 };
+
+/** 保存した対数尤度グリッド (サーバの推定ジョブが観測を足し込みながら持ち越す)。 */
+export interface PosteriorState {
+  llEv: Float64Array;
+  llAcc: Float64Array;
+  nEvasion: number;
+  nAccuracy: number;
+}
 
 /**
  * 1 隻分の対数尤度グリッド。
  * - `llEv[ie·nLuck + il]`: 被弾側の観測 (hitProbabilityGrid の evasion × luck 順)
  * - `llAcc[il·nAcc + ia]`: 攻撃側の観測 (hitProbabilityGrid の luck × hiddenAccuracy 順)
+ * 対数尤度は足し算なので、観測を何回に分けて足しても結果は同じ。定数のずれは周辺化で消える。
  */
 export class ShipPosterior {
   readonly llEv: Float64Array;
@@ -147,10 +156,21 @@ export class ShipPosterior {
     readonly acc: number[],
     readonly luck: number[],
     /** 外れ値混合率 ε: 観測確率を (1−ε)·p + ε/3 にして確率 0 の結果で事後分布が潰れないようにする */
-    epsilon = 1e-3
+    epsilon = 1e-3,
+    /** 続きから足し込むときの保存済みグリッド (大きさが軸と合うこと) */
+    state?: PosteriorState
   ) {
     this.llEv = new Float64Array(ev.length * luck.length);
     this.llAcc = new Float64Array(luck.length * acc.length);
+    if (state) {
+      if (state.llEv.length !== this.llEv.length || state.llAcc.length !== this.llAcc.length) {
+        throw new Error(`saved grid size ${state.llEv.length}/${state.llAcc.length} != ${this.llEv.length}/${this.llAcc.length}`);
+      }
+      this.llEv.set(state.llEv);
+      this.llAcc.set(state.llAcc);
+      this.nEvasion = state.nEvasion;
+      this.nAccuracy = state.nAccuracy;
+    }
     this.logq = new Float64Array(101);
     for (let k = 0; k <= 100; k++) this.logq[k] = Math.log((1 - epsilon) * (k / 100) + epsilon / 3);
   }
@@ -159,9 +179,9 @@ export class ShipPosterior {
     if (grid.length !== 2 * ll.length) throw new Error(`grid size ${grid.length} != ${2 * ll.length}`);
     const q = this.logq;
     for (let k = 0; k < ll.length; k++) {
-      const h = Math.round(grid[2 * k] * 100);
-      const cr = Math.round(grid[2 * k + 1] * 100);
-      ll[k] += c.miss * q[100 - h] + c.hit * q[h - cr] + c.crit * q[cr];
+      const h = Math.round(grid[2 * k]! * 100);
+      const cr = Math.round(grid[2 * k + 1]! * 100);
+      ll[k]! += c.miss * q[100 - h]! + c.hit * q[h - cr]! + c.crit * q[cr]!;
     }
   }
 
@@ -188,25 +208,25 @@ export class ShipPosterior {
     const logE = new Float64Array(nL);
     const logA = new Float64Array(nL);
     for (let l = 0; l < nL; l++) {
-      for (let e = 0; e < nE; e++) tmp[e] = prior.ev[e] + this.llEv[e * nL + l];
+      for (let e = 0; e < nE; e++) tmp[e] = prior.ev[e]! + this.llEv[e * nL + l]!;
       logE[l] = logSumExp(tmp.subarray(0, nE));
-      for (let a = 0; a < nA; a++) tmp[a] = prior.acc[a] + this.llAcc[l * nA + a];
+      for (let a = 0; a < nA; a++) tmp[a] = prior.acc[a]! + this.llAcc[l * nA + a]!;
       logA[l] = logSumExp(tmp.subarray(0, nA));
     }
 
     const lpLuck = new Float64Array(nL);
-    for (let l = 0; l < nL; l++) lpLuck[l] = prior.luck[l] + logE[l] + logA[l];
+    for (let l = 0; l < nL; l++) lpLuck[l] = prior.luck[l]! + logE[l]! + logA[l]!;
 
     const lpEv = new Float64Array(nE);
     for (let e = 0; e < nE; e++) {
-      for (let l = 0; l < nL; l++) tmp[l] = prior.luck[l] + logA[l] + this.llEv[e * nL + l];
-      lpEv[e] = prior.ev[e] + logSumExp(tmp.subarray(0, nL));
+      for (let l = 0; l < nL; l++) tmp[l] = prior.luck[l]! + logA[l]! + this.llEv[e * nL + l]!;
+      lpEv[e] = prior.ev[e]! + logSumExp(tmp.subarray(0, nL));
     }
 
     const lpAcc = new Float64Array(nA);
     for (let a = 0; a < nA; a++) {
-      for (let l = 0; l < nL; l++) tmp[l] = prior.luck[l] + logE[l] + this.llAcc[l * nA + a];
-      lpAcc[a] = prior.acc[a] + logSumExp(tmp.subarray(0, nL));
+      for (let l = 0; l < nL; l++) tmp[l] = prior.luck[l]! + logE[l]! + this.llAcc[l * nA + a]!;
+      lpAcc[a] = prior.acc[a]! + logSumExp(tmp.subarray(0, nL));
     }
 
     return {

@@ -3,7 +3,7 @@ import type { DeckBuilderData, DeckBuilderImportOptions } from "./deckbuilder";
 import { normalizePreset } from "./normalize";
 import { defaultStorage, keysWithPrefix } from "./storage";
 import type { KeyValueStorage } from "./storage";
-import type { MasterData, Preset } from "./types";
+import type { MasterData, Preset } from "@shared/fleet/types";
 
 export const STORAGE_PREFIX = "kcsim:";
 const PRESET_PREFIX = `${STORAGE_PREFIX}preset:`;

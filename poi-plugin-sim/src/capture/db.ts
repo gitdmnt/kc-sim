@@ -1,6 +1,6 @@
 /** IndexedDB 保存 (DB `kcsim`)。薄い Promise ラッパのみで依存なし。 */
 import type { ObservationSink } from "./session";
-import type { BattleResultInfo, CapturedBattle, CapturedSortie, StoredEvent } from "./types";
+import type { BattleResultInfo, CapturedBattle, CapturedSortie, StoredEvent } from "@shared/capture/types";
 
 const DB_NAME = "kcsim";
 /** 2: sorties ストアを追加 */
@@ -29,16 +29,51 @@ export interface ListBattlesQuery {
   limit?: number;
 }
 
+/** サーバが 1 リクエストで受け付ける観測数の上限 (docs/API.md §3) */
+export const MAX_OBSERVATIONS_PER_REQUEST = 200;
+
+/** fetch のうち使う部分 (typeof fetch は Bun で preconnect を要求するので、関数だけを求める) */
+export type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
+
+/** サーバの本文の上限は 2 MB (超えると 413)。余裕を見て 1 リクエストの JSON をこの大きさ未満にする。 */
+export const MAX_REQUEST_BYTES = 2_000_000;
+const REQUEST_OVERHEAD = `{"observations":[]}`.length;
+const utf8Bytes = (s: string): number => new TextEncoder().encode(s).length;
+
 export interface UploadOptions {
-  fetch?: typeof fetch;
-  /** settings に永続化したクライアント ID (`poi-<uuid>`) */
-  clientId: string;
+  fetch?: FetchFn;
+  /** `POST /api/v1/clients` で発行されたトークン (Authorization: Bearer) */
+  token: string;
   /** 既定 `/api/v1/observations` */
   path?: string;
-  batchSize?: number;
   /** 出撃中レコードの放置判定に使う現在時刻 (テスト用) */
   now?: () => number;
 }
+
+export interface UploadBatch {
+  /** 今回のリクエストで送った件数 */
+  sent: number;
+  /** まだ未送信で残っている件数 */
+  remaining: number;
+}
+
+/** 非 2xx の応答。`retryAfterMs` は Retry-After (秒) を読んだもの。無い・読めなければ null。 */
+export class UploadHttpError extends Error {
+  constructor(
+    readonly status: number,
+    statusText: string,
+    readonly retryAfterMs: number | null = null
+  ) {
+    super(`Upload failed: ${status} ${statusText}`);
+    this.name = "UploadHttpError";
+  }
+}
+
+/** Retry-After ヘッダ (秒数) をミリ秒にする。HTTP 日付形式は使わない。 */
+export const parseRetryAfter = (value: string | null | undefined): number | null => {
+  if (value == null || !/^\s*\d+(\.\d+)?\s*$/.test(value)) return null;
+  return Math.ceil(Number(value) * 1000);
+};
 
 export class ObservationDb implements ObservationSink {
   private dbPromise: Promise<IDBDatabase> | null = null;
@@ -183,15 +218,17 @@ export class ObservationDb implements ObservationSink {
   }
 
   /**
-   * 未送信の戦闘と終わった出撃を `${apiBase}/api/v1/observations` に送る (docs/API.md §3)。戦闘が先。
-   * 2xx なら送信済みにする。map が null の戦闘 (演習等) は送らず、送信済み扱いにする。
+   * 未送信の戦闘と終わった出撃を、1 回の POST で `${apiBase}/api/v1/observations` に送る (docs/API.md §3)。
+   * 1 リクエストは最大 200 件かつ JSON が MAX_REQUEST_BYTES 未満になるまで古い順に詰める。
+   * 戦闘が先。2xx なら送った分を送信済みにする。map が null の戦闘 (演習等) は送らず、送信済み扱いにする。
+   * それだけで本文の上限を超える 1 件は送れないので捨てる (送信済み扱い)。
    * 出撃中の出撃は送らない。STALE_SORTIE_MS 以上更新の無い出撃は endKind "unknown" で送る。
-   * 失敗時は例外 (未送信のまま)。戻り値は送信した件数。
+   * 送るものが無ければ POST しない。非 2xx は UploadHttpError、通信失敗はその例外 (どちらも未送信のまま)。
+   * 送信間隔 (1 トークン 60 秒に 1 回) は呼び出し側 (uploadClient) が守る。
    */
-  async uploadPending(apiBase: string, opts: UploadOptions): Promise<number> {
+  async uploadPending(apiBase: string, opts: UploadOptions): Promise<UploadBatch> {
     const doFetch = opts.fetch ?? globalThis.fetch;
     const url = `${apiBase.replace(/\/+$/, "")}${opts.path ?? "/api/v1/observations"}`;
-    const batchSize = Math.min(opts.batchSize ?? 100, 500);
     const now = (opts.now ?? Date.now)();
     const db = await this.open();
     const read = db.transaction([BATTLES, SORTIES]);
@@ -211,28 +248,43 @@ export class ObservationDb implements ObservationSink {
       ...openOrDone.filter((s) => uploadableSortie(s, now)).sort((x, y) => x.startedAt - y.startedAt)
         .map((s) => ({ kind: "sortie" as const, s: s.endKind ? s : { ...s, endKind: "unknown" as const } })),
     ];
-
-    let sent = 0;
-    for (let i = 0; i < pending.length; i += batchSize) {
-      const batch = pending.slice(i, i + batchSize);
-      const observations = [];
-      for (const p of batch) observations.push(p.kind === "battle" ? await this.battleObservation(p.b) : sortieObservation(p.s));
-      const res = await doFetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId: opts.clientId, observations }),
-      });
-      if (!res.ok) throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
-      await markSent(
-        batch.flatMap((p) => (p.kind === "battle" ? [p.b] : [])),
-        batch.flatMap((p) => (p.kind === "sortie" ? [p.s] : []))
-      );
-      sent += batch.length;
+    const bodies: string[] = [];
+    const batch: typeof pending = [];
+    const dropped: typeof pending = [];
+    let bytes = REQUEST_OVERHEAD;
+    for (const p of pending) {
+      if (batch.length >= MAX_OBSERVATIONS_PER_REQUEST) break;
+      const json = JSON.stringify(p.kind === "battle" ? this.battleObservation(p.b) : sortieObservation(p.s));
+      const size = utf8Bytes(json) + 1; // 区切りの ","
+      if (REQUEST_OVERHEAD + size > MAX_REQUEST_BYTES) {
+        console.warn(`[kcsim] observation too large to upload (${size} bytes), dropped`);
+        dropped.push(p);
+      } else if (bytes + size > MAX_REQUEST_BYTES) {
+        break;
+      } else {
+        bytes += size;
+        batch.push(p);
+        bodies.push(json);
+      }
     }
-    return sent;
+    const sentOf = (items: typeof pending) => [
+      items.flatMap((p) => (p.kind === "battle" ? [p.b] : [])),
+      items.flatMap((p) => (p.kind === "sortie" ? [p.s] : [])),
+    ] as const;
+    if (dropped.length > 0) await markSent(...sentOf(dropped));
+    if (batch.length === 0) return { sent: 0, remaining: 0 };
+
+    const res = await doFetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${opts.token}` },
+      body: `{"observations":[${bodies.join(",")}]}`,
+    });
+    if (!res.ok) throw new UploadHttpError(res.status, res.statusText, parseRetryAfter(res.headers?.get("Retry-After")));
+    await markSent(...sentOf(batch));
+    return { sent: batch.length, remaining: pending.length - batch.length - dropped.length };
   }
 
-  private async battleObservation(b: CapturedBattle) {
+  private battleObservation(b: CapturedBattle) {
     const map = b.map!;
     return {
       clientObsId: b.id,
@@ -244,14 +296,13 @@ export class ObservationDb implements ObservationSink {
       difficulty: map.difficulty ?? defaultDifficulty(map.area),
       kind: "battle",
       fleet: b.fleet,
-      enemy: b.enemy,
+      // サーバは受け取った生のパケット (raw.raw) から敵編成も攻撃イベントも導き直す。enemy / events は送らない。
       raw: {
         path: b.path,
         visitId: b.visitId,
         sortieId: map.sortieId ?? null,
         raw: b.raw,
         result: b.result,
-        events: await this.listEvents(b.id),
       },
     };
   }
@@ -287,4 +338,6 @@ export const sortieObservation = (s: CapturedSortie) => ({
     cellData: s.cellData,
     features: s.features,
   },
+  // 地図の生のパケット。サーバが cells / cellData をここから導き直す。
+  ...(s.packets?.length ? { raw: { packets: s.packets } } : {}),
 });

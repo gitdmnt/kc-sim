@@ -13,7 +13,7 @@
  * 使わないイベント (理由は SkipReason): 航空戦 (miss が記録されない)、かばう、モデルが曖昧な特殊攻撃、
  * 連合艦隊・夜昼戦・航空戦マスなど sim-core の対象外の戦闘。
  */
-import type { AttackQuery, Engagement, Formation, NightContext, QueryKind, ShipInput, SpecialAttack } from "@sim-core";
+import type { AttackQuery, Engagement, Formation, NightContext, QueryKind, ShipInput, SpecialAttack } from "../../sim-core/pkg/sim_core";
 import type { AttackEvent, AttackPhase, CapturedBattle, Side } from "../capture/types";
 import type { CompShip } from "../data/types";
 import type { MasterData, Preset } from "../fleet/types";
@@ -144,7 +144,7 @@ const fuelOf = (b: CapturedBattle, i: number, masterId: number, rates: number[],
 };
 
 const hasSearchlight = (s: ShipInput) =>
-  [...s.slots, s.exSlot ?? null].some((e) => e !== null && SEARCHLIGHT_CATEGORIES.has(e.types[2]));
+  [...s.slots, s.exSlot ?? null].some((e) => e !== null && SEARCHLIGHT_CATEGORIES.has(e.types[2] ?? 0));
 
 const SIDE_INDEX: Record<Side, 0 | 1> = { friend: 0, enemy: 1 };
 
@@ -180,8 +180,9 @@ const prepare = (b: CapturedBattle, fuelRates: number[], ctx: ObserveContext): P
   if (fb.warnings.length > 0) return { ok: false, reason: "friendData" };
   const fHp0 = perShip(at(b.raw, "api_f_nowhps"), fb.input.length);
   const friend = fb.input.map((s, i): ShipInput => {
-    const hp = fHp0?.[i] ?? (kind === "day" ? fleet.ships[i].observed?.nowHp : undefined) ?? s.maxHp;
-    return { ...s, hp, morale: hp > 0 ? battleMorale(s.morale ?? 49, kind) : s.morale, ...fuelOf(b, i, fleet.ships[i].masterId, fuelRates, ctx.master) };
+    const ship = fleet.ships[i]!;
+    const hp = fHp0?.[i] ?? (kind === "day" ? ship.observed?.nowHp : undefined) ?? s.maxHp;
+    return { ...s, hp, morale: hp > 0 ? battleMorale(s.morale ?? 49, kind) : s.morale, ...fuelOf(b, i, ship.masterId, fuelRates, ctx.master) };
   });
 
   // 敵: 戦闘パケットの eParam / eSlot / Lv + API のマスター。隠しステータスはグリッドで上書きする。
@@ -199,7 +200,7 @@ const prepare = (b: CapturedBattle, fuelRates: number[], ctx: ObserveContext): P
       shipId: s.masterId, level: s.level ?? 1, hp: s.maxHp ?? 0,
       fp: p[0] ?? 0, tp: p[1] ?? 0, aa: p[2] ?? 0, ar: p[3] ?? 0, equips: s.slots ?? [],
     };
-    enemy[s.idx] = buildEnemyShips([comp], ctx.lookup, (ship) => ship).input[0];
+    enemy[s.idx] = buildEnemyShips([comp], ctx.lookup, { skipHiddenStats: true }).input[0] ?? null;
   }
 
   let night: BattleState["night"];
@@ -212,11 +213,11 @@ const prepare = (b: CapturedBattle, fuelRates: number[], ctx: ObserveContext): P
     ];
     const lit = [
       friend.some((s) => (s.hp ?? s.maxHp) > 0 && hasSearchlight(s)),
-      enemy.some((s, i) => s !== null && eHp[i] > 0 && hasSearchlight(s)),
+      enemy.some((s, i) => s !== null && eHp[i]! > 0 && hasSearchlight(s)),
     ];
     const side = (k: 0 | 1): NightContext => ({
       ownStarshell: flare[k] >= 0,
-      enemyStarshell: flare[1 - k] >= 0,
+      enemyStarshell: flare[1 - k]! >= 0,
       ownSearchlight: lit[k],
       enemySearchlight: lit[1 - k],
       ...(contact[k] !== undefined ? { nightContactAccuracy: contact[k] } : {}),
@@ -242,7 +243,7 @@ const prepare = (b: CapturedBattle, fuelRates: number[], ctx: ObserveContext): P
 const supportDamage = (raw: unknown, n: number): number[] => {
   const out: number[] = Array(n).fill(0);
   for (const v of [at(raw, "api_support_info", "api_support_hourai", "api_damage"), at(raw, "api_support_info", "api_support_airatack", "api_stage3", "api_edam")]) {
-    perShip(v, n)?.forEach((d, i) => (out[i] += d ?? 0));
+    perShip(v, n)?.forEach((d, i) => (out[i]! += d ?? 0));
   }
   return out;
 };
@@ -278,7 +279,7 @@ const observe = (
   const defender = st.ships[d][ev.defenderIdx];
   if (attacker === undefined || defender === undefined) return { ok: false, reason: "inconsistent" };
   if (!attacker || !defender) return { ok: false, reason: a === 1 || d === 1 ? "enemyData" : "friendData" };
-  if (st.hp[a][ev.attackerIdx] <= 0 || st.hp[d][ev.defenderIdx] <= 0) return { ok: false, reason: "inconsistent" };
+  if (st.hp[a][ev.attackerIdx]! <= 0 || st.hp[d][ev.defenderIdx]! <= 0) return { ok: false, reason: "inconsistent" };
 
   const kind = queryKind(ev.phase, isSub(defender.shipType));
   if (!kind) return { ok: false, reason: ev.phase === "shelling3" ? "unsupportedBattle" : "inconsistent" };
@@ -308,7 +309,7 @@ const observe = (
   return {
     ok: true,
     obs: {
-      shipId: st.enemyIds[role === "evasion" ? ev.defenderIdx : ev.attackerIdx],
+      shipId: st.enemyIds[role === "evasion" ? ev.defenderIdx : ev.attackerIdx]!,
       role,
       query: canonicalQuery(query, role),
       outcome: ev.hit,
@@ -341,7 +342,7 @@ export const buildObservations = (records: BattleRecord[], ctx: ObserveContext):
     const before = observations.length;
     for (const ev of events) {
       if (!supportDone && ev.phase !== "air") {
-        supportDamage(r.battle.raw, st.hp[1].length).forEach((dmg, i) => (st.hp[1][i] = Math.max(0, st.hp[1][i] - dmg)));
+        supportDamage(r.battle.raw, st.hp[1].length).forEach((dmg, i) => (st.hp[1][i] = Math.max(0, st.hp[1][i]! - dmg)));
         supportDone = true;
       }
       if (ev.phase !== phase) {
@@ -352,7 +353,7 @@ export const buildObservations = (records: BattleRecord[], ctx: ObserveContext):
       if (o.ok) observations.push(o.obs);
       else skip(o.reason);
       const d = SIDE_INDEX[ev.defenderSide];
-      if (ev.defenderIdx >= 0 && ev.defenderIdx < st.hp[d].length) st.hp[d][ev.defenderIdx] = Math.max(0, st.hp[d][ev.defenderIdx] - ev.damage);
+      if (ev.defenderIdx >= 0 && ev.defenderIdx < st.hp[d].length) st.hp[d][ev.defenderIdx] = Math.max(0, st.hp[d][ev.defenderIdx]! - ev.damage);
     }
     if (observations.length > before) battles++;
   }

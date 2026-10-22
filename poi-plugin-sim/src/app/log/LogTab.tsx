@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { getObservationDb } from "../../capture";
+import { getObservationDb, getUploadClient } from "../../capture";
 import type { CapturedBattle } from "../../capture";
 import { ENGAGEMENT_LABEL, FORMATION_ID_LABEL, battleKindLabel } from "../../capture/labels";
 import { normalizeForSearch } from "../../fleet/catalog";
 import { Badge, Button, Card, EmptyState, Select, Table, Td, TextInput, Th, Thead, Tr, S, useToast } from "../../ui";
 import { useApp } from "../context";
 import { useSettings } from "../settings";
+import { useUploadWaitSeconds } from "../useUploadClient";
 import { LogDetail } from "./LogDetail";
 import { downloadText, formatDateTime, formatShortDateTime, rankTone } from "./util";
 
@@ -26,6 +27,7 @@ export const LogTab = () => {
   const [rank, setRank] = useState("");
   const [selected, setSelected] = useState<CapturedBattle | null>(null);
   const [busy, setBusy] = useState(false);
+  const wait = useUploadWaitSeconds();
 
   const load = useCallback(async () => {
     try {
@@ -61,8 +63,10 @@ export const LogTab = () => {
   const upload = async () => {
     setBusy(true);
     try {
-      const n = await db.uploadPending(settings.apiBase, { clientId: settings.clientId });
-      toast.push(S.log.uploadDone(n), "ok");
+      const out = await getUploadClient().send(db, settings.apiBase);
+      if (out.status === "sent") toast.push(S.log.uploadDone(out.sent, out.remaining), "ok");
+      else if (out.status === "deferred") toast.push(S.log.uploadWait(Math.max(1, Math.ceil((out.until - Date.now()) / 1000))), "info");
+      else if (out.status === "banned") toast.push(S.log.uploadBanned, "danger");
       await load();
     } catch (e) {
       toast.push(`${S.log.uploadFail}: ${(e as Error).message}`, "danger");
@@ -88,8 +92,8 @@ export const LogTab = () => {
             <Button size="sm" variant="ghost" onClick={() => void exportJson()}>
               {S.log.exportJson}
             </Button>
-            <Button size="sm" variant="primary" disabled={busy || pending === 0} onClick={() => void upload()}>
-              {S.log.upload(pending)}
+            <Button size="sm" variant="primary" disabled={busy || pending === 0 || wait > 0} onClick={() => void upload()}>
+              {pending > 0 && wait > 0 ? S.log.uploadWait(wait) : S.log.upload(pending)}
             </Button>
           </>
         }

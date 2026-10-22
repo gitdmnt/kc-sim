@@ -9,8 +9,9 @@ import type {
   EquipmentStats,
   Formation,
   ShipInput,
-} from "@sim-core";
-import type { ApiEquipment, ApiShip, CompShip, EnemyComp, HiddenStat, ShipDetail } from "../data/types";
+} from "../../sim-core/pkg/sim_core";
+import { SERVER_ESTIMATOR_SOURCE } from "../data/types";
+import type { ApiEquipment, ApiShip, CompShip, Confidence, EnemyComp, HiddenStat, ShipDetail } from "../data/types";
 import { isAircraft } from "../fleet/calc";
 import { resolveShipStats } from "../fleet/stats";
 import type { EquipMaster, MasterData, Preset, PresetEquip, PresetFormation, PresetShip } from "../fleet/types";
@@ -173,10 +174,31 @@ export const buildFriendShips = (preset: Preset, master: MasterData, opts: Frien
 
 export type EstimateMap = Partial<Record<HiddenStat, { value: number; confidence: string; source: string }>>;
 
-/** 推定値の適用フック。別実装 (src/estimate/) が差し替えられる。既定は `best` をそのまま使う。 */
-export type ApplyEstimates = (ship: ShipInput, ctx: { shipId: number; best: EstimateMap }) => ShipInput;
+const CONFIDENCE_RANK: Record<Confidence, number> = { observed: 0, datamined: 1, db_estimate: 2, placeholder: 3, unknown: 4 };
 
-export const defaultApplyEstimates: ApplyEstimates = (ship, { best }) => ({
+/**
+ * 艦の隠しステータスの最良値。API の `best` をそのまま使うが、`useServerEstimates` が false なら
+ * サーバの推定 (estimator:server) を無視し、その項目は残りの出典から確度順 (同じなら新しい順) で選び直す。
+ */
+export const bestEstimates = (detail: ShipDetail | undefined, useServerEstimates: boolean): EstimateMap => {
+  const best: EstimateMap = detail?.best ?? {};
+  if (useServerEstimates || !detail || !Object.values(best).some((b) => b?.source === SERVER_ESTIMATOR_SOURCE)) return best;
+  const out: EstimateMap = {};
+  for (const [stat, b] of Object.entries(best) as [HiddenStat, NonNullable<EstimateMap[HiddenStat]>][]) {
+    if (b.source !== SERVER_ESTIMATOR_SOURCE) {
+      out[stat] = b;
+      continue;
+    }
+    const next = detail.estimates
+      .filter((e) => e.stat === stat && e.source !== SERVER_ESTIMATOR_SOURCE)
+      .sort((x, y) => CONFIDENCE_RANK[x.confidence] - CONFIDENCE_RANK[y.confidence] || y.updatedAt.localeCompare(x.updatedAt))[0];
+    if (next) out[stat] = { value: next.value, confidence: next.confidence, source: next.source };
+  }
+  return out;
+};
+
+/** `best` を ShipInput に入れる。best に無い隠しステータスは 0 (sim-core の既定)。 */
+export const applyBest = (ship: ShipInput, best: EstimateMap): ShipInput => ({
   ...ship,
   stats: {
     ...ship.stats,
@@ -200,8 +222,8 @@ export interface EnemyLookup {
 export interface EnemyBuild {
   input: ShipInput[];
   warnings: string[];
-  /** 隠しステータスごとの出典の確度 (信頼性パネル用) */
-  reliability: { shipId: number; name: string; stat: HiddenStat; confidence: string; value: number | null }[];
+  /** 隠しステータスごとの出典の確度 (信頼性パネル用)。n は estimator:server のときの観測数 */
+  reliability: { shipId: number; name: string; stat: HiddenStat; confidence: string; value: number | null; source: string | null; n: number | null }[];
 }
 
 const apiEquipToInput = (e: ApiEquipment, planes: number): EquipmentInput => {
@@ -218,16 +240,19 @@ const apiEquipToInput = (e: ApiEquipment, planes: number): EquipmentInput => {
   if (e.luck) stats.luck = e.luck;
   if (e.range) stats.range = e.range;
   const input: EquipmentInput = { id: e.id, types: e.type, stats };
-  if (AIRCRAFT_TYPES.has(e.type[2])) input.planes = planes;
+  if (AIRCRAFT_TYPES.has(e.type[2] ?? 0)) input.planes = planes;
   return input;
 };
 const AIRCRAFT_TYPES = new Set([6, 7, 8, 9, 10, 11, 25, 26, 41, 45, 47, 48, 49, 56, 57, 58, 59]);
 
-export const buildEnemyShips = (
-  ships: CompShip[],
-  lookup: EnemyLookup,
-  apply: ApplyEstimates = defaultApplyEstimates
-): EnemyBuild => {
+export interface BuildEnemyOptions {
+  /** サーバの推定値 (estimator:server の best) を使う。既定 true */
+  useServerEstimates?: boolean;
+  /** 隠しステータスを入れない (推定器が自前で決めるとき。stats は API の可視値だけ)。reliability は空。 */
+  skipHiddenStats?: boolean;
+}
+
+export const buildEnemyShips = (ships: CompShip[], lookup: EnemyLookup, opts: BuildEnemyOptions = {}): EnemyBuild => {
   const warnings: string[] = [];
   const reliability: EnemyBuild["reliability"] = [];
 
@@ -260,12 +285,15 @@ export const buildEnemyShips = (
     if (info?.speed != null) base.speed = info.speed;
 
     const detail = lookup.detail(cs.shipId);
-    const best: EstimateMap = detail?.best ?? {};
+    if (opts.skipHiddenStats) return base;
+    const best = bestEstimates(detail, opts.useServerEstimates ?? true);
     for (const stat of ["ev", "asw", "los", "luck", "acc", "tacc"] as HiddenStat[]) {
-      reliability.push({ shipId: cs.shipId, name, stat, confidence: best[stat]?.confidence ?? "unknown", value: best[stat]?.value ?? null });
+      const b = best[stat];
+      const n = b?.source === SERVER_ESTIMATOR_SOURCE ? (detail?.estimates.find((e) => e.stat === stat && e.source === b.source)?.n ?? null) : null;
+      reliability.push({ shipId: cs.shipId, name, stat, confidence: b?.confidence ?? "unknown", value: b?.value ?? null, source: b?.source ?? null, n });
     }
     if (!detail) warnings.push(`${name}: 隠しステータスの推定値を取得できませんでした (0 扱い)`);
-    return apply(base, { shipId: cs.shipId, best });
+    return applyBest(base, best);
   });
 
   return { input, warnings, reliability };

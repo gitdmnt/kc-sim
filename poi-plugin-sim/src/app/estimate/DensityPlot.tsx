@@ -1,5 +1,5 @@
 import React from "react";
-import type { Density } from "../../estimate/types";
+import type { EstimateDensity as Density } from "@shared/data/types";
 
 const W = 360;
 const H = 96;

@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { describeRule } from "../../data/routing";
 import type { RuleView } from "../../data/routing";
-import type { RoutingDoc } from "../../data/types";
+import type { RoutingDoc } from "@shared/data/types";
 import { Badge, cx } from "../../ui";
 
 // 枠は付けず、入れ子は左罫線のインデントだけで表す。不確実ルールだけ背景で目立たせる

@@ -1,7 +1,7 @@
 import { DataApi, getDataApi } from "./api";
 import { StaticBundleLoader, defaultBundleBase } from "./bundle";
 import type { MapBundleLoader } from "./bundle";
-import type { ApiEquipment, CompSelection, EnemyCompSet, MapDetail, MapSummary, ShipDetail } from "./types";
+import type { ApiEquipment, CompSelection, EnemyCompSet, MapDetail, MapSummary, ShipDetail } from "@shared/data/types";
 
 /** シミュレーションに必要な海域データ一式 (API か静的バンドルから)。 */
 export interface MapData {

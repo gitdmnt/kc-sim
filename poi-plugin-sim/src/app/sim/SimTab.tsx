@@ -3,20 +3,19 @@ import type { BattleKind, SimulationSummary } from "@sim-core";
 import { getDataApi } from "../../data/api";
 import { useAbyssalData } from "../../data/names";
 import { FORMATION_NAME } from "../../data/routing";
-import type { EnemyComp, EnemyCompSet, ShipDetail } from "../../data/types";
+import type { EnemyComp, EnemyCompSet, ShipDetail } from "@shared/data/types";
 import { useMapData, useMapList } from "../../data/useMapData";
 import { Button, Card, Checkbox, EmptyState, Field, NumberInput, ProgressBar, Select, Table, Tabs, Td, Th, Thead, Tr, S, useToast } from "../../ui";
-import { buildBattleInput, buildEnemyShips, buildFriendShips, enemyFormationOf, friendFormationOf } from "../../sim/adapter";
-import type { EnemyBuild, FriendBuild } from "../../sim/adapter";
+import { buildBattleInput, buildEnemyShips, buildFriendShips, enemyFormationOf, friendFormationOf } from "@shared/sim/adapter";
+import type { EnemyBuild, FriendBuild } from "@shared/sim/adapter";
 import { runInWorker } from "../../sim/client";
 import type { SimHandle } from "../../sim/client";
 import { allocateCounts, mergeSummaries } from "../../sim/runner";
 import type { Job } from "../../sim/runner";
-import { makeApplyEstimates } from "../../estimate/estimate";
-import { estimatesForSimulation } from "../../estimate/store";
 import { SortieSim } from "./SortieSim";
 import { useIntentFor } from "../nav";
 import { useApp } from "../context";
+import { getSettings } from "../settings";
 import { BundleBanner, DataError } from "../DataState";
 import { usePresets } from "../fleet/presets";
 import { Assumptions } from "./Assumptions";
@@ -144,9 +143,9 @@ const BattleSim = () => {
 
       const counts = allocateCounts(count, chosen.map((c) => c.weight));
       const friendFormation = formation === "preset" ? friendFormationOf(preset) : (formation as ReturnType<typeof friendFormationOf>);
-      // 設定で有効なら推定タブの推定値 (n ≥ 30) を API の値より優先する
-      const est = estimatesForSimulation();
-      const builds = chosen.map((c) => buildEnemyShips(c.main, lookup, est && makeApplyEstimates(est.results)));
+      // 設定が有効ならサーバの推定値 (estimator:server、n ≥ 30) を使う。無効なら無視する。
+      const useServerEstimates = getSettings().useEstimates;
+      const builds = chosen.map((c) => buildEnemyShips(c.main, lookup, { useServerEstimates }));
       const jobs: Job[] = chosen.map((c, i) => ({
         key: String(c.id),
         count: counts[i],
@@ -166,7 +165,7 @@ const BattleSim = () => {
         total,
         comps: runs,
         friendNames: friend.input.map((s) => s.name ?? `#${s.id}`),
-        assumptions: { friend, enemy: runs.map((r) => r.build), applyFit, estimates: est },
+        assumptions: { friend, enemy: runs.map((r) => r.build), applyFit, serverEstimates: useServerEstimates },
         ms: performance.now() - t0,
         count,
         seed,

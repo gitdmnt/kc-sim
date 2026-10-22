@@ -4,8 +4,8 @@
  */
 import { beforeAll, describe, expect, test } from "bun:test";
 import { readFileSync } from "fs";
-import { hitProbability, initSync, runBattle } from "@sim-core";
-import type { BattleInput, EquipmentInput, Formation, ShipInput } from "@sim-core";
+import { hitProbability, initSync, runBattle } from "../../sim-core/pkg/sim_core";
+import type { BattleInput, EquipmentInput, Formation, ShipInput } from "../../sim-core/pkg/sim_core";
 import { estimateFromObservations } from "./infer";
 import type { PriorInput, PriorTable } from "./infer";
 import { buildObservations } from "./observe";
@@ -14,7 +14,7 @@ import type { SyntheticRecord } from "./synthetic";
 import type { EstimatedStat, EstimateResult, Observation } from "./types";
 
 beforeAll(() => {
-  initSync({ module: readFileSync(new URL("../../../sim-core/pkg/sim_core_bg.wasm", import.meta.url)) });
+  initSync({ module: readFileSync(new URL("../../sim-core/pkg/sim_core_bg.wasm", import.meta.url)) });
 });
 
 // ---- 検証用の艦隊 ----
@@ -124,8 +124,8 @@ describe("forward-model reconstruction", () => {
     for (const r of records) {
       const { observations } = buildObservations([r], { ...world });
       for (const o of observations) {
-        const src = r.source[o.seq];
-        const t = truth[o.shipId];
+        const src = r.source[o.seq]!;
+        const t = truth[o.shipId]!;
         const q = structuredClone(o.query);
         const ship = o.role === "evasion" ? q.defender : q.attacker;
         ship.stats.evasion = t.ev;
@@ -210,7 +210,7 @@ describe("calibration", () => {
       const t = target({ stats: { ...target().stats, evasion: ev }, hiddenAccuracy: acc });
       const d = simulate([t, t, t, t, t, t], 300, 100 + i, ["lineAhead", "doubleLine", "diamond", "echelon", "lineAbreast"]);
       const r = estimateFromObservations(take(d.observations, 300), priors({ ev: placeholder(80), acc: placeholder(100), luck: datamined(TRUE.luck) }));
-      const truth = { ev, acc };
+      const truth = { ev: ev!, acc: acc! };
       for (const stat of ["ev", "acc"] as const) {
         const e = pick(r, stat);
         if (e.ci90[0] <= truth[stat] && truth[stat] <= e.ci90[1]) covered[stat]++;

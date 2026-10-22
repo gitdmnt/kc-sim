@@ -1,8 +1,6 @@
 import wasmBytes from "@sim-core/sim_core_bg.wasm?bytes";
 import type { SortieSummary } from "@sim-core";
 import { getHost } from "../host";
-import type { InferOptions, PriorTable } from "../estimate/infer";
-import type { EstimateResult, Observation } from "../estimate/types";
 import type { Job, JobResult, SortieJob } from "./runner";
 import type { WorkerResponse } from "./sim.worker";
 
@@ -59,12 +57,3 @@ export const runSortieInWorker = (
   chunk = 2_000
 ): SimHandle<SortieSummary> =>
   start({ type: "runSortie", job, chunk }, (m) => (m.type === "sortieDone" ? m.summary : undefined), onProgress);
-
-/** 敵艦の隠しステータス推定 (src/estimate)。wasm を使うので poi では Worker の中でしか動かせない。 */
-export const estimateInWorker = (
-  observations: Observation[],
-  priors: PriorTable,
-  options: InferOptions,
-  onProgress: (done: number, total: number) => void = () => {}
-): SimHandle<EstimateResult[]> =>
-  start({ type: "estimate", observations, priors, options }, (m) => (m.type === "estimateDone" ? m.results : undefined), onProgress);

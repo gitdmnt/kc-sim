@@ -41,8 +41,7 @@ The UI core does not depend on poi. Only the entry points differ:
 with `Bun.build`, builds the CSS with the same PostCSS config as the poi build (Tailwind + `.kcsim` scope), and
 reloads the page when `src/`, `assets/`, `dev/` or `../sim-core/pkg` change. A build error replaces the page with the
 message. The poi state comes from `myState.json` (a dumped poi state, gitignored) or `dev/sampleState.json`; static
-map bundles are served from `../data-worker/dist/maps`. `import.meta.env.DEV` is true only here, which enables the
-設定 tab's 「合成データ投入」.
+map bundles are served from `../data-worker/dist/maps`. `import.meta.env.DEV` is true only here.
 
 ## Install into poi
 

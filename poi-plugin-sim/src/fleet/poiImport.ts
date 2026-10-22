@@ -9,7 +9,7 @@ import type {
   Preset,
   PresetEquip,
   PresetShip,
-} from "./types";
+} from "@shared/fleet/types";
 
 const first = (v: unknown, fallback = 0): number =>
   Array.isArray(v) && typeof v[0] === "number" ? v[0] : fallback;

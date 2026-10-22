@@ -2,15 +2,17 @@ import { STORAGE_PREFIX } from "../fleet";
 import type { KeyValueStorage } from "../fleet";
 import { defaultStorage, keysWithPrefix } from "../fleet/storage";
 import { getSettings } from "../app/settings";
-import type { FitEntry } from "../sim/fit";
+import type { FitEntry } from "@shared/sim/fit";
 import type {
   ApiEquipment,
   ApiShip,
   EnemyCompsResponse,
+  EstimatedStat,
+  EstimatesResponse,
   MapDetail,
   MapSummary,
   ShipDetail,
-} from "./types";
+} from "@shared/data/types";
 
 export type DataErrorKind = "offline" | "http" | "parse";
 
@@ -90,10 +92,10 @@ export class DataApi {
     for (const k of keysWithPrefix(this.storage, CACHE_PREFIX)) this.storage.removeItem(k);
   }
 
-  private get<T>(path: string): Promise<Loaded<T>> {
+  private get<T>(path: string, fresh = false): Promise<Loaded<T>> {
     const key = `${this.opts.baseUrl().replace(/\/+$/, "")}${path}`;
     const cached = this.readEntry(key);
-    if (cached && this.now() - cached.t < this.ttl) {
+    if (!fresh && cached && this.now() - cached.t < this.ttl) {
       return Promise.resolve({ data: cached.data as T, stale: false });
     }
     const running = this.inflight.get(key);
@@ -151,6 +153,16 @@ export class DataApi {
   }
   ship(id: number) {
     return this.get<ShipDetail>(`/api/v1/ships/${id}`);
+  }
+  /** サーバの推定値 (docs/API.md)。`density` は shipId 指定のときだけ事前・事後分布を含める。`fresh` はキャッシュを使わず取り直す。 */
+  estimates(q: { shipId?: number; stat?: EstimatedStat; minN?: number; density?: boolean } = {}, fresh = false) {
+    const p = new URLSearchParams();
+    if (q.shipId !== undefined) p.set("shipId", String(q.shipId));
+    if (q.stat) p.set("stat", q.stat);
+    if (q.minN !== undefined) p.set("minN", String(q.minN));
+    if (q.density !== undefined) p.set("density", q.density ? "1" : "0");
+    const qs = p.toString();
+    return this.get<EstimatesResponse>(`/api/v1/estimates${qs ? `?${qs}` : ""}`, fresh);
   }
   async fitBonuses() {
     const r = await this.get<{ fitBonuses: FitEntry[] }>("/api/v1/fit-bonuses");
