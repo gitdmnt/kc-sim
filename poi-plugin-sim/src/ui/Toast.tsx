@@ -49,7 +49,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
             role="status"
             onClick={() => setItems((prev) => prev.filter((x) => x.id !== t.id))}
             className={cx(
-              "pointer-events-auto max-w-sm cursor-pointer rounded-md border bg-ink-800 px-3.5 py-2 text-sm text-ink-50 shadow-lg shadow-black/40",
+              "pointer-events-auto max-w-sm cursor-pointer rounded-md border bg-ink-800/95 px-3.5 py-2 text-sm text-ink-50 shadow-xl shadow-black/50 backdrop-blur-sm",
               TONE[t.tone]
             )}
           >

@@ -59,10 +59,10 @@ export const ShipCard = ({ index, ship, onChange, onRemove }: Props) => {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-1.5 pl-[2.625rem] pr-px text-[10px] text-ink-400">
+        <div className="flex items-center gap-1.5 pr-px text-xs text-ink-400">
           <span className="flex-1" />
-          <span className="w-14 text-center">★</span>
-          <span className="w-14 text-center">&gt;&gt;</span>
+          <span className="w-14 text-center" title="改修値 ★">{S.fleet.improvement}</span>
+          <span className="w-14 text-center" title="熟練度 >>">{S.fleet.proficiency}</span>
           <span className="w-14 text-center">{S.fleet.slotSize}</span>
         </div>
         {ship.equips.map((e, i) => (
@@ -82,21 +82,24 @@ export const ShipCard = ({ index, ship, onChange, onRemove }: Props) => {
         />
       </div>
 
-      {obs && (
-        <div className="flex items-center gap-2 rounded-md border border-ok-600/30 bg-ok-600/10 px-2.5 py-1.5 text-[11px] text-ok-400">
-          <span className="flex-1">{S.fleet.observedNote}</span>
-          {obs.maxHp !== undefined && obs.nowHp !== undefined && (
-            <div className="w-20 shrink-0">
-              <ProgressBar value={obs.nowHp} max={obs.maxHp} />
-            </div>
-          )}
-          <Button size="sm" variant="ghost" onClick={() => patch({ observed: undefined })}>
-            {S.fleet.discardObserved}
-          </Button>
-        </div>
-      )}
-
-      <StatsGrid ship={ship} />
+      <div className="flex flex-col gap-1.5">
+        {obs && (
+          <div className="flex items-center gap-2 text-xs text-ink-400">
+            <span className="min-w-0 flex-1 truncate" title={S.fleet.observedNote}>
+              {S.fleet.observedNote}
+            </span>
+            {obs.maxHp !== undefined && obs.nowHp !== undefined && (
+              <div className="w-16 shrink-0" title={`HP ${obs.nowHp}/${obs.maxHp}`}>
+                <ProgressBar value={obs.nowHp} max={obs.maxHp} />
+              </div>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => patch({ observed: undefined })}>
+              {S.fleet.discardObserved}
+            </Button>
+          </div>
+        )}
+        <StatsGrid ship={ship} />
+      </div>
     </article>
   );
 };

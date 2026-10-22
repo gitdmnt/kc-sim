@@ -159,12 +159,12 @@ try {
     await page.getByTitle("第3艦隊").click();
     await page.getByText("第3艦隊を取り込みました").waitFor();
     await tab("シミュレーション");
-    await page.getByRole("tab", { name: /出撃/ }).click();
-    await page.getByText("出撃シミュレーション設定").waitFor();
+    await page.getByRole("tab", { name: "出撃", exact: true }).click();
+    await page.getByText("出撃設定", { exact: true }).waitFor();
     await page.waitForFunction(() => document.body.innerText.includes("1-5"));
     await page.locator("select").first().selectOption({ label: "第3艦隊 (4隻)" });
     await page.waitForTimeout(1500);
-    await page.getByRole("button", { name: "▶ 出撃シミュレーション実行" }).click();
+    await page.getByRole("button", { name: "実行", exact: true }).click();
     await page.getByText("ボス到達率").waitFor({ timeout: 180000 });
     await page.waitForTimeout(700);
     const t = await page.locator("main").innerText();
@@ -178,11 +178,11 @@ try {
 
   if (apiUp) {
     await tab("シミュレーション");
-    await page.getByText("シミュレーション設定").waitFor();
+    await page.getByText("戦闘設定", { exact: true }).waitFor();
     // 1-5 / J / 全編成 / 10k 戦 (既定値)。ノード選択が読み込まれるのを待つ
     await page.waitForFunction(() => [...document.querySelectorAll("select")].some((s) => s.value === "J"));
-    await page.getByRole("button", { name: "▶ シミュレーション実行" }).click();
-    await page.getByText(/勝敗判定/).waitFor({ timeout: 120000 });
+    await page.getByRole("button", { name: "実行", exact: true }).click();
+    await page.getByText("勝敗判定", { exact: true }).waitFor({ timeout: 120000 });
     await page.waitForTimeout(500);
     const text = await page.locator("main").innerText();
     console.log("---- sim numbers ----\n" + text.split("\n").slice(0, 60).join(" | "));

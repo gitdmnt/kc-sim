@@ -2,8 +2,8 @@ import React from "react";
 import type { Density } from "../../estimate/types";
 
 const W = 360;
-const H = 112;
-const PAD = { l: 8, r: 8, t: 8, b: 20 };
+const H = 96;
+const PAD = { l: 8, r: 8, t: 8, b: 4 };
 
 /** 表示範囲: 事後分布の 0.1%–99.9% と事前分布の中心 (+ 正規なら 5%–95%) を含む範囲。 */
 const viewRange = (d: Density, priorValue: number | null): [number, number] => {
@@ -63,26 +63,32 @@ export const DensityPlot = ({
       .join("");
   const post = line(density.posterior);
   const base = H - PAD.b;
+  const tickValues = ticks(lo, hi);
 
+  // 軸ラベルは viewBox の拡大に引きずられないよう SVG の外 (HTML) に置き、実寸 12px で描く。
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label={`${label} の事前・事後分布`}>
-      <rect x={sx(ci90[0])} y={PAD.t} width={Math.max(1, sx(ci90[1]) - sx(ci90[0]))} height={base - PAD.t} className="fill-accent-500/10" />
-      <line x1={PAD.l} x2={W - PAD.r} y1={base} y2={base} className="stroke-ink-500" strokeWidth={1} />
-      {ticks(lo, hi).map((t) => (
-        <g key={t}>
-          <line x1={sx(t)} x2={sx(t)} y1={base} y2={base + 3} className="stroke-ink-500" />
-          <text x={sx(t)} y={H - 6} textAnchor="middle" className="fill-ink-400 text-[10px]">
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label={`${label} の事前・事後分布`}>
+        <rect x={sx(ci90[0])} y={PAD.t} width={Math.max(1, sx(ci90[1]) - sx(ci90[0]))} height={base - PAD.t} className="fill-accent-500/10" />
+        <line x1={PAD.l} x2={W - PAD.r} y1={base} y2={base} className="stroke-ink-500" strokeWidth={1} />
+        {tickValues.map((t) => (
+          <line key={t} x1={sx(t)} x2={sx(t)} y1={base} y2={base + 3} className="stroke-ink-500" />
+        ))}
+        <path d={`${post}L${sx(hi).toFixed(1)},${base}L${sx(lo).toFixed(1)},${base}Z`} className="fill-accent-500/25" />
+        <path d={post} className="fill-none stroke-accent-400" strokeWidth={1.5} />
+        <path d={line(density.prior)} className="fill-none stroke-ink-400" strokeWidth={1.2} strokeDasharray="4 3" />
+        {priorValue !== null && (
+          <line x1={sx(priorValue)} x2={sx(priorValue)} y1={PAD.t} y2={base} className="stroke-ink-400" strokeDasharray="2 2" />
+        )}
+        <line x1={sx(mean)} x2={sx(mean)} y1={PAD.t} y2={base} className="stroke-brass-400" strokeWidth={1.5} />
+      </svg>
+      <div className="relative h-4 text-xs leading-4 text-ink-300 tabular-nums" aria-hidden>
+        {tickValues.map((t) => (
+          <span key={t} className="absolute -translate-x-1/2" style={{ left: `${(sx(t) / W) * 100}%` }}>
             {t}
-          </text>
-        </g>
-      ))}
-      <path d={`${post}L${sx(hi).toFixed(1)},${base}L${sx(lo).toFixed(1)},${base}Z`} className="fill-accent-500/25" />
-      <path d={post} className="fill-none stroke-accent-400" strokeWidth={1.5} />
-      <path d={line(density.prior)} className="fill-none stroke-ink-300" strokeWidth={1.2} strokeDasharray="4 3" />
-      {priorValue !== null && (
-        <line x1={sx(priorValue)} x2={sx(priorValue)} y1={PAD.t} y2={base} className="stroke-ink-300" strokeDasharray="2 2" />
-      )}
-      <line x1={sx(mean)} x2={sx(mean)} y1={PAD.t} y2={base} className="stroke-ok-400" strokeWidth={1.5} />
-    </svg>
+          </span>
+        ))}
+      </div>
+    </div>
   );
 };

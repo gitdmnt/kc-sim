@@ -18,7 +18,7 @@ const HIT_TONE: Record<string, BadgeTone> = { miss: "neutral", hit: "accent", cr
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="mb-5">
-    <h4 className="mb-2 text-xs font-semibold tracking-wide text-ink-300">{title}</h4>
+    <h4 className="mb-2 text-sm font-semibold text-ink-200">{title}</h4>
     {children}
   </section>
 );
@@ -65,22 +65,15 @@ export const LogDetail = ({ battle, onClose }: { battle: CapturedBattle; onClose
         <Badge tone="neutral">{battleKindLabel(battle.path)}</Badge>
         {battle.result?.rank && <Badge tone={rankTone(battle.result.rank)}>{battle.result.rank}</Badge>}
         {e.engagement && <Badge tone="neutral">{ENGAGEMENT_LABEL[e.engagement]}</Badge>}
-        <span className="text-xs text-ink-300">
+        <span className="text-sm text-ink-300">
           味方 {FORMATION_ID_LABEL[e.friendFormation ?? -1] ?? "—"} / 敵 {FORMATION_ID_LABEL[e.enemyFormation ?? -1] ?? "—"}
         </span>
-        <span className="flex-1" />
-        <Button
-          size="sm"
-          onClick={async () => toast.push((await copyText(JSON.stringify(battle.raw, null, 2))) ? S.common.copied : "コピーに失敗しました", "ok")}
-        >
-          raw JSON {S.common.copy}
-        </Button>
       </div>
 
       <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
         <Section title={S.log.friend}>
           <ul className="flex flex-col gap-1.5">
-            {friendShips.length === 0 && <li className="text-xs text-ink-400">艦隊スナップショットなし</li>}
+            {friendShips.length === 0 && <li className="text-sm text-ink-400">艦隊スナップショットなし</li>}
             {friendShips.map((s, i) => (
               <li key={i} className="rounded bg-ink-900/60 px-2.5 py-1.5">
                 <div className="flex justify-between text-sm">
@@ -90,7 +83,7 @@ export const LogDetail = ({ battle, onClose }: { battle: CapturedBattle; onClose
                 {friendMax[i] ? (
                   <>
                     <ProgressBar value={friendNow[i] ?? 0} max={friendMax[i]} className="mt-1" />
-                    <div className="mt-0.5 text-right text-[10px] text-ink-400 tabular-nums">
+                    <div className="mt-0.5 text-right text-xs text-ink-300 tabular-nums">
                       {friendNow[i]}/{friendMax[i]}
                     </div>
                   </>
@@ -110,7 +103,7 @@ export const LogDetail = ({ battle, onClose }: { battle: CapturedBattle; onClose
                 {s.maxHp ? (
                   <>
                     <ProgressBar value={s.nowHp ?? s.maxHp} max={s.maxHp} className="mt-1" />
-                    <div className="mt-0.5 flex justify-between text-[10px] text-ink-400 tabular-nums">
+                    <div className="mt-0.5 flex justify-between text-xs text-ink-300 tabular-nums">
                       <span>{s.params ? `火${s.params[0]} 雷${s.params[1]} 空${s.params[2]} 装${s.params[3]}` : ""}</span>
                       <span>
                         {s.nowHp}/{s.maxHp}
@@ -126,9 +119,9 @@ export const LogDetail = ({ battle, onClose }: { battle: CapturedBattle; onClose
 
       <Section title={`${S.log.events}${events ? ` (${events.length})` : ""}`}>
         {events === null ? (
-          <div className="text-xs text-ink-400">{S.common.loading}</div>
+          <div className="text-sm text-ink-400">{S.common.loading}</div>
         ) : events.length === 0 ? (
-          <div className="text-xs text-ink-400">イベントなし (未対応の戦闘形式)</div>
+          <div className="text-sm text-ink-400">イベントなし (未対応の戦闘形式)</div>
         ) : (
           <Table className="max-h-[28rem]">
             <Thead>
@@ -151,13 +144,13 @@ export const LogDetail = ({ battle, onClose }: { battle: CapturedBattle; onClose
                     {nameOf(ev.attackerSide, ev.attackerIdx)}
                   </Td>
                   <Td>{nameOf(ev.defenderSide, ev.defenderIdx)}</Td>
-                  <Td className="text-xs text-ink-300">{ev.attackType ?? (ev.airKind ? { bomb: "爆撃", torpedo: "雷撃", both: "爆雷" }[ev.airKind] : "—")}</Td>
+                  <Td className="text-ink-300">{ev.attackType ?? (ev.airKind ? { bomb: "爆撃", torpedo: "雷撃", both: "爆雷" }[ev.airKind] : "—")}</Td>
                   <Td>
                     <Badge tone={HIT_TONE[ev.hit]}>{HIT_LABEL[ev.hit]}</Badge>
                   </Td>
                   <Td className="text-right tabular-nums">
                     {ev.damage}
-                    {ev.protected && <span className="ml-1 text-[10px] text-warn-400">かばう</span>}
+                    {ev.protected && <span className="ml-1 text-xs text-warn-400">かばう</span>}
                   </Td>
                 </Tr>
               ))}
@@ -165,6 +158,13 @@ export const LogDetail = ({ battle, onClose }: { battle: CapturedBattle; onClose
           </Table>
         )}
       </Section>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={async () => toast.push((await copyText(JSON.stringify(battle.raw, null, 2))) ? S.common.copied : "コピーに失敗しました", "ok")}
+      >
+        {S.log.copyRaw}
+      </Button>
     </Drawer>
   );
 };

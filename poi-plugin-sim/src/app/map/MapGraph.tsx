@@ -2,21 +2,21 @@ import React, { useMemo } from "react";
 import type { MapEdge, MapNode, NodeType } from "../../data/types";
 
 export const NODE_COLOR: Record<string, string> = {
-  start: "#4c90f0",
-  battle: "#cd4246",
-  boss: "#e76a6e",
-  night_battle: "#9d6ad8",
-  air_battle: "#ec9a3c",
-  air_raid: "#c87619",
-  empty: "#738091",
-  select: "#8f99a8",
-  resource: "#32a467",
-  maelstrom: "#2bb5c8",
-  landing: "#d1980b",
-  escort_success: "#d1980b",
-  air_recon: "#8abbff",
-  anchorage_repair: "#72ca9b",
-  unknown: "#5f6b7c",
+  start: "var(--color-accent-600)",
+  battle: "var(--color-danger-600)",
+  boss: "var(--color-danger-500)",
+  night_battle: "#8a62bf",
+  air_battle: "var(--color-warn-600)",
+  air_raid: "#a8641c",
+  empty: "#5c6d86",
+  select: "var(--color-ink-400)",
+  resource: "var(--color-ok-600)",
+  maelstrom: "#2a8f9e",
+  landing: "#b8892a",
+  escort_success: "#b8892a",
+  air_recon: "#6f9fd6",
+  anchorage_repair: "#5fae88",
+  unknown: "var(--color-ink-500)",
 };
 
 export const NODE_TYPE_LABEL: Record<string, string> = {
@@ -63,19 +63,32 @@ export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps,
     <div className="flex flex-col gap-2">
       <svg
         viewBox={`${box.x} ${box.y} ${box.w} ${box.h}`}
-        className="w-full rounded-md bg-ink-900"
+        className="w-full rounded-md border border-ink-600 bg-ink-950"
         style={{ maxHeight: "34rem", aspectRatio: `${box.w} / ${box.h}` }}
         role="img"
         aria-label="海域マップ"
       >
         <defs>
+          <pattern id="kc-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M20 0H0V20" fill="none" stroke="var(--color-ink-700)" strokeWidth={0.6} />
+          </pattern>
+          <pattern id="kc-grid-major" width="100" height="100" patternUnits="userSpaceOnUse">
+            <rect width="100" height="100" fill="url(#kc-grid)" />
+            <path d="M100 0H0V100" fill="none" stroke="var(--color-ink-600)" strokeWidth={0.8} />
+          </pattern>
           <marker id="kc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
-            <path d="M0 0L10 5L0 10z" fill="#5f6b7c" />
+            <path d="M0 0L10 5L0 10z" fill="var(--color-ink-400)" />
           </marker>
           <marker id="kc-arrow-hl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
-            <path d="M0 0L10 5L0 10z" fill="#4c90f0" />
+            <path d="M0 0L10 5L0 10z" fill="var(--color-accent-500)" />
           </marker>
         </defs>
+        <rect x={box.x} y={box.y} width={box.w} height={box.h} fill="url(#kc-grid-major)" />
+        {/* 方位記号: 右下隅 (ノードは pad 40 の内側なので重ならない) */}
+        <g transform={`translate(${box.x + box.w - 10} ${box.y + box.h - 6})`} opacity={0.5} style={{ pointerEvents: "none" }} aria-hidden>
+          <path d="M0 -14L3.5 0L0 -3L-3.5 0Z" fill="var(--color-brass-500)" />
+          <text x={-10} y={-2} textAnchor="middle" fontSize={9} fontWeight={700} fill="var(--color-brass-400)">N</text>
+        </g>
 
         {edges.map((e) => {
           const a = pos.get(e.from);
@@ -87,8 +100,8 @@ export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps,
           const hl = selected === e.from && targets.has(e.to);
           const dim = selected !== null && selected === e.from && !hl;
           const rate = edgeRates?.get(`${e.from}>${e.to}`);
-          const width = edgeRates ? (rate ? 1.8 + rate * 9 : 1) : hl ? 3 : 1.8;
-          const color = edgeRates ? (rate ? "#4c90f0" : "#2f343c") : hl ? "#4c90f0" : "#404854";
+          const width = edgeRates ? (rate ? 1.8 + rate * 9 : 1) : hl ? 2.5 : 1.4;
+          const color = edgeRates ? (rate ? "var(--color-accent-500)" : "var(--color-ink-600)") : hl ? "var(--color-accent-500)" : "var(--color-ink-500)";
           return (
             <g key={e.id}>
             <line
@@ -107,10 +120,10 @@ export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps,
                 x={(a.x! + b.x!) / 2}
                 y={(a.y! + b.y!) / 2 - 5}
                 textAnchor="middle"
-                fontSize={11}
+                fontSize={13}
                 fontWeight={600}
-                fill="#d3d8de"
-                stroke="#111418"
+                fill="var(--color-ink-100)"
+                stroke="var(--color-ink-950)"
                 strokeWidth={3}
                 paintOrder="stroke"
                 style={{ pointerEvents: "none" }}
@@ -134,38 +147,50 @@ export const MapGraph = ({ nodes, edges, selected, onSelect, targets, withComps,
               role="button"
               aria-label={`ノード ${n.letter}`}
             >
-              {n.isBoss && <circle r={R + 7} fill="none" stroke="#fa999c" strokeWidth={2} strokeDasharray="3 3" />}
-              {isSel && <circle r={R + 4} fill="none" stroke="#fff" strokeWidth={2.5} />}
-              {targets.has(n.letter) && !isSel && <circle r={R + 4} fill="none" stroke="#4c90f0" strokeWidth={2} />}
-              <circle r={R} fill={color} stroke="#1c2127" strokeWidth={2} />
-              <text textAnchor="middle" dominantBaseline="central" fontSize={n.letter.length > 2 ? 10 : 13} fontWeight={700} fill="#fff" style={{ pointerEvents: "none" }}>
+              <title>{`${NODE_TYPE_LABEL[typeKey(n.type)]}${withComps.has(n.letter) && !edgeRates ? " · 敵編成データあり" : ""}`}</title>
+              {n.isBoss && <circle r={R + 7} fill="none" stroke="var(--color-danger-500)" strokeWidth={2} strokeDasharray="3 3" />}
+              {isSel && <circle r={R + 4} fill="none" stroke="var(--color-brass-400)" strokeWidth={2.5} />}
+              {targets.has(n.letter) && !isSel && <circle r={R + 4} fill="none" stroke="var(--color-accent-500)" strokeWidth={2} />}
+              <circle r={R} fill={color} stroke="var(--color-ink-950)" strokeWidth={2} />
+              <text textAnchor="middle" dominantBaseline="central" fontSize={n.letter.length > 2 ? 12 : 14} fontWeight={700} fill="var(--color-ink-50)" style={{ pointerEvents: "none" }}>
                 {n.letter === "Start" ? "S" : n.letter}
               </text>
               {nodeBadges?.has(n.letter) && (
-                <g transform={`translate(0 ${R + 11})`} style={{ pointerEvents: "none" }}>
-                  <rect x={-19} y={-8} width={38} height={15} rx={7} fill="#111418" stroke="#404854" />
-                  <text textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={600} fill="#8abbff">
+                <g transform={`translate(0 ${R + 12})`} style={{ pointerEvents: "none" }}>
+                  <rect x={-22} y={-9} width={44} height={18} rx={8} fill="var(--color-ink-900)" stroke="var(--color-ink-600)" />
+                  <text textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight={600} fill="var(--color-accent-400)">
                     {nodeBadges.get(n.letter)}
                   </text>
                 </g>
               )}
-              {withComps.has(n.letter) && !edgeRates && <circle cx={R - 2} cy={-R + 2} r={4.5} fill="#f6f7f9" stroke="#1c2127" strokeWidth={1.2} />}
+              {withComps.has(n.letter) && !edgeRates && <circle cx={R - 2} cy={-R + 2} r={4.5} fill="var(--color-ink-50)" stroke="var(--color-ink-950)" strokeWidth={1.2} />}
             </g>
           );
         })}
       </svg>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-300">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-300">
         {[...new Set(nodes.map((n) => typeKey(n.type)))].map((t) => (
           <span key={t} className="flex items-center gap-1">
             <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: NODE_COLOR[t] }} />
             {NODE_TYPE_LABEL[t]}
           </span>
         ))}
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-2.5 w-2.5 rounded-full border border-ink-900 bg-ink-50" />
-          敵編成データあり
-        </span>
+        {withComps.size > 0 && !edgeRates && (
+          <span className="flex items-center gap-1">
+            <svg viewBox="-9 -9 18 18" className="h-3.5 w-3.5" aria-hidden>
+              <circle r={6.5} fill="var(--color-ink-500)" />
+              <circle cx={5} cy={-5} r={3} fill="var(--color-ink-50)" stroke="var(--color-ink-950)" strokeWidth={1} />
+            </svg>
+            白点: 敵編成データあり
+          </span>
+        )}
+        {targets.size > 0 && (
+          <span className="flex items-center gap-1">
+            <span className="inline-block h-3 w-3 rounded-full border-2 border-accent-500" />
+            青枠: 行き先候補
+          </span>
+        )}
         {unplaced > 0 && <span className="text-warn-400">座標なし {unplaced} ノード (非表示)</span>}
       </div>
     </div>

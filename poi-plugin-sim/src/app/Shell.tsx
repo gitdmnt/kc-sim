@@ -64,13 +64,17 @@ export const Shell = () => {
   return (
     <NavProvider value={nav}>
     <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-4 p-4">
-      <header className="flex flex-col gap-x-6 border-b border-ink-600 lg:flex-row lg:items-center">
-        <div className="flex items-center gap-2 py-2">
-          <span className="h-5 w-1 rounded-full bg-accent-500" />
-          <h1 className="text-base font-semibold tracking-wide text-ink-50">{S.appTitle}</h1>
-          {settings.useSampleState && <Badge tone="warn">サンプルデータ</Badge>}
-        </div>
+      <header className="flex items-center gap-x-6 border-b border-ink-600">
+        <h1 className="hidden shrink-0 items-center gap-2.5 py-2 text-lg font-semibold tracking-wider text-ink-50 lg:flex">
+          <svg viewBox="-12 -12 24 24" className="h-6 w-6 text-brass-500" aria-hidden>
+            <circle r="10.5" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.6" />
+            <path d="M0-10L2.2-2.2L10 0L2.2 2.2L0 10L-2.2 2.2L-10 0L-2.2-2.2Z" fill="currentColor" opacity="0.35" />
+            <path d="M0-10L2.2-2.2L0 0L-2.2-2.2Z" fill="currentColor" />
+          </svg>
+          {S.appTitle}
+        </h1>
         <Tabs tabs={TABS} value={tab} onChange={(id) => { setIntent(null); change(id); }} className="min-w-0 flex-1 overflow-x-auto border-b-0" />
+        {settings.useSampleState && <Badge tone="warn" className="shrink-0">サンプルデータ</Badge>}
       </header>
 
       <main className="min-w-0 flex-1">

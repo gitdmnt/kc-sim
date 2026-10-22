@@ -73,8 +73,8 @@ try {
       await page.waitForTimeout(1500);
       expect(await page.evaluate(() => [...document.querySelectorAll("select")].some((s) => s.value === "F")), "海域→シミュレーション: ノード F が選択されない");
       await page.getByRole("tab", { name: "艦隊編成", exact: true }).click();
-      await page.getByRole("button", { name: "この艦隊で出撃シミュ" }).click();
-      await page.getByText("出撃シミュレーション設定").waitFor({ timeout: 5000 }).catch(() => expect(false, "艦隊編成→出撃シミュ: 出撃タブに遷移しない"));
+      await page.getByRole("button", { name: "出撃シミュ", exact: true }).click();
+      await page.getByText("出撃設定", { exact: true }).waitFor({ timeout: 5000 }).catch(() => expect(false, "艦隊編成→出撃シミュ: 出撃タブに遷移しない"));
       await page.getByRole("tab", { name: "敵艦データ", exact: true }).click();
       await page.getByPlaceholder("名前・ID で検索").fill("駆逐ロ級");
       await page.getByRole("button", { name: /駆逐ロ級/ }).first().click();

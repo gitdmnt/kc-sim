@@ -7,7 +7,7 @@ import { Badge, Button, Card, EmptyState, Select, Table, Td, TextInput, Th, Thea
 import { useApp } from "../context";
 import { useSettings } from "../settings";
 import { LogDetail } from "./LogDetail";
-import { downloadText, formatDateTime, rankTone } from "./util";
+import { downloadText, formatDateTime, formatShortDateTime, rankTone } from "./util";
 
 const MAX_ROWS = 300;
 const RANKS = ["SS", "S", "A", "B", "C", "D", "E"];
@@ -82,15 +82,14 @@ export const LogTab = () => {
         title={`${S.log.title} (${S.log.count(rows.length)})`}
         actions={
           <>
-            {pending > 0 && <Badge tone="warn">{S.log.pending} {pending}</Badge>}
-            <Button size="sm" onClick={() => void load()}>
+            <Button size="sm" variant="ghost" onClick={() => void load()} title={S.log.reload} aria-label={S.log.reload}>
               ↻
             </Button>
-            <Button size="sm" onClick={() => void exportJson()}>
+            <Button size="sm" variant="ghost" onClick={() => void exportJson()}>
               {S.log.exportJson}
             </Button>
             <Button size="sm" variant="primary" disabled={busy || pending === 0} onClick={() => void upload()}>
-              {S.log.upload}
+              {S.log.upload(pending)}
             </Button>
           </>
         }
@@ -123,33 +122,33 @@ export const LogTab = () => {
         <Table>
           <Thead>
             <tr>
-              <Th>{S.log.date}</Th>
               <Th>{S.log.map}</Th>
               <Th>{S.log.node}</Th>
-              <Th>{S.log.kind}</Th>
-              <Th>{S.log.enemy}</Th>
-              <Th>{S.log.formation}</Th>
               <Th>{S.log.rank}</Th>
+              <Th>{S.log.enemy}</Th>
+              <Th>{S.log.kind}</Th>
+              <Th>{S.log.formation}</Th>
+              <Th className="text-right">{S.log.date}</Th>
             </tr>
           </Thead>
           <tbody>
             {rows.slice(0, MAX_ROWS).map((b) => (
               <Tr key={b.id} onClick={() => setSelected(b)} selected={selected?.id === b.id}>
-                <Td className="whitespace-nowrap text-ink-200 tabular-nums">{formatDateTime(b.capturedAt)}</Td>
-                <Td className="whitespace-nowrap">
+                <Td className="whitespace-nowrap font-semibold text-ink-50 tabular-nums">
                   {b.map?.map ?? "—"}
-                  {b.map?.difficulty ? <span className="ml-1 text-[10px] text-ink-400">難度{b.map.difficulty}</span> : null}
+                  {b.map?.difficulty ? <span className="ml-1 text-xs font-normal text-ink-400">難度{b.map.difficulty}</span> : null}
                 </Td>
-                <Td>{b.map?.node ?? "—"}</Td>
-                <Td className="whitespace-nowrap">
-                  <Badge tone="neutral">{battleKindLabel(b.path)}</Badge>
-                </Td>
+                <Td className="font-semibold text-ink-50">{b.map?.node ?? "—"}</Td>
+                <Td>{b.result?.rank ? <Badge tone={rankTone(b.result.rank)}>{b.result.rank}</Badge> : <span className="text-ink-500">—</span>}</Td>
                 <Td className="max-w-80 truncate text-ink-100">{enemyNames(b) || "—"}</Td>
-                <Td className="whitespace-nowrap text-xs text-ink-300">
+                <Td className="whitespace-nowrap text-ink-300">{battleKindLabel(b.path)}</Td>
+                <Td className="whitespace-nowrap text-ink-300">
                   {FORMATION_ID_LABEL[b.enemy.enemyFormation ?? -1] ?? "—"}
                   {b.enemy.engagement ? ` / ${ENGAGEMENT_LABEL[b.enemy.engagement] ?? ""}` : ""}
                 </Td>
-                <Td>{b.result?.rank ? <Badge tone={rankTone(b.result.rank)}>{b.result.rank}</Badge> : <span className="text-ink-400">—</span>}</Td>
+                <Td className="whitespace-nowrap text-right text-xs text-ink-400 tabular-nums">
+                  <span title={formatDateTime(b.capturedAt)}>{formatShortDateTime(b.capturedAt)}</span>
+                </Td>
               </Tr>
             ))}
           </tbody>

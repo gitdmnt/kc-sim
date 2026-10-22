@@ -2,13 +2,13 @@ import React from "react";
 import { cx } from "./cx";
 
 export const Table = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={cx("overflow-auto rounded-lg border border-ink-600", className)}>
+  <div className={cx("overflow-auto rounded-md border border-ink-600 bg-ink-900/40", className)}>
     <table className="w-full border-collapse text-sm">{children}</table>
   </div>
 );
 
 export const Thead = ({ children }: { children: React.ReactNode }) => (
-  <thead className="sticky top-0 bg-ink-800 text-left text-xs text-ink-300">{children}</thead>
+  <thead className="sticky top-0 bg-ink-900 text-left text-xs tracking-wide text-ink-300">{children}</thead>
 );
 
 export const Th = ({
@@ -35,9 +35,9 @@ export const Tr = ({
   <tr
     onClick={onClick}
     className={cx(
-      "border-b border-ink-700 last:border-0",
-      onClick && "cursor-pointer hover:bg-ink-700/60",
-      selected && "bg-accent-600/15"
+      "border-b border-ink-700/70 last:border-0",
+      onClick && "cursor-pointer hover:bg-ink-700/50",
+      selected && "bg-accent-500/10 shadow-[inset_2px_0_0_var(--color-accent-500)]"
     )}
   >
     {children}

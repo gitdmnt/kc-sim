@@ -85,7 +85,15 @@ export const IoModal = ({ current, onClose, onImported }: Props) => {
       }
     >
       <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
+        <Tabs
+          tabs={[
+            { id: "export", label: S.io.exportTab },
+            { id: "import", label: S.io.importTab },
+          ]}
+          value={mode}
+          onChange={setMode}
+        />
+        <div className="flex flex-wrap items-end gap-3">
           <Tabs
             variant="pill"
             tabs={[
@@ -94,15 +102,6 @@ export const IoModal = ({ current, onClose, onImported }: Props) => {
             ]}
             value={format}
             onChange={setFormat}
-          />
-          <Tabs
-            variant="pill"
-            tabs={[
-              { id: "export", label: S.io.exportTab },
-              { id: "import", label: S.io.importTab },
-            ]}
-            value={mode}
-            onChange={setMode}
           />
           {mode === "export" && format === "json" && (
             <Select className="w-40" value={scope} onChange={(e) => setScope(e.target.value as "all" | "current")}>

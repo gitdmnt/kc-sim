@@ -1,5 +1,5 @@
 import React from "react";
-import { Badge, Card } from "../../ui";
+import { Badge } from "../../ui";
 import type { BadgeTone } from "../../ui";
 import type { EstimateResult } from "../../estimate/types";
 import type { EnemyBuild, FriendBuild } from "./types";
@@ -34,13 +34,15 @@ export const Assumptions = ({ data }: { data: AssumptionData }) => {
   const counts = new Map<string, number>();
   all.forEach((r) => counts.set(r.confidence, (counts.get(r.confidence) ?? 0) + 1));
   const weak = all.filter((r) => r.confidence !== "datamined" && r.confidence !== "observed");
-  const byShip = new Map<number, { name: string; items: typeof weak }>();
+  // 艦ごとに同じ注記が並ばないよう、ステータス×出典ごとに艦名をまとめる
+  const weakGroups = new Map<string, { stat: string; confidence: string; names: Set<string> }>();
   weak.forEach((r) => {
-    const e = byShip.get(r.shipId) ?? { name: r.name, items: [] };
-    e.items.push(r);
-    byShip.set(r.shipId, e);
+    const key = `${r.stat}:${r.confidence}`;
+    const g = weakGroups.get(key) ?? { stat: r.stat, confidence: r.confidence, names: new Set<string>() };
+    g.names.add(r.value === null ? r.name : `${r.name} (${r.value})`);
+    weakGroups.set(key, g);
   });
-  const warnings = [...data.friend.warnings, ...data.enemy.flatMap((e) => e.warnings)];
+  const warnings = [...new Set([...data.friend.warnings, ...data.enemy.flatMap((e) => e.warnings)])];
   const usedShips = new Map<number, { name: string; items: typeof used }>();
   used.forEach((r) => {
     const e = usedShips.get(r.shipId) ?? { name: r.name, items: [] };
@@ -49,95 +51,98 @@ export const Assumptions = ({ data }: { data: AssumptionData }) => {
   });
 
   return (
-    <Card title="前提・信頼性" bodyClassName="flex flex-col gap-4 text-sm">
-      <section>
-        <h4 className="mb-1.5 text-xs font-semibold text-ink-300">敵の隠しステータス (回避・対潜・索敵・運・命中) の出典</h4>
-        <div className="mb-2 flex flex-wrap gap-1.5">
-          {[...counts].map(([c, n]) => (
-            <Badge key={c} tone={CONF_LABEL[c]?.tone ?? "neutral"}>
-              {CONF_LABEL[c]?.label ?? c} {n}
-            </Badge>
-          ))}
-        </div>
-        {byShip.size === 0 ? (
-          <p className="text-xs text-ink-300">全て観測またはデータマイニング由来です。</p>
-        ) : (
-          <ul className="flex flex-col gap-1 text-xs">
-            {[...byShip.entries()].map(([id, e]) => (
-              <li key={id} className="flex flex-wrap items-center gap-1.5">
-                <span className="text-ink-100">{e.name}</span>
-                {e.items.map((r) => (
-                  <Badge key={r.stat} tone={CONF_LABEL[r.confidence]?.tone ?? "neutral"} title={r.value === null ? "値なし" : `値 ${r.value}`}>
-                    {STAT_LABEL[r.stat]}: {CONF_LABEL[r.confidence]?.label ?? r.confidence}
-                    {r.value !== null && ` (${r.value})`}
-                  </Badge>
-                ))}
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="mt-2 text-[11px] text-ink-400">仮値・不明のステータスを含む結果は、回避・命中・索敵判定の確率がずれる可能性があります。</p>
-      </section>
-
-      {data.estimates && (
+    <details className="rounded-lg border border-ink-600 px-4 py-3">
+      <summary className="cursor-pointer text-sm font-medium text-ink-300">
+        前提・信頼性
+        {weak.length > 0 && <span className="ml-1.5 text-warn-400">仮値・不明 {weak.length}</span>}
+        {warnings.length > 0 && <span className="ml-1.5 text-warn-400">警告 {warnings.length}</span>}
+      </summary>
+      <div className="mt-3 flex flex-col gap-4 text-sm">
         <section>
-          <h4 className="mb-1.5 text-xs font-semibold text-ok-400">推定タブの推定値を使用</h4>
-          {used.length === 0 ? (
-            <p className="text-xs text-ink-300">この敵編成の艦には n ≥ 30 の推定値がありません (API の値を使用)。</p>
+          <h4 className="mb-1.5 font-semibold text-ink-200">敵の隠しステータスの出典</h4>
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {[...counts].map(([c, n]) => (
+              <Badge key={c} tone={CONF_LABEL[c]?.tone ?? "neutral"}>
+                {CONF_LABEL[c]?.label ?? c} {n}
+              </Badge>
+            ))}
+          </div>
+          {weakGroups.size === 0 ? (
+            <p className="text-ink-300">全て観測またはデータマイニング由来です。</p>
           ) : (
             <>
-              <p className="mb-1.5 text-xs text-ink-300">
-                {new Date(data.estimates.at).toLocaleString()} の推定 (n ≥ 30) を {usedShips.size} 隻・{used.length} 項目に適用。API の値より優先しています。
-              </p>
-              <ul className="flex flex-col gap-1 text-xs">
-                {[...usedShips.entries()].map(([id, e]) => (
-                  <li key={id} className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-ink-100">{e.name}</span>
-                    {e.items.map((r) => {
-                      const l = local.get(`${r.shipId}:${r.stat}`)!;
-                      return (
-                        <Badge key={r.stat} tone="ok" title={`90% CI [${l.ci90[0]}, ${l.ci90[1]}]、n=${l.n}`}>
-                          {STAT_LABEL[r.stat]} {l.mean.toFixed(1)} ± {l.sd.toFixed(1)}
-                        </Badge>
-                      );
-                    })}
+              <ul className="flex flex-col gap-1">
+                {[...weakGroups.values()].map((g) => (
+                  <li key={`${g.stat}:${g.confidence}`} className="flex flex-wrap items-center gap-1.5">
+                    <Badge tone={CONF_LABEL[g.confidence]?.tone ?? "neutral"}>
+                      {STAT_LABEL[g.stat] ?? g.stat}: {CONF_LABEL[g.confidence]?.label ?? g.confidence}
+                    </Badge>
+                    <span className="text-ink-200">{[...g.names].join("、")}</span>
                   </li>
                 ))}
               </ul>
+              <p className="mt-1.5 text-xs text-ink-400">これらを含む結果は回避・命中・索敵判定がずれる可能性があります。</p>
             </>
           )}
         </section>
-      )}
 
-      <section>
-        <h4 className="mb-1.5 text-xs font-semibold text-ink-300">味方艦</h4>
-        <ul className="list-inside list-disc text-xs text-ink-200">
-          <li>素ステータス = 実測値 − 装備のマスター値{data.applyFit ? " − 装備ボーナス" : ""}。手入力艦は計算値 (近代化・固有ボーナス除く)。</li>
-          <li>
-            装備ボーナス: {data.applyFit ? `近似計算 (未対応条件 ${data.friend.fitSkipped} 件は加算なし)` : "差し引かない (素ステータスに含まれたまま)"}
-          </li>
-          <li>戦闘開始時は耐久・燃料・弾薬ともに全快として扱います。</li>
-        </ul>
-      </section>
+        {data.estimates && (
+          <section>
+            <h4 className="mb-1.5 font-semibold text-ok-400">推定タブの推定値を使用</h4>
+            {used.length === 0 ? (
+              <p className="text-ink-300">この敵編成の艦には n ≥ 30 の推定値がありません。</p>
+            ) : (
+              <>
+                <p className="mb-1.5 text-ink-300">
+                  {new Date(data.estimates.at).toLocaleString()} の推定 (n ≥ 30) を {usedShips.size} 隻・{used.length} 項目に適用
+                </p>
+                <ul className="flex flex-col gap-1">
+                  {[...usedShips.entries()].map(([id, e]) => (
+                    <li key={id} className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-ink-100">{e.name}</span>
+                      {e.items.map((r) => {
+                        const l = local.get(`${r.shipId}:${r.stat}`)!;
+                        return (
+                          <Badge key={r.stat} tone="ok" title={`90% CI [${l.ci90[0]}, ${l.ci90[1]}]、n=${l.n}`}>
+                            {STAT_LABEL[r.stat]} {l.mean.toFixed(1)} ± {l.sd.toFixed(1)}
+                          </Badge>
+                        );
+                      })}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
+        )}
 
-      <section>
-        <h4 className="mb-1.5 text-xs font-semibold text-ink-300">モデルの範囲 (SIM_INTERFACE.md)</h4>
-        <p className="text-xs text-ink-300">
-          通常艦隊 1 つ対 1 ノードの戦闘のみ。連合艦隊・基地航空隊・支援・陸上型の特効・特殊攻撃 (一部) ・イベント特効は未対応です。
-          敵の陸上型判定は行っていません。
-        </p>
-      </section>
-
-      {warnings.length > 0 && (
         <section>
-          <h4 className="mb-1.5 text-xs font-semibold text-warn-400">警告 ({warnings.length})</h4>
-          <ul className="list-inside list-disc text-xs text-ink-200">
-            {[...new Set(warnings)].slice(0, 20).map((w, i) => (
-              <li key={i}>{w}</li>
-            ))}
+          <h4 className="mb-1.5 font-semibold text-ink-200">味方艦</h4>
+          <ul className="list-inside list-disc text-ink-200">
+            <li>素ステータス = 実測値 − 装備のマスター値{data.applyFit ? " − 装備ボーナス" : ""}。手入力艦は計算値 (近代化・固有ボーナス除く)。</li>
+            <li>
+              装備ボーナス: {data.applyFit ? `近似計算 (未対応条件 ${data.friend.fitSkipped} 件は加算なし)` : "差し引かない"}
+            </li>
+            <li>戦闘開始時は耐久・燃料・弾薬ともに全快。</li>
           </ul>
         </section>
-      )}
-    </Card>
+
+        <section>
+          <h4 className="mb-1.5 font-semibold text-ink-200">モデルの範囲</h4>
+          <p className="text-ink-300">通常艦隊 1 つ対 1 ノードのみ。連合艦隊・基地航空隊・支援・陸上型特効・一部の特殊攻撃・イベント特効は未対応。</p>
+        </section>
+
+        {warnings.length > 0 && (
+          <section>
+            <h4 className="mb-1.5 font-semibold text-warn-400">警告 ({warnings.length})</h4>
+            <ul className="list-inside list-disc text-ink-200">
+              {warnings.slice(0, 20).map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    </details>
   );
 };

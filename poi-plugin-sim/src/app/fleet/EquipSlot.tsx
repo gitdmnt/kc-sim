@@ -1,7 +1,7 @@
 import React from "react";
 import type { PresetEquip } from "../../fleet";
 import { isAircraft } from "../../fleet/calc";
-import { Combobox, NumberInput, S } from "../../ui";
+import { Combobox, NumberInput, S, cx } from "../../ui";
 import { useApp } from "../context";
 
 interface Props {
@@ -26,10 +26,14 @@ export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, onChange 
     onChange(next);
   };
   const patch = (p: Partial<PresetEquip>) => equip && onChange({ ...equip, ...p });
+  const improvement = equip?.improvement ?? 0;
+  const proficiency = equip?.proficiency ?? 0;
+  const slotSize = equip?.slotSize ?? defaultSlotSize ?? 0;
 
+  // 0 は既定値なので薄く出す (NumberInput の text-ink-50 に勝たせるため important)
   return (
     <div className="flex items-center gap-1.5">
-      <span className="w-9 shrink-0 text-[10px] text-ink-400">{label}</span>
+      <span className="w-7 shrink-0 text-xs tabular-nums text-ink-400">{label}</span>
       <Combobox
         className="flex-1"
         options={catalog.equipOptions}
@@ -41,20 +45,20 @@ export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, onChange 
         aria-label={`${label} 装備`}
       />
       <NumberInput
-        className="w-14"
+        className={cx("w-14", improvement === 0 && "text-ink-400!")}
         min={0}
         max={10}
-        value={equip?.improvement ?? 0}
+        value={improvement}
         disabled={!equip}
         title="改修値 ★"
         aria-label="改修値"
         onChange={(v) => patch({ improvement: v })}
       />
       <NumberInput
-        className="w-14"
+        className={cx("w-14", proficiency === 0 && "text-ink-400!")}
         min={0}
         max={7}
-        value={equip?.proficiency ?? 0}
+        value={proficiency}
         disabled={!equip || !aircraft}
         title="熟練度 (>>)"
         aria-label="熟練度"
@@ -62,10 +66,10 @@ export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, onChange 
       />
       {!noSlotSize && (
         <NumberInput
-          className="w-14"
+          className={cx("w-14", slotSize === 0 && "text-ink-400!")}
           min={0}
           max={99}
-          value={equip?.slotSize ?? defaultSlotSize ?? 0}
+          value={slotSize}
           disabled={!equip || !aircraft}
           title="搭載数"
           aria-label="搭載数"

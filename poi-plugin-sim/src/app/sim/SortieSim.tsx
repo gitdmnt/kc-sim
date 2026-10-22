@@ -161,11 +161,8 @@ export const SortieSim = () => {
   return (
     <div className="flex flex-col gap-4">
       {md?.source === "bundle" && <BundleBanner generatedAt={md.generatedAt} />}
-      <Card
-        title="出撃シミュレーション設定"
-        bodyClassName="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6"
-      >
-        <Field label="味方艦隊 (プリセット)" className="col-span-2">
+      <Card title="出撃設定" bodyClassName="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
+        <Field label="味方艦隊" className="col-span-2">
           <Select value={preset?.id ?? ""} onChange={(e) => setPresetId(e.target.value)} disabled={presets.length === 0}>
             {presets.length === 0 && <option value="">プリセットなし (艦隊編成タブで作成)</option>}
             {presets.map((p) => (
@@ -175,7 +172,7 @@ export const SortieSim = () => {
             ))}
           </Select>
         </Field>
-        <Field label="海域 (ルーティング登録済み)" className="col-span-2">
+        <Field label="海域" className="col-span-2">
           <Select value={mapKey} onChange={(e) => setMapKey(e.target.value)}>
             {mapOptions.map((m) => (
               <option key={m.key} value={m.key}>
@@ -231,15 +228,19 @@ export const SortieSim = () => {
         </Field>
 
         <div className="col-span-2 flex flex-col gap-1.5 md:col-span-2">
-          <span className="text-xs font-medium text-ink-300">撤退条件</span>
-          <Checkbox label="大破撤退 (旗艦大破は常に撤退)" checked={onHeavy} onChange={(e) => setOnHeavy(e.target.checked)} />
+          <span className="text-[13px] font-medium text-ink-200">撤退条件</span>
+          <Checkbox label="大破撤退" title="旗艦大破は常に撤退" checked={onHeavy} onChange={(e) => setOnHeavy(e.target.checked)} />
           <Checkbox label="ダメコン持ちの大破は継続" checked={allowDamecon} onChange={(e) => setAllowDamecon(e.target.checked)} disabled={!onHeavy} />
           <Checkbox label="中破撤退" checked={onModerate} onChange={(e) => setOnModerate(e.target.checked)} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-ink-200">計算</span>
+          <Checkbox label="装備ボーナスを考慮" checked={applyFit} onChange={(e) => setApplyFit(e.target.checked)} />
         </div>
 
         {flagList.length > 0 && (
           <div className="col-span-2 flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-ink-300">フラグ (ギミック)</span>
+            <span className="text-[13px] font-medium text-ink-200">フラグ (ギミック)</span>
             {flagList.map((f) => (
               <Checkbox key={f.name} label={`${f.name}${f.default ? " (既定: 有効)" : ""}`} checked={flags[f.name] ?? f.default} onChange={(e) => setFlags((x) => ({ ...x, [f.name]: e.target.checked }))} />
             ))}
@@ -248,7 +249,7 @@ export const SortieSim = () => {
 
         <Field label="ゲージ">
           <Select value={gaugeKind} onChange={(e) => setGaugeKind(e.target.value as typeof gaugeKind)}>
-            <option value="none">指定なし (簡易見積り)</option>
+            <option value="none">指定なし</option>
             <option value="kill">撃破数ゲージ</option>
             <option value="hp">HPゲージ</option>
           </Select>
@@ -281,52 +282,50 @@ export const SortieSim = () => {
             ))}
           </div>
         </Field>
-        <Field label="乱数シード">
-          <div className="flex items-center gap-1.5">
-            <NumberInput className="w-full" min={0} max={2 ** 31} value={seed} onChange={setSeed} />
-            <Button size="sm" onClick={() => setSeed(Math.floor(Math.random() * 2 ** 31))}>
-              ⟳
-            </Button>
-          </div>
-        </Field>
-        <label className="flex items-end gap-2 pb-1.5 text-sm text-ink-100">
-          <input type="checkbox" className="h-4 w-4 accent-accent-500" checked={applyFit} onChange={(e) => setApplyFit(e.target.checked)} />
-          装備ボーナスを考慮
-        </label>
-
-        {battleNodes.length > 0 && (
-          <details className="col-span-2 md:col-span-4 xl:col-span-6">
-            <summary className="cursor-pointer text-xs font-medium text-ink-300">ノード別の味方陣形 (既定: 自動 — 潜水のみなら単横陣、それ以外は単縦陣) / フェーズ・ゲージ番号</summary>
-            <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
-              {battleNodes.map((n) => (
-                <Field key={n.letter} label={`ノード ${n.letter}`}>
-                  <Select
-                    value={formations[n.letter] ?? ""}
-                    onChange={(e) =>
-                      setFormations((f) => {
-                        const { [n.letter]: _drop, ...rest } = f;
-                        return e.target.value ? { ...rest, [n.letter]: e.target.value as Formation } : rest;
-                      })
-                    }
-                  >
-                    <option value="">自動</option>
-                    {FORMATIONS.map((f, i) => (
-                      <option key={f} value={f}>
-                        {FORMATION_NAME[i + 1]}
-                      </option>
-                    ))}
-                  </Select>
+        <details className="col-span-2 md:col-span-4 xl:col-span-6">
+          <summary className="cursor-pointer text-sm text-ink-300">詳細設定</summary>
+          {battleNodes.length > 0 && <p className="mt-2 text-xs text-ink-400">ノード別の陣形「自動」: 潜水艦のみなら単横陣、それ以外は単縦陣</p>}
+          <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
+            {battleNodes.map((n) => (
+              <Field key={n.letter} label={`ノード ${n.letter}`}>
+                <Select
+                  value={formations[n.letter] ?? ""}
+                  onChange={(e) =>
+                    setFormations((f) => {
+                      const { [n.letter]: _drop, ...rest } = f;
+                      return e.target.value ? { ...rest, [n.letter]: e.target.value as Formation } : rest;
+                    })
+                  }
+                >
+                  <option value="">自動</option>
+                  {FORMATIONS.map((f, i) => (
+                    <option key={f} value={f}>
+                      {FORMATION_NAME[i + 1]}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            ))}
+            {battleNodes.length > 0 && (
+              <>
+                <Field label="フェーズ">
+                  <NumberInput min={1} max={20} value={phase ?? 1} onChange={setPhase} />
                 </Field>
-              ))}
-              <Field label="フェーズ (既定を使うなら空)">
-                <NumberInput min={1} max={20} value={phase ?? 1} onChange={setPhase} />
-              </Field>
-              <Field label="ゲージ番号">
-                <NumberInput min={1} max={20} value={gaugeNo ?? 1} onChange={setGaugeNo} />
-              </Field>
-            </div>
-          </details>
-        )}
+                <Field label="ゲージ番号">
+                  <NumberInput min={1} max={20} value={gaugeNo ?? 1} onChange={setGaugeNo} />
+                </Field>
+              </>
+            )}
+            <Field label="乱数シード">
+              <div className="flex items-center gap-1.5">
+                <NumberInput className="w-full" min={0} max={2 ** 31} value={seed} onChange={setSeed} />
+                <Button size="sm" onClick={() => setSeed(Math.floor(Math.random() * 2 ** 31))} title="ランダムなシード">
+                  ⟳
+                </Button>
+              </div>
+            </Field>
+          </div>
+        </details>
 
         <div className="col-span-2 flex items-end gap-3 md:col-span-4 xl:col-span-6">
           {running ? (
@@ -336,20 +335,20 @@ export const SortieSim = () => {
               </Button>
               <div className="flex-1">
                 <ProgressBar value={progress?.done ?? 0} max={progress?.total ?? 1} tone="accent" className="h-2.5" />
-                <div className="mt-1 text-[11px] text-ink-300 tabular-nums">
+                <div className="mt-1 text-xs text-ink-300 tabular-nums">
                   {(progress?.done ?? 0).toLocaleString()} / {(progress?.total ?? 0).toLocaleString()} 出撃
                 </div>
               </div>
             </>
           ) : (
-            <Button variant="primary" disabled={!canRun || data.loading} onClick={() => void execute()}>
-              ▶ 出撃シミュレーション実行
+            <Button variant="primary" size="lg" disabled={!canRun || data.loading} onClick={() => void execute()}>
+              実行
             </Button>
           )}
-          {data.loading && <span className="text-xs text-ink-400">{S.common.loading}</span>}
-          {data.error && <span className="text-xs text-danger-400">{data.error.message}</span>}
-          {md && !routing && <span className="text-xs text-warn-400">この海域のルーティングは未登録です</span>}
-          {error && <span className="text-xs text-danger-400">エラー: {error}</span>}
+          {data.loading && <span className="text-sm text-ink-400">{S.common.loading}</span>}
+          {data.error && <span className="text-sm text-danger-400">{data.error.message}</span>}
+          {md && !routing && <span className="text-sm text-warn-400">この海域のルーティングは未登録です</span>}
+          {error && <span className="text-sm text-danger-400">エラー: {error}</span>}
         </div>
       </Card>
 

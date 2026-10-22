@@ -10,10 +10,13 @@ interface Props {
 }
 
 export const Card = ({ title, actions, className, bodyClassName, children }: Props) => (
-  <section className={cx("rounded-lg border border-ink-600 bg-ink-800 shadow-sm shadow-black/20", className)}>
+  <section className={cx("kc-chart rounded-md border border-ink-600 bg-ink-800/90 shadow-lg shadow-black/30", className)}>
     {(title || actions) && (
-      <header className="flex items-center justify-between gap-2 border-b border-ink-600 px-4 py-2.5">
-        <h3 className="text-sm font-semibold tracking-wide text-ink-50">{title}</h3>
+      <header className="flex min-h-12 items-center justify-between gap-2 border-b border-dashed border-ink-600 px-4 py-2">
+        <h3 className="flex items-center gap-2 text-base font-semibold tracking-wide text-ink-50">
+          {title && <span aria-hidden className="h-2 w-2 shrink-0 rotate-45 border border-brass-500 bg-brass-500/25" />}
+          {title}
+        </h3>
         <div className="flex items-center gap-1.5">{actions}</div>
       </header>
     )}

@@ -21,7 +21,7 @@ export const Tabs = <T extends string>({ tabs, value, onChange, className, varia
     role="tablist"
     className={cx(
       "flex items-center gap-1",
-      variant === "bar" ? "border-b border-ink-600" : "rounded-md bg-ink-900 p-0.5",
+      variant === "bar" ? "border-b border-ink-600" : "w-fit rounded-md border border-ink-600 bg-ink-900/80 p-1",
       className
     )}
   >
@@ -48,19 +48,19 @@ export const Tabs = <T extends string>({ tabs, value, onChange, className, varia
             "cursor-pointer whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-accent-400",
             variant === "bar"
               ? cx(
-                  "-mb-px border-b-2 px-3.5 py-2 text-sm font-medium",
+                  "-mb-px border-b-2 px-4 py-2.5 text-[15px] font-medium tracking-wide",
                   active
-                    ? "border-accent-500 text-ink-50"
-                    : "border-transparent text-ink-300 hover:text-ink-100"
+                    ? "border-brass-500 text-ink-50"
+                    : "border-transparent text-ink-300 hover:border-ink-500 hover:text-ink-100"
                 )
               : cx(
-                  "rounded px-3 py-1 text-xs font-medium",
-                  active ? "bg-ink-600 text-ink-50" : "text-ink-300 hover:text-ink-100"
+                  "rounded px-3.5 py-1.5 text-sm font-medium",
+                  active ? "bg-ink-700 text-ink-50 shadow-[inset_0_-2px_0_var(--color-brass-500)]" : "text-ink-300 hover:text-ink-100"
                 )
           )}
         >
           {t.label}
-          {t.hint && <span className="ml-1.5 text-[10px] text-ink-400">{t.hint}</span>}
+          {t.hint && <span className="ml-1.5 text-xs text-ink-400">{t.hint}</span>}
         </button>
       );
     })}

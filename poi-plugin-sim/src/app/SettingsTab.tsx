@@ -112,6 +112,13 @@ export const SettingsTab = () => {
     settings: S.settings.resetSettings,
     cache: S.settings.clearCache,
   };
+  // 消すと戻せないもの (プリセット・観測ログ) だけ danger。行の主役は項目名と件数で、ボタンは小さく右に寄せる。
+  const DATA_ROWS: { action: Action; label: string; count?: number | null; button: string; danger: boolean }[] = [
+    { action: "presets", label: S.settings.presets, count: counts.presets, button: S.settings.deleteAll, danger: true },
+    { action: "observations", label: S.settings.observations, count: counts.battles, button: S.settings.deleteAll, danger: true },
+    { action: "cache", label: S.settings.cache, button: S.settings.clear, danger: false },
+    { action: "settings", label: S.settings.settings, button: S.settings.reset, danger: false },
+  ];
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -124,22 +131,22 @@ export const SettingsTab = () => {
             placeholder="http://127.0.0.1:8787"
           />
         </Field>
-        <Field label="静的マップバンドルの場所 (URL)" hint="API に接続できないときの代替データ。空ならプラグイン同梱の maps/ を使います。" className="mt-3">
+        <Field label="オフライン用マップデータ URL" className="mt-3">
           <TextInput
             value={settings.bundleBase}
             onChange={(e) => updateSettings({ bundleBase: e.target.value })}
             spellCheck={false}
-            placeholder="(空 = 同梱)"
+            placeholder="空欄 = 同梱データ"
           />
         </Field>
         <div className="mt-3 flex flex-col gap-2">
           <Checkbox
-            label="観測データを自動でデータ API (D1) に送信"
-            hint="戦闘結果の後と帰投時に、未送信の観測をまとめて送ります。失敗したら間隔を空けて再試行します (最大 30 分)。"
+            label="観測ログを自動送信"
+            hint="戦闘後・帰投時に送信し、失敗したら再試行します"
             checked={settings.autoUpload}
             onChange={(e) => updateSettings({ autoUpload: e.target.checked })}
           />
-          <div className="text-xs text-ink-300">
+          <div className="text-sm text-ink-300">
             最終成功: {formatTime(upload.status.lastSuccessAt)} / 未送信 {upload.pending ?? "—"} 件
             {upload.status.lastError && (
               <span className="text-danger-400">
@@ -154,7 +161,7 @@ export const SettingsTab = () => {
       <Card title="推定値" bodyClassName="flex flex-col gap-3">
         <Checkbox
           label="シミュレーションで推定値を使う"
-          hint="パラメータ推定タブの推定値 (観測 30 回以上) を、敵の回避・命中・運として API の値より優先して使います (戦闘・出撃の両方)。"
+          hint="パラメータ推定の値 (観測 30 回以上) を API の値より優先します"
           checked={settings.useEstimates}
           onChange={(e) => updateSettings({ useEstimates: e.target.checked })}
         />
@@ -175,27 +182,26 @@ export const SettingsTab = () => {
         />
         {seed && (
           <div className="flex items-center gap-3">
-            <Button onClick={() => void seed()} disabled={seeding}>
+            <Button onClick={() => void seed()} disabled={seeding} title="第1艦隊と実在の深海棲艦で 500 戦を sim-core で回し、観測ログに追加します (送信対象外)">
               {seeding ? "投入中…" : "合成データ投入"}
             </Button>
-            <span className="text-xs text-ink-400">
-              開発用: 第1艦隊と実在の深海棲艦で 500 戦を sim-core で回し、観測ログに追加します (送信対象外)。
-            </span>
+            <span className="text-xs text-ink-400">開発用 · 送信対象外</span>
           </div>
         )}
       </Card>
 
-      <Card title={S.settings.data} bodyClassName="flex flex-col gap-3">
-        <div className="text-xs text-ink-300">
-          プリセット {counts.presets} 件 / 観測ログ {counts.battles ?? "—"} 件
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {(Object.keys(LABEL) as Action[]).map((a) => (
-            <Button key={a} variant="danger" onClick={() => setConfirm(a)}>
-              {LABEL[a]}
+      <Card title={S.settings.data} bodyClassName="flex flex-col divide-y divide-ink-700">
+        {DATA_ROWS.map((r) => (
+          <div key={r.action} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+            <span className="text-sm text-ink-100">
+              {r.label}
+              {r.count !== undefined && <span className="ml-2 text-ink-400 tabular-nums">{r.count === null ? "—" : S.log.count(r.count)}</span>}
+            </span>
+            <Button size="sm" variant={r.danger ? "danger" : "secondary"} onClick={() => setConfirm(r.action)}>
+              {r.button}
             </Button>
-          ))}
-        </div>
+          </div>
+        ))}
       </Card>
 
       {confirm && (

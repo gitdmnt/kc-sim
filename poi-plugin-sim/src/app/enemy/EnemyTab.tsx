@@ -22,10 +22,12 @@ const STAT_ORDER: HiddenStat[] = ["ev", "asw", "los", "luck", "acc", "tacc"];
 const RANGE = ["—", "短", "中", "長", "超長", "超超長"];
 const SPEED: Record<number, string> = { 0: "陸上", 5: "低速", 10: "高速", 15: "高速+", 20: "最速" };
 
-const fmt = (v: number | null | undefined) => (v === null || v === undefined ? "—" : String(v));
+const NA = <span className="text-ink-500">—</span>;
+const fmt = (v: number | null | undefined) => (v === null || v === undefined ? NA : String(v));
 
-const EstimateTable = ({ estimates, best }: { estimates: ShipEstimate[]; best: Partial<Record<HiddenStat, { source: string; value: number }>> }) => (
-  <Table>
+/** 採用されなかった推定候補 (採用値は上の Stat に出すので重複させない) */
+const EstimateTable = ({ estimates }: { estimates: ShipEstimate[] }) => (
+  <Table className="mt-2">
     <Thead>
       <tr>
         <Th>ステータス</Th>
@@ -33,29 +35,26 @@ const EstimateTable = ({ estimates, best }: { estimates: ShipEstimate[]; best: P
         <Th>確度</Th>
         <Th>ソース</Th>
         <Th>備考</Th>
-        <Th />
       </tr>
     </Thead>
     <tbody>
-      {STAT_ORDER.flatMap((stat) => estimates.filter((e) => e.stat === stat)).map((e, i) => {
-        const isBest = best[e.stat]?.source === e.source && best[e.stat]?.value === e.value;
-        return (
-          <Tr key={`${e.stat}-${e.source}-${i}`} selected={isBest}>
-            <Td className="font-medium">{STAT_LABEL[e.stat]}</Td>
-            <Td className="text-right tabular-nums">
-              {e.value}
-              {e.sd !== null && <span className="ml-1 text-[11px] text-ink-400">±{e.sd}</span>}
-              {e.n !== null && <span className="ml-1 text-[11px] text-ink-400">n={e.n}</span>}
-            </Td>
-            <Td>
-              <Badge tone={CONF[e.confidence].tone}>{CONF[e.confidence].label}</Badge>
-            </Td>
-            <Td className="text-xs text-ink-300">{e.source}</Td>
-            <Td className="max-w-56 truncate text-xs text-ink-400" >{e.note ?? ""}</Td>
-            <Td>{isBest && <Badge tone="accent">採用</Badge>}</Td>
-          </Tr>
-        );
-      })}
+      {STAT_ORDER.flatMap((stat) => estimates.filter((e) => e.stat === stat)).map((e, i) => (
+        <Tr key={`${e.stat}-${e.source}-${i}`}>
+          <Td className="font-medium">{STAT_LABEL[e.stat]}</Td>
+          <Td className="text-right tabular-nums">
+            {e.value}
+            {e.sd !== null && <span className="ml-1 text-xs text-ink-400">±{e.sd}</span>}
+            {e.n !== null && <span className="ml-1 text-xs text-ink-400">n={e.n}</span>}
+          </Td>
+          <Td>
+            <Badge tone={CONF[e.confidence].tone}>{CONF[e.confidence].label}</Badge>
+          </Td>
+          <Td className="text-xs text-ink-300">{e.source}</Td>
+          <Td className="max-w-56 truncate text-xs text-ink-400">
+            <span title={e.note ?? undefined}>{e.note ?? ""}</span>
+          </Td>
+        </Tr>
+      ))}
     </tbody>
   </Table>
 );
@@ -81,7 +80,7 @@ const EquipTable = ({ ids, equipById }: { ids: number[]; equipById: (id: number)
                 <Td key={j} className={cx("text-right tabular-nums", v === 0 && "text-ink-500")}>{v}</Td>
               ))
             ) : (
-              <Td colSpan={8} className="text-xs text-ink-400">装備データなし</Td>
+              <Td colSpan={8} className="text-ink-400">装備データなし</Td>
             )}
           </Tr>
         );
@@ -98,6 +97,13 @@ const ShipDetailView = ({ id, equipById }: { id: number; equipById: (id: number)
   if (res.error) return <DataError error={res.error} />;
   const { ship, estimates, best } = res.data!;
   const stype = catalog.shipTypes[ship.stype] ?? `艦種${ship.stype}`;
+  const isBest = (e: ShipEstimate) => best[e.stat]?.source === e.source && best[e.stat]?.value === e.value;
+  const adopted = STAT_ORDER.filter((s) => best[s]);
+  const missing = STAT_ORDER.filter((s) => !best[s]);
+  const others = estimates.filter((e) => !isBest(e));
+  // 採用値の確度が全項目同じなら見出し横に1回だけ出す
+  const confs = new Set(adopted.map((s) => best[s]!.confidence));
+  const sharedConf = adopted.length > 1 && confs.size === 1 ? best[adopted[0]]!.confidence : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -108,7 +114,7 @@ const ShipDetailView = ({ id, equipById }: { id: number; equipById: (id: number)
             <span className="text-xs font-normal text-ink-400">No.{ship.id}{ship.nameEn ? ` · ${ship.nameEn}` : ""}</span>
           </span>
         }
-        actions={<>{res.stale && <StaleBadge />}<Badge tone="neutral">{stype}</Badge><Button size="sm" onClick={() => nav.go({ tab: "estimate", shipId: ship.id })}>推定の詳細を見る</Button></>}
+        actions={<>{res.stale && <StaleBadge />}<Badge tone="neutral">{stype}</Badge></>}
         bodyClassName="grid grid-cols-3 gap-2 sm:grid-cols-5"
       >
         <Stat label="耐久" value={fmt(ship.hp)} />
@@ -116,39 +122,59 @@ const ShipDetailView = ({ id, equipById }: { id: number; equipById: (id: number)
         <Stat label="雷装" value={fmt(ship.tp)} />
         <Stat label="対空" value={fmt(ship.aa)} />
         <Stat label="装甲" value={fmt(ship.ar)} />
-        <Stat label="速力" value={ship.speed === null ? "—" : (SPEED[ship.speed] ?? ship.speed)} />
-        <Stat label="射程" value={ship.range === null ? "—" : (RANGE[ship.range] ?? ship.range)} />
+        <Stat label="速力" value={ship.speed === null ? NA : (SPEED[ship.speed] ?? ship.speed)} />
+        <Stat label="射程" value={ship.range === null ? NA : (RANGE[ship.range] ?? ship.range)} />
         <Stat label="スロット数" value={fmt(ship.slotNum)} />
-        <Stat label="搭載数" value={ship.slots?.length ? ship.slots.join("/") : "—"} />
+        <Stat label="搭載数" value={ship.slots?.length ? ship.slots.join("/") : NA} />
         <Stat label="運(表示)" value={fmt(ship.luck)} />
       </Card>
 
-      <Card title="隠しステータス推定" bodyClassName="flex flex-col gap-2">
+      <Card
+        title={
+          <span className="flex items-center gap-2">
+            隠しステータス推定
+            {sharedConf && <Badge tone={CONF[sharedConf].tone}>{CONF[sharedConf].label}</Badge>}
+          </span>
+        }
+        actions={<Button size="sm" onClick={() => nav.go({ tab: "estimate", shipId: ship.id })}>推定の詳細を見る</Button>}
+        bodyClassName="flex flex-col gap-3"
+      >
         {estimates.length === 0 ? (
-          <p className="text-xs text-ink-400">推定値がありません。</p>
+          <p className="text-sm text-ink-400">推定値がありません。</p>
         ) : (
           <>
-            <div className="grid grid-cols-5 gap-2">
-              {STAT_ORDER.map((s) => {
-                const b = best[s];
-                return (
-                  <Stat
-                    key={s}
-                    label={`${STAT_LABEL[s]} (採用)`}
-                    value={b ? b.value : "—"}
-                    sub={b ? CONF[b.confidence].label : "推定なし"}
-                    subTone={b?.confidence === "observed" ? "ok" : b ? "accent" : "muted"}
-                  />
-                );
-              })}
-            </div>
-            <EstimateTable estimates={estimates} best={best} />
+            {adopted.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                {adopted.map((s) => {
+                  const b = best[s]!;
+                  const row = estimates.find((e) => e.stat === s && isBest(e));
+                  const detail = [b.source, row?.sd != null && `±${row.sd}`, row?.n != null && `n=${row.n}`, row?.note].filter(Boolean).join(" / ");
+                  return (
+                    <Stat
+                      key={s}
+                      label={STAT_LABEL[s]}
+                      value={b.value}
+                      sub={sharedConf ? undefined : CONF[b.confidence].label}
+                      subTone={b.confidence === "observed" ? "ok" : "accent"}
+                      title={detail}
+                    />
+                  );
+                })}
+              </div>
+            )}
+            {missing.length > 0 && <p className="text-xs text-ink-400">推定なし: {missing.map((s) => STAT_LABEL[s]).join("・")}</p>}
+            {others.length > 0 && (
+              <details>
+                <summary className="cursor-pointer text-sm text-ink-300">他の推定候補 ({others.length})</summary>
+                <EstimateTable estimates={others} />
+              </details>
+            )}
           </>
         )}
       </Card>
 
       <Card title={`装備 (${ship.equips?.length ?? 0})`}>
-        {ship.equips?.length ? <EquipTable ids={ship.equips} equipById={equipById} /> : <p className="text-xs text-ink-400">装備データがありません。</p>}
+        {ship.equips?.length ? <EquipTable ids={ship.equips} equipById={equipById} /> : <p className="text-sm text-ink-400">装備データがありません。</p>}
       </Card>
     </div>
   );
@@ -205,19 +231,19 @@ export const EnemyTab = () => {
                 )}
               >
                 <span className="truncate">{s.name}</span>
-                <span className="shrink-0 text-[10px] text-ink-400">
+                <span className="shrink-0 text-xs text-ink-400 tabular-nums">
                   {catalog.shipTypes[s.stype] ?? ""} · {s.id}
                 </span>
               </button>
             </li>
           ))}
-          {filtered.length > MAX_LIST && <li className="py-1 text-center text-[11px] text-ink-400">他 {filtered.length - MAX_LIST} 件 — 検索で絞り込み</li>}
+          {filtered.length > MAX_LIST && <li className="py-1 text-center text-xs text-ink-400">他 {filtered.length - MAX_LIST} 件 — 検索で絞り込み</li>}
         </ul>
       </Card>
       {selected !== null ? (
         <ShipDetailView key={selected} id={selected} equipById={data.equipById} />
       ) : (
-        <EmptyState title="深海棲艦を選択" description="左の一覧から選ぶと、表示ステータスと隠しステータスの推定を確認できます。" className="py-24" />
+        <EmptyState title="深海棲艦を選択" description="左の一覧から選ぶと、ステータスと隠しステータスの推定を表示します。" className="py-24" />
       )}
     </div>
   );

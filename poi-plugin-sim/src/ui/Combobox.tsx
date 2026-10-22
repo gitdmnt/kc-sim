@@ -90,18 +90,18 @@ export const Combobox = ({
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className={cx(
-          "flex h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-ink-600 bg-ink-900 px-2.5 text-left text-sm",
+          "flex h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-ink-600 bg-ink-950/70 px-2.5 text-left text-sm transition-colors",
           "hover:border-ink-500 focus-visible:outline-2 focus-visible:outline-accent-400 disabled:opacity-50",
-          open && "border-accent-500"
+          open && "border-accent-500 ring-2 ring-accent-500/25"
         )}
         {...rest}
       >
         <span className={cx("truncate", label ? "text-ink-50" : "text-ink-400")}>{label ?? placeholder}</span>
-        <span className="text-[10px] text-ink-400">▾</span>
+        <span className="text-xs text-ink-400">▾</span>
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 z-40 mt-1 w-full min-w-64 rounded-md border border-ink-500 bg-ink-800 shadow-xl shadow-black/50">
+        <div className="absolute top-full left-0 z-40 mt-1 w-full min-w-64 rounded-md border border-ink-500 bg-ink-800 shadow-2xl shadow-black/60">
           <div className="border-b border-ink-600 p-1.5">
             <input
               autoFocus
@@ -123,7 +123,7 @@ export const Combobox = ({
                 }
               }}
               placeholder="名前・読みで検索"
-              className="h-7 w-full rounded border border-ink-600 bg-ink-900 px-2 text-sm text-ink-50 placeholder:text-ink-400 focus:border-accent-500 focus:outline-none"
+              className="h-7 w-full rounded border border-ink-600 bg-ink-950 px-2 text-sm text-ink-50 placeholder:text-ink-400 focus:border-accent-500 focus:outline-none"
             />
           </div>
           <div ref={listRef} role="listbox" className="max-h-72 overflow-auto py-1">
@@ -139,7 +139,7 @@ export const Combobox = ({
             {rows.length === 0 && <div className="px-3 py-4 text-center text-xs text-ink-400">該当なし</div>}
             {rows.map((row) =>
               row.kind === "group" ? (
-                <div key={row.key} className="px-3 pt-2 pb-1 text-[10px] font-semibold tracking-wider text-ink-400">
+                <div key={row.key} className="px-3 pt-2 pb-1 text-xs font-semibold text-ink-300">
                   {row.label}
                 </div>
               ) : (
@@ -158,13 +158,13 @@ export const Combobox = ({
                   )}
                 >
                   <span className="truncate">{row.option.label}</span>
-                  {row.option.sub && <span className="shrink-0 text-[10px] text-ink-400">{row.option.sub}</span>}
+                  {row.option.sub && <span className="shrink-0 text-xs text-ink-400">{row.option.sub}</span>}
                 </button>
               )
             )}
             {total > flat.length && (
-              <div className="px-3 py-1.5 text-center text-[11px] text-ink-400">
-                他 {total - flat.length} 件 — 検索で絞り込み
+              <div className="px-3 py-1.5 text-center text-xs text-ink-400">
+                他 {total - flat.length} 件
               </div>
             )}
           </div>

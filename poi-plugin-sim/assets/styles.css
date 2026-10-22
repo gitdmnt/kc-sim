@@ -4,37 +4,46 @@
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 @source "../src";
 
-@theme {
+/* 海図テーマ: 紺の地・方眼・真鍮の罫・海色のアクセント。
+   SVG からも var(--color-*) で参照するので static で常に出力する。 */
+@theme static {
   --color-*: initial;
   --color-white: #fff;
   --color-black: #000;
   --color-transparent: transparent;
 
-  /* Blueprint dark に合わせたスレート系 */
-  --color-ink-950: #111418;
-  --color-ink-900: #1c2127;
-  --color-ink-800: #252a31;
-  --color-ink-700: #2f343c;
-  --color-ink-600: #383e47;
-  --color-ink-500: #404854;
-  --color-ink-400: #738091;
-  --color-ink-300: #8f99a8;
-  --color-ink-200: #abb3bf;
-  --color-ink-100: #d3d8de;
-  --color-ink-50: #f6f7f9;
+  /* 紺 (地・面・罫・文字) */
+  --color-ink-950: #060c17;
+  --color-ink-900: #0a1322;
+  --color-ink-800: #0f1b2f;
+  --color-ink-700: #16253e;
+  --color-ink-600: #1f3150;
+  --color-ink-500: #3b5070;
+  --color-ink-400: #7f92ae;
+  --color-ink-300: #a0b1c9;
+  --color-ink-200: #c0cde0;
+  --color-ink-100: #dde6f2;
+  --color-ink-50: #f3f7fc;
 
-  --color-accent-700: #215db0;
-  --color-accent-600: #2d72d2;
-  --color-accent-500: #4c90f0;
-  --color-accent-400: #8abbff;
+  /* 海色 (操作・データの強調) */
+  --color-accent-700: #0f6f80;
+  --color-accent-600: #168ea2;
+  --color-accent-500: #2bb3c8;
+  --color-accent-400: #7fd8e6;
 
-  --color-ok-600: #238551;
-  --color-ok-400: #72ca9b;
-  --color-warn-600: #c87619;
-  --color-warn-400: #fbb360;
-  --color-danger-600: #cd4246;
-  --color-danger-500: #e76a6e;
-  --color-danger-400: #fa999c;
+  /* 真鍮 (罫・見出しの印・選択中の目印) */
+  --color-brass-600: #8f6a32;
+  --color-brass-500: #c49a55;
+  --color-brass-400: #dcbd86;
+  --color-brass-300: #eedcb4;
+
+  --color-ok-600: #22855c;
+  --color-ok-400: #6fd0a2;
+  --color-warn-600: #c27a1e;
+  --color-warn-400: #f4b968;
+  --color-danger-600: #c4434e;
+  --color-danger-500: #e2646d;
+  --color-danger-400: #f49ca2;
 
   --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Noto Sans JP",
     "Segoe UI", system-ui, sans-serif;
@@ -42,14 +51,53 @@
 }
 
 .kcsim {
-  background: var(--color-ink-900);
+  /* 方眼 (海図の罫) を地に敷く */
+  background-color: var(--color-ink-950);
+  background-image:
+    radial-gradient(ellipse 120% 60% at 50% -10%, rgb(43 179 200 / 0.07), transparent 60%),
+    linear-gradient(rgb(127 216 230 / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(127 216 230 / 0.035) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+  background-attachment: fixed;
   color: var(--color-ink-100);
   font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
+  font-feature-settings: "tnum" 1;
   color-scheme: dark;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+}
+
+/* 面の四隅のうち左上・右下に真鍮の鉤 (海図の図郭) */
+.kc-chart {
+  position: relative;
+}
+.kc-chart::before,
+.kc-chart::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+}
+.kc-chart::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1.5px solid var(--color-brass-500);
+  border-left: 1.5px solid var(--color-brass-500);
+  border-top-left-radius: 6px;
+}
+.kc-chart::after {
+  right: -1px;
+  bottom: -1px;
+  border-right: 1.5px solid var(--color-brass-500);
+  border-bottom: 1.5px solid var(--color-brass-500);
+  border-bottom-right-radius: 6px;
+}
+
+.kcsim ::selection {
+  background: rgb(43 179 200 / 0.35);
 }
 
 .kcsim ::-webkit-scrollbar {
@@ -57,9 +105,12 @@
   height: 10px;
 }
 .kcsim ::-webkit-scrollbar-thumb {
-  background: var(--color-ink-500);
+  background: var(--color-ink-600);
   border-radius: 6px;
-  border: 2px solid var(--color-ink-800);
+  border: 2px solid var(--color-ink-900);
+}
+.kcsim ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-500);
 }
 .kcsim ::-webkit-scrollbar-track {
   background: transparent;

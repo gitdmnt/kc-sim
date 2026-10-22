@@ -57,38 +57,46 @@ export const PresetSidebar = ({
   const selected = presets.find((p) => p.id === selectedId);
 
   return (
-    <Card title={S.fleet.presets} className="flex h-fit flex-col" bodyClassName="flex flex-col gap-3 p-3">
+    <Card
+      title={S.fleet.presets}
+      className="flex h-fit flex-col"
+      bodyClassName="flex flex-col gap-3 p-3"
+      actions={
+        // 選択中プリセットへの操作
+        <>
+          <Button variant="ghost" size="sm" disabled={!selected} onClick={onDuplicate}>
+            {S.common.duplicate}
+          </Button>
+          <Button variant="danger" size="sm" disabled={!selected} onClick={() => setConfirming(true)}>
+            {S.common.delete}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex items-center gap-1.5">
+        <span className="shrink-0 text-sm text-ink-200">{S.fleet.importPoi}</span>
+        {[0, 1, 2, 3].map((i) => (
+          <Button key={i} className="flex-1 px-0" onClick={() => onImportPoi(i)} title={`第${i + 1}艦隊`}>
+            {i + 1}
+          </Button>
+        ))}
+      </div>
+      <div className="flex gap-1.5">
+        <Button size="sm" className="flex-1" onClick={onCreate}>
+          ＋ {S.fleet.newPreset}
+        </Button>
+        <Button size="sm" className="flex-1" onClick={onOpenIo}>
+          {S.fleet.importExport}
+        </Button>
+      </div>
+
       <TextInput
+        className="mt-1"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={S.fleet.searchPlaceholder}
         aria-label={S.fleet.searchPlaceholder}
       />
-
-      <div className="flex gap-1.5">
-        <Button variant="primary" size="sm" className="flex-1" onClick={onCreate}>
-          ＋ {S.fleet.newPreset}
-        </Button>
-        <Button size="sm" disabled={!selected} onClick={onDuplicate}>
-          {S.common.duplicate}
-        </Button>
-        <Button variant="danger" size="sm" disabled={!selected} onClick={() => setConfirming(true)}>
-          {S.common.delete}
-        </Button>
-      </div>
-
-      <div className="flex items-center gap-1.5">
-        <span className="shrink-0 text-xs text-ink-300">{S.fleet.importPoi}</span>
-        {[0, 1, 2, 3].map((i) => (
-          <Button key={i} size="sm" className="flex-1 px-0" onClick={() => onImportPoi(i)} title={`第${i + 1}艦隊`}>
-            {i + 1}
-          </Button>
-        ))}
-      </div>
-      <Button size="sm" onClick={onOpenIo}>
-        {S.fleet.importExport}
-      </Button>
-
       <ul className="-mx-1 flex max-h-[28rem] flex-col gap-1 overflow-auto px-1">
         {filtered.map((p) => (
           <li key={p.id}>
@@ -106,9 +114,9 @@ export const PresetSidebar = ({
                 <span className="truncate text-sm font-medium text-ink-50">{p.name}</span>
                 {p.source && <Badge tone={p.source === "poi" ? "ok" : "neutral"}>{SOURCE_LABEL[p.source]}</Badge>}
               </div>
-              <div className="mt-0.5 truncate text-[11px] text-ink-300">
+              <div className="mt-0.5 truncate text-xs text-ink-400">
+                {p.ships[0] && `${catalog.shipName(p.ships[0].masterId)} · `}
                 {p.ships.length}隻 · {formatDate(p.updatedAt)}
-                {p.ships[0] && ` · ${catalog.shipName(p.ships[0].masterId)}`}
               </div>
             </button>
           </li>

@@ -5,7 +5,7 @@ import { useAbyssalData } from "../../data/names";
 import { FORMATION_NAME } from "../../data/routing";
 import type { EnemyComp, EnemyCompSet, ShipDetail } from "../../data/types";
 import { useMapData, useMapList } from "../../data/useMapData";
-import { Button, Card, EmptyState, Field, NumberInput, ProgressBar, Select, Tabs, S, cx, useToast } from "../../ui";
+import { Button, Card, Checkbox, EmptyState, Field, NumberInput, ProgressBar, Select, Table, Tabs, Td, Th, Thead, Tr, S, useToast } from "../../ui";
 import { buildBattleInput, buildEnemyShips, buildFriendShips, enemyFormationOf, friendFormationOf } from "../../sim/adapter";
 import type { EnemyBuild, FriendBuild } from "../../sim/adapter";
 import { runInWorker } from "../../sim/client";
@@ -21,7 +21,7 @@ import { BundleBanner, DataError } from "../DataState";
 import { usePresets } from "../fleet/presets";
 import { Assumptions } from "./Assumptions";
 import type { AssumptionData } from "./Assumptions";
-import { pct } from "./bars";
+import { NumTd, pct } from "./bars";
 import { RankCard, ShipTable } from "./results";
 
 type Mode = "battle" | "sortie";
@@ -60,8 +60,8 @@ export const SimTab = () => {
         variant="pill"
         className="w-fit"
         tabs={[
-          { id: "battle", label: "戦闘 (ノード単位)" },
-          { id: "sortie", label: "出撃 (マップ通し)" },
+          { id: "battle", label: "ノード戦闘" },
+          { id: "sortie", label: "出撃" },
         ]}
         value={mode}
         onChange={setMode}
@@ -190,8 +190,8 @@ const BattleSim = () => {
   return (
     <div className="flex flex-col gap-4">
       {(md.data?.source === "bundle" || maps.data?.source === "bundle") && <BundleBanner generatedAt={md.data?.generatedAt} />}
-      <Card title="シミュレーション設定" bodyClassName="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
-        <Field label="味方艦隊 (プリセット)" className="col-span-2">
+      <Card title="戦闘設定" bodyClassName="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
+        <Field label="味方艦隊" className="col-span-2">
           <Select value={preset?.id ?? ""} onChange={(e) => setPresetId(e.target.value)} disabled={presets.length === 0}>
             {presets.length === 0 && <option value="">プリセットなし (艦隊編成タブで作成)</option>}
             {presets.map((p) => (
@@ -272,18 +272,23 @@ const BattleSim = () => {
             ))}
           </div>
         </Field>
-        <Field label="乱数シード">
-          <div className="flex items-center gap-1.5">
-            <NumberInput className="w-full" min={0} max={2 ** 31} value={seed} onChange={setSeed} />
-            <Button size="sm" onClick={() => setSeed(randomSeed())} title="ランダムなシード">
-              ⟳
-            </Button>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-ink-200">計算</span>
+          <Checkbox label="装備ボーナスを考慮" checked={applyFit} onChange={(e) => setApplyFit(e.target.checked)} />
+        </div>
+        <details className="col-span-2 md:col-span-4 xl:col-span-6">
+          <summary className="cursor-pointer text-sm text-ink-300">詳細設定</summary>
+          <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
+            <Field label="乱数シード">
+              <div className="flex items-center gap-1.5">
+                <NumberInput className="w-full" min={0} max={2 ** 31} value={seed} onChange={setSeed} />
+                <Button size="sm" onClick={() => setSeed(randomSeed())} title="ランダムなシード">
+                  ⟳
+                </Button>
+              </div>
+            </Field>
           </div>
-        </Field>
-        <label className="flex items-end gap-2 pb-1.5 text-sm text-ink-100">
-          <input type="checkbox" className="h-4 w-4 accent-accent-500" checked={applyFit} onChange={(e) => setApplyFit(e.target.checked)} />
-          装備ボーナスを考慮
-        </label>
+        </details>
 
         <div className="col-span-2 flex items-end gap-3 md:col-span-4 xl:col-span-6">
           {running ? (
@@ -293,81 +298,85 @@ const BattleSim = () => {
               </Button>
               <div className="flex-1">
                 <ProgressBar value={progress?.done ?? 0} max={progress?.total ?? 1} tone="accent" className="h-2.5" />
-                <div className="mt-1 text-[11px] text-ink-300 tabular-nums">
+                <div className="mt-1 text-xs text-ink-300 tabular-nums">
                   {(progress?.done ?? 0).toLocaleString()} / {(progress?.total ?? 0).toLocaleString()} 戦
                 </div>
               </div>
             </>
           ) : (
-            <Button variant="primary" disabled={!canRun} onClick={() => void run()}>
-              ▶ シミュレーション実行
+            <Button variant="primary" size="lg" disabled={!canRun} onClick={() => void run()}>
+              実行
             </Button>
           )}
-          {!running && md.loading && <span className="text-xs text-ink-400">{S.common.loading}</span>}
+          {!running && md.loading && <span className="text-sm text-ink-400">{S.common.loading}</span>}
           {!running && !md.loading && compList.length === 0 && (
-            <span className="text-xs text-warn-400">このノードの敵編成データがありません</span>
+            <span className="text-sm text-warn-400">このノードの敵編成データがありません</span>
           )}
-          {error && <span className="text-xs text-danger-400">エラー: {error}</span>}
+          {error && <span className="text-sm text-danger-400">エラー: {error}</span>}
         </div>
       </Card>
 
       {result ? (
         <>
-          <div className="text-xs text-ink-300">
-            {result.count.toLocaleString()} 戦 / seed {result.seed} / {(result.ms / 1000).toFixed(2)} 秒 (
-            {Math.round(result.count / (result.ms / 1000)).toLocaleString()} 戦/秒)
-          </div>
-          <RankCard summary={result.total} />
+          <RankCard
+            summary={result.total}
+            meta={
+              <span
+                className="text-xs text-ink-400 tabular-nums"
+                title={`seed ${result.seed} / ${(result.ms / 1000).toFixed(2)} 秒 (${Math.round(result.count / (result.ms / 1000)).toLocaleString()} 戦/秒)`}
+              >
+                {result.count.toLocaleString()} 戦
+              </span>
+            }
+          />
 
           {result.comps.length > 1 && (
             <Card title="敵編成別" bodyClassName="p-0">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs text-ink-300">
+              <Table className="rounded-none border-0">
+                <Thead>
                   <tr>
-                    <th className="px-3 py-2">編成</th>
-                    <th className="px-3 py-2 text-right">出現率</th>
-                    <th className="px-3 py-2 text-right">試行</th>
-                    <th className="px-3 py-2 text-right">S以上</th>
-                    <th className="px-3 py-2 text-right">A以上</th>
-                    <th className="px-3 py-2 text-right">旗艦撃沈</th>
-                    <th className="px-3 py-2 text-right">味方撃沈あり</th>
+                    <Th>編成</Th>
+                    <Th className="text-right">出現率</Th>
+                    <Th className="text-right">試行</Th>
+                    <Th className="text-right">S以上</Th>
+                    <Th className="text-right">A以上</Th>
+                    <Th className="text-right">旗艦撃沈</Th>
+                    <Th className="text-right">味方撃沈あり</Th>
                   </tr>
-                </thead>
+                </Thead>
                 <tbody>
-                  {result.comps.map((r, i) => (
-                    <tr
-                      key={r.comp.id}
-                      onClick={() => setViewComp(i)}
-                      className={cx("cursor-pointer border-t border-ink-700 hover:bg-ink-700/60", i === viewComp && "bg-accent-600/15")}
-                    >
-                      <td className="max-w-80 truncate px-3 py-2">
-                        {r.comp.main.map((s) => names.shipName(s.shipId)).join("、")}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{pct(r.comp.weight)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{r.count.toLocaleString()}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{pct(r.summary.rankRates.SS + r.summary.rankRates.S)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {pct(r.summary.rankRates.SS + r.summary.rankRates.S + r.summary.rankRates.A)}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{pct(r.summary.enemyFlagshipSunkRate)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{pct(r.summary.friendSunkAnyRate)}</td>
-                    </tr>
-                  ))}
+                  {result.comps.map((r, i) => {
+                    const ships = r.comp.main.map((s) => names.shipName(s.shipId)).join("、");
+                    const rr = r.summary.rankRates;
+                    return (
+                      <Tr key={r.comp.id} onClick={() => setViewComp(i)} selected={i === viewComp}>
+                        <Td className="max-w-80 truncate">
+                          <span title={ships}>{ships}</span>
+                        </Td>
+                        <NumTd>{pct(r.comp.weight)}</NumTd>
+                        <NumTd>{r.count.toLocaleString()}</NumTd>
+                        <NumTd main>{pct(rr.SS + rr.S)}</NumTd>
+                        <NumTd main>{pct(rr.SS + rr.S + rr.A)}</NumTd>
+                        <NumTd>{pct(r.summary.enemyFlagshipSunkRate)}</NumTd>
+                        <NumTd alert={r.summary.friendSunkAnyRate > 0.005}>{pct(r.summary.friendSunkAnyRate)}</NumTd>
+                      </Tr>
+                    );
+                  })}
                 </tbody>
-              </table>
+              </Table>
             </Card>
           )}
 
           <div className="grid grid-cols-1 items-start gap-4 2xl:grid-cols-2">
             <ShipTable
-              title="味方艦隊 (全試行の合計)"
+              title="味方艦隊"
               lines={result.friendNames.map((name) => ({ name }))}
               ships={result.total.friend}
               showMvp
             />
             {viewed && (
               <ShipTable
-                title={`敵艦隊${result.comps.length > 1 ? ` (選択した編成: ${pct(viewed.comp.weight)})` : ""}`}
+                title={result.comps.length > 1 ? `敵艦隊 — 出現率 ${pct(viewed.comp.weight)} の編成` : "敵艦隊"}
                 lines={viewed.build.input.map((s) => ({ name: s.name ?? `#${s.id}` }))}
                 ships={viewed.summary.enemy}
               />
@@ -377,7 +386,7 @@ const BattleSim = () => {
           <Assumptions data={result.assumptions} />
         </>
       ) : (
-        !running && <EmptyState title="結果はまだありません" description="設定を選んで「シミュレーション実行」を押してください。計算は Web Worker で行われ、画面は固まりません。" className="py-16" />
+        !running && <EmptyState title="結果はまだありません" description="設定を選んで「実行」を押してください。" className="py-16" />
       )}
     </div>
   );

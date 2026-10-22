@@ -8,23 +8,24 @@ import { normalizeForSearch } from "../../fleet/catalog";
 import { ESTIMATE_MIN_N } from "../../estimate/store";
 import type { EstimatedStat, EstimateResult, SkipReason } from "../../estimate/types";
 import { useEstimator } from "../../estimate/useEstimator";
-import { Badge, Button, Card, Checkbox, EmptyState, ProgressBar, Select, Stat, Table, Td, TextInput, Th, Thead, Tr, cx, useToast } from "../../ui";
-import type { BadgeTone } from "../../ui";
+import { Badge, Button, Card, Checkbox, EmptyState, ProgressBar, S, Select, Stat, Table, Td, TextInput, Th, Thead, Tr, cx, useToast } from "../../ui";
 import { useApp } from "../context";
 import { useSettings } from "../settings";
 import { DensityPlot } from "./DensityPlot";
+import { formatShortDateTime } from "../log/util";
 
 const STAT_LABEL: Record<EstimatedStat, string> = { ev: "回避", acc: "命中", luck: "運" };
-const CONF: Record<Confidence | "none", { label: string; tone: BadgeTone }> = {
-  observed: { label: "観測", tone: "ok" },
-  datamined: { label: "データマイニング", tone: "accent" },
-  db_estimate: { label: "DB推定", tone: "warn" },
-  placeholder: { label: "仮値 (平坦)", tone: "danger" },
-  unknown: { label: "不明 (平坦)", tone: "neutral" },
-  none: { label: "なし (平坦)", tone: "neutral" },
+/** 事前分布の出どころ。表では毎行出るので、確度の低いもの (DB推定・仮値) だけ色を付ける。 */
+const CONF: Record<Confidence | "none", { label: string; className: string }> = {
+  observed: { label: "観測", className: "text-ink-400" },
+  datamined: { label: "データマイニング", className: "text-ink-400" },
+  db_estimate: { label: "DB推定", className: "text-warn-400" },
+  placeholder: { label: "仮値", className: "text-danger-400" },
+  unknown: { label: "不明", className: "text-ink-500" },
+  none: { label: "なし", className: "text-ink-500" },
 };
 const SKIP_LABEL: Record<SkipReason, string> = {
-  air: "航空戦 (miss が記録されない)",
+  air: "航空戦",
   protected: "かばう",
   cutin: "モデル外の特殊攻撃",
   unsupportedBattle: "対象外の戦闘 (連合艦隊など)",
@@ -55,12 +56,12 @@ const Shift = ({ r }: { r: EstimateResult }) => {
 /** 識別性についての注意 (推定値ごと) */
 const notes = (r: EstimateResult): string[] => {
   const out: string[] = [];
-  if (r.n === 0) out.push("この役割の観測がなく、事前分布のままです。");
-  else if (r.sd > 0.8 * r.prior.sd) out.push(`観測ではほとんど絞れていません (事後 sd は事前の ${Math.round((100 * r.sd) / r.prior.sd)}%)。`);
-  if (r.stat === "luck") out.push("運は回避 (+√(2·運)) と命中 (+1.5√運) にしか現れず、回避・命中と区別できないため、ほぼ事前分布で決まります。");
-  if (r.stat === "ev" && r.ci90[1] > 60) out.push("回避は 40 / 65 を超えると上限処理 (55 + 2√(e−65) など) で効きが小さくなり、尤度が平坦なので区間が広がります。");
-  if (r.stat === "acc" && r.ci90[0] <= 0) out.push("グリッドの下端 (0) に掛かっています。命中が 0 未満の可能性は扱っていません。");
-  if (r.stat === "acc" && r.n > 0 && r.sd > 5) out.push("命中率は 10% / 96% で頭打ちになり、その範囲の攻撃は情報を持ちません。");
+  if (r.n === 0) out.push("観測なし (事前分布のまま)");
+  else if (r.sd > 0.8 * r.prior.sd) out.push(`観測でほぼ絞れていない (事後 sd は事前の ${Math.round((100 * r.sd) / r.prior.sd)}%)`);
+  if (r.stat === "luck") out.push("運は回避・命中と区別しにくく、ほぼ事前分布で決まる");
+  if (r.stat === "ev" && r.ci90[1] > 60) out.push("回避 40 / 65 超は上限処理で効きが鈍く、区間が広い");
+  if (r.stat === "acc" && r.ci90[0] <= 0) out.push("区間が下端 0 に掛かっている (0 未満は扱わない)");
+  if (r.stat === "acc" && r.n > 0 && r.sd > 5) out.push("命中率 10% / 96% の頭打ちで情報が少ない");
   return out;
 };
 
@@ -80,40 +81,43 @@ const ShipDetail = ({ name, shipId, rows }: { name: string; shipId: number; rows
           key={r.stat}
           label={`${STAT_LABEL[r.stat]} (n=${r.n})`}
           value={`${f1(r.mean)} ± ${f1(r.sd)}`}
-          sub={r.prior.value === null ? "事前: なし (平坦)" : `事前: ${r.prior.value}`}
+          sub={`事前: ${r.prior.value ?? "なし"}`}
           subTone={shifted(r) ? "accent" : "muted"}
         />
       ))}
     </div>
     {rows.map((r) => (
       <section key={r.stat}>
-        <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
-          <span className="font-semibold text-ink-100">{STAT_LABEL[r.stat]}</span>
-          <span className="text-ink-400 tabular-nums">
-            90% CI [{r.ci90[0]}, {r.ci90[1]}] · 事前 sd {f1(r.prior.sd)} → 事後 sd {f1(r.sd)}
+        <div className="mb-1 flex items-baseline justify-between gap-2">
+          <span className="text-sm font-semibold text-ink-100">{STAT_LABEL[r.stat]}</span>
+          <span className="text-xs text-ink-400 tabular-nums">
+            90% CI [{r.ci90[0]}, {r.ci90[1]}] · sd {f1(r.prior.sd)} → {f1(r.sd)}
           </span>
         </div>
         {r.density ? (
           <DensityPlot density={r.density} ci90={r.ci90} mean={r.mean} priorValue={r.prior.value} label={STAT_LABEL[r.stat]} />
         ) : (
-          <p className="rounded-md bg-ink-900/70 px-3 py-4 text-center text-xs text-ink-400">分布は推定を実行した直後だけ表示されます (保存した結果には含めません)。</p>
+          <p className="rounded-md bg-ink-900/70 px-3 py-4 text-center text-sm text-ink-400">分布は推定直後のみ表示されます</p>
         )}
-        <ul className="mt-1 list-inside list-disc text-[11px] text-ink-300">
-          {notes(r).map((n) => (
-            <li key={n}>{n}</li>
-          ))}
-        </ul>
+        {notes(r).map((n) => (
+          <p key={n} className="mt-1 text-sm text-ink-300">
+            {n}
+          </p>
+        ))}
       </section>
     ))}
-    <div className="flex flex-wrap gap-3 text-[11px] text-ink-400">
+    <div className="flex flex-wrap gap-3 text-xs text-ink-400">
       <span><span className="mr-1 inline-block h-2 w-3 rounded-sm bg-accent-500/40" />事後分布</span>
-      <span><span className="mr-1 inline-block w-3 border-t border-dashed border-ink-300 align-middle" />事前分布・事前の中心</span>
-      <span><span className="mr-1 inline-block h-2 w-0.5 bg-ok-400 align-middle" />事後平均</span>
+      <span><span className="mr-1 inline-block w-3 border-t border-dashed border-ink-400 align-middle" />事前分布・事前の中心</span>
+      <span><span className="mr-1 inline-block h-2 w-0.5 bg-brass-400 align-middle" />事後平均</span>
       <span><span className="mr-1 inline-block h-2 w-3 bg-accent-500/10" />90% 信用区間</span>
     </div>
-    <p className="text-[11px] text-ink-400">
-      推定値は sim-core のモデルで観測の命中・回避率を再現する値です。モデル外の効果 (特殊砲撃・フィット砲・イベント特効など) は推定値に吸収されます。
-    </p>
+    <details className="text-sm text-ink-300">
+      <summary className="cursor-pointer text-xs text-ink-400">推定値の意味</summary>
+      <p className="mt-1">
+        sim-core のモデルで観測の命中・回避率を再現する値です。モデル外の効果 (特殊砲撃・フィット砲・特効など) も推定値に吸収されます。
+      </p>
+    </details>
   </Card>
 );
 
@@ -170,7 +174,7 @@ export const EstimateTab = () => {
     setUploading(true);
     try {
       const n = await est.upload();
-      toast.push(`推定値 ${n} 件を送信しました (estimator:poi)`, "ok");
+      toast.push(`推定値 ${n} 件を送信しました`, "ok");
     } catch (e) {
       toast.push((e as Error).message, "danger");
     } finally {
@@ -183,7 +187,7 @@ export const EstimateTab = () => {
   return (
     <div className="flex flex-col gap-4">
       <Card
-        title="敵艦の隠しステータス推定 (回避・命中・運)"
+        title="敵艦の隠しステータス推定"
         actions={
           <>
             {settings.useEstimates ? <Badge tone="ok">シミュレーションで使用中</Badge> : <Badge tone="neutral" title="設定タブで切り替え">シミュレーション未使用</Badge>}
@@ -206,50 +210,50 @@ export const EstimateTab = () => {
               {result ? "再推定" : "推定を実行"}
             </Button>
           )}
-          <Button onClick={() => void upload()} disabled={running || uploading || uploadable === 0} title={`n ≥ ${ESTIMATE_MIN_N} の推定値を data API に送ります`}>
-            {uploading ? "送信中…" : `API に送信 (n ≥ ${ESTIMATE_MIN_N}: ${uploadable} 件)`}
+          <Button onClick={() => void upload()} disabled={running || uploading || uploadable === 0} title={`n ≥ ${ESTIMATE_MIN_N} の推定値 (${uploadable} 件) を data API に送ります`}>
+            {uploading ? "送信中…" : "API に送信"}
           </Button>
           {running && (
             <div className="min-w-48 flex-1">
               <ProgressBar value={est.progress?.done ?? 0} max={est.progress?.total || 1} tone="accent" className="h-2.5" />
-              <div className="mt-1 text-[11px] text-ink-300 tabular-nums">
-                {est.progress?.total
-                  ? `グリッド計算 ${est.progress.done.toLocaleString()} / ${est.progress.total.toLocaleString()} 種類の攻撃`
-                  : "観測ログと事前分布を読み込み中…"}
+              <div className="mt-1 text-xs text-ink-300 tabular-nums">
+                {est.progress?.total ? `計算中 ${est.progress.done.toLocaleString()} / ${est.progress.total.toLocaleString()}` : S.common.loading}
               </div>
             </div>
           )}
-          {!running && result && <span className="text-xs text-ink-400">最終推定: {new Date(result.at).toLocaleString()}</span>}
+          {!running && result && <span className="text-xs text-ink-400">最終推定: {formatShortDateTime(result.at)}</span>}
         </div>
-        {est.error && <p className="text-xs text-danger-400">{est.error.message}</p>}
+        {est.error && <p className="text-sm text-danger-400">{est.error.message}</p>}
 
         {result && (
-          <>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-              <Stat label="観測ログの戦闘" value={battleCount?.toLocaleString() ?? "—"} />
-              <Stat label="使った戦闘" value={result.observe.battles.toLocaleString()} />
-              <Stat label="使えた命中判定" value={result.observe.observations.toLocaleString()} />
-              <Stat label="推定した敵艦" value={byShip.size} sub={result.priorErrors.length ? `事前分布の取得失敗 ${result.priorErrors.length}` : undefined} />
-              <Stat label={`n ≥ ${ESTIMATE_MIN_N} の推定値`} value={uploadable} sub="送信・シミュレーションの対象" />
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div className="grid w-full grid-cols-2 gap-2 sm:w-[28rem]">
+              <Stat
+                size="lg"
+                label="推定した敵艦"
+                value={byShip.size}
+                sub={result.priorErrors.length ? `事前分布の取得失敗 ${result.priorErrors.length}` : undefined}
+              />
+              <Stat size="lg" label="送信対象の推定値" value={uploadable} sub={`n ≥ ${ESTIMATE_MIN_N} · シミュレーションにも使用`} />
             </div>
-            {skipped.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-300">
-                <span>使わなかった攻撃:</span>
-                {skipped.map(([k, n]) => (
-                  <Badge key={k} tone="neutral">
-                    {SKIP_LABEL[k]} {n.toLocaleString()}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </>
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="text-sm text-ink-300 tabular-nums">
+                使った戦闘 {result.observe.battles.toLocaleString()} / {battleCount?.toLocaleString() ?? "—"} · 命中判定 {result.observe.observations.toLocaleString()}
+              </span>
+              {skipped.length > 0 && (
+                <span className="text-xs text-ink-400 tabular-nums" title="航空戦は miss が記録されないため使いません">
+                  未使用: {skipped.map(([k, n]) => `${SKIP_LABEL[k]} ${n.toLocaleString()}`).join(" · ")}
+                </span>
+              )}
+            </div>
+          </div>
         )}
       </Card>
 
       {!result ? (
         <EmptyState
           title="推定結果がありません"
-          description="観測ログ (出撃中の戦闘) から、敵艦の回避・命中・運をベイズ推定します。命中/ミス/クリティカルの記録を sim-core の命中モデルに当てはめ、API の推定値を事前分布にします。"
+          description="観測ログの命中・ミスから、敵艦の回避・命中・運をベイズ推定します。"
           action={!running && <Button variant="primary" onClick={() => void est.run()}>推定を実行</Button>}
         />
       ) : (
@@ -278,10 +282,14 @@ export const EstimateTab = () => {
                 <tr>
                   <Th>敵艦</Th>
                   <Th>ステータス</Th>
-                  <Th>事前</Th>
+                  <Th>
+                    <span title="API の値 (データマイニング > DB推定 > 仮値 の順に確か)">事前</span>
+                  </Th>
                   <Th className="text-right">事後 (平均 ± sd)</Th>
                   <Th className="text-right">90% CI</Th>
-                  <Th className="text-right">n</Th>
+                  <Th className="text-right">
+                    <span title="推定に効いた命中判定の数">n</span>
+                  </Th>
                   <Th className="text-right">事前との差</Th>
                 </tr>
               </Thead>
@@ -294,19 +302,25 @@ export const EstimateTab = () => {
                         {first && (
                           <>
                             <span className="text-ink-50">{names.shipName(r.shipId)}</span>
-                            <span className="ml-1.5 text-[11px] text-ink-400">{r.shipId}</span>
+                            <span className="ml-1.5 text-xs text-ink-400">{r.shipId}</span>
                           </>
                         )}
                       </Td>
                       <Td>{STAT_LABEL[r.stat]}</Td>
                       <Td className="whitespace-nowrap">
-                        <span className="mr-1.5 tabular-nums">{r.prior.value ?? "—"}</span>
-                        <Badge tone={CONF[r.prior.confidence].tone}>{CONF[r.prior.confidence].label}</Badge>
+                        {r.prior.value === null ? (
+                          <span className="text-ink-500" title={CONF[r.prior.confidence].label}>—</span>
+                        ) : (
+                          <>
+                            <span className="tabular-nums">{r.prior.value}</span>
+                            <span className={cx("ml-1.5 text-xs", CONF[r.prior.confidence].className)}>{CONF[r.prior.confidence].label}</span>
+                          </>
+                        )}
                       </Td>
                       <Td className={cx("text-right tabular-nums", r.n < ESTIMATE_MIN_N ? "text-ink-400" : "text-ink-50")}>
                         {f1(r.mean)} <span className="text-ink-400">± {f1(r.sd)}</span>
                       </Td>
-                      <Td className="text-right text-xs text-ink-300 tabular-nums">
+                      <Td className="text-right text-ink-300 tabular-nums">
                         [{r.ci90[0]}, {r.ci90[1]}]
                       </Td>
                       <Td className="text-right tabular-nums">
@@ -320,10 +334,13 @@ export const EstimateTab = () => {
                 })}
               </tbody>
             </Table>
-            <p className="text-[11px] text-ink-400">
-              n は推定に効いた命中判定の数 (回避: 味方の攻撃、命中: 敵の攻撃、運: 両方)。n &lt; {ESTIMATE_MIN_N} の値は灰色で、送信・シミュレーションには使いません。
-              事前分布は API の推定値 (データマイニング: 狭い、DB推定: 中程度、仮値: 平坦) で、推定器自身の送信値は二重計上を避けるため使いません。
-            </p>
+            <details className="text-sm text-ink-300">
+              <summary className="cursor-pointer text-xs text-ink-400">表の見方</summary>
+              <p className="mt-1">
+                n は推定に効いた命中判定の数 (回避: 味方の攻撃、命中: 敵の攻撃、運: 両方)。n &lt; {ESTIMATE_MIN_N} は灰色で、送信・シミュレーションに使いません。
+                事前は API の値で、推定器自身の送信値は二重計上を避けるため使いません。
+              </p>
+            </details>
           </Card>
 
           {current !== null && byShip.has(current) && (

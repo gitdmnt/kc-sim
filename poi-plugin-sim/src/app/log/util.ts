@@ -9,6 +9,13 @@ export const formatDateTime = (t: number) => {
   return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 };
 
+/** 一覧用: 月/日 時:分 */
+export const formatShortDateTime = (t: number) => {
+  const d = new Date(t);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
 export const downloadText = (filename: string, text: string, mime = "application/json") => {
   const url = URL.createObjectURL(new Blob([text], { type: mime }));
   const a = document.createElement("a");

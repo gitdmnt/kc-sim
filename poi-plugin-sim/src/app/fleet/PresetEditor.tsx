@@ -1,6 +1,6 @@
 import React from "react";
 import type { Preset, PresetFormation } from "../../fleet";
-import { Card, Combobox, EmptyState, Field, NumberInput, Select, TextInput, S } from "../../ui";
+import { Card, Combobox, Field, NumberInput, Select, TextInput, S } from "../../ui";
 import { useApp } from "../context";
 import { FleetSummary } from "./FleetSummary";
 import { newShipFor } from "./presets";
@@ -68,16 +68,11 @@ export const PresetEditor = ({ preset, onChange }: Props) => {
         ))}
         {preset.ships.length < MAX_SHIPS && (
           <div className="rounded-lg border border-dashed border-ink-500 bg-ink-800/50 p-3.5">
-            <div className="mb-2 text-xs text-ink-300">
-              {preset.ships.length + 1} 番艦 — {S.fleet.addShip}
-            </div>
+            <div className="mb-2 text-sm text-ink-300">{S.fleet.addShipTo(preset.ships.length + 1)}</div>
             <ShipPicker onPick={(id) => patch({ ships: [...preset.ships, newShipFor(id, catalog)] })} />
           </div>
         )}
       </div>
-      {preset.ships.length === 0 && (
-        <EmptyState title="艦がいません" description="上の枠から艦を追加するか、poi の艦隊から取り込んでください。" />
-      )}
     </div>
   );
 };

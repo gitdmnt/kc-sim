@@ -20,6 +20,8 @@ export const StatsGrid = ({ ship }: { ship: PresetShip }) => {
   const { catalog } = useApp();
   const stats = resolveShipStats(ship, catalog.master);
   const accuracy = sumEquipStats(ship, catalog.master).accuracy;
+  // 出典は艦単位の既定 (実測あり→実測、なし→計算) と異なるセルだけ sub で示す
+  const base = ship.observed ? "observed" : "computed";
   return (
     <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
       {ORDER.map((key) => {
@@ -29,8 +31,8 @@ export const StatsGrid = ({ ship }: { ship: PresetShip }) => {
             key={key}
             label={S.stat[key]}
             value={formatValue(key, r.value)}
-            sub={S.source[r.source]}
-            subTone={r.source === "observed" ? "ok" : r.source === "computed" ? "accent" : "muted"}
+            sub={r.source !== base && r.source !== "unknown" ? S.source[r.source] : undefined}
+            subTone={r.source === "observed" ? "ok" : "accent"}
             title={
               r.source === "unknown"
                 ? "マスターデータに値が無く、実測も無いため算出できません"
@@ -41,7 +43,7 @@ export const StatsGrid = ({ ship }: { ship: PresetShip }) => {
           />
         );
       })}
-      <Stat label="命中(装備)" value={accuracy} sub="装備合計" />
+      <Stat label="命中" value={accuracy} title="装備の命中合計" />
     </div>
   );
 };

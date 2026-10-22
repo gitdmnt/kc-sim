@@ -2,8 +2,8 @@ import React from "react";
 import { cx, defaultWidth } from "./cx";
 
 const CONTROL =
-  "h-8 rounded-md border border-ink-600 bg-ink-900 px-2.5 text-sm text-ink-50 placeholder:text-ink-400 " +
-  "hover:border-ink-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/60 disabled:opacity-50";
+  "h-8 rounded-md border border-ink-600 bg-ink-950/70 px-2.5 text-sm text-ink-50 placeholder:text-ink-400 transition-colors " +
+  "hover:border-ink-500 focus:border-accent-500 focus:bg-ink-950 focus:outline-none focus:ring-2 focus:ring-accent-500/25 disabled:opacity-50";
 
 export const TextInput = React.forwardRef<
   HTMLInputElement,
@@ -55,8 +55,8 @@ export const Field = ({
   className?: string;
   children: React.ReactNode;
 }) => (
-  <label className={cx("flex min-w-0 flex-col gap-1", className)}>
-    <span className="text-xs font-medium text-ink-300">{label}</span>
+  <label className={cx("flex min-w-0 flex-col gap-1.5", className)}>
+    <span className="text-[13px] font-medium text-ink-200">{label}</span>
     {children}
     {hint && <span className="text-xs text-ink-400">{hint}</span>}
   </label>

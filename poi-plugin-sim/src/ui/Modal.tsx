@@ -44,7 +44,7 @@ export const Modal = ({ title, onClose, footer, className, children }: Props) =>
   useDialogFocus(ref);
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/75 p-4 backdrop-blur-[2px]"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
@@ -54,12 +54,12 @@ export const Modal = ({ title, onClose, footer, className, children }: Props) =>
         aria-modal="true"
         aria-label={title}
         className={cx(
-          "flex max-h-[90vh] w-full outline-none max-w-2xl flex-col rounded-lg border border-ink-500 bg-ink-800 shadow-2xl shadow-black/60",
+          "kc-chart flex max-h-[90vh] w-full outline-none max-w-2xl flex-col rounded-md border border-ink-500 bg-ink-800 shadow-2xl shadow-black/60",
           className
         )}
       >
-        <header className="flex items-center justify-between border-b border-ink-600 px-4 py-3">
-          <h2 className="text-sm font-semibold text-ink-50">{title}</h2>
+        <header className="flex items-center justify-between border-b border-dashed border-ink-600 px-4 py-3">
+          <h2 className="text-base font-semibold text-ink-50">{title}</h2>
           <CloseButton onClose={onClose} />
         </header>
         <div className="min-h-0 flex-1 overflow-auto p-4">{children}</div>
@@ -79,7 +79,7 @@ export const Drawer = ({ title, onClose, className, children }: Omit<Props, "foo
   useDialogFocus(ref);
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/50"
+      className="fixed inset-0 z-50 flex justify-end bg-ink-950/65 backdrop-blur-[2px]"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <aside
@@ -93,8 +93,8 @@ export const Drawer = ({ title, onClose, className, children }: Omit<Props, "foo
           className
         )}
       >
-        <header className="flex items-center justify-between border-b border-ink-600 px-4 py-3">
-          <h2 className="text-sm font-semibold text-ink-50">{title}</h2>
+        <header className="flex items-center justify-between border-b border-dashed border-ink-600 px-4 py-3">
+          <h2 className="text-base font-semibold text-ink-50">{title}</h2>
           <CloseButton onClose={onClose} />
         </header>
         <div className="min-h-0 flex-1 overflow-auto p-4">{children}</div>

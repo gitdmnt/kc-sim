@@ -18,7 +18,7 @@ const fallback = import.meta.glob("../dev/sampleState.json", {
 const state: any = Object.values(dumped)[0] ?? Object.values(fallback)[0];
 
 // dev ハーネス専用: poi 側と違い body に既定の余白があるので消す
-document.body.style.cssText = "margin:0;background:#1c2127";
+document.body.style.cssText = "margin:0;background:#060c17";
 
 const App = reactClass;
 
