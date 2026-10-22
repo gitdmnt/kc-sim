@@ -1,4 +1,4 @@
-//! Routing evaluator (docs/ROUTING_DSL.md) against the data-worker seed documents.
+//! Routing evaluator (docs/ROUTING_DSL.md) against the server seed documents.
 use std::collections::HashMap;
 
 use serde_json::{json, Value};
@@ -7,9 +7,9 @@ use sim_core::routing::{los33, RouteConfig, RouteEquip, RouteShip, Router};
 use sim_core::sortie::model::*;
 use sim_core::sortie::route_once;
 
-/// Every routing seed document (`data-worker/seed/routing/*.json`), sorted by map.
+/// Every routing seed document (`server/seed/routing/*.json`), sorted by map.
 fn seeds() -> Vec<(String, Value)> {
-    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../data-worker/seed/routing");
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../server/seed/routing");
     let mut out: Vec<(String, Value)> = std::fs::read_dir(dir)
         .unwrap()
         .map(|e| e.unwrap().path())

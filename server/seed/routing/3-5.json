@@ -1,0 +1,415 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "3-5",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 3-5)"
+    }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "SS_CLASS"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "gte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CA_CLASS"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CV_CLASS",
+                  "CLT"
+                ],
+                "gte": 1
+              }
+            ]
+          },
+          "to": "B"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "gte": 5
+          },
+          "to": "F"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "eq": 4
+          },
+          "random": [
+            {
+              "to": "B",
+              "p": 0.25
+            },
+            {
+              "to": "F",
+              "p": 0.75
+            }
+          ]
+        },
+        {
+          "random": [
+            {
+              "to": "B",
+              "p": 0.5
+            },
+            {
+              "to": "F",
+              "p": 0.5
+            }
+          ]
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "SS_CLASS"
+                ],
+                "gte": 4
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CV_CLASS"
+                ],
+                "gte": 4
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 5
+              }
+            ]
+          },
+          "to": "A"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "CLT"
+                ],
+                "gte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CV_CLASS"
+                ],
+                "gte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS",
+                  "CA_CLASS"
+                ],
+                "gte": 5
+              }
+            ]
+          },
+          "to": "D"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CV_CLASS"
+                ],
+                "eq": 0
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "eq": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "to": "C"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS",
+                  "LHA"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL",
+                  "CLT"
+                ],
+                "gte": 4
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CA_CLASS"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CA_CLASS"
+            ],
+            "eq": 1
+          },
+          "random": [
+            {
+              "to": "E",
+              "p": 0.25
+            },
+            {
+              "to": "G",
+              "p": 0.75
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CL"
+            ],
+            "eq": 3
+          },
+          "random": [
+            {
+              "to": "E",
+              "p": 0.15
+            },
+            {
+              "to": "G",
+              "p": 0.85
+            }
+          ]
+        },
+        {
+          "to": "G"
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "when": {
+            "m": "los",
+            "cn": 4,
+            "lt": 23
+          },
+          "to": "I"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 4,
+            "lt": 28
+          },
+          "random": [
+            {
+              "to": "I",
+              "p": 0.5
+            },
+            {
+              "to": "K",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "no ratio stated in text; compiled ratio used"
+        },
+        {
+          "to": "K"
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 4
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS",
+                      "CV_CLASS"
+                    ],
+                    "gte": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "LHA"
+                    ],
+                    "gte": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "J"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 4,
+            "lt": 35
+          },
+          "to": "J",
+          "uncertain": true,
+          "note": "threshold 35 marked '?'"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 4,
+            "lt": 40
+          },
+          "random": [
+            {
+              "to": "J",
+              "p": 0.5
+            },
+            {
+              "to": "K",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "thresholds 35/40 marked '?'; no ratio stated"
+        },
+        {
+          "to": "K",
+          "uncertain": true,
+          "note": "threshold 40 marked '?'"
+        }
+      ]
+    },
+    "A": {
+      "end": true
+    },
+    "I": {
+      "end": true
+    },
+    "J": {
+      "end": true
+    },
+    "K": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "kc-sim-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --port 8787",
+    "migrate": "wrangler d1 migrations apply kc-sim --local",
+    "migrate:remote": "wrangler d1 migrations apply kc-sim --remote --env production",
+    "ingest": "bun scripts/ingest-all.ts",
+    "ingest:start2": "bun scripts/ingest-start2.ts",
+    "ingest:abyssal": "bun scripts/ingest-abyssal.ts",
+    "ingest:graph": "bun scripts/ingest-map-graph.ts",
+    "ingest:fit": "bun scripts/ingest-fit-bonuses.ts",
+    "ingest:routing": "bun scripts/ingest-routing.ts",
+    "kcnav": "bun scripts/kcnav.ts",
+    "routing:schema": "bun scripts/routing-schema.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "kcnav:status": "bun scripts/kcnav.ts status",
+    "kcnav:run": "bun scripts/kcnav.ts run --follow",
+    "validate:routing": "bun scripts/validate-routing.ts",
+    "export:bundle": "bun scripts/export-bundle.ts",
+    "aggregate": "bun scripts/aggregate.ts",
+    "aggregate:rebuild": "bun scripts/aggregate.ts rebuild",
+    "estimate": "bun scripts/estimate.ts",
+    "build:wasm": "cd ../sim-core && wasm-pack build --target web",
+    "deploy": "wrangler deploy --env production",
+    "deploy:check": "wrangler deploy --env production --dry-run --outdir .tmp/deploy"
+  },
+  "dependencies": {
+    "hono": "^4.13.13",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261021.1",
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.151.3"
+  }
+}

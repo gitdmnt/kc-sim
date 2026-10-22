@@ -1,0 +1,973 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "5-2",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 5-2)"
+    },
+    {
+      "id": "ship-ids",
+      "note": "countIds from Tibowl api_start2 remodel chains"
+    }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 5
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "gte": 4
+              },
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 3
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.5
+            },
+            {
+              "to": "B",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "eq": 1
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.35
+            },
+            {
+              "to": "B",
+              "p": 0.65
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "eq": 2
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.4
+            },
+            {
+              "to": "B",
+              "p": 0.6
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "eq": 3
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.55
+            },
+            {
+              "to": "B",
+              "p": 0.45
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "gte": 4
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.7
+            },
+            {
+              "to": "B",
+              "p": 0.3
+            }
+          ]
+        },
+        {
+          "to": "B"
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "to": "B"
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "to": "C"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CV_CLASS"
+                    ],
+                    "eq": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CA_CLASS"
+                    ],
+                    "eq": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "eq": 2
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "countIds",
+                    "ids": [
+                      115,
+                      293,
+                      622,
+                      623,
+                      624
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CVL",
+                      "CA_CLASS",
+                      "DD",
+                      "AO"
+                    ],
+                    "eq": 5
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "countIds",
+                    "ids": [
+                      74,
+                      282
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CA_CLASS",
+                      "CL_CT",
+                      "DD",
+                      "AO"
+                    ],
+                    "eq": 5
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "D"
+        },
+        {
+          "when": {
+            "m": "speed",
+            "eq": "slow"
+          },
+          "to": "E"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "countIds",
+                "ids": [
+                  110,
+                  288,
+                  461,
+                  466
+                ],
+                "gte": 1
+              },
+              {
+                "m": "countIds",
+                "ids": [
+                  111,
+                  112,
+                  462,
+                  467
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "to": "D"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "STD_CV"
+            ],
+            "gte": 1
+          },
+          "to": "E"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CVL"
+                    ],
+                    "eq": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CVL"
+                    ],
+                    "eq": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CA_CLASS"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "D"
+        },
+        {
+          "to": "E"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "countIds",
+                    "ids": [
+                      115,
+                      293,
+                      622,
+                      623,
+                      624
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "countIds",
+                    "ids": [
+                      74,
+                      282
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "eq": 2
+                  },
+                  {
+                    "any": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "CA"
+                        ],
+                        "eq": 2
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "AO"
+                        ],
+                        "eq": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "countIds",
+                    "ids": [
+                      74,
+                      282
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "any": [
+                      {
+                        "all": [
+                          {
+                            "m": "count",
+                            "types": [
+                              "DD"
+                            ],
+                            "eq": 3
+                          },
+                          {
+                            "m": "count",
+                            "types": [
+                              "CA"
+                            ],
+                            "eq": 1
+                          },
+                          {
+                            "any": [
+                              {
+                                "m": "count",
+                                "types": [
+                                  "CL"
+                                ],
+                                "eq": 1
+                              },
+                              {
+                                "m": "count",
+                                "types": [
+                                  "AO"
+                                ],
+                                "eq": 1
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "m": "count",
+                            "types": [
+                              "DD"
+                            ],
+                            "eq": 3
+                          },
+                          {
+                            "m": "count",
+                            "types": [
+                              "AO"
+                            ],
+                            "eq": 2
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "countIds",
+                    "ids": [
+                      115,
+                      293,
+                      622,
+                      623,
+                      624
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "any": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "DD"
+                        ],
+                        "eq": 5
+                      },
+                      {
+                        "all": [
+                          {
+                            "m": "count",
+                            "types": [
+                              "DD"
+                            ],
+                            "eq": 4
+                          },
+                          {
+                            "m": "count",
+                            "types": [
+                              "AO"
+                            ],
+                            "eq": 1
+                          }
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "m": "count",
+                            "types": [
+                              "DD"
+                            ],
+                            "eq": 3
+                          },
+                          {
+                            "m": "count",
+                            "types": [
+                              "AO"
+                            ],
+                            "eq": 2
+                          }
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "m": "count",
+                            "types": [
+                              "DD"
+                            ],
+                            "eq": 2
+                          },
+                          {
+                            "m": "count",
+                            "types": [
+                              "AO"
+                            ],
+                            "eq": 2
+                          },
+                          {
+                            "m": "count",
+                            "types": [
+                              "CA"
+                            ],
+                            "eq": 1
+                          }
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "m": "count",
+                            "types": [
+                              "DD"
+                            ],
+                            "eq": 2
+                          },
+                          {
+                            "m": "count",
+                            "types": [
+                              "AO"
+                            ],
+                            "eq": 1
+                          },
+                          {
+                            "m": "count",
+                            "types": [
+                              "CA"
+                            ],
+                            "eq": 2
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "G"
+        },
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "when": {
+            "m": "los",
+            "cn": 2,
+            "lt": 63
+          },
+          "to": "H",
+          "uncertain": true,
+          "note": "threshold 63 marked '?'"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 2,
+            "lt": 70
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "STD_CV"
+                ],
+                "gte": 5
+              },
+              "random": [
+                {
+                  "to": "H",
+                  "p": 0.5
+                },
+                {
+                  "to": "I",
+                  "p": 0.5
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            {
+              "when": {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS"
+                    ],
+                    "gte": 3
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CV_CLASS"
+                    ],
+                    "gte": 3
+                  }
+                ]
+              },
+              "random": [
+                {
+                  "to": "H",
+                  "p": 0.333
+                },
+                {
+                  "to": "I",
+                  "p": 0.333
+                },
+                {
+                  "to": "O",
+                  "p": 0.334
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            {
+              "random": [
+                {
+                  "to": "H",
+                  "p": 0.5
+                },
+                {
+                  "to": "O",
+                  "p": 0.5
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            }
+          ],
+          "uncertain": true,
+          "note": "band 63?-70"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "STD_CV"
+            ],
+            "gte": 5
+          },
+          "to": "I"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CV_CLASS"
+                ],
+                "gte": 3
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "I",
+              "p": 0.7
+            },
+            {
+              "to": "O",
+              "p": 0.3
+            }
+          ],
+          "note": "ratio from text comment"
+        },
+        {
+          "to": "O"
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "countIds",
+                "ids": [
+                  74,
+                  282
+                ],
+                "gte": 1
+              },
+              {
+                "m": "countIds",
+                "ids": [
+                  115,
+                  293,
+                  622,
+                  623,
+                  624
+                ],
+                "gte": 1
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "J",
+              "p": 0.55
+            },
+            {
+              "to": "L",
+              "p": 0.45
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Jマス寄り(55%?)'"
+        },
+        {
+          "random": [
+            {
+              "to": "J",
+              "p": 0.85
+            },
+            {
+              "to": "L",
+              "p": 0.15
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Jマス寄り(85%?)'"
+        }
+      ]
+    },
+    "I": {
+      "rules": [
+        {
+          "to": "O"
+        }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "to": "L"
+        }
+      ]
+    },
+    "K": {
+      "rules": [
+        {
+          "to": "O"
+        }
+      ]
+    },
+    "M": {
+      "rules": [
+        {
+          "to": "K"
+        }
+      ]
+    },
+    "L": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "countIds",
+                "ids": [
+                  74,
+                  282
+                ],
+                "eq": 0
+              },
+              {
+                "m": "countIds",
+                "ids": [
+                  115,
+                  293,
+                  622,
+                  623,
+                  624
+                ],
+                "eq": 0
+              }
+            ]
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "speed",
+                "gte": "fastPlus"
+              },
+              "random": [
+                {
+                  "to": "K",
+                  "p": 0.5
+                },
+                {
+                  "to": "N",
+                  "p": 0.5
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            {
+              "when": {
+                "m": "los",
+                "cn": 2,
+                "lt": 60
+              },
+              "random": [
+                {
+                  "to": "M",
+                  "p": 0.5
+                },
+                {
+                  "to": "N",
+                  "p": 0.5
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            {
+              "when": {
+                "m": "los",
+                "cn": 2,
+                "lt": 62
+              },
+              "random": [
+                {
+                  "to": "K",
+                  "p": 0.333
+                },
+                {
+                  "to": "M",
+                  "p": 0.333
+                },
+                {
+                  "to": "N",
+                  "p": 0.334
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            {
+              "random": [
+                {
+                  "to": "K",
+                  "p": 0.5
+                },
+                {
+                  "to": "N",
+                  "p": 0.5
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "speed",
+            "gte": "fastPlus"
+          },
+          "to": "K"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 2,
+            "lt": 60
+          },
+          "to": "M"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 2,
+            "lt": 62
+          },
+          "random": [
+            {
+              "to": "K",
+              "p": 0.5
+            },
+            {
+              "to": "M",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        },
+        {
+          "to": "K"
+        }
+      ]
+    },
+    "H": {
+      "end": true
+    },
+    "N": {
+      "end": true
+    },
+    "O": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

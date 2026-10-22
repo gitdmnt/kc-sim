@@ -127,7 +127,7 @@ try {
   await shot("06-log-detail");
   await page.keyboard.press("Escape");
 
-  // データ API (data-worker が localhost:8787 で動いている場合のみ)
+  // データ API (server が localhost:8787 で動いている場合のみ)
   const apiUp = await fetch("http://127.0.0.1:8787/api/v1/health").then((r) => r.ok, () => false);
   if (apiUp) {
     await tab("海域");
@@ -148,7 +148,7 @@ try {
     await page.waitForTimeout(300);
     await shot("11-enemy-detail", { fullPage: true });
   } else {
-    console.warn("data-worker not running on :8787; skipping map/enemy screenshots");
+    console.warn("server not running on :8787; skipping map/enemy screenshots");
   }
 
   if (apiUp) {

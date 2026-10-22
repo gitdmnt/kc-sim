@@ -1,0 +1,202 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "1-2",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 1-2)"
+    }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "eq": 4
+              },
+              {
+                "m": "ships",
+                "lte": 5
+              }
+            ]
+          },
+          "to": "A"
+        },
+        {
+          "when": {
+            "m": "ships",
+            "gte": 6
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.4
+            },
+            {
+              "to": "B",
+              "p": 0.6
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "ships",
+            "eq": 5
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.5
+            },
+            {
+              "to": "B",
+              "p": 0.5
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "ships",
+            "eq": 4
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.6
+            },
+            {
+              "to": "B",
+              "p": 0.4
+            }
+          ]
+        },
+        {
+          "random": [
+            {
+              "to": "A",
+              "p": 0.7
+            },
+            {
+              "to": "B",
+              "p": 0.3
+            }
+          ]
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "when": {
+            "m": "speed",
+            "gte": "fast"
+          },
+          "to": "E"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "lte": 3
+          },
+          "to": "D"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "eq": 6
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL_CT"
+                    ],
+                    "eq": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "eq": 5
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "eq": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 4
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "random": [
+            {
+              "to": "D",
+              "p": 0.35
+            },
+            {
+              "to": "E",
+              "p": 0.65
+            }
+          ]
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "to": "C"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "to": "E"
+        }
+      ]
+    },
+    "C": {
+      "end": true
+    },
+    "E": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

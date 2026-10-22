@@ -1,0 +1,315 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "6-5",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 6-5)"
+    },
+    {
+      "id": "kcnav-map",
+      "note": "node adjacency and start points from the KCNav map route (tsunkit.net), 2026-10-22; KC3 edges.json merged the two start points"
+    }
+  ],
+  "nodes": {
+    "Start1": {
+      "rules": [
+        {
+          "to": "A"
+        }
+      ]
+    },
+    "Start2": {
+      "rules": [
+        {
+          "to": "B"
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "to": "C"
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "eq": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "lte": 1
+              }
+            ]
+          },
+          "to": "C"
+        },
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "eq": 0
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CLT"
+                ],
+                "gte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 4
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS",
+                  "CA_CLASS"
+                ],
+                "gte": 5
+              }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "to": "D"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "to": "G"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CV_CLASS"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 1
+              }
+            ]
+          },
+          "to": "H"
+        },
+        {
+          "to": "I"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "to": "I"
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "when": {
+            "m": "los",
+            "cn": 3,
+            "lt": 50
+          },
+          "to": "K"
+        },
+        {
+          "to": "M"
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "to": "G"
+        }
+      ]
+    },
+    "I": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CL"
+            ],
+            "eq": 0
+          },
+          "to": "H"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 2
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS"
+                    ],
+                    "eq": 0
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CV_CLASS",
+                      "CA_CLASS"
+                    ],
+                    "lte": 4
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CV_CLASS"
+                    ],
+                    "lte": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CA_CLASS"
+                    ],
+                    "lte": 4
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "J"
+        },
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "when": {
+            "m": "los",
+            "cn": 3,
+            "lt": 35
+          },
+          "to": "L",
+          "uncertain": true,
+          "note": "threshold 35 marked '?'"
+        },
+        {
+          "to": "M",
+          "uncertain": true,
+          "note": "threshold 35 marked '?'"
+        }
+      ]
+    },
+    "K": {
+      "end": true
+    },
+    "L": {
+      "end": true
+    },
+    "M": {
+      "end": true,
+      "note": "boss"
+    }
+  },
+  "start": {
+    "note": "compass case null: 0===CL || CV+CLT>=1 || BB>=4 -> start 1, else start 2",
+    "rules": [
+      {
+        "when": {
+          "any": [
+            {
+              "m": "count",
+              "types": [
+                "CL"
+              ],
+              "eq": 0
+            },
+            {
+              "m": "count",
+              "types": [
+                "CV_CLASS",
+                "CLT"
+              ],
+              "gte": 1
+            },
+            {
+              "m": "count",
+              "types": [
+                "BB_CLASS"
+              ],
+              "gte": 4
+            }
+          ]
+        },
+        "to": "Start1"
+      },
+      {
+        "to": "Start2"
+      }
+    ]
+  }
+}

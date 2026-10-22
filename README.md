@@ -12,7 +12,7 @@
 | 柱 | 内容 | 場所 |
 |---|---|---|
 | **1. 戦闘・出撃エンジン** | 砲撃・雷撃・対潜・航空戦・夜戦・命中/回避/クリティカル/装甲・陣形・交戦形態・轟沈ストッパー、ルーティング評価、撤退ポリシー、ゲージ。Rust → wasm、シード指定で完全再現可能 | `sim-core/` |
-| **2. データ基盤** | マスターデータ、深海棲艦の表示/隠しステータス (出典付き)、海域グラフ、ルーティング規則 (自作 DSL)、敵編成と出現率 (KCNav)、装備ボーナス。ローカル完結の HTTP API と静的バンドル | `data-worker/` |
+| **2. データ基盤** | マスターデータ、深海棲艦の表示/隠しステータス (出典付き)、海域グラフ、ルーティング規則 (自作 DSL)、敵編成と出現率 (KCNav)、装備ボーナス。ローカル完結の HTTP API と静的バンドル | `server/` |
 | **3. 観測と推定** | poi の通信から戦闘を自動記録 (IndexedDB)。記録から敵の回避・命中・運をベイズ推定し、シミュレーションに反映 | `poi-plugin-sim/src/capture`, `src/estimate` |
 | **4. UI** | 艦隊編成 / 海域 / 敵艦データ / シミュレーション (戦闘・出撃) / パラメータ推定 / 観測ログ / 設定の 7 タブ。poi のダークテーマに合わせ、Web Worker で計算 | `poi-plugin-sim/` |
 
@@ -38,7 +38,7 @@ flowchart LR
     UI --> WK --> WASM
     UI --- PRE
   end
-  subgraph dw["data-worker (Cloudflare Worker + D1)"]
+  subgraph dw["server (Cloudflare Worker + D1)"]
     API["/api/v1<br/>read / write"]
     ADM["/admin<br/>KCNav キュー・ルーティング"]
     D1[("D1")]
@@ -61,12 +61,12 @@ flowchart LR
 
 | ディレクトリ | 内容 | 兄弟への参照 |
 |---|---|---|
-| `sim-core/` | Rust → wasm のシミュレーションエンジン | テストが `../data-worker/seed/routing` を読む |
-| `data-worker/` | Cloudflare Worker + D1 (データ API、KCNav クローラ) | — |
-| `poi-plugin-sim/` | poi プラグイン (React) | `vite.config.ts` (poi 向けビルド) が `../sim-core` (wasm-pack) と `../data-worker/dist/maps` を使い、`../poi-plugin-sim-build` に出力。開発サーバ (`bun run dev`) も同じものを使う |
+| `sim-core/` | Rust → wasm のシミュレーションエンジン | テストが `../server/seed/routing` を読む |
+| `server/` | Cloudflare Worker + D1 (データ API、KCNav クローラ) | — |
+| `poi-plugin-sim/` | poi プラグイン (React) | `vite.config.ts` (poi 向けビルド) が `../sim-core` (wasm-pack) と `../server/dist/maps` を使い、`../poi-plugin-sim-build` に出力。開発サーバ (`bun run dev`) も同じものを使う |
 | `docs/` | 設計・API・検証ドキュメント | — |
 
-ローカル専用のもの (`data-worker/.wrangler` の D1、`.dev.vars`、`poi-plugin-sim/myState.json`、ビルド出力) は `.gitignore` 済みです。
+ローカル専用のもの (`server/.wrangler` の D1、`.dev.vars`、`poi-plugin-sim/myState.json`、ビルド出力) は `.gitignore` 済みです。
 
 ## クイックスタート
 
@@ -80,7 +80,7 @@ cargo install wasm-pack
 ### 1. データ基盤を起動する
 
 ```sh
-cd data-worker
+cd server
 bun install
 cp .dev.vars.example .dev.vars          # ENVIRONMENT=development (localhost の /admin/* は認証なし) と IP_HASH_SALT
 bun run build:wasm                      # sim-core/pkg (推定器が wasm を読み込む)
@@ -133,7 +133,7 @@ poi を再起動すると、プラグイン一覧に「シミュ」が現れま�
 
 ```sh
 (cd sim-core && cargo test)
-(cd data-worker && bun test)
+(cd server && bun test)
 (cd poi-plugin-sim && bun test && bunx tsc --noEmit)
 ```
 
@@ -141,11 +141,11 @@ poi を再起動すると、プラグイン一覧に「シミュ」が現れま�
 
 | 更新したいもの | 手順 |
 |---|---|
-| マスターデータ・深海棲艦・装備ボーナス・海域グラフ | `cd data-worker && bun run ingest` (個別: `ingest:start2` / `ingest:abyssal` / `ingest:graph` / `ingest:fit`)。新しいリビジョンがあれば取り込み、出典は `GET /api/v1/sources` に残る |
+| マスターデータ・深海棲艦・装備ボーナス・海域グラフ | `cd server && bun run ingest` (個別: `ingest:start2` / `ingest:abyssal` / `ingest:graph` / `ingest:fit`)。新しいリビジョンがあれば取り込み、出典は `GET /api/v1/sources` に残る |
 | 敵編成 (海域の改修・イベント) | `bun run kcnav enqueue --maps <海域> --kinds enemycomps --batch --start <変更日> --refresh` のあと `kcnav:run`。海域のレイアウトが変わったら先に `--kinds map` |
-| ルーティング規則 | `data-worker/seed/routing/{W-M}.json` を編集 → `bun test` (検証) → `bun run ingest:routing`。確認できない条件には `uncertain: true` を付ける ([docs/ROUTING_DSL.md](docs/ROUTING_DSL.md)) |
+| ルーティング規則 | `server/seed/routing/{W-M}.json` を編集 → `bun test` (検証) → `bun run ingest:routing`。確認できない条件には `uncertain: true` を付ける ([docs/ROUTING_DSL.md](docs/ROUTING_DSL.md)) |
 | ルーティングの妥当性確認 | `bun run kcnav enqueue --kinds nodesummary …` → `bun run validate:routing` ([docs/VALIDATION.md](docs/VALIDATION.md)) |
-| オフライン用の静的バンドル | `bun run export:bundle` → `data-worker/dist/maps/*.json`。プラグインのビルド時に同梱される |
+| オフライン用の静的バンドル | `bun run export:bundle` → `server/dist/maps/*.json`。プラグインのビルド時に同梱される |
 | プラグイン | `cd poi-plugin-sim && bun run build` (poi を再起動) |
 
 ## ライセンスと出典・許可について

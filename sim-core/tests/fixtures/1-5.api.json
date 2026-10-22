@@ -1,5 +1,5 @@
 {
- "_note": "Fetched once from the local data-worker (GET /api/v1/maps/1-5, …/nodes/{F,J}/enemy-comps, /ships/{id}, /equipments/{id}) on 2026-10-22.",
+ "_note": "Fetched once from the local server (GET /api/v1/maps/1-5, …/nodes/{F,J}/enemy-comps, /ships/{id}, /equipments/{id}) on 2026-10-22.",
  "map": {
   "map": {
    "id": 15,

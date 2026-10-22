@@ -1,6 +1,6 @@
 /**
  * 推定の計算本体: 観測 → 敵艦ごとのグリッド事後分布 → EstimateResult。
- * wasm (hitProbabilityGrid) を呼ぶ。サーバの推定ジョブ (data-worker/src/estimator) は accumulate で
+ * wasm (hitProbabilityGrid) を呼ぶ。サーバの推定ジョブ (server/src/estimator) は accumulate で
  * 観測を足し込んだグリッドを D1 に持ち越し、summarizeShip で要約する。estimateFromObservations は
  * 一括版 (検証用)。
  */

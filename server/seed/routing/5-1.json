@@ -1,0 +1,613 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "5-1",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 5-1)"
+    }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "gte": 5
+          },
+          "to": "A"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS",
+                      "CV_CLASS"
+                    ],
+                    "lte": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CA_CLASS"
+                    ],
+                    "gte": 4
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CA_CLASS"
+                    ],
+                    "gte": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "eq": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "B"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "eq": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "eq": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "eq": 2
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.25
+            },
+            {
+              "to": "B",
+              "p": 0.75
+            }
+          ]
+        },
+        {
+          "random": [
+            {
+              "to": "A",
+              "p": 0.5
+            },
+            {
+              "to": "B",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "to": "D"
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CVL"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS"
+            ],
+            "lte": 2
+          },
+          "to": "C"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CL"
+            ],
+            "eq": 1
+          },
+          "to": "E"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "gte": 2
+          },
+          "to": "C"
+        },
+        {
+          "random": [
+            {
+              "to": "C",
+              "p": 0.5
+            },
+            {
+              "to": "E",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'ランダム?'; compiled ratio used"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "to": "E"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "to": "G"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "CL",
+                  "DD"
+                ],
+                "eq": 0
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CVL"
+                ],
+                "gte": 4
+              }
+            ]
+          },
+          "to": "H"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CVL"
+            ],
+            "eq": 3
+          },
+          "random": [
+            {
+              "to": "G",
+              "p": 0.333
+            },
+            {
+              "to": "H",
+              "p": 0.333
+            },
+            {
+              "to": "J",
+              "p": 0.334
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        },
+        {
+          "when": {
+            "m": "speed",
+            "eq": "fastest"
+          },
+          "to": "J"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CL"
+            ],
+            "gte": 1
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 2
+              },
+              "to": "J"
+            },
+            {
+              "to": "G"
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "gte": 4
+          },
+          "to": "J"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "eq": 3
+          },
+          "random": [
+            {
+              "to": "G",
+              "p": 0.3
+            },
+            {
+              "to": "J",
+              "p": 0.7
+            }
+          ],
+          "note": "ratio from text comment"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "eq": 2
+          },
+          "random": [
+            {
+              "to": "G",
+              "p": 0.7
+            },
+            {
+              "to": "J",
+              "p": 0.3
+            }
+          ],
+          "note": "ratio from text comment"
+        },
+        {
+          "to": "G",
+          "note": "駆逐1隻"
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "gte": 5
+          },
+          "to": "I"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CV_CLASS"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS",
+                      "CV_CLASS"
+                    ],
+                    "gte": 3
+                  }
+                ]
+              },
+              {
+                "m": "count",
+                "types": [
+                  "SS_CLASS"
+                ],
+                "gte": 1
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "I",
+              "p": 0.5
+            },
+            {
+              "to": "J",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        },
+        {
+          "when": {
+            "m": "speed",
+            "gte": "fastPlus"
+          },
+          "to": "J"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CA_CLASS"
+            ],
+            "gte": 4
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS",
+                  "CLT"
+                ],
+                "eq": 0
+              },
+              "to": "J",
+              "uncertain": true,
+              "note": "text: 'J?'"
+            },
+            {
+              "random": [
+                {
+                  "to": "I",
+                  "p": 0.3
+                },
+                {
+                  "to": "J",
+                  "p": 0.7
+                }
+              ],
+              "note": "ratio from text comment"
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "STD_CV"
+            ],
+            "gte": 1
+          },
+          "random": [
+            {
+              "to": "I",
+              "p": 0.7
+            },
+            {
+              "to": "J",
+              "p": 0.3
+            }
+          ],
+          "note": "ratio from text comment"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 4
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CA_CLASS"
+                    ],
+                    "gte": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "J"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "eq": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "eq": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CA_CLASS"
+                ],
+                "eq": 2
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "I",
+              "p": 0.15
+            },
+            {
+              "to": "J",
+              "p": 0.85
+            }
+          ]
+        },
+        {
+          "random": [
+            {
+              "to": "I",
+              "p": 0.7
+            },
+            {
+              "to": "J",
+              "p": 0.3
+            }
+          ],
+          "note": "ratio from text comment"
+        }
+      ]
+    },
+    "H": {
+      "end": true
+    },
+    "I": {
+      "end": true
+    },
+    "J": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

@@ -1,0 +1,938 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "5-6",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 5-6)"
+    },
+    {
+      "id": "ship-ids",
+      "note": "countIds from Tibowl api_start2 remodel chains"
+    },
+    {
+      "id": "kcnav-map",
+      "note": "node adjacency and start points from the KCNav map route (tsunkit.net), 2026-10-22; KC3 listed a bogus Start2->Start2 edge"
+    }
+  ],
+  "defaults": {
+    "phase": 1,
+    "select": {
+      "I": "J",
+      "O": "P"
+    }
+  },
+  "nodes": {
+    "Start1": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "lte": 1
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS"
+                    ],
+                    "gte": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "eq": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "A1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "AV",
+                  "LHA"
+                ],
+                "gte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DE"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 4
+              }
+            ]
+          },
+          "to": "A"
+        },
+        {
+          "to": "A2"
+        }
+      ]
+    },
+    "A1": {
+      "rules": [
+        {
+          "to": "A2"
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS",
+                      "CVL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "countIds",
+                    "ids": [
+                      161,
+                      166
+                    ],
+                    "gte": 1
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CA_CLASS"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "speed",
+                    "eq": "slow"
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "B",
+          "note": "戦艦級+軽空+あきつ丸 >= 1"
+        },
+        {
+          "to": "C2"
+        }
+      ]
+    },
+    "A2": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "speed",
+                "eq": "slow"
+              },
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CA_CLASS"
+                ],
+                "gte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "lte": 1
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS",
+                      "CVL"
+                    ],
+                    "gte": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL",
+                      "DD_DE"
+                    ],
+                    "lte": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "B"
+        },
+        {
+          "to": "C"
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "BBV"
+                ],
+                "eq": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "eq": 4
+              }
+            ]
+          },
+          "to": "C2"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "STD_CV"
+            ],
+            "gte": 1
+          },
+          "to": "C1"
+        },
+        {
+          "when": {
+            "m": "speed",
+            "gte": "fast"
+          },
+          "rules": [
+            {
+              "when": {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BB_CLASS",
+                          "CVL"
+                        ],
+                        "eq": 0
+                      },
+                      {
+                        "all": [
+                          {
+                            "m": "count",
+                            "types": [
+                              "BB_CLASS",
+                              "CVL"
+                            ],
+                            "eq": 1
+                          },
+                          {
+                            "m": "countIds",
+                            "ids": [
+                              161,
+                              166
+                            ],
+                            "eq": 0
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "AV",
+                      "LHA"
+                    ],
+                    "gte": 1
+                  }
+                ]
+              },
+              "to": "C",
+              "note": "戦艦級+軽空+あきつ丸 <= 1"
+            },
+            {
+              "when": {
+                "any": [
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "CL"
+                        ],
+                        "gte": 1
+                      },
+                      {
+                        "m": "count",
+                        "types": [
+                          "DD_DE"
+                        ],
+                        "gte": 2
+                      }
+                    ]
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "gte": 4
+                  }
+                ]
+              },
+              "to": "C1"
+            },
+            {
+              "to": "C"
+            }
+          ]
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "m": "count",
+                        "types": [
+                          "BB_CLASS",
+                          "CVL"
+                        ],
+                        "eq": 0
+                      },
+                      {
+                        "m": "countIds",
+                        "ids": [
+                          161,
+                          166
+                        ],
+                        "eq": 0
+                      }
+                    ]
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "any": [
+                      {
+                        "all": [
+                          {
+                            "m": "count",
+                            "types": [
+                              "BB_CLASS",
+                              "CVL"
+                            ],
+                            "eq": 1
+                          },
+                          {
+                            "m": "countIds",
+                            "ids": [
+                              161,
+                              166
+                            ],
+                            "eq": 0
+                          }
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "m": "count",
+                            "types": [
+                              "BB_CLASS",
+                              "CVL"
+                            ],
+                            "eq": 0
+                          },
+                          {
+                            "m": "countIds",
+                            "ids": [
+                              161,
+                              166
+                            ],
+                            "gte": 1
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "eq": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "C",
+          "note": "slow fleet; 戦艦級+軽空+あきつ丸 = 0 / = 1"
+        },
+        {
+          "to": "C1"
+        }
+      ]
+    },
+    "C1": {
+      "rules": [
+        {
+          "when": {
+            "m": "visited",
+            "node": "A"
+          },
+          "to": "C2"
+        },
+        {
+          "to": "C"
+        }
+      ]
+    },
+    "C2": {
+      "rules": [
+        {
+          "to": "D"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "to": "E"
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "to": "R"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS"
+                    ],
+                    "eq": 0
+                  },
+                  {
+                    "m": "los",
+                    "cn": 4,
+                    "gte": 58
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "los",
+                    "cn": 4,
+                    "gte": 65
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "G"
+        },
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "Start2": {
+      "rules": [
+        {
+          "to": "I"
+        }
+      ]
+    },
+    "I": {
+      "rules": [
+        {
+          "select": [
+            "J",
+            "O"
+          ]
+        }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 2
+              },
+              {
+                "m": "speed",
+                "eq": "slow"
+              }
+            ]
+          },
+          "to": "K1"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "gte": 2
+          },
+          "to": "K"
+        },
+        {
+          "to": "K1"
+        }
+      ]
+    },
+    "K1": {
+      "rules": [
+        {
+          "to": "K"
+        }
+      ]
+    },
+    "K": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "lte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "speed",
+                "gte": "fast"
+              }
+            ]
+          },
+          "to": "L"
+        },
+        {
+          "to": "K2"
+        }
+      ]
+    },
+    "K2": {
+      "rules": [
+        {
+          "to": "L"
+        }
+      ]
+    },
+    "L": {
+      "rules": [
+        {
+          "when": {
+            "m": "los",
+            "cn": 4,
+            "gte": 80
+          },
+          "to": "N",
+          "uncertain": true,
+          "note": "compass/5-6.txt says '索敵値約80以上' (approximate)"
+        },
+        {
+          "to": "M"
+        }
+      ]
+    },
+    "O": {
+      "rules": [
+        {
+          "select": [
+            "P",
+            "Q"
+          ]
+        }
+      ]
+    },
+    "P": {
+      "rules": [
+        {
+          "to": "Q1"
+        }
+      ]
+    },
+    "Q": {
+      "rules": [
+        {
+          "when": {
+            "m": "phase",
+            "lt": 3
+          },
+          "to": "Q2",
+          "note": "Q-U / Q-W routes open from phase 3"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "speed",
+                "gte": "fastPlus"
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 3
+                  },
+                  {
+                    "m": "speed",
+                    "gte": "fast"
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "W"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 3
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS"
+                    ],
+                    "gte": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "eq": 0
+                  }
+                ]
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "lte": 1
+              }
+            ]
+          },
+          "to": "Q2"
+        },
+        {
+          "to": "U"
+        }
+      ]
+    },
+    "Q1": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "gte": 2
+          },
+          "to": "T",
+          "uncertain": true,
+          "note": "text: '索敵値不足はS' (threshold unknown; ignored by compass), so S is never chosen"
+        },
+        {
+          "to": "Q2"
+        }
+      ]
+    },
+    "Q2": {
+      "rules": [
+        {
+          "when": {
+            "m": "visited",
+            "node": "P"
+          },
+          "to": "T"
+        },
+        {
+          "to": "V",
+          "note": "reached via Q (compass: visited Q -> V)"
+        }
+      ]
+    },
+    "U": {
+      "rules": [
+        {
+          "to": "X"
+        }
+      ]
+    },
+    "W": {
+      "rules": [
+        {
+          "to": "X"
+        }
+      ]
+    },
+    "V": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 4
+              },
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "lte": 1
+              }
+            ]
+          },
+          "to": "W"
+        },
+        {
+          "to": "X"
+        }
+      ]
+    },
+    "X": {
+      "rules": [
+        {
+          "when": {
+            "m": "los",
+            "cn": 4,
+            "gte": 88
+          },
+          "to": "Z"
+        },
+        {
+          "to": "Y"
+        }
+      ]
+    },
+    "F": {
+      "end": true
+    },
+    "G": {
+      "end": true,
+      "note": "boss"
+    },
+    "R": {
+      "end": true
+    },
+    "M": {
+      "end": true
+    },
+    "N": {
+      "end": true,
+      "note": "boss"
+    },
+    "S": {
+      "end": true
+    },
+    "T": {
+      "end": true
+    },
+    "Y": {
+      "end": true
+    },
+    "Z": {
+      "end": true,
+      "note": "boss"
+    }
+  },
+  "start": {
+    "note": "compass case null",
+    "rules": [
+      {
+        "when": {
+          "any": [
+            {
+              "m": "phase",
+              "eq": 1
+            },
+            {
+              "m": "count",
+              "types": [
+                "AV",
+                "LHA"
+              ],
+              "gte": 1
+            },
+            {
+              "m": "count",
+              "types": [
+                "DE"
+              ],
+              "gte": 2
+            },
+            {
+              "all": [
+                {
+                  "m": "count",
+                  "types": [
+                    "BB_CLASS"
+                  ],
+                  "gte": 2
+                },
+                {
+                  "m": "speed",
+                  "eq": "slow"
+                }
+              ]
+            }
+          ]
+        },
+        "to": "Start1"
+      },
+      {
+        "to": "Start2"
+      }
+    ]
+  }
+}

@@ -22,7 +22,7 @@ setHost({
   // Worker も、ページ内の WebAssembly コンパイル (unsafe-eval 無し) も禁止されている。file:// の Worker
   // なら許可される (実機の poi 12.0.1 で確認)。ファイルは vite.config.ts の emit-sim-worker が出力する。
   createSimWorker: () => new Worker(fileUrl("sim.worker.js")),
-  // API に繋がらないときの代替。ビルド時に data-worker/dist/maps を同梱する
+  // API に繋がらないときの代替。ビルド時に server/dist/maps を同梱する
   bundleBase: typeof __dirname === "string" ? fileUrl("../maps") : "",
 });
 

@@ -118,9 +118,9 @@ export default defineConfig({
         { src: "index.es", dest: "." },
         { src: "package.build.json", dest: ".", rename: "package.json" },
         { src: "README.md", dest: "." },
-        // API に繋がらないときの代替 (静的マップバンドル)。data-worker で export:bundle 済みなら同梱する
-        ...(fs.existsSync(path.resolve(__dirname, "../data-worker/dist/maps"))
-          ? [{ src: "../data-worker/dist/maps", dest: "." }]
+        // API に繋がらないときの代替 (静的マップバンドル)。server で export:bundle 済みなら同梱する
+        ...(fs.existsSync(path.resolve(__dirname, "../server/dist/maps"))
+          ? [{ src: "../server/dist/maps", dest: "." }]
           : []),
         { src: "LICENSE.md", dest: "." },
         { src: "i18n", dest: "." },

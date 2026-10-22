@@ -14,7 +14,7 @@ import { wasmBytes } from "./plugins";
 
 const ROOT = resolve(import.meta.dir, "..");
 const CSS_ENTRY = join(ROOT, "assets/styles.css");
-const MAPS_DIR = resolve(ROOT, "../data-worker/dist/maps");
+const MAPS_DIR = resolve(ROOT, "../server/dist/maps");
 const STATE_FILE = [join(ROOT, "myState.json"), join(ROOT, "dev/sampleState.json")].find(existsSync)!;
 
 const { values: args } = parseArgs({ options: { port: { type: "string" } } });

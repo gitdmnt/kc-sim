@@ -7,7 +7,7 @@ KanColle battle / sortie simulator plugin for [poi](https://github.com/poooi/poi
 - シミュレーション: battle-level Monte Carlo (Rust → wasm, run in a Web Worker)
 - 観測ログ: records battle packets while you play (starts when poi loads the plugin, no window needed). Captured battles are uploaded to the data API automatically (debounced after each battle result and on returning to port, with periodic retry and exponential backoff; toggle in the 設定 tab)
 
-The Rust engine lives in the sibling repo/directory `../sim-core`; the data API in `../data-worker`.
+The Rust engine lives in the sibling repo/directory `../sim-core`; the data API in `../server`.
 
 ## Build
 
@@ -41,7 +41,7 @@ The UI core does not depend on poi. Only the entry points differ:
 with `Bun.build`, builds the CSS with the same PostCSS config as the poi build (Tailwind + `.kcsim` scope), and
 reloads the page when `src/`, `assets/`, `dev/` or `../sim-core/pkg` change. A build error replaces the page with the
 message. The poi state comes from `myState.json` (a dumped poi state, gitignored) or `dev/sampleState.json`; static
-map bundles are served from `../data-worker/dist/maps`. `import.meta.env.DEV` is true only here.
+map bundles are served from `../server/dist/maps`. `import.meta.env.DEV` is true only here.
 
 ## Install into poi
 
@@ -59,7 +59,7 @@ poi loads plugins from `~/Library/Application Support/poi/plugins/node_modules` 
 3. Restart poi. The plugin appears in the plugin drawer (chevron next to the plugin tab) as 「シミュ」 / *Simulator for Integrated Management*. Rebuilding updates it in place (restart poi or use the plugin reload).
 
 The data API base URL (default `http://127.0.0.1:8787`) is set in the plugin's 設定 tab.
-Run it with `cd data-worker && bun run dev`.
+Run it with `cd server && bun run dev`.
 
 ## Notes for poi
 

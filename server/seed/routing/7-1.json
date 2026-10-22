@@ -1,0 +1,127 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "7-1",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    { "id": "kc3-edges", "note": "adjacency from KC3Kai src/data/edges.json (World 7-1)" }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": { "m": "count", "types": ["SS_CLASS"], "gte": 1 },
+          "rules": [
+            {
+              "when": { "any": [{ "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 1 }, { "m": "ships", "gte": 5 }] },
+              "random": [{ "to": "B", "p": 0.5 }, { "to": "D", "p": 0.5 }],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            {
+              "random": [{ "to": "B", "p": 0.333 }, { "to": "D", "p": 0.333 }, { "to": "F", "p": 0.334 }],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            }
+          ]
+        },
+        {
+          "when": { "any": [{ "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 1 }, { "m": "ships", "gte": 6 }] },
+          "to": "B"
+        },
+        { "when": { "any": [{ "m": "ships", "eq": 5 }, { "m": "count", "types": ["AO"], "gte": 1 }] }, "to": "D" },
+        { "to": "F" }
+      ]
+    },
+    "A": { "rules": [{ "to": "C" }] },
+    "B": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["BB_CLASS", "STD_CV"], "gte": 1 },
+              { "m": "count", "types": ["CVL"], "gte": 2 },
+              { "m": "count", "types": ["CA_CLASS"], "gte": 3 }
+            ]
+          },
+          "to": "A"
+        },
+        { "when": { "m": "count", "types": ["DD_DE"], "gte": 2 }, "to": "C" },
+        {
+          "random": [{ "to": "A", "p": 0.5 }, { "to": "C", "p": 0.5 }],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        }
+      ]
+    },
+    "C": { "rules": [{ "to": "E" }] },
+    "D": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "all": [{ "m": "count", "types": ["CL"], "eq": 1 }, { "m": "count", "types": ["DD"], "eq": 4 }] },
+              { "all": [{ "m": "count", "types": ["DD"], "gte": 1 }, { "m": "count", "types": ["DE"], "gte": 3 }] },
+              { "all": [{ "m": "count", "types": ["AO"], "gte": 1 }, { "m": "count", "types": ["DE"], "gte": 3 }] },
+              { "m": "count", "types": ["DD_DE"], "eq": 5 }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "when": { "m": "count", "types": ["DD_DE"], "eq": 4 },
+          "rules": [
+            { "when": { "m": "count", "types": ["CT", "AO"], "gte": 1 }, "to": "E" },
+            {
+              "when": { "m": "count", "types": ["AV"], "gte": 1 },
+              "random": [{ "to": "C", "p": 0.5 }, { "to": "E", "p": 0.5 }],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            { "to": "C", "uncertain": true, "note": "text: それ以外はC (followed); compiled gives random C/E 50%" }
+          ]
+        },
+        { "to": "C", "uncertain": true, "note": "text: それ以外はC (followed); compiled gives random C/E 50%" }
+      ]
+    },
+    "E": { "rules": [{ "to": "G" }] },
+    "F": { "rules": [{ "to": "G" }] },
+    "G": { "rules": [{ "to": "H" }] },
+    "H": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "all": [{ "m": "count", "types": ["CL"], "gte": 1 }, { "m": "count", "types": ["DD"], "gte": 4 }] },
+              { "all": [{ "m": "count", "types": ["DD"], "gte": 1 }, { "m": "count", "types": ["DE"], "gte": 3 }] }
+            ]
+          },
+          "to": "K"
+        },
+        {
+          "when": { "m": "count", "types": ["AO"], "gte": 1 },
+          "random": [{ "to": "I", "p": 0.5 }, { "to": "K", "p": 0.5 }],
+          "uncertain": true,
+          "note": "marked '?' in source text; text gives no ratio; compiled ratio used"
+        },
+        { "when": { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 2 }, "to": "J" },
+        {
+          "when": { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "eq": 1 },
+          "random": [{ "to": "I", "p": 0.333 }, { "to": "J", "p": 0.333 }, { "to": "K", "p": 0.334 }],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        },
+        {
+          "random": [{ "to": "I", "p": 0.225 }, { "to": "J", "p": 0.075 }, { "to": "K", "p": 0.7 }],
+          "uncertain": true,
+          "note": "text: I:J:K = 20~25%?:5~10%?:70~75%?; compiled 22.5/7.5/70 used"
+        }
+      ]
+    },
+    "I": { "end": true },
+    "J": { "end": true },
+    "K": { "end": true, "note": "boss" }
+  }
+}

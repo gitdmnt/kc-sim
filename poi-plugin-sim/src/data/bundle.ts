@@ -1,7 +1,7 @@
 import { getHost } from "../host";
 import type { MapBundle } from "@shared/data/types";
 
-/** 静的バンドル (`data-worker/dist/maps/{W-M}.json`, API.md §5) の読み込み口。 */
+/** 静的バンドル (`server/dist/maps/{W-M}.json`, API.md §5) の読み込み口。 */
 export interface MapBundleLoader {
   loadMap(key: string): Promise<MapBundle | null>;
 }

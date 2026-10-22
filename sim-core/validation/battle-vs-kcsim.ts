@@ -9,7 +9,7 @@
 //
 //   KCR_DIR=/path/to/kancolle-replay bun validation/battle-vs-kcsim.ts
 //
-// Needs `wasm-pack build --target web` (pkg/), the local data-worker on :8787 and a checkout of
+// Needs `wasm-pack build --target web` (pkg/), the local server on :8787 and a checkout of
 // https://github.com/KC3Kai/kancolle-replay (MIT) in KCR_DIR.
 import { readFileSync, writeFileSync } from "node:fs";
 import vm from "node:vm";

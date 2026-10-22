@@ -147,7 +147,7 @@ pub fn battle(friend: FleetInput, enemy: FleetInput, kind: BattleKind) -> Battle
     BattleInput { friend, enemy, options: BattleOptions { kind, engagement: None, log: false } }
 }
 
-// --- 1-5 sortie from the saved data-worker API responses -------------------------------------
+// --- 1-5 sortie from the saved server API responses -------------------------------------
 
 pub const FIXTURE_1_5: &str = include_str!("../fixtures/1-5.api.json");
 

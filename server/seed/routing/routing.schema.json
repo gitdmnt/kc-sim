@@ -1,0 +1,1356 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "map": {
+      "type": "string",
+      "pattern": "^\\d+-\\d+$"
+    },
+    "layout": {
+      "type": "string"
+    },
+    "sources": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "note"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "select": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9]*$|^Start[0-9]*$"
+          }
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "phase": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "gauge": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false
+    },
+    "start": {
+      "type": "object",
+      "properties": {
+        "rules": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "rules"
+      ],
+      "additionalProperties": false
+    },
+    "nodes": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9]*$|^Start[0-9]*$"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "rules": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              "note": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "rules"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "end": {
+                "type": "boolean",
+                "const": true
+              },
+              "note": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "end"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "map",
+    "sources",
+    "nodes"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "note": {
+              "type": "string"
+            },
+            "uncertain": {
+              "type": "boolean"
+            },
+            "source": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9]*$|^Start[0-9]*$"
+            }
+          },
+          "required": [
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "note": {
+              "type": "string"
+            },
+            "uncertain": {
+              "type": "boolean"
+            },
+            "source": {
+              "type": "string"
+            },
+            "random": {
+              "minItems": 2,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "to": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9]*$|^Start[0-9]*$"
+                  },
+                  "p": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "required": [
+                  "to",
+                  "p"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "random"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "note": {
+              "type": "string"
+            },
+            "uncertain": {
+              "type": "boolean"
+            },
+            "source": {
+              "type": "string"
+            },
+            "los": {
+              "type": "object",
+              "properties": {
+                "cn": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "const": 1
+                    },
+                    {
+                      "type": "number",
+                      "const": 2
+                    },
+                    {
+                      "type": "number",
+                      "const": 3
+                    },
+                    {
+                      "type": "number",
+                      "const": 4
+                    }
+                  ]
+                },
+                "thresholds": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "min": {
+                        "type": "number"
+                      },
+                      "to": {
+                        "type": "string",
+                        "pattern": "^[A-Z][A-Z0-9]*$|^Start[0-9]*$"
+                      }
+                    },
+                    "required": [
+                      "min",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "below": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9]*$|^Start[0-9]*$"
+                },
+                "interpolate": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "cn",
+                "thresholds",
+                "below"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "los"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "note": {
+              "type": "string"
+            },
+            "uncertain": {
+              "type": "boolean"
+            },
+            "source": {
+              "type": "string"
+            },
+            "select": {
+              "minItems": 2,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9]*$|^Start[0-9]*$"
+              }
+            }
+          },
+          "required": [
+            "select"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "note": {
+              "type": "string"
+            },
+            "uncertain": {
+              "type": "boolean"
+            },
+            "source": {
+              "type": "string"
+            },
+            "rules": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema0"
+              }
+            }
+          },
+          "required": [
+            "rules"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "__schema1": {
+      "anyOf": [
+        {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "ships"
+                },
+                "fleet": {
+                  "type": "string",
+                  "enum": [
+                    "main",
+                    "escort",
+                    "all"
+                  ]
+                },
+                "eq": {
+                  "type": "number"
+                },
+                "ne": {
+                  "type": "number"
+                },
+                "gt": {
+                  "type": "number"
+                },
+                "gte": {
+                  "type": "number"
+                },
+                "lt": {
+                  "type": "number"
+                },
+                "lte": {
+                  "type": "number"
+                },
+                "in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "m"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "count"
+                },
+                "types": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "DE",
+                          "DD",
+                          "CL",
+                          "CLT",
+                          "CA",
+                          "CAV",
+                          "CVL",
+                          "FBB",
+                          "BB",
+                          "BBV",
+                          "CV",
+                          "XBB",
+                          "SS",
+                          "SSV",
+                          "AP",
+                          "AV",
+                          "LHA",
+                          "CVB",
+                          "AR",
+                          "AS",
+                          "CT",
+                          "AO"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "BB_CLASS",
+                          "BATTLESHIP",
+                          "CV_CLASS",
+                          "STD_CV",
+                          "CA_CLASS",
+                          "CL_CT",
+                          "CL_CLASS",
+                          "DD_DE",
+                          "SS_CLASS"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "fleet": {
+                  "type": "string",
+                  "enum": [
+                    "main",
+                    "escort",
+                    "all"
+                  ]
+                },
+                "maxSpeed": {
+                  "type": "string",
+                  "enum": [
+                    "slow",
+                    "fast",
+                    "fastPlus",
+                    "fastest"
+                  ]
+                },
+                "eq": {
+                  "type": "number"
+                },
+                "ne": {
+                  "type": "number"
+                },
+                "gt": {
+                  "type": "number"
+                },
+                "gte": {
+                  "type": "number"
+                },
+                "lt": {
+                  "type": "number"
+                },
+                "lte": {
+                  "type": "number"
+                },
+                "in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "m",
+                "types"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "countIds"
+                },
+                "ids": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "fleet": {
+                  "type": "string",
+                  "enum": [
+                    "main",
+                    "escort",
+                    "all"
+                  ]
+                },
+                "eq": {
+                  "type": "number"
+                },
+                "ne": {
+                  "type": "number"
+                },
+                "gt": {
+                  "type": "number"
+                },
+                "gte": {
+                  "type": "number"
+                },
+                "lt": {
+                  "type": "number"
+                },
+                "lte": {
+                  "type": "number"
+                },
+                "in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "m",
+                "ids"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "equipShips"
+                },
+                "equip": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "group": {
+                          "type": "string",
+                          "enum": [
+                            "RADAR",
+                            "SURFACE_RADAR",
+                            "DRUM",
+                            "LANDING_CRAFT",
+                            "SONAR"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "group"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "types": {
+                          "minItems": 1,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "minLos": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "types"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ids": {
+                          "minItems": 1,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        }
+                      },
+                      "required": [
+                        "ids"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "fleet": {
+                  "type": "string",
+                  "enum": [
+                    "main",
+                    "escort",
+                    "all"
+                  ]
+                },
+                "eq": {
+                  "type": "number"
+                },
+                "ne": {
+                  "type": "number"
+                },
+                "gt": {
+                  "type": "number"
+                },
+                "gte": {
+                  "type": "number"
+                },
+                "lt": {
+                  "type": "number"
+                },
+                "lte": {
+                  "type": "number"
+                },
+                "in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "m",
+                "equip"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "equipCount"
+                },
+                "equip": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "group": {
+                          "type": "string",
+                          "enum": [
+                            "RADAR",
+                            "SURFACE_RADAR",
+                            "DRUM",
+                            "LANDING_CRAFT",
+                            "SONAR"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "group"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "types": {
+                          "minItems": 1,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "minLos": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "types"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ids": {
+                          "minItems": 1,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        }
+                      },
+                      "required": [
+                        "ids"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "fleet": {
+                  "type": "string",
+                  "enum": [
+                    "main",
+                    "escort",
+                    "all"
+                  ]
+                },
+                "eq": {
+                  "type": "number"
+                },
+                "ne": {
+                  "type": "number"
+                },
+                "gt": {
+                  "type": "number"
+                },
+                "gte": {
+                  "type": "number"
+                },
+                "lt": {
+                  "type": "number"
+                },
+                "lte": {
+                  "type": "number"
+                },
+                "in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "m",
+                "equip"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "speed"
+                },
+                "eq": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "slow",
+                        "fast",
+                        "fastPlus",
+                        "fastest"
+                      ]
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "ne": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "slow",
+                        "fast",
+                        "fastPlus",
+                        "fastest"
+                      ]
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "gt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "slow",
+                        "fast",
+                        "fastPlus",
+                        "fastest"
+                      ]
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "gte": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "slow",
+                        "fast",
+                        "fastPlus",
+                        "fastest"
+                      ]
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "lt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "slow",
+                        "fast",
+                        "fastPlus",
+                        "fastest"
+                      ]
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "lte": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "slow",
+                        "fast",
+                        "fastPlus",
+                        "fastest"
+                      ]
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "m"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "los"
+                },
+                "cn": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "const": 1
+                    },
+                    {
+                      "type": "number",
+                      "const": 2
+                    },
+                    {
+                      "type": "number",
+                      "const": 3
+                    },
+                    {
+                      "type": "number",
+                      "const": 4
+                    }
+                  ]
+                },
+                "eq": {
+                  "type": "number"
+                },
+                "ne": {
+                  "type": "number"
+                },
+                "gt": {
+                  "type": "number"
+                },
+                "gte": {
+                  "type": "number"
+                },
+                "lt": {
+                  "type": "number"
+                },
+                "lte": {
+                  "type": "number"
+                },
+                "in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "m",
+                "cn"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "fleetType"
+                },
+                "in": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "single",
+                      "ctf",
+                      "stf",
+                      "tcf",
+                      "striking"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "m",
+                "in"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "flagship"
+                },
+                "in": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "DE",
+                          "DD",
+                          "CL",
+                          "CLT",
+                          "CA",
+                          "CAV",
+                          "CVL",
+                          "FBB",
+                          "BB",
+                          "BBV",
+                          "CV",
+                          "XBB",
+                          "SS",
+                          "SSV",
+                          "AP",
+                          "AV",
+                          "LHA",
+                          "CVB",
+                          "AR",
+                          "AS",
+                          "CT",
+                          "AO"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "BB_CLASS",
+                          "BATTLESHIP",
+                          "CV_CLASS",
+                          "STD_CV",
+                          "CA_CLASS",
+                          "CL_CT",
+                          "CL_CLASS",
+                          "DD_DE",
+                          "SS_CLASS"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "fleet": {
+                  "type": "string",
+                  "enum": [
+                    "main",
+                    "escort"
+                  ]
+                }
+              },
+              "required": [
+                "m",
+                "in"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "difficulty"
+                },
+                "eq": {
+                  "type": "number"
+                },
+                "ne": {
+                  "type": "number"
+                },
+                "gt": {
+                  "type": "number"
+                },
+                "gte": {
+                  "type": "number"
+                },
+                "lt": {
+                  "type": "number"
+                },
+                "lte": {
+                  "type": "number"
+                },
+                "in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "m"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "phase"
+                },
+                "eq": {
+                  "type": "number"
+                },
+                "ne": {
+                  "type": "number"
+                },
+                "gt": {
+                  "type": "number"
+                },
+                "gte": {
+                  "type": "number"
+                },
+                "lt": {
+                  "type": "number"
+                },
+                "lte": {
+                  "type": "number"
+                },
+                "in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "m"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "gauge"
+                },
+                "eq": {
+                  "type": "number"
+                },
+                "ne": {
+                  "type": "number"
+                },
+                "gt": {
+                  "type": "number"
+                },
+                "gte": {
+                  "type": "number"
+                },
+                "lt": {
+                  "type": "number"
+                },
+                "lte": {
+                  "type": "number"
+                },
+                "in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "m"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "onlyTypes"
+                },
+                "types": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "DE",
+                          "DD",
+                          "CL",
+                          "CLT",
+                          "CA",
+                          "CAV",
+                          "CVL",
+                          "FBB",
+                          "BB",
+                          "BBV",
+                          "CV",
+                          "XBB",
+                          "SS",
+                          "SSV",
+                          "AP",
+                          "AV",
+                          "LHA",
+                          "CVB",
+                          "AR",
+                          "AS",
+                          "CT",
+                          "AO"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "BB_CLASS",
+                          "BATTLESHIP",
+                          "CV_CLASS",
+                          "STD_CV",
+                          "CA_CLASS",
+                          "CL_CT",
+                          "CL_CLASS",
+                          "DD_DE",
+                          "SS_CLASS"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "fleet": {
+                  "type": "string",
+                  "enum": [
+                    "main",
+                    "escort",
+                    "all"
+                  ]
+                },
+                "eq": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "m",
+                "types"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "hq"
+                },
+                "eq": {
+                  "type": "number"
+                },
+                "ne": {
+                  "type": "number"
+                },
+                "gt": {
+                  "type": "number"
+                },
+                "gte": {
+                  "type": "number"
+                },
+                "lt": {
+                  "type": "number"
+                },
+                "lte": {
+                  "type": "number"
+                },
+                "in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "m"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "visited"
+                },
+                "node": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9]*$|^Start[0-9]*$"
+                },
+                "eq": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "m",
+                "node"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "type": "string",
+                  "const": "flag"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "eq": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "m",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "all": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema1"
+              }
+            }
+          },
+          "required": [
+            "all"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "any": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema1"
+              }
+            }
+          },
+          "required": [
+            "any"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/__schema1"
+            }
+          },
+          "required": [
+            "not"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

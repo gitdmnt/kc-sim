@@ -10,7 +10,7 @@ poi-plugin-sim-build/
 
 # local Cloudflare state (D1 sqlite incl. KCNav raw response cache) and SQL scratch
 .wrangler/
-data-worker/.tmp/
+server/.tmp/
 *.sqlite
 *.sqlite3
 *.sqlite-shm

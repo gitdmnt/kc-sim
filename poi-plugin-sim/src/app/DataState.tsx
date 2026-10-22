@@ -13,7 +13,7 @@ export const DataError = ({ error, onRetry }: { error: Error; onRetry?: () => vo
       description={
         offline ? (
           <>
-            接続先 <code className="text-ink-200" title="ローカル: cd data-worker && bun run dev">{apiBase}</code> を確認してください (設定タブで変更可)。
+            接続先 <code className="text-ink-200" title="ローカル: cd server && bun run dev">{apiBase}</code> を確認してください (設定タブで変更可)。
           </>
         ) : (
           error.message

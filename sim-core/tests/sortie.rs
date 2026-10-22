@@ -1,4 +1,4 @@
-//! Sortie simulator: 1-5 end-to-end with comps from the data-worker API fixture, policies, gauges.
+//! Sortie simulator: 1-5 end-to-end with comps from the server API fixture, policies, gauges.
 mod common;
 
 use common::*;

@@ -1,0 +1,238 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "1-6",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 1-6)"
+    }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BBV",
+                  "CVL",
+                  "CA"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CAV"
+                ],
+                "gte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "lte": 3
+              }
+            ]
+          },
+          "to": "C"
+        },
+        {
+          "to": "A"
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "to": "E"
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "to": "N"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "to": "N"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "to": "G"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "to": "B"
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "eq": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "eq": 5
+              }
+            ]
+          },
+          "to": "F"
+        },
+        {
+          "random": [
+            {
+              "to": "F",
+              "p": 0.75
+            },
+            {
+              "to": "K",
+              "p": 0.25
+            }
+          ]
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "to": "K"
+        }
+      ]
+    },
+    "I": {
+      "rules": [
+        {
+          "to": "D"
+        }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "to": "D"
+        }
+      ]
+    },
+    "K": {
+      "rules": [
+        {
+          "to": "M"
+        }
+      ]
+    },
+    "L": {
+      "rules": [
+        {
+          "to": "I"
+        }
+      ]
+    },
+    "M": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BBV",
+                  "CA",
+                  "CVL"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BBV",
+                  "CA_CLASS"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "lte": 2
+              }
+            ]
+          },
+          "to": "L"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 3,
+            "lt": 28
+          },
+          "to": "L",
+          "uncertain": true,
+          "note": "threshold 28 marked '?' in source text"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 3,
+            "lt": 30
+          },
+          "random": [
+            {
+              "to": "J",
+              "p": 0.5
+            },
+            {
+              "to": "L",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "threshold 28 marked '?'; text gives no ratio, compiled 50/50"
+        },
+        {
+          "to": "J"
+        }
+      ]
+    },
+    "N": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

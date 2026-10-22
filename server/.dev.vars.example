@@ -1,0 +1,4 @@
+# Local development only: `wrangler dev` reads .dev.vars (copy this file). Never set these in production.
+# ENVIRONMENT=development lets /admin/* through without Cloudflare Access, for requests to localhost only.
+ENVIRONMENT=development
+IP_HASH_SALT=local-dev-salt

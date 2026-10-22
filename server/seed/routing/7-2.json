@@ -1,0 +1,174 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "7-2",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    { "id": "kc3-edges", "note": "adjacency from KC3Kai src/data/edges.json (World 7-2)" }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "any": [{ "m": "count", "types": ["DD_DE"], "lte": 1 }, { "m": "count", "types": ["SS_CLASS"], "gte": 1 }]
+          },
+          "to": "A"
+        },
+        {
+          "when": { "m": "ships", "gte": 6 },
+          "rules": [
+            {
+              "when": {
+                "any": [
+                  { "m": "count", "types": ["STD_CV"], "gte": 2 },
+                  { "m": "count", "types": ["BB_CLASS", "STD_CV"], "gte": 4 },
+                  { "m": "count", "types": ["CL_CT"], "gte": 3 }
+                ]
+              },
+              "to": "A"
+            },
+            { "to": "B" }
+          ]
+        },
+        {
+          "when": { "m": "ships", "eq": 5 },
+          "rules": [
+            { "when": { "m": "count", "types": ["STD_CV"], "gte": 3 }, "to": "A" },
+            {
+              "when": {
+                "any": [
+                  { "m": "count", "types": ["BB_CLASS", "STD_CV"], "gte": 1 },
+                  { "m": "count", "types": ["CL_CT"], "gte": 2 },
+                  { "m": "count", "types": ["DE"], "lte": 2 }
+                ]
+              },
+              "to": "B"
+            },
+            { "to": "C" }
+          ]
+        },
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["BB_CLASS", "STD_CV"], "gte": 1 },
+              { "m": "count", "types": ["DD_DE"], "lte": 2 }
+            ]
+          },
+          "to": "B"
+        },
+        { "to": "C" }
+      ]
+    },
+    "A": { "rules": [{ "to": "B" }] },
+    "B": { "rules": [{ "to": "C" }] },
+    "C": {
+      "rules": [
+        {
+          "when": {
+            "any": [{ "m": "count", "types": ["AO"], "gte": 1 }, { "m": "count", "types": ["SS_CLASS"], "gte": 1 }]
+          },
+          "to": "D"
+        },
+        {
+          "when": { "m": "ships", "gte": 6 },
+          "rules": [
+            { "when": { "m": "count", "types": ["BB_CLASS", "STD_CV"], "gte": 1 }, "to": "D" },
+            { "when": { "m": "count", "types": ["DD_DE"], "gte": 4 }, "to": "E" },
+            { "to": "D" }
+          ]
+        },
+        {
+          "when": { "m": "ships", "eq": 5 },
+          "rules": [
+            { "when": { "m": "count", "types": ["BB_CLASS", "STD_CV"], "gte": 2 }, "to": "D" },
+            {
+              "when": {
+                "any": [{ "m": "count", "types": ["DD_DE"], "gte": 4 }, { "m": "count", "types": ["DE"], "gte": 3 }]
+              },
+              "to": "E"
+            },
+            { "to": "D" }
+          ]
+        },
+        { "when": { "m": "count", "types": ["BB_CLASS", "STD_CV"], "gte": 2 }, "to": "D" },
+        {
+          "when": { "any": [{ "m": "count", "types": ["DD_DE"], "gte": 3 }, { "m": "count", "types": ["DE"], "gte": 2 }] },
+          "to": "E"
+        },
+        { "to": "D" }
+      ]
+    },
+    "D": {
+      "rules": [
+        { "when": { "m": "speed", "gte": "fastPlus" }, "to": "I" },
+        { "when": { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "gte": 4 }, "to": "H" },
+        { "when": { "m": "speed", "gte": "fast" }, "to": "I" },
+        { "when": { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "eq": 3 }, "to": "H" },
+        {
+          "when": { "m": "count", "types": ["BB_CLASS", "CV_CLASS"], "eq": 2 },
+          "random": [{ "to": "H", "p": 0.35 }, { "to": "I", "p": 0.65 }]
+        },
+        { "to": "I" }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "m": "ships", "lte": 5 },
+              { "m": "count", "types": ["DD_DE"], "gte": 5 },
+              { "all": [{ "m": "count", "types": ["DD"], "gte": 1 }, { "m": "count", "types": ["DE"], "gte": 3 }] }
+            ]
+          },
+          "to": "G"
+        },
+        {
+          "when": { "m": "los", "cn": 4, "lt": 46 },
+          "to": "F",
+          "uncertain": true,
+          "note": "threshold 46 marked '?'"
+        },
+        { "to": "G", "uncertain": true, "note": "threshold 46 marked '?'" }
+      ]
+    },
+    "H": { "rules": [{ "to": "I" }] },
+    "I": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["AO"], "gte": 1 },
+              {
+                "all": [{ "m": "count", "types": ["AV"], "gte": 1 }, { "m": "count", "types": ["DD_DE"], "gte": 3 }]
+              }
+            ]
+          },
+          "to": "J"
+        },
+        {
+          "when": { "m": "los", "cn": 4, "lt": 63 },
+          "to": "L",
+          "uncertain": true,
+          "note": "threshold 63 marked '?'"
+        },
+        {
+          "when": { "m": "los", "cn": 4, "lt": 69 },
+          "random": [{ "to": "J", "p": 0.333 }, { "to": "L", "p": 0.333 }, { "to": "M", "p": 0.334 }],
+          "uncertain": true,
+          "note": "threshold 63 marked '?'; text gives no ratio; compiled ratio used"
+        },
+        { "to": "M" }
+      ]
+    },
+    "J": { "rules": [{ "to": "K" }] },
+    "F": { "end": true },
+    "G": { "end": true, "note": "boss (gauge 1)" },
+    "K": { "end": true },
+    "L": { "end": true },
+    "M": { "end": true, "note": "boss (gauge 2)" }
+  }
+}

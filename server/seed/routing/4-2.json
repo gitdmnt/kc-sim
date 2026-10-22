@@ -1,0 +1,810 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "4-2",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 4-2)"
+    }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "eq": 0
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.1
+            },
+            {
+              "to": "B",
+              "p": 0.9
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratios (defers to wiki, '空母系の隻数も関係している?'); compiled ratio used"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "eq": 1
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.2
+            },
+            {
+              "to": "B",
+              "p": 0.8
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratios (defers to wiki, '空母系の隻数も関係している?'); compiled ratio used"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "eq": 2
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 2
+              },
+              "random": [
+                {
+                  "to": "A",
+                  "p": 0.55
+                },
+                {
+                  "to": "B",
+                  "p": 0.45
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratios (defers to wiki, '空母系の隻数も関係している?'); compiled ratio used"
+            },
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "CV_CLASS"
+                ],
+                "gte": 2
+              },
+              "random": [
+                {
+                  "to": "A",
+                  "p": 0.6
+                },
+                {
+                  "to": "B",
+                  "p": 0.4
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratios (defers to wiki, '空母系の隻数も関係している?'); compiled ratio used"
+            },
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "CV_CLASS"
+                ],
+                "eq": 1
+              },
+              "random": [
+                {
+                  "to": "A",
+                  "p": 0.65
+                },
+                {
+                  "to": "B",
+                  "p": 0.35
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratios (defers to wiki, '空母系の隻数も関係している?'); compiled ratio used"
+            },
+            {
+              "random": [
+                {
+                  "to": "A",
+                  "p": 0.725
+                },
+                {
+                  "to": "B",
+                  "p": 0.275
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratios (defers to wiki, '空母系の隻数も関係している?'); compiled ratio used"
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "eq": 3
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "CV_CLASS"
+                ],
+                "gte": 2
+              },
+              "random": [
+                {
+                  "to": "A",
+                  "p": 0.725
+                },
+                {
+                  "to": "B",
+                  "p": 0.275
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratios (defers to wiki, '空母系の隻数も関係している?'); compiled ratio used"
+            },
+            {
+              "random": [
+                {
+                  "to": "A",
+                  "p": 0.775
+                },
+                {
+                  "to": "B",
+                  "p": 0.225
+                }
+              ],
+              "uncertain": true,
+              "note": "text gives no ratios (defers to wiki, '空母系の隻数も関係している?'); compiled ratio used"
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "eq": 4
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.85
+            },
+            {
+              "to": "B",
+              "p": 0.15
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratios (defers to wiki, '空母系の隻数も関係している?'); compiled ratio used"
+        },
+        {
+          "random": [
+            {
+              "to": "A",
+              "p": 0.9
+            },
+            {
+              "to": "B",
+              "p": 0.1
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratios (defers to wiki, '空母系の隻数も関係している?'); compiled ratio used"
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "lte": 1
+          },
+          "to": "E"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "gte": 1
+          },
+          "random": [
+            {
+              "to": "C",
+              "p": 0.5
+            },
+            {
+              "to": "E",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 4
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "gte": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "C"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "eq": 3
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "eq": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "C",
+              "p": 0.85
+            },
+            {
+              "to": "E",
+              "p": 0.15
+            }
+          ]
+        },
+        {
+          "random": [
+            {
+              "to": "C",
+              "p": 0.55
+            },
+            {
+              "to": "E",
+              "p": 0.45
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Cマス寄り(55%?)'"
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "to": "D"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "lte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 4
+              }
+            ]
+          },
+          "to": "G"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "eq": 3
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "eq": 0
+              },
+              "random": [
+                {
+                  "to": "G",
+                  "p": 0.85
+                },
+                {
+                  "to": "L",
+                  "p": 0.15
+                }
+              ],
+              "uncertain": true,
+              "note": "text: 'Gマス寄り(85%?)'"
+            },
+            {
+              "random": [
+                {
+                  "to": "G",
+                  "p": 0.65
+                },
+                {
+                  "to": "L",
+                  "p": 0.35
+                }
+              ],
+              "uncertain": true,
+              "note": "text: 'Gマス寄り(65%?)'"
+            }
+          ]
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 4
+              }
+            ]
+          },
+          "to": "L"
+        },
+        {
+          "random": [
+            {
+              "to": "G",
+              "p": 0.65
+            },
+            {
+              "to": "L",
+              "p": 0.35
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Gマス寄り(65%?)'"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "eq": 6
+          },
+          "to": "H"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "lte": 2
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 2
+              },
+              "to": "C"
+            },
+            {
+              "random": [
+                {
+                  "to": "C",
+                  "p": 0.4
+                },
+                {
+                  "to": "H",
+                  "p": 0.6
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "lte": 1
+          },
+          "random": [
+            {
+              "to": "C",
+              "p": 0.15
+            },
+            {
+              "to": "H",
+              "p": 0.85
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS"
+            ],
+            "eq": 4
+          },
+          "random": [
+            {
+              "to": "C",
+              "p": 0.3
+            },
+            {
+              "to": "H",
+              "p": 0.7
+            }
+          ]
+        },
+        {
+          "random": [
+            {
+              "to": "C",
+              "p": 0.5
+            },
+            {
+              "to": "H",
+              "p": 0.5
+            }
+          ]
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "to": "G"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "to": "J"
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "gte": 3
+          },
+          "to": "L"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "eq": 2
+          },
+          "rules": [
+            {
+              "when": {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL",
+                      "CAV",
+                      "AV"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS"
+                    ],
+                    "eq": 4
+                  }
+                ]
+              },
+              "to": "L"
+            },
+            {
+              "random": [
+                {
+                  "to": "F",
+                  "p": 0.35
+                },
+                {
+                  "to": "L",
+                  "p": 0.65
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "gte": 1
+          },
+          "random": [
+            {
+              "to": "F",
+              "p": 0.5
+            },
+            {
+              "to": "I",
+              "p": 0.25
+            },
+            {
+              "to": "L",
+              "p": 0.25
+            }
+          ],
+          "note": "ratio from text comment"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "gte": 5
+          },
+          "random": [
+            {
+              "to": "F",
+              "p": 0.25
+            },
+            {
+              "to": "I",
+              "p": 0.5
+            },
+            {
+              "to": "L",
+              "p": 0.25
+            }
+          ],
+          "note": "ratio from text comment"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "lte": 1
+          },
+          "random": [
+            {
+              "to": "F",
+              "p": 0.15
+            },
+            {
+              "to": "L",
+              "p": 0.85
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Lマス寄り(85%?)'"
+        },
+        {
+          "random": [
+            {
+              "to": "F",
+              "p": 0.4
+            },
+            {
+              "to": "L",
+              "p": 0.6
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Lマス寄り?' (40/60 in text comment)"
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "gte": 2
+          },
+          "to": "G"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD_DE"
+            ],
+            "gte": 2
+          },
+          "random": [
+            {
+              "to": "G",
+              "p": 0.8
+            },
+            {
+              "to": "K",
+              "p": 0.2
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Gマス寄り(80%?)'"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "gte": 5
+          },
+          "random": [
+            {
+              "to": "G",
+              "p": 0.2
+            },
+            {
+              "to": "K",
+              "p": 0.8
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Kマス寄り(80%?)'"
+        },
+        {
+          "random": [
+            {
+              "to": "G",
+              "p": 0.5
+            },
+            {
+              "to": "K",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "text: '片寄りなし?'"
+        }
+      ]
+    },
+    "I": {
+      "end": true
+    },
+    "J": {
+      "end": true
+    },
+    "K": {
+      "end": true
+    },
+    "L": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

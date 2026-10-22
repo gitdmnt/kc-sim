@@ -1,0 +1,122 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "6-1",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    { "id": "kc3-edges", "note": "adjacency from KC3Kai src/data/edges.json (World 6-1)" }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["BB_CLASS", "CV_CLASS", "CA_CLASS"], "gte": 3 },
+              { "m": "count", "types": ["BB_CLASS"], "gte": 2 }
+            ]
+          },
+          "to": "B"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [{ "m": "count", "types": ["SS_CLASS"], "gte": 3 }, { "m": "onlyTypes", "types": ["SS_CLASS"] }]
+              },
+              {
+                "all": [
+                  { "m": "count", "types": ["AS"], "eq": 1 },
+                  { "m": "count", "types": ["SS_CLASS"], "gte": 3 },
+                  { "m": "onlyTypes", "types": ["AS", "SS_CLASS"] }
+                ]
+              },
+              {
+                "all": [
+                  { "m": "count", "types": ["AS"], "eq": 1 },
+                  { "m": "count", "types": ["SS_CLASS"], "eq": 3 },
+                  { "m": "count", "types": ["DD"], "eq": 2 }
+                ]
+              },
+              {
+                "all": [
+                  { "m": "count", "types": ["AS"], "eq": 1 },
+                  { "m": "count", "types": ["SS_CLASS"], "eq": 4 },
+                  { "m": "count", "types": ["CL", "DD"], "eq": 1 }
+                ]
+              }
+            ]
+          },
+          "to": "A"
+        },
+        { "when": { "m": "count", "types": ["CL", "DD"], "eq": 0 }, "to": "B" },
+        { "to": "C" }
+      ]
+    },
+    "A": { "rules": [{ "when": { "m": "count", "types": ["AS"], "gte": 1 }, "to": "F" }, { "to": "D" }] },
+    "C": { "rules": [{ "to": "F" }] },
+    "D": { "rules": [{ "to": "F" }] },
+    "F": { "rules": [{ "to": "G" }] },
+    "G": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              { "m": "count", "types": ["SS_CLASS"], "lte": 2 },
+              { "m": "count", "types": ["BB_CLASS", "CV_CLASS", "CA_CLASS"], "eq": 2 },
+              { "m": "los", "cn": 4, "lt": 12 }
+            ]
+          },
+          "to": "I"
+        },
+        {
+          "when": { "all": [{ "m": "count", "types": ["AS"], "gte": 1 }, { "m": "los", "cn": 4, "gte": 16 }] },
+          "to": "H"
+        },
+        { "when": { "m": "los", "cn": 4, "gte": 16 }, "random": [{ "to": "H", "p": 0.85 }, { "to": "I", "p": 0.15 }] },
+        {
+          "random": [{ "to": "H", "p": 0.5 }, { "to": "I", "p": 0.5 }],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        { "when": { "m": "los", "cn": 4, "lt": 20 }, "to": "E" },
+        {
+          "when": { "m": "count", "types": ["AS"], "gte": 1 },
+          "rules": [
+            {
+              "when": { "m": "los", "cn": 4, "lt": 25 },
+              "random": [{ "to": "E", "p": 0.5 }, { "to": "K", "p": 0.5 }],
+              "uncertain": true,
+              "note": "text gives no ratio; compiled ratio used"
+            },
+            { "to": "K" }
+          ]
+        },
+        {
+          "when": { "m": "los", "cn": 4, "lt": 25 },
+          "random": [{ "to": "E", "p": 0.333 }, { "to": "J", "p": 0.333 }, { "to": "K", "p": 0.334 }],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        },
+        {
+          "when": { "m": "los", "cn": 4, "lt": 36 },
+          "random": [{ "to": "J", "p": 0.5 }, { "to": "K", "p": 0.5 }],
+          "uncertain": true,
+          "note": "text gives no ratio; compiled ratio used"
+        },
+        { "to": "K" }
+      ]
+    },
+    "B": { "end": true },
+    "E": { "end": true },
+    "I": { "end": true },
+    "J": { "end": true },
+    "K": { "end": true, "note": "boss" }
+  }
+}

@@ -1,0 +1,494 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "3-4",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 3-4)"
+    }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "CL",
+                  "DD_DE"
+                ],
+                "eq": 0
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 3
+              }
+            ]
+          },
+          "to": "A"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "eq": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "SS_CLASS"
+                ],
+                "gte": 1
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "A",
+              "p": 0.35
+            },
+            {
+              "to": "B",
+              "p": 0.65
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Bマス寄り(65%?)'"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "eq": 1
+          },
+          "to": "B"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "DD"
+            ],
+            "lte": 2
+          },
+          "random": [
+            {
+              "to": "B",
+              "p": 0.65
+            },
+            {
+              "to": "D",
+              "p": 0.35
+            }
+          ],
+          "uncertain": true,
+          "note": "text: 'Bマス寄り(65%?)'"
+        },
+        {
+          "to": "D"
+        }
+      ]
+    },
+    "A": {
+      "rules": [
+        {
+          "to": "C"
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "D": {
+      "rules": [
+        {
+          "to": "H"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL",
+                  "DD",
+                  "DE"
+                ],
+                "eq": 0
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 5
+              }
+            ]
+          },
+          "to": "B"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "eq": 2
+          },
+          "to": "F"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "AV",
+              "AO"
+            ],
+            "gte": 1
+          },
+          "to": "E"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "AS"
+            ],
+            "gte": 1
+          },
+          "random": [
+            {
+              "to": "E",
+              "p": 0.5
+            },
+            {
+              "to": "F",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "no ratio stated in text; compiled ratio used"
+        },
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "to": "G"
+        }
+      ]
+    },
+    "F": {
+      "note": "text: 'Iへの条件は不明' — no rule leads to I",
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS",
+              "CA_CLASS"
+            ],
+            "gte": 5
+          },
+          "to": "G"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "STD_CV"
+                ],
+                "lte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "speed",
+                "gte": "fastPlus"
+              },
+              "to": "J"
+            },
+            {
+              "random": [
+                {
+                  "to": "G",
+                  "p": 0.1
+                },
+                {
+                  "to": "J",
+                  "p": 0.45
+                },
+                {
+                  "to": "M",
+                  "p": 0.45
+                }
+              ],
+              "uncertain": true,
+              "note": "text: G 10%?:J 45%?:M 45%?"
+            }
+          ]
+        },
+        {
+          "random": [
+            {
+              "to": "G",
+              "p": 0.5
+            },
+            {
+              "to": "M",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "no ratio stated in text; compiled ratio used"
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "to": "J"
+        }
+      ]
+    },
+    "H": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "lte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "CL",
+                  "DD"
+                ],
+                "lte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CVL"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "to": "G"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CL",
+              "DD"
+            ],
+            "gte": 5
+          },
+          "to": "L"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CL"
+            ],
+            "eq": 0
+          },
+          "to": "G"
+        },
+        {
+          "random": [
+            {
+              "to": "G",
+              "p": 0.35
+            },
+            {
+              "to": "L",
+              "p": 0.65
+            }
+          ]
+        }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "to": "P"
+        }
+      ]
+    },
+    "L": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "CA_CLASS",
+              "CL",
+              "DD"
+            ],
+            "eq": 6
+          },
+          "to": "J"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CVL"
+            ],
+            "eq": 0
+          },
+          "to": "N"
+        },
+        {
+          "random": [
+            {
+              "to": "N",
+              "p": 0.5
+            },
+            {
+              "to": "O",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "no ratio stated in text; compiled ratio used"
+        }
+      ]
+    },
+    "M": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 1
+              }
+            ]
+          },
+          "to": "P"
+        },
+        {
+          "random": [
+            {
+              "to": "K",
+              "p": 0.5
+            },
+            {
+              "to": "P",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "no ratio stated in text; compiled ratio used"
+        }
+      ]
+    },
+    "N": {
+      "rules": [
+        {
+          "to": "P"
+        }
+      ]
+    },
+    "I": {
+      "end": true
+    },
+    "K": {
+      "end": true
+    },
+    "O": {
+      "end": true
+    },
+    "P": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}

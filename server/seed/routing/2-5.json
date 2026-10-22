@@ -1,0 +1,777 @@
+{
+  "$schema": "./routing.schema.json",
+  "map": "2-5",
+  "sources": [
+    {
+      "id": "compass",
+      "note": "x-20a 羅針盤シミュ compiled rules (compass/assets/index-BMQ209wM.js) + branch text, fetched 2026-10-22; reference only, no licence"
+    },
+    {
+      "id": "kc3-edges",
+      "note": "adjacency from KC3Kai src/data/edges.json (World 2-5)"
+    },
+    {
+      "id": "zekamashi",
+      "note": "zekamashi.net/kancolle-kouryaku/2-5/ (route conditions citing 舰娘百科), used for 2-5 G/I LoS bands; checked 2026-10-22; reference only"
+    }
+  ],
+  "nodes": {
+    "Start": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "gte": 4
+          },
+          "to": "B"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "SS_CLASS"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "lte": 3
+              },
+              {
+                "any": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CV_CLASS"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "AV"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "random": [
+            {
+              "to": "B",
+              "p": 0.5
+            },
+            {
+              "to": "C",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "ratio not stated in source; 50/50 assumed"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "CV_CLASS"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "AV"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "to": "C"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "equipShips",
+                "equip": {
+                  "group": "DRUM"
+                },
+                "gte": 2
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 4
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "gte": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "B"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "gte": 1
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL",
+                      "CLT"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CAV"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL",
+                      "CLT"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CAV"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CA_CLASS",
+                      "CL",
+                      "CLT"
+                    ],
+                    "gte": 5
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "C",
+          "note": "third clause follows the source text (重巡級+軽巡+雷巡); the compiled rule uses CAV+CL+CLT instead",
+          "uncertain": true
+        },
+        {
+          "when": {
+            "m": "ships",
+            "eq": 6
+          },
+          "random": [
+            {
+              "to": "B",
+              "p": 0.8
+            },
+            {
+              "to": "C",
+              "p": 0.2
+            }
+          ],
+          "uncertain": true,
+          "note": "80% marked '?'"
+        },
+        {
+          "random": [
+            {
+              "to": "B",
+              "p": 0.05
+            },
+            {
+              "to": "C",
+              "p": 0.95
+            }
+          ],
+          "uncertain": true,
+          "note": "'かなりCマス寄り?' (95%)"
+        }
+      ]
+    },
+    "B": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "SS_CLASS"
+            ],
+            "gte": 3
+          },
+          "to": "A"
+        },
+        {
+          "to": "F"
+        }
+      ]
+    },
+    "C": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "CV_CLASS"
+                ],
+                "gte": 3
+              },
+              {
+                "m": "count",
+                "types": [
+                  "BB_CLASS"
+                ],
+                "gte": 3
+              }
+            ]
+          },
+          "to": "D"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CAV"
+                    ],
+                    "gte": 2
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "random": [
+            {
+              "to": "D",
+              "p": 0.3
+            },
+            {
+              "to": "E",
+              "p": 0.7
+            }
+          ]
+        }
+      ]
+    },
+    "E": {
+      "rules": [
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS"
+            ],
+            "gte": 1
+          },
+          "to": "G"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD_DE"
+                ],
+                "gte": 4
+              }
+            ]
+          },
+          "to": "I"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "speed",
+                "eq": "slow"
+              },
+              {
+                "m": "count",
+                "types": [
+                  "STD_CV",
+                  "CA_CLASS"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "to": "G"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 3
+              }
+            ]
+          },
+          "to": "I"
+        },
+        {
+          "to": "G"
+        }
+      ]
+    },
+    "F": {
+      "rules": [
+        {
+          "when": {
+            "m": "speed",
+            "eq": "slow"
+          },
+          "to": "J"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 3
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "E"
+        },
+        {
+          "random": [
+            {
+              "to": "E",
+              "p": 0.35
+            },
+            {
+              "to": "J",
+              "p": 0.65
+            }
+          ]
+        }
+      ]
+    },
+    "G": {
+      "rules": [
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS",
+                      "CV_CLASS"
+                    ],
+                    "lte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD_DE"
+                    ],
+                    "gte": 4
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "m": "count",
+                    "types": [
+                      "BB_CLASS",
+                      "CV_CLASS"
+                    ],
+                    "eq": 0
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "CL"
+                    ],
+                    "gte": 1
+                  },
+                  {
+                    "m": "count",
+                    "types": [
+                      "DD"
+                    ],
+                    "gte": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "to": "I"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 1,
+            "lt": 35
+          },
+          "to": "K",
+          "uncertain": true,
+          "note": "threshold 35 per zekamashi.net 2-5 (citing 舰娘百科 南西群岛海域/2-5), checked 2026-10-22; the compass simulator uses 37, marked \"?\" in its own text"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 1,
+            "lt": 41
+          },
+          "random": [
+            {
+              "to": "K",
+              "p": 0.5
+            },
+            {
+              "to": "L",
+              "p": 0.5
+            }
+          ],
+          "uncertain": true,
+          "note": "35-41 band: K or L at random (zekamashi; compass 37?-41?); ratio inside the band is not published, 50/50 assumed"
+        },
+        {
+          "to": "L"
+        }
+      ]
+    },
+    "I": {
+      "rules": [
+        {
+          "when": {
+            "m": "los",
+            "cn": 1,
+            "lt": 31
+          },
+          "to": "H"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 1,
+            "lt": 33
+          },
+          "random": [
+            {
+              "to": "O",
+              "p": 0.35
+            },
+            {
+              "to": "H",
+              "p": 0.65
+            }
+          ],
+          "uncertain": true,
+          "note": "31-33: 35% O per zekamashi.net 2-5 (checked 2026-10-22). Sources disagree: compass 31-34 50/50; 舰娘百科 says <31 always H, >=33 always O, random in between"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 1,
+            "lt": 34
+          },
+          "random": [
+            {
+              "to": "O",
+              "p": 0.65
+            },
+            {
+              "to": "H",
+              "p": 0.35
+            }
+          ],
+          "uncertain": true,
+          "note": "33-34: 65% O per zekamashi.net; 舰娘百科 says >=33 is always O (would be 100%); compass 50/50"
+        },
+        {
+          "to": "O"
+        }
+      ]
+    },
+    "J": {
+      "rules": [
+        {
+          "when": {
+            "m": "los",
+            "cn": 1,
+            "lt": 42
+          },
+          "to": "H",
+          "uncertain": true,
+          "note": "threshold 42 marked '?'"
+        },
+        {
+          "when": {
+            "m": "los",
+            "cn": 1,
+            "lt": 49
+          },
+          "rules": [
+            {
+              "when": {
+                "m": "count",
+                "types": [
+                  "BB_CLASS",
+                  "CV_CLASS"
+                ],
+                "gte": 4
+              },
+              "random": [
+                {
+                  "to": "H",
+                  "p": 0.333
+                },
+                {
+                  "to": "M",
+                  "p": 0.333
+                },
+                {
+                  "to": "O",
+                  "p": 0.334
+                }
+              ]
+            },
+            {
+              "random": [
+                {
+                  "to": "H",
+                  "p": 0.5
+                },
+                {
+                  "to": "O",
+                  "p": 0.5
+                }
+              ]
+            }
+          ],
+          "uncertain": true,
+          "note": "threshold 49 marked '?'"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "gte": 4
+          },
+          "random": [
+            {
+              "to": "M",
+              "p": 0.5
+            },
+            {
+              "to": "O",
+              "p": 0.5
+            }
+          ]
+        },
+        {
+          "to": "O"
+        }
+      ]
+    },
+    "L": {
+      "rules": [
+        {
+          "when": {
+            "all": [
+              {
+                "m": "count",
+                "types": [
+                  "CL"
+                ],
+                "gte": 1
+              },
+              {
+                "m": "count",
+                "types": [
+                  "DD"
+                ],
+                "gte": 2
+              }
+            ]
+          },
+          "to": "O"
+        },
+        {
+          "when": {
+            "m": "count",
+            "types": [
+              "BB_CLASS",
+              "CV_CLASS"
+            ],
+            "eq": 0
+          },
+          "random": [
+            {
+              "to": "N",
+              "p": 0.4
+            },
+            {
+              "to": "O",
+              "p": 0.6
+            }
+          ],
+          "uncertain": true,
+          "note": "60% marked '?'"
+        },
+        {
+          "random": [
+            {
+              "to": "N",
+              "p": 0.6
+            },
+            {
+              "to": "O",
+              "p": 0.4
+            }
+          ],
+          "uncertain": true,
+          "note": "60% marked '?'"
+        }
+      ]
+    },
+    "A": {
+      "end": true
+    },
+    "D": {
+      "end": true
+    },
+    "H": {
+      "end": true
+    },
+    "K": {
+      "end": true
+    },
+    "M": {
+      "end": true
+    },
+    "N": {
+      "end": true
+    },
+    "O": {
+      "end": true,
+      "note": "boss"
+    }
+  }
+}
