@@ -41,9 +41,14 @@ const heads = await query<Row>(`SELECT ${ROUTING_HEAD_COLS} FROM routing_maps`);
 const rules = await query<Row>(`SELECT ${ROUTING_RULE_COLS} FROM routing_rules`);
 const allSets = await query<Row>(`SELECT ${COMP_SET_COLS} FROM enemy_comp_sets s LEFT JOIN sources src ON src.id = s.source_id ORDER BY s.retrieved_at DESC, s.id DESC`);
 const sources = await query<Row>("SELECT key, name, url, licence, revision, fetched_at FROM sources ORDER BY key");
+// The deploy exports before it applies pending migrations: until 0013 is in, poi_cells has no lbas_distance.
+const cells = await query<Row>(`SELECT ${OBSERVED_CELL_COLS} FROM poi_cells`).catch((e: unknown) => {
+  if (!String(e).includes("no such column: lbas_distance")) throw e;
+  return query<Row>(`SELECT ${OBSERVED_CELL_COLS.replace("lbas_distance", "NULL AS lbas_distance")} FROM poi_cells`);
+});
 const observedRows = {
   layouts: await query<Row>(`SELECT ${OBSERVED_LAYOUT_COLS} FROM poi_layouts`),
-  cells: await query<Row>(`SELECT ${OBSERVED_CELL_COLS} FROM poi_cells`),
+  cells,
   edgeCounts: await query<Row>(`${OBSERVED_EDGE_SQL} ${OBSERVED_EDGE_GROUP}`),
   mismatches: await query<Row>(`SELECT ${MISMATCH_COLS} FROM poi_graph_mismatches ORDER BY kind, to_cell, from_cell`),
 };
