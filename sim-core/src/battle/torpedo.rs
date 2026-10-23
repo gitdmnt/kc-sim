@@ -61,7 +61,10 @@ impl<'a> Battle<'a> {
             if roll != Roll::Miss {
                 let ammo = self.unit(side, a).ammo_mod();
                 let armor = self.core(def, d).ar;
-                let dmg = formulas::damage_common(self.rng(), power, roll, armor, ammo, hp_before);
+                // kcsim `torpedoPhase` `postMod`: the attacker's event bonus (before the PT transform).
+                let power = self.unit(side, a).bonus_dmg(power, || false);
+                let pow = calc::torpedo_target_power(self.core(side, a), self.core(def, d), power);
+                let dmg = formulas::damage_common(self.rng(), pow, roll, armor, ammo, hp_before);
                 real = self.take_damage(def, d, dmg);
             }
             self.record(AttackKind::Torpedo, SpecialAttack::Normal, side, a, d, covered, None, roll, real, hp_before, &acc.hc);

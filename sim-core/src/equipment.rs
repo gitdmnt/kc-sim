@@ -331,6 +331,8 @@ impl Equip {
             imp.ev_shell = ev_shell * sq;
             imp.ev_torp = ev_torp * sq;
         }
+        // AA ★ coefficients (wikiwiki 対空砲火 改修係数), halved like `derive_aa`'s weighted-AA scale:
+        // weighted AA gun 6/4 (AA ≥8 / ≤7), HA gun 3/2, AAFD 2; fleet AA HA 3/2, AAFD 2, air radar 1.5.
         if self.has(f::HAFD) {
             imp.aa_fleet = 3.0 * sq;
             imp.aa_self = 1.5 * sq;
@@ -342,18 +344,25 @@ impl Equip {
             imp.aa_self = if self.aa >= 8.0 { 3.0 } else { 2.0 } * sq;
         }
         if self.has(f::AAFD) {
-            imp.aa_self = if self.aa >= 8.0 { 1.5 } else { 1.0 } * sq;
+            // kcsim: AAself 1.5 when AA ≥ 8; the wiki lists a flat 2√★ (no AAFD has AA ≥ 8 anyway).
+            imp.aa_self = sq;
+            imp.aa_fleet = 2.0 * sq;
         }
         if self.cat == SEC_GUN || self.cat == SEC_GUN2 {
+            // wikiwiki 改修工廠 副砲 A (√★) / B (0.2★) / C (0.3★). 130 (12.7cm HA + AAFD) is B per
+            // the wiki (verified 2024-07); kcsim lists it under √★.
             if [12, 234, 247, 463, 467].contains(&self.id) {
                 imp.p_shell = 0.3 * lv;
                 imp.p_nb = 0.3 * lv;
-            } else if ![11, 77, 130, 134, 135].contains(&self.id) {
+            } else if ![11, 77, 134, 135].contains(&self.id) {
                 imp.p_shell = 0.2 * lv;
                 imp.p_nb = 0.2 * lv;
             }
         }
         if self.cat == SUB_TORPEDO {
+            // wikiwiki 改修工廠: shelling √★ (only reachable via 特二式 shelling installations),
+            // torpedo / night 0.2★. kcsim omits the shelling term.
+            imp.p_shell = sq;
             imp.p_torp = 0.2 * lv;
             imp.p_nb = 0.2 * lv;
         }

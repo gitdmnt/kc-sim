@@ -165,7 +165,7 @@ export type ObservationInput = z.infer<typeof observationInput>;
 
 export const enqueueRequest = z.object({
   maps: z.array(mapRef).min(1).max(50),
-  kinds: z.array(z.enum(["map", "enemycomps", "nodesummary"])).min(1),
+  kinds: z.array(z.enum(["map", "enemycomps", "nodesummary", "battles"])).min(1),
   nodes: z.array(letter).optional(),
   edges: z.array(z.int().positive()).max(200).optional(),
   batch: z.boolean().optional(),
@@ -175,6 +175,8 @@ export const enqueueRequest = z.object({
   filters: z.record(z.string().regex(/^[A-Za-z]+$/), z.string().max(200)).optional(),
   priority: z.int().min(0).max(1000).optional(),
   refresh: z.boolean().optional(),
+  pages: z.int().min(1).max(100).optional(),
+  perPage: z.int().min(1).max(100).optional(),
 }).strict();
 
 /** POST /admin/estimate/run */

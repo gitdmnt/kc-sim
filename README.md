@@ -197,7 +197,8 @@ poi を再起動すると、プラグイン一覧に「シミュ」が現れま�
   詳細は [docs/ESTIMATOR.md](docs/ESTIMATOR.md) の "Model limits"。
 - **ルーティング:** 一部の規則は確認できていません (`uncertain`)。経路がそれを通る場合、結果画面に警告が出ます。
   KCNav の統計との照合結果は [docs/VALIDATION.md](docs/VALIDATION.md)。
-- **装備ボーナス** は近似計算で、未対応の条件があります (`shared/sim/fit.ts`)。
+- **装備ボーナス** は ElectronicObserver の `FitBonuses.json` を EO と同じ規則で評価します (`shared/sim/fit.ts`)。
+  サーバの推定ジョブは master に改装元・国籍の情報が無いため、`shipS`・`shipNationality` 条件のボーナスを差し引きません。
 - **戦闘結果の現実性:** 公開されている数式・数値との一致は確認していますが、戦闘全体の結果分布を実測と照合したものではありません。
 - **poi 上の制約:** プラグインは Web UI を iframe で埋め込みます。poi のメインウィンドウは iframe にも Node.js を有効にする設定のため、
   **ウィンドウモードでのみ** 埋め込みます (タブ表示では案内を出すだけ。観測ログ・送信設定は使えます)。詳しくは [poi-plugin-sim/README.md](poi-plugin-sim/README.md)。

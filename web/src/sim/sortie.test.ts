@@ -178,6 +178,7 @@ describe("buildSortieInput", () => {
       repair: { bucketAboveSec: 3600 },
       extraPerSortie: { fuel: 0, ammo: 0 },
       consecutive: { waitMinutes: 15, untilMorale: 40 },
+      smoke: ["A", "Z"],
     });
     const inp = b.input;
     expect(inp.striking).toBe(true);
@@ -190,11 +191,21 @@ describe("buildSortieInput", () => {
     expect(inp.repair).toEqual({ bucketAboveSec: 3600 });
     expect(inp).not.toHaveProperty("extraPerSortie");
     expect(inp.consecutive).toEqual({ waitMinutes: 15, untilMorale: 40 });
+    expect(inp.policy!.smoke).toEqual(["A"]);
     // a normal fleet is not sent as a striking force; empty advance is omitted
     const n = buildSortieInput(preset, master, data, { ...settings, extraPerSortie: { steel: 30 } }).input;
     expect(n).not.toHaveProperty("striking");
     expect(n.policy).not.toHaveProperty("advance");
     expect(n.extraPerSortie).toEqual({ steel: 30 });
+    expect(n.policy).not.toHaveProperty("smoke");
+  });
+
+  test("barrage-balloon nodes are marked from the map (3-5 H)", () => {
+    const h = { ...bundle.nodes[1], letter: "H" };
+    const at35 = { ...data, detail: { ...data.detail, map: { ...bundle.map, world: 3, no: 5 }, nodes: [...bundle.nodes, h] } };
+    const nodes = buildSortieInput(preset, master, at35, settings).input.map.nodes;
+    expect(nodes.H.balloons).toBe(true);
+    expect(nodes.A).not.toHaveProperty("balloons");
   });
 
   test("gauges: tp with tank, hp threshold, several gauges with phases, morale", () => {

@@ -11,10 +11,11 @@ use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::rc::Rc;
 
-use crate::battle::lbas::{initial_planes, LandBaseCore, LbPlanes};
+use crate::battle::lbas::{initial_planes, LandBaseCore, LbPlanes, MAX_SQUADRONS};
 use crate::battle::{validate_fleet, validate_friend, Battle, BattleSetup, FleetCore};
 use crate::equipment::cat;
-use crate::model::{BattleKind, CombinedType, Formation, Rank, RankRates, ShipInput};
+use crate::bonus::{self, BaseBonus, Bonus};
+use crate::model::{ArmorDebuff, BattleKind, CombinedType, Formation, Rank, RankRates, ShipInput};
 use crate::rng::Rng;
 use crate::routing::{RouteConfig, RouteCtx, RouteEquip, RouteShip, Router};
 use crate::ship::ShipState;
@@ -73,7 +74,9 @@ struct CompSet {
 }
 
 impl CompSet {
-    fn new(what: &str, comps: &[EnemyComp]) -> Result<CompSet, String> {
+    /// `debuffs`: armor debuffs of the node (kancolle-replay `listDebuff`).
+    fn new(what: &str, comps: &[EnemyComp], debuffs: &[ArmorDebuff]) -> Result<CompSet, String> {
+        bonus::validate_debuffs(what, debuffs)?;
         let mut out = Vec::with_capacity(comps.len());
         let mut cum = Vec::with_capacity(comps.len());
         let mut total = 0.0;
@@ -82,7 +85,7 @@ impl CompSet {
                 return Err(format!("{what} comp #{i}: weight must be a non-negative number"));
             }
             validate_fleet(&format!("{what} comp #{i}"), &c.fleet, false)?;
-            let (core, init) = FleetCore::build(&c.fleet, false);
+            let (core, init) = FleetCore::build(&bonus::debuffed(&c.fleet, debuffs), false);
             let flagship_max_hp = core.ships[0].max_hp;
             let pt_only = c.fleet.ships.iter().all(|s| s.id.is_some_and(|id| PT_IDS.contains(&id)));
             total += c.weight;
@@ -128,10 +131,17 @@ struct NodeInfo {
     supply: Option<[f64; 2]>,
     /// `node.battleKind`: replaces the kind derived from the node kind and the night policy.
     battle_kind: Option<BattleKind>,
+    balloons: bool,
+    /// `policy.smoke` lists the node.
+    smoke: bool,
     advance: Option<Advance>,
     warning: Option<String>,
     /// Land-base waves at this node: base index per wave, in base order then target order.
     lb_waves: Vec<usize>,
+    /// Event bonuses at this node: friend ships (main then escort; empty = none) and land bases
+    /// (base order; empty = none).
+    bonus: Vec<Option<Bonus>>,
+    lb_bonus: Vec<Option<BaseBonus>>,
 }
 
 /// Command facility of the main flagship (kancolle-replay `canContinue` / `getFCFShips`).
@@ -188,12 +198,16 @@ pub struct Sortie {
     tp_ships: Option<Vec<ShipTp>>,
     bucket_above: Option<f64>,
     extra: [f64; 4],
+    /// `friend.smokeUsed`: no smoke screen left for this sortie.
+    smoke_used: bool,
     /// `consecutive`: morale carried over the sorties of `simulate`.
     consecutive: Option<GaugeMorale>,
     /// Resource vector of the last `run_one` (see `Cost`).
     last_cost: Cell<Cost>,
     /// Friend fleets without the evacuated ships, by evacuation mask.
     sub_fleets: RefCell<Vec<(u16, Rc<FleetCore>)>>,
+    /// Armor debuffs of the goal node (also applied to `gauge.finalComps`).
+    goal_debuffs: Vec<ArmorDebuff>,
 }
 
 /// Net resources of one sortie: fuel, ammo, steel, bauxite, buckets, docking seconds.
@@ -398,6 +412,11 @@ impl Sortie {
             Some(t) => Some(router.index(t).ok_or_else(|| format!("config.target: node '{t}' is not in the routing document"))?),
             None => None,
         };
+        for letter in &input.policy.smoke {
+            if router.index(letter).is_none() {
+                return Err(format!("policy.smoke: node '{letter}' is not in the routing document"));
+            }
+        }
         for letter in input.policy.advance.keys() {
             if router.index(letter).is_none() {
                 return Err(format!("policy.advance.{letter}: node is not in the routing document"));
@@ -405,6 +424,7 @@ impl Sortie {
         }
 
         let mut nodes = Vec::with_capacity(router.len());
+        let mut goal_debuffs = Vec::new();
         for i in 0..router.len() {
             let letter = router.name(i).to_string();
             let mut warning = None;
@@ -467,7 +487,7 @@ impl Sortie {
                     };
                     if let Some(k) = kind {
                         if has_comps {
-                            battle = Some((k, CompSet::new(&format!("node {letter}"), n.comps.as_ref().unwrap())?));
+                            battle = Some((k, CompSet::new(&format!("node {letter}"), n.comps.as_ref().unwrap(), n.debuffs.as_deref().unwrap_or(&[]))?));
                         } else {
                             warning = Some(format!("node {letter}: battle node without enemy comps; treated as empty"));
                         }
@@ -498,7 +518,16 @@ impl Sortie {
                 bases.iter().enumerate().flat_map(|(b, base)| base.targets.iter().filter(|t| **t == letter).map(move |_| b)).collect();
             let goal = target.map_or(boss, |t| t == i);
             let advance = input.policy.advance.get(&letter).copied();
-            nodes.push(NodeInfo { effect, battle, boss, goal, landing, formation, supply, battle_kind, advance, warning, lb_waves });
+            let n = input.map.nodes.get(&letter);
+            if goal {
+                goal_debuffs.extend(n.and_then(|n| n.debuffs.clone()).unwrap_or_default());
+            }
+            let (main_len, esc_len) = (input.friend.ships.len(), input.friend.escort_ships().len());
+            let ship_bonus = bonus::build_fleet(n.and_then(|n| n.bonuses.as_deref()), n.and_then(|n| n.escort_bonuses.as_deref()), main_len, esc_len, &format!("node {letter} "))?;
+            let lb_bonus = bonus::build_bases(&format!("node {letter} lbasBonuses"), n.and_then(|n| n.lbas_bonuses.as_deref()), bases.len(), MAX_SQUADRONS)?;
+            let balloons = n.and_then(|n| n.balloons).unwrap_or(false);
+            let smoke = input.policy.smoke.contains(&letter);
+            nodes.push(NodeInfo { effect, battle, boss, goal, landing, formation, supply, battle_kind, balloons, smoke, advance, warning, lb_waves, bonus: ship_bonus, lb_bonus });
         }
         let mut lb_sortied = vec![false; bases.len()];
         for (i, b) in bases.iter().enumerate() {
@@ -570,6 +599,7 @@ impl Sortie {
             has_effects,
             bucket_above: input.repair.and_then(|r| r.bucket_above_sec),
             consecutive: input.consecutive.clone(),
+            smoke_used: input.friend.smoke_used.unwrap_or(false),
             extra: input.extra_per_sortie.map_or([0.0; 4], |e| [e.fuel, e.ammo, e.steel, e.bauxite]),
             last_cost: Cell::new([0.0; 6]),
             tp_ships: wants_tp.then(|| ships.iter().map(|s| tp::ship_tp(s)).collect()),
@@ -590,6 +620,7 @@ impl Sortie {
             lbas,
             warnings,
             sub_fleets: RefCell::new(Vec::new()),
+            goal_debuffs,
         })
     }
 
@@ -635,7 +666,7 @@ impl Sortie {
         f
     }
 
-    fn setup(&self, nb: NodeBattle, info: &NodeInfo, comp: &Comp) -> BattleSetup {
+    fn setup(&self, nb: NodeBattle, info: &NodeInfo, comp: &Comp, smoke_used: bool) -> BattleSetup {
         let (kind, night_unless) = match (info.battle_kind, nb) {
             (Some(k), _) => (k, None),
             (None, NodeBattle::Night) => (BattleKind::NightOnly, None),
@@ -660,7 +691,16 @@ impl Sortie {
                 None
             }
         });
-        BattleSetup { kind, engagement: None, formations: [info.formation, comp.formation], night_unless, log: false, supply }
+        BattleSetup {
+            kind,
+            formations: [info.formation, comp.formation],
+            night_unless,
+            supply,
+            smoke: info.smoke,
+            smoke_used,
+            balloons: info.balloons,
+            ..Default::default()
+        }
     }
 
     /// Decision after a battle (kancolle-replay `canContinue`). A heavily damaged main flagship
@@ -808,6 +848,8 @@ impl Sortie {
         let mut fcf_used = false;
         // Evacuated ships (bit per friend index).
         let mut gone: u16 = 0;
+        // A smoke screen is deployed once per sortie.
+        let mut smoke_used = self.smoke_used;
         let mut ships_ctx: Vec<&RouteShip> = Vec::with_capacity(self.route_ships.len());
         // Land-base squadron sizes: full at the start of every sortie, carried between nodes.
         let mut lb_planes = self.lb_init;
@@ -866,7 +908,7 @@ impl Sortie {
                 if let (Some(hp), Some(flag)) = (hp_override, enemy.first_mut()) {
                     flag.hp = hp.clamp(1, comp.flagship_max_hp);
                 }
-                let setup = self.setup(*nb, info, comp);
+                let setup = self.setup(*nb, info, comp, smoke_used);
                 let holder;
                 let (fleet, states): (&FleetCore, Vec<ShipState>) = if gone == 0 {
                     (&self.friend, std::mem::take(&mut st))
@@ -874,11 +916,19 @@ impl Sortie {
                     holder = self.sub_fleet(gone);
                     (&holder, st.iter().enumerate().filter(|(i, _)| gone & (1 << i) == 0).map(|(_, s)| s.clone()).collect())
                 };
+                // Event bonuses follow the ships left in the fleet.
+                let kept_bonus: Vec<Option<Bonus>> = if gone == 0 || info.bonus.is_empty() {
+                    Vec::new()
+                } else {
+                    info.bonus.iter().enumerate().filter(|(i, _)| gone & (1 << i) == 0).map(|(_, x)| x.clone()).collect()
+                };
                 let mut b = Battle::new([fleet, &comp.core], [states, enemy], setup, rng);
+                b.set_bonuses(if kept_bonus.is_empty() { &info.bonus } else { &kept_bonus }, &info.lb_bonus);
                 if !info.lb_waves.is_empty() {
                     b.set_lbas(&self.lbas, &info.lb_waves, lb_planes);
                 }
                 let o = b.run();
+                smoke_used |= o.smoke > 0;
                 if let Some(p) = b.lb_planes() {
                     lb_planes = p;
                 }
@@ -1310,11 +1360,11 @@ impl Sortie {
 
     fn phase_run(&self, p: &GaugePhase) -> Result<PhaseRun, String> {
         let boss_set = match &p.comps {
-            Some(c) => Some(CompSet::new("gauge.comps", c)?),
+            Some(c) => Some(CompSet::new("gauge.comps", c, &self.goal_debuffs)?),
             None => None,
         };
         let final_set = match &p.final_comps {
-            Some(c) if p.kind == GaugeKind::Hp => Some(CompSet::new("gauge.finalComps", c)?),
+            Some(c) if p.kind == GaugeKind::Hp => Some(CompSet::new("gauge.finalComps", c, &self.goal_debuffs)?),
             _ => None,
         };
         let threshold = p.final_threshold.unwrap_or_else(|| {

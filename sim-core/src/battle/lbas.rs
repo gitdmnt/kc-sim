@@ -9,14 +9,16 @@
 //! enemy's planes of every kind → air state; stage 1 losses on both sides; for each bomber
 //! squadron a stage 2 AA roll by a random enemy ship, then a target; all attacks land after the
 //! targeting pass. Not modelled: the jet assault phase (jets attack in the normal waves with the
-//! jet power multiplier), per-target land-bomber weaknesses (`LBWeak`, `divebombWeak`), PT imps,
-//! balloons, and plane-specific bonuses beyond the equipment ids listed in [`Battle::lb_strike`].
+//! jet power multiplier) and plane-specific bonuses beyond the equipment ids listed in
+//! [`Battle::lb_strike`]. Target bonuses (kcsim `airstrikeLBAS`: special abyssals, PT imps,
+//! `LBWeak`, `divebombWeak`) and balloons are applied.
 
 use super::air::{contact_roll, friend_fighter_loss};
 use super::{Battle, List};
 use crate::equipment::{cat, f, Equip};
 use crate::formulas::{self, evade, evade_luck, hit_term, soft_cap, PlaneBonus, Roll};
 use crate::model::{AttackEvent, AttackKind, EquipmentInput, HitResult, Phase, Side, SpecialAttack};
+use crate::bonus::BaseBonus;
 use crate::ship::{ShipClass, MAX_SLOTS};
 
 /// Squadrons per base.
@@ -178,14 +180,16 @@ impl<'a> Battle<'a> {
                 continue;
             }
             planes[b] = start[b];
-            self.lb_wave(w, base, &mut planes[b], &mut memo);
+            // Event bonus of this base (kcsim `LBASPhase`: `bonusSpecialPSelf` and base-wide groups).
+            let bonus = self.lb_bonus.get(b).and_then(Option::as_ref);
+            self.lb_wave(w, base, &mut planes[b], &mut memo, bonus);
         }
         self.phase = phase;
         self.lbas = Some(super::LbRun { bases, waves, planes });
     }
 
     /// kcsim `compareAP(lbas, F2, 'isPlane')` + `LBASPhase`.
-    fn lb_wave(&mut self, w: usize, base: &LandBaseCore, planes: &mut [i32; MAX_SQUADRONS], memo: &mut WaveMemo) {
+    fn lb_wave(&mut self, w: usize, base: &LandBaseCore, planes: &mut [i32; MAX_SQUADRONS], memo: &mut WaveMemo, bonus: Option<&BaseBonus>) {
         // Enemy fighter power over every plane type.
         let mut ap2 = 0.0;
         let mut enemy_air = false;
@@ -288,13 +292,15 @@ impl<'a> Battle<'a> {
             n_attacks += 1;
         }
         for &(k, t, covered) in &attacks[..n_attacks] {
-            self.lb_strike(w, base, k, planes[k], t, covered, contact);
+            let bonus = bonus.map_or((1.0, 1.0), |bb| bb.mods(k, &planes[..]));
+            self.lb_strike(w, base, k, planes[k], t, covered, contact, bonus);
         }
     }
 
     /// kcsim `airstrikeLBAS` of squadron `k` (`n` planes) on enemy ship `t`.
+    /// `bonus`: the squadron's event (damage, accuracy) multipliers.
     #[allow(clippy::too_many_arguments)]
-    fn lb_strike(&mut self, w: usize, base: &LandBaseCore, k: usize, n: i32, t: usize, covered: bool, contact: f64) {
+    fn lb_strike(&mut self, w: usize, base: &LandBaseCore, k: usize, n: i32, t: usize, covered: bool, contact: f64, bonus: (f64, f64)) {
         use ShipClass::*;
         let e = &base.squadrons[k];
         let def = self.core(1, t);
@@ -373,6 +379,7 @@ impl<'a> Battle<'a> {
                 acc += 0.13;
             }
         }
+        acc *= bonus.1;
         let hc = {
             let du = self.unit(1, t);
             let ev = du.evasion(1.0, 0.0);
@@ -461,9 +468,12 @@ impl<'a> Battle<'a> {
                     pre *= 1.3;
                 }
             }
-            // SIMCONSTS.enableAirstrikeSpecialBonus: random multipliers against specific bosses.
+            // SIMCONSTS.enableAirstrikeSpecialBonus: random multipliers against specific bosses and
+            // PT imps, else the target's `LBWeak` (pre-cap) and `divebombWeak` (dive bombers).
+            let tt = &self.core(1, t).target;
             let special: Option<(f64, f64, f64)> = match mid {
                 1557 | 1586 | 1620 => Some((0.35, 3.0, 1.7)),
+                _ if tt.pt => Some((0.4, 0.7, 0.4)),
                 1653..=1658 => Some((0.4, 3.5, 1.7)),
                 1665..=1667 => Some((0.5, 2.5, 1.6)),
                 1668..=1672 => Some((0.4, 2.0, 1.5)),
@@ -477,7 +487,13 @@ impl<'a> Battle<'a> {
             };
             if let Some((p, hi, lo)) = special {
                 post *= if self.rng().chance(p) { hi } else { lo };
+            } else {
+                pre *= tt.lb_weak;
+                if lb_dive(e) {
+                    post *= tt.divebomb_weak;
+                }
             }
+            post *= bonus.0;
             if e.cat == cat::SEAPLANE {
                 post = 0.0;
             }
@@ -486,7 +502,9 @@ impl<'a> Battle<'a> {
                 pow = pow * 0.7 + 0.5;
             }
             pow = soft_cap(pow, CAP_LBAS).floor();
-            pow *= contact * post;
+            // kcsim `LBASPhase`: friend balloons +2 % each, the target fleet's −5 % each.
+            let balloon = (1.0 + self.balloons(0) as f64 / 50.0) * (1.0 - self.balloons(1) as f64 / 20.0);
+            pow *= contact * balloon * post;
             let armor = self.core(1, t).ar;
             let dmg = formulas::damage_common(self.rng(), pow, roll, armor, 1.0, hp_before);
             real = self.take_damage(1, t, dmg);

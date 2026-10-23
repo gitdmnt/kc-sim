@@ -56,8 +56,9 @@ per map in `sortieMaps`; start, flags and formations are not saved):
 - 基本: night policy, 撤退 (大破撤退 `onHeavy`, ダメコン所持艦は進撃 `allowDamecon`, 中破撤退 `onModerate`, 護衛退避
   `useFcf` with the flagship's command facility 107 / 272 / 413 shown), ボス前の消費 (洋上補給 `policy.underway`,
   戦闘糧食 `policy.rations`), start, 能動分岐, flags, formations per node, phase / gauge number, count and seed.
-- マス: 進撃 / 撤退 / 強行 after each node (`policy.advance`: retreat / push), gains of resource and landing nodes
-  (`SortieNode.resource`) and losses of maelstroms (`SortieNode.maelstrom`).
+- マス: 進撃 / 撤退 / 強行 after each node (`policy.advance`: retreat / push), 煙幕 per battle node (`policy.smoke`;
+  barrage-balloon nodes from `shared/sim/nodeEffects.ts` are marked 気球 and sent as `SortieNode.balloons`), gains of
+  resource and landing nodes (`SortieNode.resource`) and losses of maelstroms (`SortieNode.maelstrom`).
 - ゲージ: kind 撃破 (ボス旗艦撃沈) / HP / 輸送 (TP) and remaining (`gauge`), HP final threshold and final comps, TP tank
   force and TP per S win, additional gauges (`gauge.phases`: kind, remaining, phase), morale carried until the gauge
   breaks (`gauge.morale`) and 連続出撃 (`consecutive`).

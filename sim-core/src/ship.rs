@@ -307,6 +307,9 @@ const NO_OPENING_TORPEDO_IDS: [u32; 6] = [1530, 1531, 1570, 1644, 1645, 1646];
 const ALWAYS_OASW_IDS: [u32; 26] = [
     141, 380, 381, 382, 394, 478, 529, 536, 562, 596, 624, 628, 629, 646, 681, 689, 692, 726, 737, 889, 893, 906, 920, 1040, 1062, 1067,
 ];
+/// Player carriers that make plain night attacks (kcSHIPDATA `nightattack`): Graf Zeppelin / 改,
+/// Saratoga, 大鷹改二, 神鷹改二, 加賀改二護, Lexington / 改, 雲鷹改二.
+const NIGHT_ATTACKER_IDS: [u32; 9] = [353, 432, 433, 529, 536, 646, 735, 889, 966];
 /// Fleet oilers that attack like carriers when they carry a dive or torpedo bomber (kcsim
 /// kcSHIPDATA `canAirAttack`): 速吸改, 山汐丸改, しまね丸改. しまね丸改 (`canAirAttackNB`) also makes
 /// night air attacks with night aviation personnel.
@@ -402,6 +405,7 @@ pub struct ShipCore {
     pub searchlight: u8,
     pub has_lookout: bool,
     pub no_red_t: bool,
+    /// Installation (陸上型): `target.kind` is `Some`.
     pub is_installation: bool,
     pub always_oasw: bool,
     pub night_attacker: bool,
@@ -420,6 +424,10 @@ pub struct ShipCore {
     /// firepower added to light cruiser shelling and night power.
     pub fit_acc: f64,
     pub fit_fp: f64,
+    /// This ship as a target: installation kind, PT imp, supply depot, special target group.
+    pub target: crate::install::TargetTraits,
+    /// This ship's modifiers against installations / special targets / PT imps.
+    pub vs: crate::install::VsMods,
 }
 
 /// Mutable per-battle state of one ship.
@@ -524,9 +532,9 @@ impl ShipCore {
             searchlight: 0,
             has_lookout: false,
             no_red_t: false,
-            is_installation: input.is_installation.unwrap_or(false),
+            is_installation: false,
             always_oasw: input.always_opening_asw.unwrap_or(is_player && ALWAYS_OASW_IDS.contains(&input.id.unwrap_or(0))),
-            night_attacker: input.night_attacker.unwrap_or(false),
+            night_attacker: input.night_attacker.unwrap_or(is_player && NIGHT_ATTACKER_IDS.contains(&input.id.unwrap_or(0))),
             equip_asw_total: 0.0,
             master_id: input.id.unwrap_or(0),
             ship_class: input.ship_class.unwrap_or(0),
@@ -535,6 +543,8 @@ impl ShipCore {
             air_ao: false,
             fit_acc: 0.0,
             fit_fp: 0.0,
+            target: Default::default(),
+            vs: Default::default(),
         };
         if is_player {
             let mut ids = [(0u32, 0u32); MAX_SLOTS];
@@ -546,6 +556,8 @@ impl ShipCore {
             (core.fit_acc, core.fit_fp) = crate::fit::gun_fit(class, core.ship_class, core.master_id, core.level, &ids[..k]);
         }
         core.derive(input.hidden_accuracy.unwrap_or(0.0));
+        (core.target, core.vs) = crate::install::derive(input, is_player, class, core.slots.iter().flatten());
+        core.is_installation = core.target.kind.is_some();
         core
     }
 

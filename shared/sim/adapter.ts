@@ -18,7 +18,8 @@ import type { ApiEquipment, ApiShip, CompShip, Confidence, EnemyComp, HiddenStat
 import { isAircraft } from "../fleet/calc";
 import { resolveShipStats } from "../fleet/stats";
 import type { EquipMaster, MasterData, Preset, PresetAirBase, PresetEquip, PresetFleetType, PresetFormation, PresetShip } from "../fleet/types";
-import { computeFitBonus, fitToEquipmentStats } from "./fit";
+import { abyssalTraits, HIDDEN_FALLBACK_SOURCE, hiddenFallback } from "./abyssal";
+import { computeFitBonus, fitEquipOf, fitShipOf, fitToEquipmentStats } from "./fit";
 import type { FitEntry } from "./fit";
 
 export const FORMATION_MAP: Record<PresetFormation, Formation> = {
@@ -89,8 +90,8 @@ export interface FriendBuild {
   escort?: ShipInput[];
   combined?: CombinedType;
   warnings: string[];
-  /** 未対応条件で評価できなかった装備ボーナス定義の数 (全艦合計) */
-  fitSkipped: number;
+  /** 未知のキーや master に無い艦情報 (初期艦・国籍) のため評価できなかった装備ボーナス定義の数 (全艦合計) */
+  fitUnresolved: number;
 }
 
 const toPresetEquipInput = (
@@ -109,7 +110,7 @@ const toPresetEquipInput = (
 /** プリセットの艦隊 (連合艦隊なら主力と随伴) を sim-core の艦にする。随伴の警告は「随伴n番艦」。 */
 export const buildFriendShips = (preset: Preset, master: MasterData, opts: FriendOptions = {}): FriendBuild => {
   const warnings: string[] = [];
-  let fitSkipped = 0;
+  let fitUnresolved = 0;
   const apply = opts.applyFit !== false && !!opts.fitBonuses;
 
   const toInput = (prefix: string) => (ship: PresetShip, idx: number): ShipInput => {
@@ -132,14 +133,12 @@ export const buildFriendShips = (preset: Preset, master: MasterData, opts: Frien
       }
     }
     let bonus: EquipmentStats = {};
+    let rangeBonus = 0;
     if (apply) {
-      const fit = computeFitBonus(
-        { masterId: ship.masterId, stype: m?.api_stype ?? 0, ctype: m?.api_ctype },
-        all.map((e) => ({ masterId: e.masterId, type2: master.equips[e.masterId]?.api_type?.[2] ?? 0, improvement: e.improvement })),
-        opts.fitBonuses!
-      );
+      const fit = computeFitBonus(fitShipOf(ship.masterId, master), all.map((e) => fitEquipOf(e, master)), opts.fitBonuses!);
       bonus = fitToEquipmentStats(fit.bonus);
-      fitSkipped += fit.skipped;
+      rangeBonus = fit.bonus.leng ?? 0;
+      fitUnresolved += fit.unresolved;
     }
 
     // resolveShipStats は観測値(装備込み)か、計算値(基礎+装備)を返す → どちらも装備合計を引けば素の値
@@ -184,7 +183,8 @@ export const buildFriendShips = (preset: Preset, master: MasterData, opts: Frien
     if (m?.api_ctype) out.shipClass = m.api_ctype;
     if (Object.keys(bonus).length > 0) out.equipBonus = bonus;
     if (exInput) out.exSlot = exInput;
-    const range = r.range.value;
+    // 観測した射程は装備ボーナス込み。計算値 (max(艦, 装備)) には射程ボーナスを足す。
+    const range = r.range.value === null ? null : r.range.value + (r.range.source === "observed" ? 0 : rangeBonus);
     if (range !== null && range > 0) out.range = range;
     const speed = r.speed.value;
     if (speed !== null) out.speed = speed;
@@ -193,8 +193,8 @@ export const buildFriendShips = (preset: Preset, master: MasterData, opts: Frien
 
   const combined = COMBINED_TYPE[preset.fleetType];
   const input = preset.ships.map(toInput(""));
-  if (!combined) return { input, warnings, fitSkipped };
-  return { input, escort: (preset.escort ?? []).map(toInput("随伴")), combined, warnings, fitSkipped };
+  if (!combined) return { input, warnings, fitUnresolved };
+  return { input, escort: (preset.escort ?? []).map(toInput("随伴")), combined, warnings, fitUnresolved };
 };
 
 /** 偵察機 (艦偵・水偵・大艇・陸偵・艦偵II) の api_type[2] */
@@ -251,15 +251,18 @@ export const bestEstimates = (detail: ShipDetail | undefined, useServerEstimates
   return out;
 };
 
-/** `best` を ShipInput に入れる。best に無い隠しステータスは 0 (sim-core の既定)。 */
-export const applyBest = (ship: ShipInput, best: EstimateMap): ShipInput => ({
+/**
+ * `best` を ShipInput に入れる。best に無い回避・対潜・索敵・運は `fallback` (艦種別の代替値)、
+ * それも無ければ 0。
+ */
+export const applyBest = (ship: ShipInput, best: EstimateMap, fallback?: readonly [number, number, number, number] | null): ShipInput => ({
   ...ship,
   stats: {
     ...ship.stats,
-    evasion: best.ev?.value ?? 0,
-    asw: best.asw?.value ?? 0,
-    los: best.los?.value ?? 0,
-    luck: best.luck?.value ?? 0,
+    evasion: best.ev?.value ?? fallback?.[0] ?? 0,
+    asw: best.asw?.value ?? fallback?.[1] ?? 0,
+    los: best.los?.value ?? fallback?.[2] ?? 0,
+    luck: best.luck?.value ?? fallback?.[3] ?? 0,
   },
   // tacc (kcsim TACC, 雷撃のみ) → torpedoAccuracy; acc (推定器の汎用隠し命中) → hiddenAccuracy。
   // TACC を hiddenAccuracy に入れると砲撃・夜戦の命中が +50〜85 され、被害が過大になる。
@@ -337,17 +340,29 @@ export const buildEnemyShips = (ships: CompShip[], lookup: EnemyLookup, opts: Bu
     };
     if (info?.range) base.range = info.range;
     if (info?.speed != null) base.speed = info.speed;
+    // 陸上型・PT・集積地・特効対象・夜戦攻撃・先制対潜 (ships.flags = kcSHIPDATA)
+    Object.assign(base, abyssalTraits(info?.flags));
 
     const detail = lookup.detail(cs.shipId);
     if (opts.skipHiddenStats) return base;
     const best = bestEstimates(detail, opts.useServerEstimates ?? true);
+    const fallback = hiddenFallback(base.shipType, base.maxHp);
+    const FALLBACK_INDEX: Partial<Record<HiddenStat, 0 | 1 | 2 | 3>> = { ev: 0, asw: 1, los: 2, luck: 3 };
+    const missing: HiddenStat[] = [];
     for (const stat of ["ev", "asw", "los", "luck", "acc", "tacc"] as HiddenStat[]) {
       const b = best[stat];
       const n = b?.source === SERVER_ESTIMATOR_SOURCE ? (detail?.estimates.find((e) => e.stat === stat && e.source === b.source)?.n ?? null) : null;
+      const fi = FALLBACK_INDEX[stat];
+      if (!b && fi !== undefined && fallback) {
+        missing.push(stat);
+        reliability.push({ shipId: cs.shipId, name, stat, confidence: "placeholder", value: fallback[fi]!, source: HIDDEN_FALLBACK_SOURCE, n: null });
+        continue;
+      }
       reliability.push({ shipId: cs.shipId, name, stat, confidence: b?.confidence ?? "unknown", value: b?.value ?? null, source: b?.source ?? null, n });
     }
-    if (!detail) warnings.push(`${name}: 隠しステータスの推定値を取得できませんでした (0 扱い)`);
-    return applyBest(base, best);
+    if (missing.length > 0) warnings.push(`${name}: 隠しステータス (${missing.join(", ")}) の推定値が無いため艦種別の代替値を使います`);
+    else if (!detail) warnings.push(`${name}: 隠しステータスの推定値を取得できませんでした (0 扱い)`);
+    return applyBest(base, best, fallback);
   });
 
   return { input, warnings, reliability };
@@ -359,6 +374,10 @@ export interface BuildBattleOptions {
   kind: BattleKind;
   enemyFormation: Formation;
   lbas?: LandBaseWave[];
+  /** 煙幕を展開する (出撃中 1 回) */
+  smoke?: boolean;
+  /** 阻塞気球マス (`isBalloonNode`) */
+  balloons?: boolean;
 }
 
 /** 味方の FleetInput (連合艦隊なら随伴と種別つき) */
@@ -371,7 +390,7 @@ export const friendFleet = (build: Pick<FriendBuild, "input" | "escort" | "combi
 export const buildBattleInput = (friend: FleetInput, enemy: ShipInput[], o: BuildBattleOptions): BattleInput => ({
   friend,
   enemy: { ships: enemy, formation: o.enemyFormation },
-  options: { kind: o.kind },
+  options: { kind: o.kind, ...(o.smoke ? { smoke: true } : {}), ...(o.balloons ? { balloons: true } : {}) },
   ...(o.lbas?.length ? { lbas: o.lbas } : {}),
 });
 

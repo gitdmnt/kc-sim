@@ -1,16 +1,28 @@
 /** 作業台の入力 → Worker で回す計算 (出撃 / 単一マス戦闘) と、その結果に付ける表示用の情報。 */
-import type { BattleKind, SimulationSummary, SortieSummary } from "@sim-core";
+import type { BattleInput, BattleKind, SimulationSummary, SortieSummary } from "@sim-core";
 import type { EnemyComp, EnemyCompSet } from "@shared/data/types";
 import type { MasterData, Preset } from "@shared/fleet/types";
-import { buildBattleInput, buildEnemyShips, buildFriendShips, enemyFormationOf, friendFleet, friendFormationOf, landBaseWaves } from "@shared/sim/adapter";
+import {
+  buildBattleInput,
+  buildEnemyShips,
+  buildFriendShips,
+  buildSquadrons,
+  enemyFormationOf,
+  friendFleet,
+  friendFormationOf,
+  landBaseWaves,
+} from "@shared/sim/adapter";
 import type { FriendBuild } from "@shared/sim/adapter";
 import type { FitEntry } from "@shared/sim/fit";
-import { getDataApi } from "../../data/api";
+import { bonusAt, buildBonuses, debuffsAt } from "@shared/sim/bonuses";
+import { isBalloonNode } from "@shared/sim/nodeEffects";
+import type { EventBonusResponse } from "@shared/sim/bonuses";
+import { DataApiError, getDataApi } from "../../data/api";
 import type { MapData } from "../../data/mapData";
 import { runInWorker, runSortieInWorker } from "../../sim/client";
 import { allocateCounts, mergeSummaries } from "../../sim/runner";
 import { buildSortieInput, enemyCombinedNote, hasEnemyEscort, mapLookup } from "../../sim/sortieAdapter";
-import type { SortieSettings } from "../../sim/sortieAdapter";
+import type { EventBonusSettings, SortieSettings } from "../../sim/sortieAdapter";
 import type { AssumptionData } from "./Assumptions";
 import type { SimRequest } from "./useSimRun";
 
@@ -62,6 +74,33 @@ export const loadFitBonuses = (): Promise<FitEntry[] | null> =>
 
 const FIT_MISSING = "装備ボーナスを取得できず未適用";
 
+const eventBonusCache = new Map<string, Promise<EventBonusResponse | null>>();
+/** 海域のイベント特効。データの無い海域 (404) は null。通信の失敗は reject (ページを開いている間、海域ごとに 1 度だけ取得)。 */
+export const loadEventBonuses = (map: string): Promise<EventBonusResponse | null> => {
+  let p = eventBonusCache.get(map);
+  if (!p) {
+    p = getDataApi()
+      .eventBonuses(map)
+      .then(
+        (r) => r.data,
+        (e) => {
+          if (e instanceof DataApiError && e.status === 404) return null;
+          eventBonusCache.delete(map);
+          throw e;
+        }
+      );
+    eventBonusCache.set(map, p);
+  }
+  return p;
+};
+
+/** 前提の欄に出す、使った特効データの説明 */
+const eventBonusNote = (e: EventBonusSettings): string => {
+  const r = e.response;
+  const meta = [r.date, r.note].filter(Boolean).join(", ");
+  return `イベント特効: ${r.source === "manual" ? "手入力データ" : "kancolle-replay"}${meta ? ` (${meta})` : ""}${e.debuff ? "、装甲破砕済み" : ""}`;
+};
+
 /** 結果の味方の並び (sim-core: 主力の後に随伴) の艦名。随伴は頭に「随伴」 */
 const friendNamesOf = (f: FriendBuild): string[] => [
   ...f.input.map((s) => s.name ?? `#${s.id}`),
@@ -72,7 +111,13 @@ interface Common {
   fit: FitEntry[] | null;
   useServerEstimates: boolean;
   seed: number;
+  /** イベント特効 (無い海域・適用しないときは undefined) */
+  eventBonus?: EventBonusSettings;
+  /** 特効データを取得できなかった (未適用と注記する) */
+  eventBonusFailed?: boolean;
 }
+
+const EVENT_MISSING = "イベント特効を取得できず未適用";
 
 export const sortieRequest = (
   preset: Preset,
@@ -81,8 +126,13 @@ export const sortieRequest = (
   st: SortieSettings,
   o: Common
 ): SimRequest<SimOutcome> => {
-  const build = buildSortieInput(preset, master, data, st, { fitBonuses: o.fit ?? undefined, useServerEstimates: o.useServerEstimates });
-  const base = [...(st.applyFit && !o.fit ? [FIT_MISSING] : []), ...build.warnings];
+  const build = buildSortieInput(preset, master, data, st, { fitBonuses: o.fit ?? undefined, useServerEstimates: o.useServerEstimates, eventBonus: o.eventBonus });
+  const base = [
+    ...(st.applyFit && !o.fit ? [FIT_MISSING] : []),
+    ...(o.eventBonusFailed ? [EVENT_MISSING] : []),
+    ...(o.eventBonus ? [eventBonusNote(o.eventBonus)] : []),
+    ...build.warnings,
+  ];
   const { gauge, ...bare } = build.input;
   return {
     start: (count, onProgress) => {
@@ -132,7 +182,27 @@ export const battleRequest = (
   const builds = chosen.map((c) => buildEnemyShips(c.main, lookup, { useServerEstimates: o.useServerEstimates }));
   const fleet = friendFleet(friend, friendFormationOf(preset));
   const lbas = landBaseWaves(preset.lbas, o.node, master);
-  const inputs = chosen.map((c, i) => buildBattleInput(fleet, builds[i].input, { kind: o.kind, enemyFormation: enemyFormationOf(c), lbas }));
+  const extras: Partial<BattleInput> = {};
+  const bonusWarnings: string[] = [];
+  if (o.eventBonus) {
+    const e = o.eventBonus;
+    // 波ごとの基地 (landBaseWaves と同じ順: 出撃の隊、目標が node の波)
+    const waveBases = (preset.lbas ?? []).flatMap((b) =>
+      b.mode === "sortie" && buildSquadrons(b, master).length > 0 ? b.targets.filter((t) => t === o.node).map(() => b) : []
+    );
+    const b = buildBonuses(preset, e.response, master, { unconfirmed: e.unconfirmed, accEva: e.accEva, lbas: waveBases });
+    const ships = b.bonuses.map((x) => bonusAt(x, o.node));
+    if (ships.some((x) => x)) extras.bonuses = ships;
+    const escort = friend.combined ? (b.escortBonuses ?? []).map((x) => bonusAt(x, o.node)) : [];
+    if (escort.some((x) => x)) extras.escortBonuses = escort;
+    const bases = (b.lbasBonuses ?? []).map((x) => bonusAt(x, o.node));
+    if (bases.some((x) => x)) extras.lbasBonuses = bases;
+    const debuffs = e.debuff ? debuffsAt(e.response, o.node) : [];
+    if (debuffs.length) extras.debuffs = debuffs;
+    bonusWarnings.push(eventBonusNote(e), ...b.warnings);
+  }
+  const balloons = isBalloonNode(data.detail.map.world, data.detail.map.no, o.node);
+  const inputs = chosen.map((c, i) => ({ ...buildBattleInput(fleet, builds[i].input, { kind: o.kind, enemyFormation: enemyFormationOf(c), lbas, balloons }), ...extras }));
   const enemyCombined = hasEnemyEscort(chosen) ? [o.node] : [];
   const assumptions: AssumptionData = {
     friend,
@@ -142,6 +212,8 @@ export const battleRequest = (
     warnings: [
       ...new Set([
         ...(o.applyFit && !o.fit ? [FIT_MISSING] : []),
+        ...(o.eventBonusFailed ? [EVENT_MISSING] : []),
+        ...bonusWarnings,
         ...(enemyCombined.length > 0 ? [enemyCombinedNote(enemyCombined)] : []),
         ...friend.warnings,
         ...builds.flatMap((b) => b.warnings),

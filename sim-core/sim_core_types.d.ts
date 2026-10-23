@@ -208,17 +208,46 @@ export interface ShipInput {
   slots: (EquipmentInput | null)[];
   /** Reinforcement expansion slot (補強増設). */
   exSlot?: EquipmentInput | null;
-  /** Installation (陸上型): cannot be torpedoed; submarines target only installations. Default false. */
+  /** Installation (陸上型): cannot be torpedoed; submarines target only installations; carriers
+   *  with dive bombers only if a bomber can attack installations. Default: `installationKind` set.
+   *  `true` without a kind = "softSkinned"; `false` overrides the kind. */
   isInstallation?: boolean;
+  /** Installation kind (kcSHIPDATA `installtype` 1..6). Selects the attacker's installation
+   *  damage table (三式弾, WG42, rockets, landing craft, tanks, AP shells, bombers). */
+  installationKind?: InstallationKind;
+  /** PT imp group (PT小鬼群, kcSHIPDATA `isPT`): PT accuracy / damage transforms. */
+  ptImp?: boolean;
+  /** Takes the supply-depot post-cap bonus without being an installation (kcSHIPDATA
+   *  `isSupplyDepot`). Implied by installationKind "supplyDepot". */
+  supplyDepot?: boolean;
+  /** Dive-bomber airstrike post-cap multiplier against this ship (kcSHIPDATA `divebombWeak`). */
+  divebombWeak?: number;
+  /** Land-based airstrike pre-cap multiplier against this ship (kcSHIPDATA `LBWeak`). */
+  lbWeak?: number;
+  /** Abyssal with its own post-cap damage table (kcSHIPDATA isSummerBB/CA/CV, isFrenchBB,
+   *  isEuroWP, isAnchorage, isDock). */
+  targetGroup?: TargetGroup;
   /** Ship always performs opening ASW. Default: true for friend ships whose `id` is one of the 26
    *  always-OASW ships (Isuzu K2 141, Tatsuta K2 478, Jervis/Janus Kai, Fletcher class, Taiyou class,
    *  … — kcsim data), else false. Set explicitly to override. */
   alwaysOpeningAsw?: boolean;
-  /** Carrier that attacks at night with a plain FP+TP night attack (Graf Zeppelin-type, abyssal
-   *  princess carriers). Carriers with night aviation personnel (equipped ids 258/259 or built in)
-   *  and night planes make night air attacks / night CVCI without this flag. Default false. */
+  /** Carrier that attacks at night with a plain FP+TP night attack (kcSHIPDATA `nightattack`:
+   *  Graf Zeppelin, Saratoga, Taiyou-class K2, Kaga K2Go, Lexington, abyssal princess carriers).
+   *  Carriers with night aviation personnel (equipped ids 258/259 or built in) and night planes
+   *  make night air attacks / night CVCI without this flag. Default: true for those friend ids
+   *  (353, 432, 433, 529, 536, 646, 735, 889, 966), else false. */
   nightAttacker?: boolean;
 }
+
+export type InstallationKind = "softSkinned" | "artillery" | "supplyDepot" | "isolatedIsland" | "northernmost" | "harbourSummer";
+export type TargetGroup =
+  | "summerBattleship"
+  | "summerHeavyCruiser"
+  | "summerCarrier"
+  | "frenchBattleship"
+  | "europeanPrincess"
+  | "anchorage"
+  | "dock";
 
 export interface FleetInput {
   /** 1..7 ships in order (index 0 = flagship). Combined fleet: the main fleet (主力). */
@@ -231,6 +260,8 @@ export interface FleetInput {
   escort?: ShipInput[];
   /** Friend combined fleet type. Requires `escort`. */
   combined?: CombinedType;
+  /** Friend fleet: a smoke screen was already deployed this sortie (once per sortie). */
+  smokeUsed?: boolean;
 }
 
 export interface BattleOptions {
@@ -241,6 +272,11 @@ export interface BattleOptions {
   engagement?: Engagement;
   /** runBattle only: record every attack in `result.events`. Default false. */
   log?: boolean;
+  /** The friend fleet tries to deploy a smoke screen (煙幕; day / air battles, single fleets with
+   *  ≥ 4 surface ships afloat; once per sortie). Default false. */
+  smoke?: boolean;
+  /** Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect. Default false. */
+  balloons?: boolean;
 }
 
 /** One land-base wave: one base's squadrons (1..4). Each squadron is an EquipmentInput whose
@@ -257,6 +293,58 @@ export interface BattleInput {
   /** Land-base waves in order (max 6), resolved before the friend's air phase (not in night-only
    *  battles). Each wave starts from its own squadron sizes. */
   lbas?: LandBaseWave[];
+  /** Event historical bonuses of the friend ships, in `friend.ships` order (`null` / missing = none).
+   *  `shared/sim/bonuses.ts` builds them from `GET /maps/{map}/bonuses`. */
+  bonuses?: (ShipBonusSet | null)[];
+  /** Event bonuses of the friend escort ships, in `friend.escort` order (Error without an escort). */
+  escortBonuses?: (ShipBonusSet | null)[];
+  /** Event bonuses of the land-base waves, in `lbas` order. */
+  lbasBonuses?: (BaseBonusSet | null)[];
+  /** Armor debuffs of the enemy ships (main and escort). */
+  debuffs?: ArmorDebuff[];
+}
+
+/**
+ * Event historical bonus multipliers (kancolle-replay `bonusDmg` / `bonusAcc` / `bonusEva`), each
+ * default 1. `dmg` on the post-cap power of shelling, torpedo, night, ASW and airstrikes; `acc` on
+ * the hit fraction of shelling, torpedo, night and ASW (not airstrikes); `eva` on the ship's
+ * evasion fraction against every attack.
+ */
+export interface DamageMods {
+  dmg?: number;
+  acc?: number;
+  eva?: number;
+}
+
+/**
+ * Plane bonus group (kancolle-replay `bonusGroups`, kcsim `getBonusSpecialPlane`): applies while one
+ * of `slots` (ships: 0–4, 5 = reinforcement slot; land bases: squadrons 0–3) still has planes, to
+ * attacks with planes (airstrikes, carrier shelling, night air attacks, plane ASW outside opening
+ * ASW); `notAirOnly` groups also to the other attacks and to the ship's evasion.
+ */
+export interface PlaneBonusGroup extends DamageMods {
+  slots: number[];
+  notAirOnly?: boolean;
+}
+
+/** Event bonuses of one friend ship in one battle. */
+export interface ShipBonusSet extends DamageMods {
+  planes?: PlaneBonusGroup[];
+}
+
+/** Event bonuses of one land base in one battle: per squadron (`squadrons` order) and base-wide plane
+ *  groups; `eva` is ignored. */
+export interface BaseBonusSet {
+  squadrons?: (DamageMods | null)[];
+  planes?: PlaneBonusGroup[];
+}
+
+/** Armor debuff (kancolle-replay `listDebuff` / `applyAutoDebuff`): enemy base armor
+ *  `max(1, armor − amount)` for the ships whose `id` is listed (absent = every enemy ship); the last
+ *  matching entry wins. */
+export interface ArmorDebuff {
+  shipId?: number[];
+  amount: number;
 }
 
 // --------------------------------------------------------------- output ----
@@ -317,6 +405,8 @@ export interface BattleResult {
   enemy: ShipResult[];
   /** Present when `options.log` is true. */
   events?: AttackEvent[];
+  /** Smoke screen deployed by the friend fleet: 1..3 layers; absent = none. */
+  smoke?: number;
 }
 
 /** Fleets after the battle: same shape as the input (a combined friend fleet keeps `escort` /
@@ -406,6 +496,9 @@ export interface AttackQuery {
   slot?: number;
   /** kind="air": contact (触接) multiplier 1 / 1.12 / 1.17 / 1.2. Default 1. */
   contactModifier?: number;
+  /** Event bonuses of the attacker / defender (a friend ship). Debuffs: lower the defender's armor. */
+  attackerBonus?: ShipBonusSet;
+  defenderBonus?: ShipBonusSet;
 }
 
 export interface HitProbability {
@@ -513,6 +606,16 @@ export interface SortieNode {
   /** Battle kind of the node, replacing the one from `kind` and the night policy (a battle-type
    *  node with comps still decides whether there is a battle). */
   battleKind?: BattleKind;
+  /** Event bonuses of the friend ships at this node (`friend.ships` order; `null` = none). */
+  bonuses?: (ShipBonusSet | null)[];
+  /** Event bonuses of the friend escort ships at this node (`friend.escort` order). */
+  escortBonuses?: (ShipBonusSet | null)[];
+  /** Event bonuses of the land bases attacking this node (`SortieInput.lbas` order). */
+  lbasBonuses?: (BaseBonusSet | null)[];
+  /** Armor debuffs of the enemy ships here (at the goal node also `gauge.finalComps`). */
+  debuffs?: ArmorDebuff[];
+  /** Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect. Default false. */
+  balloons?: boolean;
 }
 
 export interface ResourceAmounts {
@@ -608,6 +711,9 @@ export interface SortiePolicy {
   /** Combat rations (`types[2]` 43) are eaten before the boss / target battle: ration +10 morale and
    *  +2 to the neighbours, canned saury (id 150) +12 / +9 [unverified]. Default true. */
   rations?: boolean;
+  /** Node letters where the friend fleet tries a smoke screen (煙幕; once per sortie, see
+   *  `BattleOptions.smoke`; `friend.smokeUsed` = already spent). Unknown letter → Error. */
+  smoke?: string[];
 }
 
 export interface GaugeInput {

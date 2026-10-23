@@ -19,6 +19,7 @@ mod torpedo;
 
 pub use day::special_day_ci as day_ci_of;
 pub use night::special_night as night_attack_of;
+use crate::bonus::{self, BaseBonus, Bonus};
 use crate::equipment::{f, ID_DAMECON_GODDESS, ID_DAMECON_TEAM};
 use crate::formation::{self, roll_engagement};
 use crate::formulas;
@@ -26,7 +27,7 @@ use crate::model::*;
 use crate::rng::Rng;
 use crate::ship::{ShipCore, ShipState, EX_SLOT, MAX_SLOTS};
 use calc::{Cf, Unit, CF_NONE};
-use lbas::{LandBaseCore, LbPlanes};
+use lbas::{LandBaseCore, LbPlanes, MAX_SQUADRONS};
 
 /// Ships per fleet (main, or a single fleet).
 pub const MAX_SHIPS: usize = 7;
@@ -78,15 +79,18 @@ impl FleetCore {
     /// Derive cores and the initial battle state of a fleet (main then escort).
     pub fn build(fl: &FleetInput, player: bool) -> (FleetCore, Vec<ShipState>) {
         let inputs = || fl.ships.iter().chain(fl.escort_ships());
-        let ships: Vec<ShipCore> = inputs().map(|s| ShipCore::new(s, player)).collect();
+        let mut ships: Vec<ShipCore> = inputs().map(|s| ShipCore::new(s, player)).collect();
         let states = ships.iter().zip(inputs()).map(|(c, s)| c.initial_state(s)).collect();
         let escort_start = if fl.combined.is_some() { fl.ships.len() } else { ships.len() };
+        let (main, escort) = ships.split_at_mut(escort_start);
+        crate::install::spread_anti_pt(main);
+        crate::install::spread_anti_pt(escort);
         (FleetCore { ships, is_player: player, escort_start, combined: fl.combined }, states)
     }
 }
 
 /// Per-battle settings.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct BattleSetup {
     pub kind: BattleKind,
     pub engagement: Option<Engagement>,
@@ -96,6 +100,12 @@ pub struct BattleSetup {
     pub log: bool,
     /// Fuel / ammo consumption fractions replacing the kind-based ones (sortie node types).
     pub supply: Option<[f64; 2]>,
+    /// The friend fleet tries to deploy a smoke screen (unless `smoke_used`).
+    pub smoke: bool,
+    /// A smoke screen was already deployed earlier in the sortie.
+    pub smoke_used: bool,
+    /// Barrage-balloon node.
+    pub balloons: bool,
 }
 
 /// Validated input with all static derivations done once (reused across Monte-Carlo runs).
@@ -106,6 +116,9 @@ pub struct Prepared {
     /// Land-base waves (one base each).
     pub lbas: Vec<LandBaseCore>,
     lb_waves: Vec<usize>,
+    /// Event bonuses of the friend ships (main then escort) and of the waves (empty = none).
+    bonus: Vec<Option<Bonus>>,
+    lb_bonus: Vec<Option<BaseBonus>>,
 }
 
 fn validate_ships(name: &str, ships: &[ShipInput], max: usize) -> Result<(), String> {
@@ -177,7 +190,12 @@ impl Prepared {
             lbas.push(LandBaseCore::new(&format!("lbas wave #{i}"), &w.squadrons)?);
         }
         let (ff, fs) = FleetCore::build(&input.friend, true);
-        let (ef, es) = FleetCore::build(&input.enemy, false);
+        let debuffs = input.debuffs.as_deref().unwrap_or(&[]);
+        bonus::validate_debuffs("battle", debuffs)?;
+        let (ef, es) = FleetCore::build(&bonus::debuffed(&input.enemy, debuffs), false);
+        let (main, esc) = (input.friend.ships.len(), input.friend.escort_ships().len());
+        let ship_bonus = bonus::build_fleet(input.bonuses.as_deref(), input.escort_bonuses.as_deref(), main, esc, "")?;
+        let lb_bonus = bonus::build_bases("lbasBonuses", input.lbas_bonuses.as_deref(), lbas.len(), MAX_SQUADRONS)?;
         Ok(Prepared {
             fleets: [ff, ef],
             init: [fs, es],
@@ -188,14 +206,20 @@ impl Prepared {
                 night_unless: None,
                 log: input.options.log,
                 supply: None,
+                smoke: input.options.smoke,
+                smoke_used: input.friend.smoke_used.unwrap_or(false),
+                balloons: input.options.balloons,
             },
             lb_waves: (0..lbas.len()).collect(),
             lbas,
+            bonus: ship_bonus,
+            lb_bonus,
         })
     }
 
     pub fn battle<'a>(&'a self, rng: &'a mut Rng) -> Battle<'a> {
         let mut b = Battle::new([&self.fleets[0], &self.fleets[1]], [self.init[0].clone(), self.init[1].clone()], self.setup, rng);
+        b.set_bonuses(&self.bonus, &self.lb_bonus);
         if !self.lbas.is_empty() {
             b.set_lbas(&self.lbas, &self.lb_waves, lbas::initial_planes(&self.lbas));
         }
@@ -225,6 +249,8 @@ pub struct Outcome {
     pub night: bool,
     pub enemy_gauge: i32,
     pub friend_gauge: i32,
+    /// Smoke screen layers deployed by the friend fleet (0 = none).
+    pub smoke: u8,
 }
 
 /// Land-base waves of one battle: bases, the base index of each wave, and the bases' plane
@@ -267,6 +293,12 @@ pub struct Battle<'a> {
     shell_cf: [(f64, f64); 2],
     lbas: Option<LbRun<'a>>,
     pub events: Option<Vec<AttackEvent>>,
+    /// Smoke screen layers deployed by the friend fleet this battle (0 = none).
+    smoke: u8,
+    /// Event bonuses of the friend ships (main then escort) and of the land bases (by base index);
+    /// empty / missing = none.
+    bonus: &'a [Option<Bonus>],
+    lb_bonus: &'a [Option<BaseBonus>],
 }
 
 impl<'a> Battle<'a> {
@@ -316,6 +348,9 @@ impl<'a> Battle<'a> {
             shell_cf: [SHELL_SINGLE; 2],
             lbas: None,
             events: if setup.log { Some(Vec::new()) } else { None },
+            smoke: 0,
+            bonus: &[],
+            lb_bonus: &[],
         }
     }
 
@@ -323,6 +358,12 @@ impl<'a> Battle<'a> {
     /// current squadron sizes.
     pub fn set_lbas(&mut self, bases: &'a [LandBaseCore], waves: &'a [usize], planes: LbPlanes) {
         self.lbas = Some(LbRun { bases, waves, planes });
+    }
+
+    /// Event bonuses: friend ships (main then escort) and land bases (indexed like `set_lbas`' bases).
+    pub fn set_bonuses(&mut self, ships: &'a [Option<Bonus>], bases: &'a [Option<BaseBonus>]) {
+        self.bonus = ships;
+        self.lb_bonus = bases;
     }
 
     /// Squadron sizes of the land bases after the battle.
@@ -363,7 +404,56 @@ impl<'a> Battle<'a> {
         let fl = self.fleets[side];
         let es = fl.escort_start;
         let (idx, len) = if i >= es { (i - es, fl.ships.len() - es) } else { (i, es) };
-        Unit { core: &fl.ships[i], st: &self.st[side][i], form: self.setup.formations[side], idx, len, cf: self.cf(side, i) }
+        // Smoke and balloons act in the day battle only.
+        let day = self.phase != Phase::Night;
+        let smoke = if day { self.smoke } else { 0 };
+        let balloons = if day { self.balloons(side) } else { 0 };
+        let bonus = if side == 0 { self.bonus.get(i).and_then(Option::as_ref) } else { None };
+        Unit { core: &fl.ships[i], st: &self.st[side][i], form: self.setup.formations[side], idx, len, cf: self.cf(side, i), smoke, balloons, bonus }
+    }
+
+    /// kcships `Fleet.getNumBalloons`: afloat ships of `side` (main and escort) with a barrage
+    /// balloon, max 3; 0 outside balloon nodes.
+    pub(crate) fn balloons(&self, side: usize) -> u8 {
+        if !self.setup.balloons {
+            return 0;
+        }
+        (0..self.len(side)).filter(|&i| self.alive(side, i) && self.core(side, i).vs.balloon).count().min(3) as u8
+    }
+
+    /// Smoke screen of the friend fleet at the start of the battle (kcsim `getSmokeType` with
+    /// `Fleet.getSmokeRates`, the wikiwiki 発煙装置 formulas): n = generators + 2 × Kai among
+    /// afloat ships, k = ⌈√(flagship luck) + 0.3·Σ★ + 0.5·Σ★Kai⌉, failure = clamp(3.2 − 0.2k − n);
+    /// layers: n ≥ 3: 3 with 3⌈5n − 15 + s⌉ + 1 %, 2 with min(30, rest) %; n = 2: 2 with
+    /// 3⌈5n − 5 + s⌉ + 1 % (s = 1.5√luck + 0.3·Σ★ + 0.5·Σ★Kai). A single fleet needs ≥ 4 surface
+    /// ships afloat. Once per sortie.
+    fn deploy_smoke(&mut self) {
+        if !self.setup.smoke || self.setup.smoke_used {
+            return;
+        }
+        if self.combined.is_none() && self.surface(0).len() < 4 {
+            return;
+        }
+        let (mut n, mut stars, mut stars_kai) = (0.0f64, 0.0, 0.0);
+        for i in 0..self.len(0) {
+            if !self.alive(0, i) || self.core(0, i).class.is_sub() {
+                continue;
+            }
+            for e in self.core(0, i).slots.iter().flatten() {
+                if e.id == crate::install::ID_SMOKE {
+                    n += 1.0;
+                    stars += e.level as f64;
+                } else if e.id == crate::install::ID_SMOKE_KAI {
+                    n += 2.0;
+                    stars_kai += e.level as f64;
+                }
+            }
+        }
+        if n <= 0.0 {
+            return;
+        }
+        let u = self.rng.f64();
+        self.smoke = crate::install::smoke_layers(u, n, self.core(0, 0).luck.max(0.0), stars, stars_kai);
     }
 
     /// Combined-fleet attack terms of a ship (kcsim `COMBINEDCONSTS`, `torpedoPhase`, `airstrike`).
@@ -455,6 +545,59 @@ impl<'a> Battle<'a> {
         (t, false)
     }
 
+    /// [`Battle::choose_target`] with kcsim's `targetsProtectOverride`: covering ships are drawn
+    /// from `protect` instead of `cands` (anti-PT ships aiming at PT imps).
+    pub fn choose_target_protect(&mut self, def_side: usize, cands: &[usize], protect: &[usize]) -> (usize, bool) {
+        let n = cands.len();
+        let t = cands[self.rng.below(n)];
+        let form = self.setup.formations[def_side];
+        let t = if form == Formation::Vanguard && formation::vanguard_front(t, self.len(def_side)) { cands[self.rng.below(n)] } else { t };
+        if t != 0 || self.core(def_side, t).is_installation || !self.rng.chance(formation::protection_rate(form)) {
+            return (t, false);
+        }
+        let mut defenders = List::default();
+        for &c in protect {
+            let core = self.core(def_side, c);
+            if c != t && self.st[def_side][c].hp_ratio(core.max_hp) > 0.75 && !core.is_installation {
+                defenders.push(c);
+            }
+        }
+        if defenders.is_empty() {
+            return (t, false);
+        }
+        (defenders.as_slice()[self.rng.below(defenders.len())], true)
+    }
+
+    /// kcsim `shellPhaseTarget` / `nightPhaseTarget` preferences: anti-PT ships aim at PT imps (by
+    /// day the covering ship still comes from all `targets`), anti-installation ships at
+    /// installations. Returns (target, covered).
+    pub(crate) fn choose_preferred(&mut self, att_side: usize, a: usize, targets: &[usize], day: bool, sl_rerolls: u8) -> (usize, bool) {
+        let def = 1 - att_side;
+        let vs = self.core(att_side, a).vs;
+        let pick = |b: &Battle, f: &dyn Fn(&ShipCore) -> bool| {
+            let mut l = List::default();
+            for &t in targets {
+                if f(b.core(def, t)) {
+                    l.push(t);
+                }
+            }
+            l
+        };
+        if vs.anti_install {
+            let inst = pick(self, &|d| d.is_installation);
+            if !inst.is_empty() {
+                return self.choose_target(def, inst.as_slice(), sl_rerolls);
+            }
+        }
+        if vs.anti_pt {
+            let pt = pick(self, &|d| d.target.pt);
+            if !pt.is_empty() {
+                return if day { self.choose_target_protect(def, pt.as_slice(), targets) } else { self.choose_target(def, pt.as_slice(), sl_rerolls) };
+            }
+        }
+        self.choose_target(def, targets, sl_rerolls)
+    }
+
     /// Apply damage (sinking protection, damage control). Returns the HP actually removed.
     pub fn take_damage(&mut self, side: usize, i: usize, dmg: i32) -> i32 {
         let flagship = self.is_flagship(side, i);
@@ -462,7 +605,9 @@ impl<'a> Battle<'a> {
         let st = &mut self.st[side][i];
         let mut dmg = dmg.max(0);
         if st.protected {
-            let red = !flagship && st.morale < 20;
+            // wikiwiki 戦闘について (轟沈ストッパー): a red-morale escort of a single fleet is left at
+            // 1 HP; combined-fleet ships keep the proportional replacement whatever their morale.
+            let red = !flagship && st.morale < 20 && self.fleets[side].combined.is_none();
             dmg = formulas::protect(self.rng, dmg, st.hp, red);
         }
         st.hp -= dmg;
@@ -576,6 +721,9 @@ impl<'a> Battle<'a> {
             }
         };
         self.eng = formation::engagement_mod(self.engagement);
+        if kind != BattleKind::NightOnly {
+            self.deploy_smoke();
+        }
 
         let mut detection = Detection::Success;
         let mut did_night = false;
@@ -643,6 +791,7 @@ impl<'a> Battle<'a> {
             night: did_night,
             enemy_gauge,
             friend_gauge,
+            smoke: self.smoke,
         }
     }
 

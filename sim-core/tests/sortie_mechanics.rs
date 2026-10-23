@@ -57,7 +57,7 @@ fn combined_fcf_evacuates_with_an_escort_destroyer() {
     taiha(&mut main[2]);
     main[2].fuel_max = Some(40);
     let escort = vec![friend_cl(), friend_ca(), friend_ca(), friend_dd(), friend_dd(), friend_dd()];
-    let fleet = FleetInput { ships: main, escort: Some(escort), combined: Some(CombinedType::Surface), formation: None };
+    let fleet = FleetInput { ships: main, escort: Some(escort), combined: Some(CombinedType::Surface), formation: None, ..Default::default() };
     let s = simulate_sortie(&input(fleet.clone(), weak_boss(), json!({})), 100, 1).unwrap();
     // The heavily damaged CA leaves with the first escort DD (escort #4 = friend index 9).
     assert_eq!(s.fcf_rate, 1.0);
@@ -286,4 +286,21 @@ fn consecutive_sorties_carry_morale() {
     let tired = simulate_sortie(&input(friend_fleet(), boss, json!({ "consecutive": { "untilMorale": 0 } })), 200, 5).unwrap();
     assert_eq!(tired.wait_minutes_mean, Some(0.0));
     assert!(tired.boss.kill_rate <= ind.boss.kill_rate + 0.08, "{} vs {}", tired.boss.kill_rate, ind.boss.kill_rate);
+}
+
+#[test]
+fn smoke_and_balloon_nodes() {
+    let mut f = friend_fleet();
+    f.ships[0].slots[3] = eq(501, 54, 54, EquipmentStats::default());
+    let boss = json!([{ "weight": 1.0, "fleet": enemy_fleet() }]);
+    let plain = simulate_sortie(&input(f.clone(), boss.clone(), json!({})), 300, 3).unwrap();
+    let smoke = simulate_sortie(&input(f.clone(), boss.clone(), json!({ "policy": { "night": "never", "smoke": ["B"] } })), 300, 3).unwrap();
+    assert_ne!(plain.boss, smoke.boss);
+    // Already used this sortie (friend.smokeUsed): nothing changes.
+    let mut used = f.clone();
+    used.smoke_used = Some(true);
+    let spent = simulate_sortie(&input(used, boss.clone(), json!({ "policy": { "night": "never", "smoke": ["B"] } })), 300, 3).unwrap();
+    assert_eq!(plain.boss, spent.boss);
+    let bad = input(f, boss, json!({ "policy": { "smoke": ["Z"] } }));
+    assert!(simulate_sortie(&bad, 1, 1).unwrap_err().contains("policy.smoke"));
 }

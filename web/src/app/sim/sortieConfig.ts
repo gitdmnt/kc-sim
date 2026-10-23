@@ -35,6 +35,8 @@ export interface SortieMapPrefs {
   advance: Record<string, Advance>;
   /** マス → 資源・揚陸マスの獲得量、渦潮の損失 */
   effects: Record<string, NodeEffect>;
+  /** 煙幕を試みるマス */
+  smoke: string[];
 }
 
 export const DEFAULT_GAUGE: GaugeConfig = {
@@ -44,7 +46,7 @@ export const DEFAULT_GAUGE: GaugeConfig = {
   extra: [],
   morale: { enabled: false, waitMinutes: 0, untilMorale: 40 },
 };
-export const DEFAULT_SORTIE_MAP: SortieMapPrefs = { gauge: DEFAULT_GAUGE, advance: {}, effects: {} };
+export const DEFAULT_SORTIE_MAP: SortieMapPrefs = { gauge: DEFAULT_GAUGE, advance: {}, effects: {}, smoke: [] };
 
 /** 保存した海域の条件 (欠けた項目は既定値で埋める) */
 export const mapPrefsOf = (maps: Record<string, Partial<SortieMapPrefs> | undefined>, map: string): SortieMapPrefs => {
@@ -102,7 +104,7 @@ export const sortieOptionsOf = (
   p: SortieGlobalPrefs & { onHeavy: boolean; allowDamecon: boolean; onModerate: boolean },
   m: SortieMapPrefs,
   bossSets: EnemyCompSet[]
-): Pick<SortieSettings, "retreat" | "underway" | "rations" | "gaugeInput" | "advance" | "nodeEffects" | "repair" | "extraPerSortie" | "consecutive"> => {
+): Pick<SortieSettings, "retreat" | "underway" | "rations" | "gaugeInput" | "advance" | "smoke" | "nodeEffects" | "repair" | "extraPerSortie" | "consecutive"> => {
   const g = m.gauge;
   const finalSet = g.kind === "hp" && g.finalSetKey ? bossSets.find((s) => setKeyOf(s) === g.finalSetKey) : undefined;
   const phase = (c: PhaseConfig): GaugePhaseSettings => ({
@@ -119,6 +121,7 @@ export const sortieOptionsOf = (
     underway: p.underway,
     rations: p.rations,
     advance: m.advance,
+    smoke: m.smoke,
     nodeEffects: m.effects,
     ...(main && {
       gaugeInput: {

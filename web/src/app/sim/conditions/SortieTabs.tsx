@@ -12,7 +12,7 @@ type Section = "basic" | "nodes" | "gauge" | "resources";
 export const SortieTabs = ({ basic, nodes, bossSets, ...props }: SortieOptionProps & { basic: React.ReactNode; nodes: MapNode[]; bossSets: EnemyCompSet[] }) => {
   const [section, setSection] = useState<Section>("basic");
   const { prefs, mapPrefs } = props;
-  const nodeCount = Object.keys(mapPrefs.advance).length + Object.keys(mapPrefs.effects).length;
+  const nodeCount = Object.keys(mapPrefs.advance).length + Object.keys(mapPrefs.effects).length + mapPrefs.smoke.length;
   const g = mapPrefs.gauge;
   const resCount = Number(prefs.bucketAboveMin !== null) + Number(Object.values(prefs.extraPerSortie).some(Boolean));
   return (

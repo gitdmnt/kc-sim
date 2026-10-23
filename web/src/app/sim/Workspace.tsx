@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Check, Play, SlidersHorizontal, Square } from "lucide-react";
 import type { FitEntry } from "@shared/sim/fit";
+import type { EventBonusResponse } from "@shared/sim/bonuses";
 import { STORAGE_PREFIX, isCombinedFleetType, maxShipsOf } from "../../fleet";
 import type { Preset, PresetFleetType } from "../../fleet";
 import { abyssalName } from "../../data/names";
@@ -23,7 +24,7 @@ import type { MapConfig } from "./Conditions";
 import { usePrefs } from "./prefs";
 import { mapPrefsOf, sortieOptionsOf } from "./sortieConfig";
 import type { SimMode } from "./prefs";
-import { battleRequest, loadFitBonuses, sortieRequest } from "./requests";
+import { battleRequest, loadEventBonuses, loadFitBonuses, sortieRequest } from "./requests";
 import type { SimOutcome } from "./requests";
 import { SortieRates, SortieResults } from "./SortieResults";
 import { useSimRun } from "./useSimRun";
@@ -149,6 +150,21 @@ export const Workspace = () => {
       alive = false;
     };
   }, []);
+  // イベント特効 (海域ごと)。この海域の値が無い間は読み込み中、res: null はデータなし (failed: 取得失敗)
+  const [eventRes, setEventRes] = useState<{ map: string; res: EventBonusResponse | null; failed: boolean } | null>(null);
+  useEffect(() => {
+    if (!prefs.eventBonus) return;
+    let alive = true;
+    const map = prefs.map;
+    loadEventBonuses(map).then(
+      (res) => alive && setEventRes({ map, res, failed: false }),
+      () => alive && setEventRes({ map, res: null, failed: true })
+    );
+    return () => {
+      alive = false;
+    };
+  }, [prefs.map, prefs.eventBonus]);
+  const eventLoaded = eventRes?.map === prefs.map ? eventRes : undefined;
 
   // 名前・メモの変更では計算し直さない
   const presetKey = preset ? JSON.stringify([preset.fleetType, preset.ships, preset.escort, preset.lbas, preset.formation, preset.hqLevel]) : "";
@@ -158,13 +174,15 @@ export const Workspace = () => {
   const selects = useMemo(() => resolveSelects(routing, prefs.selects[prefs.map] ?? {}, target), [routing, prefs.selects, prefs.map, target]);
   const sortieMap = mapPrefsOf(prefs.sortieMaps, prefs.map);
   const sortieExtra = [sortieMap, prefs.useFcf, prefs.underway, prefs.rations, prefs.bucketAboveMin, prefs.extraPerSortie, prefs.consecutive];
-  const condKey = JSON.stringify([mode, diff, cfg, selects, node, compId, target, prefs.night, prefs.onHeavy, prefs.allowDamecon, prefs.onModerate, prefs.applyFit, prefs.battleKind, prefs.seed, settings.useEstimates, sortieExtra]);
+  const condKey = JSON.stringify([mode, diff, cfg, selects, node, compId, target, prefs.night, prefs.onHeavy, prefs.allowDamecon, prefs.onModerate, prefs.applyFit, prefs.eventBonus, prefs.eventDebuff, prefs.battleKind, prefs.seed, settings.useEstimates, sortieExtra]);
   // req が null のときは why (実行ボタンの title と結果の欄に出す理由)。入力の誤りは error
   const built = useMemo((): { req: SimRequest<SimOutcome> | null; error: string | null; why?: string } => {
     if (!preset || preset.ships.length === 0) return { req: null, error: null, why: "艦隊に艦を入れると実行できます" };
     if (!data) return { req: null, error: null, why: "海域のデータを読み込み中…" };
     if (prefs.applyFit && fit === undefined) return { req: null, error: null, why: "装備ボーナスを読み込み中…" };
-    const common = { fit: fit ?? null, useServerEstimates: settings.useEstimates, seed: prefs.seed };
+    if (prefs.eventBonus && !eventLoaded) return { req: null, error: null, why: "イベント特効を読み込み中…" };
+    const eventBonus = prefs.eventBonus && eventLoaded?.res ? { response: eventLoaded.res, debuff: prefs.eventDebuff } : undefined;
+    const common = { fit: fit ?? null, useServerEstimates: settings.useEstimates, seed: prefs.seed, eventBonus, eventBonusFailed: !!eventLoaded?.failed };
     try {
       if (mode === "sortie") {
         if (!routing) return { req: null, error: null, why: "この海域には分岐のデータがありません (単一戦闘は実行できます)" };
@@ -189,7 +207,7 @@ export const Workspace = () => {
     } catch (e) {
       return { req: null, error: (e as Error).message };
     }
-  }, [presetKey, data, fit, condKey, catalog]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [presetKey, data, fit, eventLoaded, condKey, catalog]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sim = useSimRun<SimOutcome>(built.req, { auto: prefs.auto, autoCount: AUTO_COUNT, delayMs: AUTO_DELAY_MS });
   const out = sim.result?.value.kind === mode ? sim.result.value : null;

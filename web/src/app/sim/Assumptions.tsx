@@ -131,7 +131,7 @@ export const Assumptions = ({ data }: { data: AssumptionData }) => {
 
       <section className="text-xs text-ink-300">
         <H>味方</H>
-        装備ボーナス: {data.applyFit ? `近似 (未対応条件 ${data.friend.fitSkipped} 件)` : "差し引かない"}
+        装備ボーナス: {data.applyFit ? `差し引く (評価できない定義 ${data.friend.fitUnresolved} 件)` : "差し引かない"}
       </section>
     </div>
   );

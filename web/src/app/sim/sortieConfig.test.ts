@@ -13,6 +13,7 @@ test("defaults: no gauge, policy flags and per-map choices passed through", () =
     underway: true,
     rations: true,
     advance: {},
+    smoke: [],
     nodeEffects: {},
     extraPerSortie: {},
   });

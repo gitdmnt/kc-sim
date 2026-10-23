@@ -70,6 +70,8 @@ pub struct Evasion {
     /// Fuel percent (0..100, floored).
     pub fuel_pct: i32,
     pub morale: i32,
+    /// Event evasion bonus on the dodge fraction after `evModPost` (kcsim `bonusSpecialEv`); 1 = none.
+    pub ev_bonus: f64,
 }
 
 /// Plane-related accuracy/critical bonuses (proficiency), applied only when the attack uses planes.
@@ -170,6 +172,7 @@ pub fn hit_crit_post(
     }
     dodge += ev.ev_flat * 0.01;
     dodge *= ev_post;
+    dodge *= ev.ev_bonus;
 
     let dodge_term = (js_round(dodge * 1_000_000.0) / 10_000.0).floor();
     let mut acc = (hit_term - dodge_term).max(10.0);
@@ -284,7 +287,7 @@ mod tests {
     use super::*;
 
     fn ev(evasion: f64, luck: f64) -> Evasion {
-        Evasion { ev: evasion, luck, ev_mod: 1.0, ev_flat: 0.0, fuel_pct: 100, morale: 49 }
+        Evasion { ev: evasion, luck, ev_mod: 1.0, ev_flat: 0.0, fuel_pct: 100, morale: 49, ev_bonus: 1.0 }
     }
 
     #[test]

@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::model::{BattleKind, EquipmentInput, FleetInput, Formation, RankRates};
+use crate::model::{ArmorDebuff, BaseBonusSet, BattleKind, EquipmentInput, FleetInput, Formation, RankRates, ShipBonusSet};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -58,6 +58,20 @@ pub struct SortieNode {
     /// Battle kind of the node, replacing the one derived from `kind` and the night policy
     /// (e.g. a night-to-day node).
     pub battle_kind: Option<BattleKind>,
+    /// Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect.
+    pub balloons: Option<bool>,
+    /// Event bonuses of the friend ships at this node, in `friend.ships` order (`null` = none).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bonuses: Option<Vec<Option<ShipBonusSet>>>,
+    /// Event bonuses of the friend escort ships at this node, in `friend.escort` order.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub escort_bonuses: Option<Vec<Option<ShipBonusSet>>>,
+    /// Event bonuses of the land bases attacking this node, in `lbas` (base) order.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lbas_bonuses: Option<Vec<Option<BaseBonusSet>>>,
+    /// Armor debuffs of the enemy ships here (at the goal node also `gauge.finalComps`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub debuffs: Option<Vec<ArmorDebuff>>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -177,6 +191,8 @@ pub struct SortiePolicy {
     pub underway: Option<bool>,
     /// Eat combat rations (戦闘糧食 / 秋刀魚の缶詰) before the boss battle. Default true.
     pub rations: Option<bool>,
+    /// Node letters where the friend fleet tries a smoke screen (煙幕; once per sortie).
+    pub smoke: Vec<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

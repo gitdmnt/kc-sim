@@ -33,7 +33,7 @@ fn overkill_taiha_odds() {
 /// Wiki (Accuracy): a 50% hit rate on a shelling attack gives a 10% critical rate (40% normal hits).
 #[test]
 fn crit_example() {
-    let ev = Evasion { ev: 0.0, luck: 0.0, ev_mod: 1.0, ev_flat: 0.0, fuel_pct: 100, morale: 49 };
+    let ev = Evasion { ev: 0.0, luck: 0.0, ev_mod: 1.0, ev_flat: 0.0, fuel_pct: 100, morale: 49, ev_bonus: 1.0 };
     let hc = accuracy_and_crit(0.49, &ev, 1.3, None, 0.0);
     assert_eq!((hc.p_hit(), hc.p_crit()), (0.5, 0.1));
 }
@@ -134,7 +134,7 @@ fn carrier_night_air_attack() {
     let st = core.initial_state(&cv);
     assert!(core.night_air_gear && core.can_night_air(&st));
     assert_eq!(core.night_cv_ci(&st), vec![NightCi::CvFa]);
-    let unit = Unit { core: &core, st: &st, form: Formation::LineAhead, idx: 0, len: 1, cf: CF_NONE };
+    let unit = Unit { core: &core, st: &st, form: Formation::LineAhead, idx: 0, len: 1, cf: CF_NONE, smoke: 0, balloons: 0, bonus: None };
     let dd = ShipCore::new(&enemy_dd(), false);
     let p = night_air_power(&unit, &dd);
     assert!((p - (50.0 + 60.0 + 9.0 + 54.0 + 0.45 * 16.0 * 18f64.sqrt())).abs() < 1e-9, "{p}");

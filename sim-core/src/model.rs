@@ -102,6 +102,34 @@ pub enum BattleKind {
     AirRaid,
 }
 
+/// Installation (陸上型) kind, kcSHIPDATA `installtype` 1..6: soft-skinned (飛行場姫, 港湾棲姫, …),
+/// artillery imp / pillbox (砲台小鬼, トーチカ), supply depot (集積地), isolated island (離島棲姫,
+/// 中枢棲姫), northernmost landing princess (北端上陸姫), summer harbour princess (港湾夏姫).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum InstallationKind {
+    SoftSkinned,
+    Artillery,
+    SupplyDepot,
+    IsolatedIsland,
+    Northernmost,
+    HarbourSummer,
+}
+
+/// Abyssal targets with their own post-cap damage table (kcSHIPDATA `isSummerBB`, `isSummerCA`,
+/// `isSummerCV`, `isFrenchBB`, `isEuroWP`, `isAnchorage`, `isDock`; kcships `*PostMult`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TargetGroup {
+    SummerBattleship,
+    SummerHeavyCruiser,
+    SummerCarrier,
+    FrenchBattleship,
+    EuropeanPrincess,
+    Anchorage,
+    Dock,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Detection {
@@ -288,6 +316,24 @@ pub struct ShipInput {
     pub always_opening_asw: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub night_attacker: Option<bool>,
+    /// Installation kind (kcSHIPDATA `installtype`); implies `isInstallation` unless that is false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub installation_kind: Option<InstallationKind>,
+    /// PT imp group (PT小鬼群, kcSHIPDATA `isPT`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pt_imp: Option<bool>,
+    /// Takes the supply-depot post-cap bonus without being an installation (kcSHIPDATA
+    /// `isSupplyDepot`, 集積地棲姫III バカンスmode).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supply_depot: Option<bool>,
+    /// Dive-bomber airstrike damage multiplier against this ship (kcSHIPDATA `divebombWeak`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub divebomb_weak: Option<f64>,
+    /// Land-based airstrike pre-cap multiplier against this ship (kcSHIPDATA `LBWeak`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lb_weak: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_group: Option<TargetGroup>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -303,6 +349,9 @@ pub struct FleetInput {
     pub escort: Option<Vec<ShipInput>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub combined: Option<CombinedType>,
+    /// Friend fleet: a smoke screen was already deployed this sortie (once per sortie).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub smoke_used: Option<bool>,
 }
 
 impl FleetInput {
@@ -319,6 +368,12 @@ pub struct BattleOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub engagement: Option<Engagement>,
     pub log: bool,
+    /// The friend fleet tries to deploy a smoke screen (煙幕) at this node.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub smoke: bool,
+    /// Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub balloons: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -331,6 +386,77 @@ pub struct BattleInput {
     /// Land-base waves in order, resolved before the air phase. Each wave is independent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lbas: Option<Vec<LandBaseWave>>,
+    /// Event historical bonuses of the friend ships, in `friend.ships` order (`null` / missing = none).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bonuses: Option<Vec<Option<ShipBonusSet>>>,
+    /// Event bonuses of the friend escort ships, in `friend.escort` order.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub escort_bonuses: Option<Vec<Option<ShipBonusSet>>>,
+    /// Event bonuses of the land-base waves, in `lbas` order.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lbas_bonuses: Option<Vec<Option<BaseBonusSet>>>,
+    /// Armor debuffs of the enemy ships.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub debuffs: Option<Vec<ArmorDebuff>>,
+}
+
+/// Event historical bonus multipliers (kancolle-replay `bonusDmg` / `bonusAcc` / `bonusEva`); each
+/// default 1.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DamageMods {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dmg: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub acc: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub eva: Option<f64>,
+}
+
+/// Plane bonus group (kancolle-replay `bonusGroups`, kcsim `getBonusSpecialPlane`): applies while any
+/// of `slots` (ships: 0–4, 5 the reinforcement slot; land bases: squadrons 0–3) still has planes.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaneBonusGroup {
+    pub slots: Vec<usize>,
+    #[serde(flatten)]
+    pub mods: DamageMods,
+    /// Also for attacks without planes and for evasion (kcsim `bonusSpecialPNotAirOnly`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub not_air_only: bool,
+}
+
+/// Event bonuses of one friend ship in one battle.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShipBonusSet {
+    #[serde(flatten)]
+    pub mods: DamageMods,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub planes: Option<Vec<PlaneBonusGroup>>,
+}
+
+/// Event bonuses of one land base in one battle (`eva` is ignored).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BaseBonusSet {
+    /// Per squadron (kcsim `bonusSpecialPSelf` / `bonusSpecialAccPSelf`), in `squadrons` order.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub squadrons: Option<Vec<Option<DamageMods>>>,
+    /// Base-wide plane groups over the squadron indices (kcsim `bonusSpecialPUseAll`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub planes: Option<Vec<PlaneBonusGroup>>,
+}
+
+/// Armor debuff of enemy ships (kancolle-replay `listDebuff` / `applyAutoDebuff`): armor
+/// `max(1, armor − amount)` for the ships whose `id` is listed (absent = every enemy ship); the last
+/// matching entry wins.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArmorDebuff {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ship_id: Option<Vec<u32>>,
+    pub amount: f64,
 }
 
 /// One land-base wave: one base's squadrons (1..4). `planes` is the squadron size (default 18,
@@ -395,6 +521,9 @@ pub struct BattleResult {
     pub enemy: Vec<ShipResult>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub events: Option<Vec<AttackEvent>>,
+    /// Smoke screen deployed by the friend fleet: 1..3 layers; absent = none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub smoke: Option<u8>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -523,6 +652,11 @@ pub struct AttackQuery {
     pub slot: Option<usize>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contact_modifier: Option<f64>,
+    /// Event bonuses of the attacker / defender (a friend ship); absent = none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attacker_bonus: Option<ShipBonusSet>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub defender_bonus: Option<ShipBonusSet>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

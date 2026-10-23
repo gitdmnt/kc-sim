@@ -10,6 +10,7 @@ export interface ShipRow {
   range: number | null; slot_num: number | null; is_abyssal: number; hp: number | null; fp: number | null; tp: number | null;
   aa: number | null; ar: number | null; luck: number | null; max_stats: string | null; slots: string | null; equips: string | null;
   flags: string | null; fuel_max: number | null; ammo_max: number | null;
+  after_ship_id: number | null; sort_id: number | null;
 }
 export interface EquipRow {
   id: number; name: string; type: string; type_id: number; icon: number | null; fp: number | null; tp: number | null; aa: number | null;
@@ -17,8 +18,12 @@ export interface EquipRow {
   range: number | null; radius: number | null; cost: number | null; is_abyssal: number;
 }
 
+// The requested ships plus every ship of their remodel lines (same `base_id`), so shared/sim/fit.ts
+// `shipBaseId` / `shipNationality` resolve shipS / shipNationality fit entries (migration 0012).
 const SHIP_SQL = `SELECT id, name, name_en, yomi, stype, ctype, speed, range, slot_num, is_abyssal, hp, fp, tp, aa, ar, luck, max_stats,
-  slots, equips, flags, fuel_max, ammo_max FROM ships WHERE id IN (SELECT value FROM json_each(?1))`;
+  slots, equips, flags, fuel_max, ammo_max, after_ship_id, sort_id FROM ships
+  WHERE id IN (SELECT value FROM json_each(?1))
+     OR base_id IN (SELECT base_id FROM ships WHERE base_id IS NOT NULL AND id IN (SELECT value FROM json_each(?1)))`;
 const EQUIP_SQL = `SELECT id, name, type, type_id, icon, fp, tp, aa, ar, bomb, asw, los, acc, ev, luck, range, radius, cost, is_abyssal
   FROM equipments WHERE id IN (SELECT value FROM json_each(?1))`;
 
@@ -41,7 +46,7 @@ const shipMaster = (r: ShipRow): ShipMaster => {
     api_taik: pair(r.hp, max.hp), api_houg: pair(r.fp, max.fp), api_raig: pair(r.tp, max.tp), api_tyku: pair(r.aa, max.aa),
     api_souk: pair(r.ar, max.ar), api_luck: pair(r.luck, max.luck), api_leng: r.range ?? undefined, api_soku: r.speed ?? undefined,
     api_maxeq: json<number[]>(r.slots) ?? undefined, api_fuel_max: r.fuel_max ?? undefined, api_bull_max: r.ammo_max ?? undefined,
-    api_slot_num: r.slot_num ?? undefined,
+    api_slot_num: r.slot_num ?? undefined, api_aftershipid: r.after_ship_id ?? undefined, api_sort_id: r.sort_id ?? undefined,
   };
 };
 
@@ -70,15 +75,18 @@ export async function loadMaster(db: D1Database, shipIds: Iterable<number>, equi
     db.prepare(SHIP_SQL).bind(ids(shipIds)).all<ShipRow>(),
     db.prepare(EQUIP_SQL).bind(ids(equipIds)).all<EquipRow>(),
   ]);
-  const shipMap = new Map(ships.results.map((r) => [r.id, r]));
-  const equipMap = new Map(equips.results.map((r) => [r.id, r]));
+  return masterFromRows(ships.results, equips.results);
+}
+
+/** Master over already loaded rows (e.g. a saved snapshot). */
+export function masterFromRows(ships: ShipRow[], equips: EquipRow[]): Master {
   const data: MasterData = { ships: {}, equips: {} };
-  for (const r of ships.results) data.ships[r.id] = shipMaster(r);
-  for (const r of equips.results) data.equips[r.id] = equipMaster(r);
-  const apiShips = new Map(ships.results.map((r) => [r.id, apiShip(r)]));
-  const apiEquips = new Map(equips.results.map((r) => [r.id, apiEquip(r)]));
+  for (const r of ships) data.ships[r.id] = shipMaster(r);
+  for (const r of equips) data.equips[r.id] = equipMaster(r);
+  const apiShips = new Map(ships.map((r) => [r.id, apiShip(r)]));
+  const apiEquips = new Map(equips.map((r) => [r.id, apiEquip(r)]));
   return {
-    ships: shipMap, equips: equipMap, data,
+    ships: new Map(ships.map((r) => [r.id, r])), equips: new Map(equips.map((r) => [r.id, r])), data,
     lookup: { ship: (id) => apiShips.get(id), equip: (id) => apiEquips.get(id), detail: () => undefined },
   };
 }

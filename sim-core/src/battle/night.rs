@@ -144,13 +144,16 @@ impl<'a> Battle<'a> {
         let air = c.can_night_air(&self.st[side][a]);
         if !subs.is_empty() && can_asw_night(c, &self.st[side][a]) && (!air || surface.is_empty()) {
             let (t, covered) = self.choose_target(def, subs.as_slice(), 0);
-            self.asw_attack(side, a, t, covered, false, !night_only);
+            // wikiwiki 夜戦: night ASW after a day battle does 0 power (scratch) except at night-start
+            // nodes and for combined-fleet escorts (kcsim `!NBonly && !isescort`).
+            let escort = self.fleets[side].combined.is_some() && a >= self.fleets[side].escort_start;
+            self.asw_attack(side, a, t, covered, false, !night_only && !escort);
             return;
         }
         if surface.is_empty() {
             return;
         }
-        let (t, covered) = self.choose_target(def, surface.as_slice(), sl_rerolls);
+        let (t, covered) = self.choose_preferred(side, a, surface.as_slice(), false, sl_rerolls);
         self.night_attack(side, a, t, covered, env);
     }
 
