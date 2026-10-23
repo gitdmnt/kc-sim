@@ -17,6 +17,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import vm from "node:vm";
 import { parseArgs } from "node:util";
+import * as z from "zod";
 import { initSync, runBattle, simulateBattle } from "../../sim-core/pkg/sim_core";
 import type { BattleInput, Engagement, Formation, FriendFleetInput, LandBaseWave, ShipInput, SimulationSummary, SupportInput, SupportType } from "../../sim-core/pkg/sim_core";
 import type { CompShip, ShipDetail } from "../../shared/data/types";
@@ -390,14 +391,24 @@ const PHASES: [string, OutcomePhase][] = [
   ["support", "support"], ["friendFleet", "friendFleet"],
 ];
 const AIR: Record<number, keyof SimulationSummary["airStateRates"]> = { 0: "parity", 1: "supremacy", 2: "superiority", 3: "denial", 4: "incapability" };
+/** The packet's opening airstrikes (api_kouku stage 3): per ship, torpedo / bomb attack flags and damage (null: no ship). */
+const flags = z.array(z.number().nullable()).nullish();
+const stage3 = z.object({ api_erai_flag: flags, api_ebak_flag: flags, api_edam: flags, api_frai_flag: flags, api_fbak_flag: flags, api_fdam: flags }).loose();
+type Stage3 = z.infer<typeof stage3>;
+const koukuPacket = z.object({
+  battle: z.object({ rawapi: z.object({ api_kouku: z.object({ api_stage3: stage3.nullish(), api_stage3_combined: stage3.nullish() }).loose().nullish() }).loose() }).loose(),
+}).loose();
 
 interface ShipScore { p: number[]; o: number; start: number; hpPred: number; hpAct: number; max: number; before: number }
+/** A ship the packet's opening airstrike attacked. side 0: the player's strike on an enemy, 1: an enemy strike on the
+ *  player. sim: share of the logged runs attacking it in which it took damage (null: never attacked). */
+interface AirTarget { side: 0 | 1; damaged: boolean; sim: number | null }
 interface Scored {
   row: Row; node: string; fleet: string; lbas: boolean;
   rankP: number[]; rankO: number;
   friend: ShipScore[]; enemy: ShipScore[];
   phasePred: Partial<Record<OutcomePhase, [number, number]>>; phaseAct: Partial<Record<OutcomePhase, [number, number]>>;
-  airP: number | null; airHit: boolean | null;
+  airP: number | null; airHit: boolean | null; airTargets: AirTarget[];
 }
 
 const skipped = new Map<string, number>();
@@ -431,15 +442,43 @@ for (const r of input.rows) {
     hpPred: s.hpMean, hpAct: after, max, before,
   });
   const phasePred: Scored["phasePred"] = {};
+  // Opening-airstrike targets per logged run: "side:defender" → [runs attacking it, runs damaging it].
+  const airSim = new Map<string, [number, number]>();
   for (let k = 0; k < LOGGED; k++) {
     const run = runBattle({ ...b.input, options: { ...b.input.options, log: true } }, r.id * 1000 + k);
+    const struck = new Map<string, number>();
     for (const e of run.result.events ?? []) {
       const ph = PHASES.find(([sim]) => sim === e.phase)?.[1];
       // Enemy shots in the friend fleet phase hit the friend fleet, not the player (the packets' ledger skips them too).
       if (!ph || (ph === "friendFleet" && e.attackerSide === "enemy")) continue;
       const t = (phasePred[ph] ??= [0, 0]);
       t[e.attackerSide === "friend" ? 0 : 1] += e.damage / LOGGED;
+      if (e.phase === "airStrike") {
+        const key = `${e.attackerSide === "friend" ? 0 : 1}:${e.defender}`;
+        struck.set(key, (struck.get(key) ?? 0) + e.damage);
+      }
     }
+    for (const [key, dmg] of struck) {
+      const a = airSim.get(key) ?? [0, 0];
+      airSim.set(key, [a[0] + 1, a[1] + (dmg > 0 ? 1 : 0)]);
+    }
+  }
+  const kouku = koukuPacket.parse(JSON.parse(r.raw)).battle.rawapi.api_kouku;
+  const airTargets: AirTarget[] = [];
+  const sides: [0 | 1, number, (s: Stage3) => [Stage3["api_edam"], Stage3["api_edam"], Stage3["api_edam"]]][] = [
+    [0, out.enemyMain, (s) => [s.api_erai_flag, s.api_ebak_flag, s.api_edam]],
+    [1, out.friendMain, (s) => [s.api_frai_flag, s.api_fbak_flag, s.api_fdam]],
+  ];
+  for (const [side, main, pick] of sides) {
+    [kouku?.api_stage3, kouku?.api_stage3_combined].forEach((s3, part) => {
+      if (!s3) return;
+      const [rai, bak, dam] = pick(s3);
+      dam?.forEach((d, i) => {
+        if (!((rai?.[i] ?? 0) > 0 || (bak?.[i] ?? 0) > 0)) return;
+        const [att, hit] = airSim.get(`${side}:${part ? main + i : i}`) ?? [0, 0];
+        airTargets.push({ side, damaged: Math.floor(d ?? 0) > 0, sim: att ? hit / att : null });
+      });
+    });
   }
   const air = r.air_state === null ? null : AIR[r.air_state];
   scored.push({
@@ -450,6 +489,7 @@ for (const r of input.rows) {
     phasePred, phaseAct: out.phases,
     airP: air ? sum.airStateRates[air] : null,
     airHit: air ? Object.entries(sum.airStateRates).sort((a, c) => c[1] - a[1])[0]![0] === air : null,
+    airTargets,
   });
 }
 const simSeconds = (performance.now() - t0) / 1000;
@@ -634,6 +674,30 @@ const phaseLines = (): string[] => {
   return lines;
 };
 
+/** Opening-airstrike targets of the packets (api_kouku stage 3) that the logged runs also attacked: share that took
+ *  damage, observed / simulated given attacked, by the observed air state (player's view) and map kind. */
+const airLines = (): string[] => {
+  const cell = (ts: AirTarget[]) => {
+    const paired = ts.filter((t) => t.sim !== null);
+    if (!paired.length) return "–";
+    return `${paired.length}: ${pct(mean(paired.map((t) => (t.damaged ? 1 : 0))))} / ${pct(mean(paired.map((t) => t.sim ?? 0)))}`;
+  };
+  const groups: [string, (s: Scored) => boolean][] = [
+    ...Object.entries(AIR).map(([k, name]): [string, (s: Scored) => boolean] => [`air ${name}`, (s) => s.row.air_state === Number(k)]),
+    ["normal maps", (s) => s.row.map_id < 100], ["event maps", (s) => s.row.map_id > 100], ["air raids", (s) => s.row.kind === "airRaid"],
+    ["all", () => true],
+  ];
+  const lines = [
+    "| battles | player's airstrikes: targets: damaged observed / simulated | enemy airstrikes on the player: targets: damaged observed / simulated |",
+    "|---|---|---|",
+  ];
+  for (const [label, keep] of groups) {
+    const ts = scored.filter(keep).flatMap((s) => s.airTargets);
+    lines.push(`| ${label} | ${cell(ts.filter((t) => t.side === 0))} | ${cell(ts.filter((t) => t.side === 1))} |`);
+  }
+  return lines;
+};
+
 const nd = nakedDiffs.length;
 const exact = (k: number) => nakedDiffs.filter((d) => d[k] === 0).length / nd;
 const skippedLines = [...skipped].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join("; ") || "none";
@@ -689,6 +753,12 @@ const out: string[] = [
   "#### HP removed per phase (mean per battle; overkill included)",
   "",
   ...phaseLines(),
+  "",
+  "#### Opening airstrikes vs the packets (api_kouku stage 3)",
+  "",
+  `Ships an airstrike attacked in the packet (torpedo or bomb flag) and in at least one of the ${LOGGED} logged runs: the share that took damage, observed / simulated given attacked.`,
+  "",
+  ...airLines(),
   "",
   `Inputs: player FP/TP/AA/AR are naked from the packet's api_fParam, with the visible equipment bonus taken as displayed − equipment − api_fParam (the game's own). Our fit-bonus data (kancolle-replay mst_slotitem_bonus.json, shared/sim/fit.ts) gave that same bonus for ${pct(exact(0))} / ${pct(exact(1))} / ${pct(exact(2))} / ${pct(exact(3))} of ${nd} ships (FP / TP / AA / AR); the web UI, which has only displayed stats, would mis-split the rest. EV / ASW / LoS use our fit data for the split (totals are the displayed ones). ${warnings} adapter warnings. Simulation took ${simSeconds.toFixed(0)} s.`,
 ];

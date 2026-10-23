@@ -385,3 +385,31 @@ fn damage_distribution_shape() {
     let hp = hit_probability(&q).unwrap();
     assert!(hp.p_hit > 0.5 && hp.p_hit <= 0.97 && hp.p_crit > 0.0);
 }
+
+#[test]
+fn air_proficiency_accuracy_leaves_out_empty_slots() {
+    // wikiwiki 命中と回避について (艦載機熟練度命中補正): a slot without planes is not part of the average proficiency.
+    let mut attacker = friend_cv();
+    attacker.slots = vec![tb_ryuusei(18), plane(24, 7, 7, EquipmentStats { bombing: Some(8.0), ..Default::default() }, 0, 0)];
+    let q = AttackQuery {
+        kind: QueryKind::Air,
+        attacker,
+        defender: enemy_dd(),
+        attacker_side: None,
+        attacker_formation: None,
+        defender_formation: None,
+        attacker_index: None,
+        attacker_fleet_size: None,
+        defender_index: None,
+        defender_fleet_size: None,
+        engagement: None,
+        special: None,
+        night: None,
+        slot: None,
+        contact_modifier: None,
+        attacker_bonus: None,
+        defender_bonus: None,
+    };
+    // Dodge ⌊20 + √10⌋ = 23: 95 − 23 = 72, + 12 for the rank-7 slot alone (with the empty slot: + 5) → 85%.
+    assert_eq!(hit_probability(&q).unwrap().p_hit, 0.85);
+}

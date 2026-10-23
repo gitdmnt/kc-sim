@@ -958,7 +958,8 @@ impl ShipCore {
     }
 
     /// Proficiency effects (kcsim `updateProficiencyBonus`): (crit rate bonus %, crit damage
-    /// multiplier, accuracy bonus %).
+    /// multiplier, accuracy bonus %). Slots without planes are left out (wikiwiki 命中と回避について:
+    /// 搭載数が0のスロットは平均内部熟練度に計算されない; kcsim counts them in the average).
     pub fn proficiency(&self, st: &ShipState) -> (f64, f64, f64) {
         let mut crit_rate = 0.0;
         let mut crit_dmg = 1.0;
@@ -966,7 +967,7 @@ impl ShipCore {
         let mut count = 0.0;
         for (i, e) in self.slots.iter().enumerate() {
             let Some(e) = e else { continue };
-            if !e.has(f::ATTACK_PROF) {
+            if !e.has(f::ATTACK_PROF) || st.planes[i] <= 0 {
                 continue;
             }
             let exp = st.exp[i];
