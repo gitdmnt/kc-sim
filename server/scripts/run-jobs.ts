@@ -18,6 +18,7 @@ import { tick } from "../src/kcnav/tick";
 import type { Env } from "../src/env";
 import { enqueueRequest } from "../src/schemas";
 import { openD1, productionConfig } from "./lib/d1-database";
+import { bunGrid } from "./lib/sim-core";
 import { appendSummary } from "./lib/summary";
 
 const { positionals, values } = parseArgs({
@@ -35,8 +36,6 @@ const target = process.env.D1_REMOTE === "1" ? "production D1" : "local D1";
 switch (positionals[0]) {
   case "run": {
     const deadline = Date.now() + Number(values.minutes ?? 25) * 60_000;
-    // Only the estimator needs sim-core's wasm; `kcnav` / `enqueue` run without sim-core/pkg (kcnav-crawl workflow).
-    const { bunGrid } = await import("./lib/sim-core");
     const runs: JobsResult[] = [];
     while (Date.now() < deadline) {
       const r = await runJobs(db, { gridFn: bunGrid, now: () => Date.now() }, { estimator: !values["no-estimator"] });
