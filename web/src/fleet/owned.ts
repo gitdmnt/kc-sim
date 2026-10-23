@@ -1,4 +1,4 @@
-/** 所持装備 (poi の state.info.equips) の集計と、艦ごとの装備可否によるピッカー選択肢の組み立て。 */
+/** 所持装備・所持艦 (poi の state.info.equips / ships) の集計と、艦ごとの装備可否によるピッカー選択肢の組み立て。 */
 import type { Catalog, PickerOption } from "./catalog";
 
 export interface OwnedEquip {
@@ -118,4 +118,52 @@ export const selectedEquipKey = (picker: EquipPicker, e: EquipChoice | null): st
   if (!e) return undefined;
   const owned = equipKey(e.masterId, e.improvement, e.proficiency);
   return picker.choices.has(owned) ? owned : `m:${e.masterId}`;
+};
+
+/** 所持艦 (poi の state.info.ships の 1 隻)。 */
+export interface OwnedShip {
+  /** poi の艦のインスタンス ID (shipFromPoi に渡す) */
+  instanceId: number;
+  masterId: number;
+  level: number;
+  /** 艦種 (api_stype)。マスターに無ければ 0 */
+  stype: number;
+}
+
+export interface PoiShipState {
+  info?: { ships?: Record<string, { api_id?: number; api_ship_id?: number; api_lv?: number }> };
+}
+
+/** 所持艦をレベルの高い順に並べる (同レベルはマスターの図鑑順、次いで取得順)。マスターに無い艦は除く。 */
+export const ownedShips = (state: PoiShipState | null | undefined, catalog: Catalog): OwnedShip[] => {
+  const out: OwnedShip[] = [];
+  for (const [key, s] of Object.entries(state?.info?.ships ?? {})) {
+    const master = typeof s?.api_ship_id === "number" ? catalog.master.ships[s.api_ship_id] : undefined;
+    if (!s || !master) continue;
+    out.push({ instanceId: s.api_id ?? Number(key), masterId: master.api_id, level: s.api_lv ?? 1, stype: master.api_stype ?? 0 });
+  }
+  const sortNo = (id: number) => catalog.master.ships[id]?.api_sort_id ?? id;
+  return out.sort((a, b) => b.level - a.level || sortNo(a.masterId) - sortNo(b.masterId) || a.instanceId - b.instanceId);
+};
+
+/** 装備選択の絞り込みカテゴリ。types は装備のカテゴリ ID (api_type[2])。どれにも当たらない装備は「その他」。 */
+export const EQUIP_CATEGORIES: { label: string; types: number[] }[] = [
+  { label: "主砲", types: [1, 2, 3] },
+  { label: "副砲", types: [4] },
+  { label: "魚雷", types: [5, 32] },
+  { label: "艦戦", types: [6] },
+  { label: "艦爆", types: [7] },
+  { label: "艦攻", types: [8] },
+  { label: "水偵", types: [10, 11] },
+  { label: "電探", types: [12, 13] },
+  { label: "ソナー", types: [14] },
+  { label: "爆雷", types: [15] },
+  { label: "機銃", types: [21] },
+  { label: "その他", types: [] },
+];
+
+/** 装備のカテゴリ ID (api_type[2]) が属する EQUIP_CATEGORIES の添字。どれにも当たらなければ「その他」 */
+export const equipCategory = (typeId: number | undefined): number => {
+  const i = EQUIP_CATEGORIES.findIndex((c) => typeId !== undefined && c.types.includes(typeId));
+  return i < 0 ? EQUIP_CATEGORIES.length - 1 : i;
 };

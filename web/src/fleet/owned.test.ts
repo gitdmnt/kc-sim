@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import sample from "../sampleState.json";
 import { buildCatalog } from "./catalog";
-import { buildEquipPicker, canEquip, equipKey, ownedEquipGroups, selectedEquipKey } from "./owned";
+import { buildEquipPicker, canEquip, equipCategory, equipKey, EQUIP_CATEGORIES, ownedEquipGroups, ownedShips, selectedEquipKey } from "./owned";
 
 const catalog = buildCatalog(sample);
 
@@ -82,5 +82,38 @@ describe("buildEquipPicker", () => {
     expect(selectedEquipKey(p, { masterId: 9, improvement: 10, proficiency: 0 })).toBe(equipKey(9, 10, 0));
     expect(selectedEquipKey(p, { masterId: 9, improvement: 4, proficiency: 0 })).toBe("m:9");
     expect(selectedEquipKey(p, null)).toBeUndefined();
+  });
+});
+
+describe("ownedShips", () => {
+  const [a, b] = Object.values(catalog.master.ships).filter((s) => s && s.api_id < 1500).map((s) => s!.api_id);
+  const state = {
+    info: {
+      ships: {
+        1: { api_id: 1, api_ship_id: a, api_lv: 50 },
+        2: { api_id: 2, api_ship_id: a, api_lv: 99 },
+        3: { api_id: 3, api_ship_id: 99999, api_lv: 120 },
+        4: { api_id: 4, api_ship_id: b, api_lv: 99 },
+      },
+    },
+  };
+  test("sorts by level descending and drops ships missing from the master", () => {
+    const ships = ownedShips(state, catalog);
+    expect(ships.map((s) => s.instanceId)).toHaveLength(3);
+    expect(ships.map((s) => s.level)).toEqual([99, 99, 50]);
+    expect(ships[2].instanceId).toBe(1);
+  });
+  test("no poi state gives nothing", () => {
+    expect(ownedShips(null, catalog)).toEqual([]);
+    expect(ownedShips({}, catalog)).toEqual([]);
+  });
+});
+
+describe("equipCategory", () => {
+  test("groups the gun, plane and anti-submarine types, rest are その他", () => {
+    const label = (t: number) => EQUIP_CATEGORIES[equipCategory(t)].label;
+    expect([1, 2, 3].map(label)).toEqual(["主砲", "主砲", "主砲"]);
+    expect([4, 5, 6, 7, 8, 10, 14, 15].map(label)).toEqual(["副砲", "魚雷", "艦戦", "艦爆", "艦攻", "水偵", "ソナー", "爆雷"]);
+    expect([label(23), label(undefined as unknown as number)]).toEqual(["その他", "その他"]);
   });
 });

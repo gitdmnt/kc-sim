@@ -1,37 +1,41 @@
 import React, { useMemo } from "react";
-import { Cylinder, Eye, Gauge, Plane, Radar } from "lucide-react";
+import { resolveShipStats } from "../../fleet";
 import type { Preset } from "../../fleet";
 import { summarizePreset } from "@shared/fleet/calc";
 import { S } from "../../ui";
 import { useApp } from "../context";
 
-const Item = ({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) => (
+const Item = ({ label, title, children }: { label: string; title: string; children: React.ReactNode }) => (
   <span className="flex items-center gap-1" title={title}>
-    <span className="text-ink-500">{icon}</span>
+    <span className="text-xs text-ink-400">{label}</span>
     <span className="font-medium tabular-nums text-ink-100">{children}</span>
   </span>
 );
 
 /**
- * 艦隊の制空・速力・索敵 (33式)・ドラム缶・電探を 1 行で。見出しはアイコンとツールチップ。
+ * 艦隊の制空・速力・索敵 (33式)・対潜・ドラム缶・電探を文字の見出しつきで並べる (狭ければ折り返す)。
  * 索敵は海域の分岐が使う係数 (cns) だけを出し、無ければ Cn1。Cn1〜4 の全部はツールチップ。
  */
 export const FleetStats = ({ preset, cns }: { preset: Preset; cns: number[] }) => {
   const { catalog } = useApp();
   const sum = useMemo(() => summarizePreset(preset, catalog.master), [preset, catalog]);
+  const asw = useMemo(() => {
+    const vals = preset.ships.map((s) => resolveShipStats(s, catalog.master).asw.value).filter((v): v is number => v !== null);
+    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) : null;
+  }, [preset, catalog]);
   if (preset.ships.length === 0) return null;
   return (
-    <div className="flex min-w-0 items-center gap-4 overflow-hidden text-sm whitespace-nowrap">
-      <Item icon={<Plane size={14} aria-hidden />} title={`${S.fleet.fighterPower} (熟練度込み)`}>
+    <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm whitespace-nowrap">
+      <Item label={S.fleet.fighterPower} title={`${S.fleet.fighterPower} (熟練度込み)`}>
         {sum.fighterPower}
       </Item>
-      <Item icon={<Gauge size={14} aria-hidden />} title={sum.speed !== null && sum.speedIsBase ? "速力 (装備補正除く)" : "速力"}>
+      <Item label={S.fleet.speed} title={sum.speed !== null && sum.speedIsBase ? "速力 (装備補正除く)" : "速力"}>
         {sum.speed === null ? "—" : (S.speeds[sum.speed] ?? sum.speed)}
       </Item>
       {sum.los && (
         <Item
-          icon={<Eye size={14} aria-hidden />}
-          title={`${S.fleet.los} (司令部Lv${preset.hqLevel ?? 120})\n${(["cn1", "cn2", "cn3", "cn4"] as const).map((k, i) => `Cn${i + 1} ${sum.los![k].toFixed(1)}`).join(" / ")}`}
+          label={S.fleet.los}
+          title={`${S.fleet.los} 33式 (司令部Lv${preset.hqLevel ?? 120})\n${(["cn1", "cn2", "cn3", "cn4"] as const).map((k, i) => `Cn${i + 1} ${sum.los![k].toFixed(1)}`).join(" / ")}`}
         >
           <span className="flex gap-3">
             {(cns.length > 0 ? cns : [1]).map((cn) => (
@@ -43,14 +47,19 @@ export const FleetStats = ({ preset, cns }: { preset: Preset; cns: number[] }) =
           </span>
         </Item>
       )}
+      {asw !== null && (
+        <Item label={S.fleet.asw} title="艦隊の対潜値の合計 (装備込み)">
+          {asw}
+        </Item>
+      )}
       {sum.drums.total > 0 && (
-        <Item icon={<Cylinder size={14} aria-hidden />} title={`${S.fleet.drums} (個数 / 搭載艦数)`}>
+        <Item label={S.fleet.drums} title={`${S.fleet.drums} (個数 / 搭載艦数)`}>
           {sum.drums.total}
           <span className="font-normal text-ink-500">/{sum.drums.ships}</span>
         </Item>
       )}
       {sum.radars > 0 && (
-        <Item icon={<Radar size={14} aria-hidden />} title={`${S.fleet.radars}の数`}>
+        <Item label={S.fleet.radars} title={`${S.fleet.radars}の数`}>
           {sum.radars}
         </Item>
       )}

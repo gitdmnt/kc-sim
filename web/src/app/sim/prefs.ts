@@ -8,6 +8,8 @@ export type OfferedKind = "day" | "dayNight" | "nightOnly";
 
 /** 作業台の選択と条件 (localStorage)。分岐・フラグ・ゲージなど海域ごとの設定は保存しない。 */
 export interface WorkspacePrefs {
+  /** 保存形式の版。既定値を変えたときの移行の判別に使う */
+  version: number;
   map: string;
   /** null は海域の最高難易度 */
   difficulty: number | null;
@@ -26,13 +28,17 @@ export interface WorkspacePrefs {
   battleKind: OfferedKind;
 }
 
+/** 2: 実行回数の既定が 100,000 から 10,000 になった */
+const PREFS_VERSION = 2;
+
 export const DEFAULT_PREFS: WorkspacePrefs = {
+  version: PREFS_VERSION,
   map: "1-5",
   difficulty: null,
   mode: "sortie",
   node: null,
   auto: true,
-  count: 100_000,
+  count: 10_000,
   seed: 12345,
   night: "bossOnly",
   onHeavy: true,
@@ -44,17 +50,20 @@ export const DEFAULT_PREFS: WorkspacePrefs = {
 
 const KEY = `${STORAGE_PREFIX}workspace`;
 
-const load = (): WorkspacePrefs => {
+export const loadPrefs = (): WorkspacePrefs => {
   try {
     const raw = localStorage.getItem(KEY);
-    return { ...DEFAULT_PREFS, ...(raw ? JSON.parse(raw) : {}) };
+    const stored = raw ? JSON.parse(raw) : {};
+    // 旧い既定 (100,000) のまま保存されていた回数だけ新しい既定にする。版つきで保存したあとの選択は保つ
+    if (stored.version === undefined && stored.count === 100_000) delete stored.count;
+    return { ...DEFAULT_PREFS, ...stored, version: PREFS_VERSION };
   } catch {
     return { ...DEFAULT_PREFS };
   }
 };
 
 export const usePrefs = () => {
-  const [prefs, setPrefs] = useState(load);
+  const [prefs, setPrefs] = useState(loadPrefs);
   const patch = useCallback((p: Partial<WorkspacePrefs>) => {
     setPrefs((cur) => {
       const next = { ...cur, ...p };

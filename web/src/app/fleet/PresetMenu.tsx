@@ -5,7 +5,7 @@ import type { Preset } from "../../fleet";
 import { Button, ConfirmDialog, Field, NumberInput, Popover, Select, TextInput, S, useToast } from "../../ui";
 import { useApp } from "../context";
 import { IoModal } from "./IoModal";
-import { blankPreset } from "./presets";
+import { blankPreset, getPresetStore } from "./presets";
 import type { PresetsApi } from "./presets";
 
 interface Props {
@@ -20,14 +20,34 @@ export const usePoiFleets = (): unknown[] => {
   return Array.isArray(state?.info?.fleets) ? state.info.fleets : [];
 };
 
-/** poi の艦隊を新しいプリセットとして取り込む */
+let lastFleet = 0;
+
+/**
+ * poi の艦隊の取り込み。importPoi(i) は第 i+1 艦隊を新しいプリセットとして保存して選ぶ。
+ * reimport は最後に取り込んだ艦隊 (まだなら第 1) の今の編成で、開いているプリセットの艦を置き換える (名前・陣形・メモは保つ)。
+ */
 export const useImportPoi = (store: PresetsApi, select: (id: string | null) => void) => {
   const { state } = useApp();
   const toast = useToast();
-  return (i: number) => {
+  const load = (i: number) => {
     const p = importFromPoi(state, i);
-    if (!p) return toast.push(`第${i + 1}艦隊を取り込めませんでした`, "danger");
-    select(store.save(p).id);
+    if (p) lastFleet = i;
+    else toast.push(`第${i + 1}艦隊を取り込めませんでした`, "danger");
+    return p;
+  };
+  return {
+    importPoi: (i: number) => {
+      const p = load(i);
+      if (p) select(store.save(p).id);
+    },
+    reimport: (into: Preset | null) => {
+      const p = load(lastFleet);
+      if (!p) return;
+      if (into) store.save({ ...into, ships: p.ships, hqLevel: p.hqLevel ?? into.hqLevel, source: "poi" });
+      else select(store.save(p).id);
+    },
+    /** reimport が取り込む艦隊の番号 (1 始まり) */
+    reimportFleetNo: lastFleet + 1,
   };
 };
 
@@ -37,7 +57,7 @@ export const PresetMenu = ({ store, preset, select }: Props) => {
   const [io, setIo] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const poiFleets = usePoiFleets();
-  const importPoi = useImportPoi(store, select);
+  const { importPoi } = useImportPoi(store, select);
   const patch = (p: Partial<Preset>) => preset && save({ ...preset, ...p });
 
   const duplicate = () => {
@@ -53,7 +73,7 @@ export const PresetMenu = ({ store, preset, select }: Props) => {
         {!preset && <option value="">{blankPreset().name}</option>}
         {presets.map((p) => (
           <option key={p.id} value={p.id}>
-            {p.name}
+            {p.name || S.fleet.untitled}
           </option>
         ))}
       </Select>
@@ -102,14 +122,14 @@ export const PresetMenu = ({ store, preset, select }: Props) => {
                 </Button>
               ))}
             </div>
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-2 gap-1">
               <Button size="sm" onClick={() => (select(save(blankPreset()).id), close())}>
                 <FilePlus size={14} aria-hidden />
                 {S.fleet.newPreset}
               </Button>
               <Button size="sm" disabled={!preset} onClick={() => (duplicate(), close())}>
                 <Copy size={14} aria-hidden />
-                {S.common.duplicate}
+                {S.fleet.saveAs}
               </Button>
               <Button size="sm" onClick={() => (setIo(true), close())}>
                 <ArrowLeftRight size={14} aria-hidden />
@@ -120,6 +140,7 @@ export const PresetMenu = ({ store, preset, select }: Props) => {
                 {S.common.delete}
               </Button>
             </div>
+            {!getPresetStore().persistent && <p className="text-xs text-danger-400">{S.fleet.notPersistent}</p>}
           </>
         )}
       </Popover>

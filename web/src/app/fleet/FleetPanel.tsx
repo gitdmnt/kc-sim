@@ -1,13 +1,13 @@
 import React from "react";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import type { Preset, PresetShip } from "../../fleet";
-import { Button, Combobox, S } from "../../ui";
-import { useApp } from "../context";
+import { Button, S } from "../../ui";
 import { FleetStats } from "./FleetStats";
 import { useImportPoi, usePoiFleets } from "./PresetMenu";
-import { blankPreset, newShipFor } from "./presets";
+import { blankPreset } from "./presets";
 import type { PresetsApi } from "./presets";
 import { HEAD_COLS, ShipRow } from "./ShipRow";
+import { ShipPicker } from "./ShipPicker";
 
 const MAX_SHIPS = 6;
 
@@ -21,15 +21,24 @@ interface Props {
 
 /** 艦隊の編集: 上に艦隊の諸元、下に 1 隻 1 行。プリセットの切り替え・管理はツールバー (PresetMenu)。プリセットが無ければ最初の艦の追加で作る。 */
 export const FleetPanel = ({ store, preset, select, losCns }: Props) => {
-  const { catalog } = useApp();
   const poiFleets = usePoiFleets();
-  const importPoi = useImportPoi(store, select);
+  const { importPoi, reimport, reimportFleetNo } = useImportPoi(store, select);
   const ships = preset?.ships ?? [];
   const setShips = (next: PresetShip[]) => (preset ? store.save({ ...preset, ships: next }) : select(store.save({ ...blankPreset(), ships: next }).id));
 
   return (
     <section className="flex min-w-0 flex-col gap-2 rounded-md border border-ink-800 bg-ink-900 px-4 py-3 lg:min-h-0">
-      {preset && ships.length > 0 && <FleetStats preset={preset} cns={losCns} />}
+      {preset && ships.length > 0 && (
+        <div className="flex min-w-0 items-start justify-between gap-2">
+          <FleetStats preset={preset} cns={losCns} />
+          {poiFleets.length > 0 && (
+            <Button size="sm" className="-my-0.5" title={S.fleet.reimportTitle(reimportFleetNo)} onClick={() => reimport(preset)}>
+              <RefreshCw size={14} aria-hidden />
+              {S.fleet.reimportPoi}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* 6 隻とも装備枠が多い艦隊で画面に収まらないときだけ、この枠の中でスクロールする */}
       {/* ゲームの編成画面と同じ 2 列 × 3 行 (1 2 / 3 4 / 5 6)。どの艦も同じ列構成なので装備の列が縦に揃う */}
@@ -47,12 +56,9 @@ export const FleetPanel = ({ store, preset, select, losCns }: Props) => {
           <div className="flex min-w-0 flex-col gap-2">
             <div className={HEAD_COLS}>
               <Plus size={14} className="text-ink-500" aria-hidden />
-              <Combobox
-                variant="ghost"
+              <ShipPicker
                 buttonClassName="h-6! px-1"
-                options={catalog.shipOptions}
-                value={null}
-                onChange={(id) => id !== null && setShips([...ships, newShipFor(id, catalog)])}
+                onPick={(ship) => setShips([...ships, ship])}
                 placeholder={S.fleet.addShipTo(ships.length + 1)}
                 aria-label={S.fleet.addShipTo(ships.length + 1)}
                 className="col-span-3"

@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import type { PresetEquip } from "../../fleet";
-import { buildEquipPicker, selectedEquipKey, PROFICIENCY_GLYPH } from "../../fleet/owned";
+import { buildEquipPicker, equipCategory, selectedEquipKey, EQUIP_CATEGORIES, PROFICIENCY_GLYPH } from "../../fleet/owned";
+import type { EquipPicker } from "../../fleet/owned";
 import { isAircraft } from "@shared/fleet/calc";
-import { Combobox, EquipIcon, NumberInput, cx } from "../../ui";
+import { Button, EquipIcon, NumberInput, cx } from "../../ui";
+import { PickerModal, PickerTrigger } from "./PickerModal";
 import { useApp } from "../context";
 
 interface Props {
@@ -78,6 +80,44 @@ const Chip = ({ value, max, text, title, className, onChange }: ChipProps) => {
   );
 };
 
+interface PickerModalProps {
+  picker: EquipPicker;
+  selectedKey?: string;
+  initialQuery: string;
+  title: string;
+  onPick: (item: { value: number; key?: string }) => void;
+  /** 装備を外す。空き枠のときは undefined */
+  onClear?: () => void;
+  onClose: () => void;
+}
+
+/** 装備の選択ダイアログ。所持装備 (★・熟練・個数つき) を先に、未所持のマスター装備を薄く後ろに。装備種別のカテゴリで絞り込める。 */
+const EquipPickerModal = ({ picker, selectedKey, initialQuery, title, onPick, onClear, onClose }: PickerModalProps) => {
+  const { catalog } = useApp();
+  const { items, categories } = useMemo(() => {
+    const items = picker.options.map((o) => ({ ...o, category: equipCategory(catalog.master.equips[o.value]?.api_type?.[2]) }));
+    const present = new Set(items.map((i) => i.category));
+    return { items, categories: EQUIP_CATEGORIES.flatMap((c, id) => (present.has(id) ? [{ id, label: c.label }] : [])) };
+  }, [picker, catalog]);
+  return (
+    <PickerModal
+      title={title}
+      items={items}
+      categories={categories}
+      categoryLabel="装備種別"
+      selectedKey={selectedKey}
+      initialQuery={initialQuery}
+      prefix={(o) => {
+        const id = catalog.master.equips[o.value]?.api_type?.[3];
+        return id === undefined ? <span className="w-4 shrink-0" /> : <EquipIcon iconId={id} />;
+      }}
+      footer={onClear && <Button variant="danger" onClick={onClear}>装備を外す</Button>}
+      onPick={onPick}
+      onClose={onClose}
+    />
+  );
+};
+
 export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, shipMasterId, onChange }: Props) => {
   const { catalog, state } = useApp();
   const master = equip ? catalog.master.equips[equip.masterId] : undefined;
@@ -89,8 +129,10 @@ export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, shipMaste
     [catalog, state, noSlotSize, shipMasterId]
   );
 
-  const pick = (id: number | null, option?: { key?: string }) => {
-    if (id === null) return onChange(null);
+  /** 選択ダイアログを開いているとき、検索欄の初期入力 (文字キーで開いたときはその文字) */
+  const [picking, setPicking] = useState<string | null>(null);
+
+  const pick = (id: number, option?: { key?: string }) => {
     const choice = (option?.key && picker.choices.get(option.key)) || { masterId: id, improvement: 0, proficiency: 0 };
     const next: PresetEquip = {
       masterId: id,
@@ -113,25 +155,24 @@ export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, shipMaste
       ) : (
         <Plus size={14} className="text-ink-600" aria-hidden />
       )}
-      <Combobox
-        variant="ghost"
-        menuClassName="min-w-80"
-        buttonClassName="h-6! tall:h-7! px-1"
-        options={picker.options}
-        optionPrefix={(o) => {
-          const id = catalog.master.equips[o.value]?.api_type?.[3];
-          return id === undefined ? null : <EquipIcon iconId={id} />;
-        }}
-        value={equip?.masterId ?? null}
-        selectedKey={selectedEquipKey(picker, equip)}
-        fallbackLabel={equip ? catalog.equipName(equip.masterId) : undefined}
-        onChange={pick}
-        placeholder=""
-        maxItems={200}
-        typeToSearch
-        clearable
+      <PickerTrigger
+        className="h-6! tall:h-7! px-1"
+        label={equip ? catalog.equipName(equip.masterId) : undefined}
+        onClick={() => setPicking("")}
+        onType={setPicking}
         aria-label={`${label} 装備`}
       />
+      {picking !== null && (
+        <EquipPickerModal
+          picker={picker}
+          selectedKey={selectedEquipKey(picker, equip)}
+          initialQuery={picking}
+          title={`${label} 装備を選択`}
+          onPick={(item) => (pick(item.value, item), setPicking(null))}
+          onClear={equip ? () => (onChange(null), setPicking(null)) : undefined}
+          onClose={() => setPicking(null)}
+        />
+      )}
       {equip ? (
         <Chip
           value={equip.improvement}

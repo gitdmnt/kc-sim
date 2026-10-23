@@ -1,10 +1,11 @@
 import React from "react";
 import { Ellipsis, X } from "lucide-react";
 import type { PresetShip } from "../../fleet";
-import { Button, Combobox, Field, NumberInput, Popover, ProgressBar, S, cx } from "../../ui";
+import { Button, Field, NumberInput, Popover, ProgressBar, S, cx } from "../../ui";
 import { useApp } from "../context";
 import { EquipSlot } from "./EquipSlot";
-import { defaultSlotSize, newShipFor } from "./presets";
+import { defaultSlotSize } from "./presets";
+import { ShipPicker } from "./ShipPicker";
 import { StatsGrid } from "./StatsGrid";
 
 /** 艦種 (api_stype) の略号 */
@@ -27,7 +28,6 @@ interface Props {
 export const ShipRow = ({ index, ship, onChange, onRemove }: Props) => {
   const { catalog } = useApp();
   const patch = (p: Partial<PresetShip>) => onChange({ ...ship, ...p });
-  const known = !!catalog.master.ships[ship.masterId];
   const obs = ship.observed;
   const mods = ship.luckMod + ship.hpMod + ship.aswMod;
   const stype = catalog.master.ships[ship.masterId]?.api_stype;
@@ -38,18 +38,15 @@ export const ShipRow = ({ index, ship, onChange, onRemove }: Props) => {
         <span className="text-xs text-ink-500 tabular-nums" title={catalog.shipTypeName(ship.masterId)}>
           {index + 1}
         </span>
-        <Combobox
-          variant="ghost"
+        <ShipPicker
           buttonClassName="h-6! tall:h-7! px-1 font-medium"
           prefix={
             <span className="w-7 shrink-0 text-xs font-normal text-ink-400" title={catalog.shipTypeName(ship.masterId)}>
               {stype !== undefined ? (STYPE_ABBR[stype] ?? "") : ""}
             </span>
           }
-          options={catalog.shipOptions}
-          value={ship.masterId}
-          fallbackLabel={known ? undefined : `艦#${ship.masterId}`}
-          onChange={(id) => id !== null && onChange(newShipFor(id, catalog, ship))}
+          current={ship}
+          onPick={onChange}
           aria-label={`${index + 1}番艦`}
         />
         <div className="flex flex-col">
