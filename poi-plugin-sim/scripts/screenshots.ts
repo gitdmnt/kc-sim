@@ -102,6 +102,27 @@ try {
   await web.locator("span[title^='この入力の']").waitFor({ timeout: 60_000 });
   await page.waitForTimeout(300);
   await shot("19-plugin-embedded");
+  // poi (macOS) がプラグインウィンドウ上端に置く drag 帯 (plugin-window-wrapper.js と同じ)。headless では app-region が
+  // 効かないので、タブが no-drag であること (= 帯の上でもクリックが届く) を計算済みスタイルで確かめ、帯の上でタブを押す
+  await page.evaluate(() => {
+    const div = document.createElement("div");
+    div.style.position = "absolute";
+    div.style.top = "0";
+    div.style.height = "23px";
+    div.style.width = "100%";
+    div.style.setProperty("-webkit-app-region", "drag");
+    div.style.setProperty("pointer-events", "none");
+    document.body.appendChild(div);
+  });
+  const regions = await page.evaluate(() =>
+    [...document.querySelectorAll("[role=tablist] [role=tab]")].map((el) => getComputedStyle(el).getPropertyValue("-webkit-app-region") || getComputedStyle(el).getPropertyValue("app-region"))
+  );
+  if (regions.length === 0 || regions.some((r) => r !== "no-drag")) throw new Error(`plugin tabs are not no-drag: ${regions}`);
+  const logTab = await page.getByRole("tab", { name: "観測ログ", exact: true }).boundingBox();
+  await page.mouse.click(logTab!.x + logTab!.width / 2, 10);
+  if ((await page.getByRole("tab", { name: "観測ログ", exact: true }).getAttribute("aria-selected")) !== "true") throw new Error("観測ログ tab not clickable within the drag strip");
+  await tab("シミュレーション");
+  console.log("plugin tabs no-drag:", regions.join(","));
   const header = await headerBoxes();
   // 埋め込んだ Web UI はヘッダを描かない (タブ列は左の縦の 1 本だけ)
   if (await web.locator("header").count()) throw new Error("the embedded web UI draws a header");

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import type { PoiState } from "@shared/embed/protocol";
 import { buildCatalog } from "@web/fleet/catalog";
-import { Tabs, ToastProvider } from "@web/ui";
+import { Tabs, ToastProvider, cx } from "@web/ui";
 import type { TabItem } from "@web/ui";
 import { usePluginSettings } from "../settings";
 import { LogTab } from "./log/LogTab";
@@ -17,8 +17,10 @@ const TABS: TabItem<PanelTab>[] = [
   { id: "upload", label: L.tabs.upload },
 ];
 
-// macOS のプラグインウィンドウはタイトルバーが無く、左上の信号ボタン (閉じる/最小化/拡大) がタブに重なるので避ける
+// macOS のプラグインウィンドウはタイトルバーが無く、左上の信号ボタン (閉じる/最小化/拡大) がタブに重なるので避ける。
+// poi は上端 23px に -webkit-app-region: drag の帯を置くので、タブだけ no-drag にしてクリックを通す (空きはドラッグできる)
 const IS_MAC = typeof navigator !== "undefined" && /Mac/.test(navigator.platform || navigator.userAgent);
+const NO_DRAG_TABS = "[&>[role=tab]]:[-webkit-app-region:no-drag]";
 
 /**
  * プラグインのビュー。シミュレータ本体はサーバの Web UI を iframe で開き (WebFrame)、観測ログと送信設定は
@@ -41,7 +43,7 @@ export const PluginPanel = ({ poiState }: { poiState: PoiState }) => {
             value={tab}
             onChange={setTab}
             size="sm"
-            className={IS_MAC ? "shrink-0 border-b border-ink-800 pr-3 pl-20" : "shrink-0 border-b border-ink-800 px-3"}
+            className={cx(IS_MAC ? "shrink-0 border-b border-ink-800 pr-3 pl-20" : "shrink-0 border-b border-ink-800 px-3", NO_DRAG_TABS)}
           />
           {/* iframe は隠すだけで外さない (Web UI の状態と読み込みを保つ) */}
           <div className={tab === "sim" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
