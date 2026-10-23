@@ -214,10 +214,13 @@ describe("buildEnemyShips", () => {
 describe("battle input", () => {
   test("formations and options", () => {
     expect(friendFormationOf(preset)).toBe("echelon");
-    expect(enemyFormationOf({ formation: 4 })).toBe("echelon");
-    expect(enemyFormationOf({ formation: 11 })).toBe("lineAhead");
-    expect(enemyFormationOf({ formation: null })).toBe("lineAhead");
-    const b = buildBattleInput({ ships: [], formation: "diamond" }, [], { kind: "dayNight", enemyFormation: "lineAhead" });
+    expect(enemyFormationOf({ formation: 4, escort: [] })).toBe("echelon");
+    expect(enemyFormationOf({ formation: 11, escort: [] })).toBe("lineAhead");
+    expect(enemyFormationOf({ formation: null, escort: [] })).toBe("lineAhead");
+    // 随伴のある編成 (敵連合艦隊) は警戒航行序列。不明なら第四
+    expect(enemyFormationOf({ formation: 11, escort: [{} as never] })).toBe("combinedAntiSub");
+    expect(enemyFormationOf({ formation: null, escort: [{} as never] })).toBe("combinedBattle");
+    const b = buildBattleInput({ ships: [], formation: "diamond" }, { ships: [], formation: "lineAhead" }, { kind: "dayNight" });
     expect(b).toEqual({ friend: { ships: [], formation: "diamond" }, enemy: { ships: [], formation: "lineAhead" }, options: { kind: "dayNight" } });
   });
 
@@ -246,7 +249,7 @@ describe("battle input", () => {
       { id: 20, types: [5, 7, 10, 10, 0], stats: { los: 6, firepower: 1, bombing: 1 }, improvement: 0, proficiency: 7, planes: 4 },
       { id: 10, types: [1, 1, 1, 1, 0], stats: { firepower: 3, accuracy: 2, range: 2 }, improvement: 0, proficiency: 0, planes: 12 },
     ]);
-    expect(buildBattleInput({ ships: [] }, [], { kind: "day", enemyFormation: "lineAhead", lbas: waves }).lbas).toHaveLength(3);
-    expect("lbas" in buildBattleInput({ ships: [] }, [], { kind: "day", enemyFormation: "lineAhead", lbas: [] })).toBe(false);
+    expect(buildBattleInput({ ships: [] }, { ships: [] }, { kind: "day", lbas: waves }).lbas).toHaveLength(3);
+    expect("lbas" in buildBattleInput({ ships: [] }, { ships: [] }, { kind: "day", lbas: [] })).toBe(false);
   });
 });

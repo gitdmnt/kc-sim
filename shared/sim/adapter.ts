@@ -3,6 +3,7 @@
  * 規約は docs/SIM_INTERFACE.md "Conventions" に従う: 艦の stats は「装備なし・装備ボーナスなし」。
  */
 import type {
+  BaseRaidInput,
   BattleInput,
   BattleKind,
   CombinedType,
@@ -10,8 +11,11 @@ import type {
   EquipmentStats,
   FleetInput,
   Formation,
+  FriendFleetInput,
   LandBaseWave,
+  RaidBase,
   ShipInput,
+  SupportInput,
 } from "../../sim-core/pkg/sim_core";
 import { SERVER_ESTIMATOR_SOURCE } from "../data/types";
 import type { ApiEquipment, ApiShip, CompShip, Confidence, EnemyComp, HiddenStat, ShipDetail } from "../data/types";
@@ -47,9 +51,13 @@ export const COMBINED_TYPE: Record<PresetFleetType, CombinedType | undefined> = 
 /** 連合艦隊用の陣形 (sim-core の名前) */
 export const isCombinedFormation = (f: Formation): boolean => f.startsWith("combined");
 
-/** 敵編成の formation id (API) → sim-core。連合艦隊用 (11-14) は未対応なので単縦陣。 */
+/** 通常艦隊の formation id (API 1-6) → sim-core。連合艦隊 (11-14) は COMBINED_FORMATION_BY_ID (随伴のある敵編成だけ)。 */
 export const ENEMY_FORMATION_BY_ID: Record<number, Formation> = {
   1: "lineAhead", 2: "doubleLine", 3: "diamond", 4: "echelon", 5: "lineAbreast", 6: "vanguard",
+};
+/** 連合艦隊の formation id (第一〜第四警戒航行序列) → sim-core */
+export const COMBINED_FORMATION_BY_ID: Record<number, Formation> = {
+  11: "combinedAntiSub", 12: "combinedForward", 13: "combinedDiamond", 14: "combinedBattle",
 };
 
 export const equipStatsFromMaster = (m: EquipMaster): EquipmentStats => {
@@ -81,6 +89,8 @@ export interface FriendOptions {
   fitBonuses?: FitEntry[];
   /** false で装備ボーナスの差し引きをしない (SIM_INTERFACE: 不明なら装備のみ差し引く) */
   applyFit?: boolean;
+  /** 警告の艦の頭に付ける艦隊名 (支援艦隊・友軍艦隊)。既定は無し */
+  prefix?: string;
 }
 
 export interface FriendBuild {
@@ -192,7 +202,7 @@ export const buildFriendShips = (preset: Preset, master: MasterData, opts: Frien
   };
 
   const combined = COMBINED_TYPE[preset.fleetType];
-  const input = preset.ships.map(toInput(""));
+  const input = preset.ships.map(toInput(opts.prefix ?? ""));
   if (!combined) return { input, warnings, fitUnresolved };
   return { input, escort: (preset.escort ?? []).map(toInput("随伴")), combined, warnings, fitUnresolved };
 };
@@ -208,13 +218,32 @@ export const squadronSize = (m: EquipMaster | undefined): number => {
   return RECON_TYPES.has(t) ? 4 : t === LARGE_LAND_BOMBER ? 9 : 18;
 };
 
-/** 出撃の基地航空隊の中隊 (空きは除く)。機数は slotSize、無ければ満載 */
+/** 出撃の基地航空隊の中隊 (空きは除く)。機数は slotSize、無ければ満載。半径はマスターの api_distance */
 export const buildSquadrons = (base: PresetAirBase, master: MasterData): EquipmentInput[] =>
   base.squadrons.flatMap((e) => {
     const m = e && master.equips[e.masterId];
     if (!e || !m) return [];
-    return [equipFromMaster(m, { improvement: e.improvement, proficiency: e.proficiency, planes: e.slotSize ?? squadronSize(m) })];
+    return [
+      equipFromMaster(m, {
+        improvement: e.improvement,
+        proficiency: e.proficiency,
+        planes: e.slotSize ?? squadronSize(m),
+        ...(m.api_distance ? { radius: m.api_distance } : {}),
+      }),
+    ];
   });
+
+/**
+ * 基地の行動半径: 中隊の最小半径 + 偵察機による延長 min(3, round(√(偵察機の最大半径 − 最小半径)))。
+ * zh.kcwiki「基地航空队」航程数据 (日 wiki より、運営 twitter 764086515177631744)。半径の分かる中隊が無ければ null
+ */
+export const baseRadius = (squadrons: EquipmentInput[]): number | null => {
+  const known = squadrons.filter((s) => s.radius !== undefined);
+  if (known.length === 0) return null;
+  const min = Math.min(...known.map((s) => s.radius!));
+  const recon = Math.max(min, ...known.filter((s) => RECON_TYPES.has(s.types[2] ?? 0)).map((s) => s.radius!));
+  return min + Math.min(3, Math.round(Math.sqrt(recon - min)));
+};
 
 /** 単一マス戦闘の基地航空隊の波: 出撃の隊のうち目標が `node` の波 (隊の順、1 波目 → 2 波目) */
 export const landBaseWaves = (bases: PresetAirBase[] | undefined, node: string, master: MasterData): LandBaseWave[] =>
@@ -223,6 +252,18 @@ export const landBaseWaves = (bases: PresetAirBase[] | undefined, node: string, 
     const squadrons = buildSquadrons(b, master);
     return squadrons.length === 0 ? [] : b.targets.filter((t) => t === node).map(() => ({ squadrons }));
   });
+
+/** 基地空襲を受ける基地: 中隊のある隊すべて (迎撃するのは防空の隊だけ)。`numbers` は各基地の番号 (第n基地) */
+export const raidBases = (bases: PresetAirBase[] | undefined, master: MasterData): { bases: RaidBase[]; numbers: number[] } => {
+  const out: { bases: RaidBase[]; numbers: number[] } = { bases: [], numbers: [] };
+  (bases ?? []).forEach((b, i) => {
+    const squadrons = buildSquadrons(b, master);
+    if (squadrons.length === 0) return;
+    out.bases.push({ squadrons, ...(b.mode === "defense" ? { defense: true } : {}) });
+    out.numbers.push(i + 1);
+  });
+  return out;
+};
 
 // ---- enemy ----
 
@@ -368,16 +409,33 @@ export const buildEnemyShips = (ships: CompShip[], lookup: EnemyLookup, opts: Bu
   return { input, warnings, reliability };
 };
 
+/** 敵編成 → sim-core の敵艦隊 (随伴があれば敵連合艦隊)。build.input は結果と同じ並び (主力の後に随伴) */
+export const buildEnemyFleet = (
+  comp: Pick<EnemyComp, "formation" | "main" | "escort">,
+  lookup: EnemyLookup,
+  opts: BuildEnemyOptions = {}
+): { fleet: FleetInput; build: EnemyBuild } => {
+  const main = buildEnemyShips(comp.main, lookup, opts);
+  if (comp.escort.length === 0) return { fleet: { ships: main.input, formation: enemyFormationOf(comp) }, build: main };
+  const escort = buildEnemyShips(comp.escort, lookup, opts);
+  return {
+    fleet: { ships: main.input, escort: escort.input, formation: enemyFormationOf(comp) },
+    build: { input: [...main.input, ...escort.input], warnings: [...main.warnings, ...escort.warnings], reliability: [...main.reliability, ...escort.reliability] },
+  };
+};
+
 // ---- battle ----
 
 export interface BuildBattleOptions {
   kind: BattleKind;
-  enemyFormation: Formation;
   lbas?: LandBaseWave[];
   /** 煙幕を展開する (出撃中 1 回) */
   smoke?: boolean;
   /** 阻塞気球マス (`isBalloonNode`) */
   balloons?: boolean;
+  support?: SupportInput;
+  friendFleet?: FriendFleetInput;
+  baseRaid?: BaseRaidInput;
 }
 
 /** 味方の FleetInput (連合艦隊なら随伴と種別つき) */
@@ -387,15 +445,21 @@ export const friendFleet = (build: Pick<FriendBuild, "input" | "escort" | "combi
   ...(build.combined ? { escort: build.escort ?? [], combined: build.combined } : {}),
 });
 
-export const buildBattleInput = (friend: FleetInput, enemy: ShipInput[], o: BuildBattleOptions): BattleInput => ({
+export const buildBattleInput = (friend: FleetInput, enemy: FleetInput, o: BuildBattleOptions): BattleInput => ({
   friend,
-  enemy: { ships: enemy, formation: o.enemyFormation },
+  enemy,
   options: { kind: o.kind, ...(o.smoke ? { smoke: true } : {}), ...(o.balloons ? { balloons: true } : {}) },
   ...(o.lbas?.length ? { lbas: o.lbas } : {}),
+  ...(o.support ? { support: o.support } : {}),
+  ...(o.friendFleet ? { friendFleet: o.friendFleet } : {}),
+  ...(o.baseRaid ? { baseRaid: o.baseRaid } : {}),
 });
 
-export const enemyFormationOf = (comp: Pick<EnemyComp, "formation">): Formation =>
-  ENEMY_FORMATION_BY_ID[comp.formation ?? 1] ?? "lineAhead";
+/** 敵の陣形。随伴のある編成 (敵連合艦隊) は警戒航行序列 (不明・通常の陣形なら第四)、ほかは通常の陣形 (不明なら単縦陣) */
+export const enemyFormationOf = (comp: Pick<EnemyComp, "formation" | "escort">): Formation =>
+  comp.escort.length > 0
+    ? (COMBINED_FORMATION_BY_ID[comp.formation ?? 14] ?? "combinedBattle")
+    : (ENEMY_FORMATION_BY_ID[comp.formation ?? 1] ?? "lineAhead");
 
 /** プリセットの陣形。艦隊の種類 (通常 / 連合) に合わない陣形なら、その種類の既定 (単縦陣 / 第四警戒航行序列) */
 export const friendFormationOf = (preset: Pick<Preset, "formation" | "fleetType">): Formation => {

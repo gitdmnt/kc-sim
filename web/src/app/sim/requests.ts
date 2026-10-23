@@ -1,18 +1,17 @@
 /** 作業台の入力 → Worker で回す計算 (出撃 / 単一マス戦闘) と、その結果に付ける表示用の情報。 */
-import type { BattleInput, BattleKind, SimulationSummary, SortieSummary } from "@sim-core";
+import type { BattleInput, BattleKind, ShipInput, SimulationSummary, SortieSummary } from "@sim-core";
 import type { EnemyComp, EnemyCompSet } from "@shared/data/types";
 import type { MasterData, Preset } from "@shared/fleet/types";
 import {
   buildBattleInput,
-  buildEnemyShips,
+  buildEnemyFleet,
   buildFriendShips,
   buildSquadrons,
-  enemyFormationOf,
   friendFleet,
   friendFormationOf,
   landBaseWaves,
+  raidBases,
 } from "@shared/sim/adapter";
-import type { FriendBuild } from "@shared/sim/adapter";
 import type { FitEntry } from "@shared/sim/fit";
 import { bonusAt, buildBonuses, debuffsAt } from "@shared/sim/bonuses";
 import { isBalloonNode } from "@shared/sim/nodeEffects";
@@ -21,7 +20,7 @@ import { DataApiError, getDataApi } from "../../data/api";
 import type { MapData } from "../../data/mapData";
 import { runInWorker, runSortieInWorker } from "../../sim/client";
 import { allocateCounts, mergeSummaries } from "../../sim/runner";
-import { buildSortieInput, enemyCombinedNote, hasEnemyEscort, mapLookup } from "../../sim/sortieAdapter";
+import { buildSortieInput, extraFleet, mapLookup } from "../../sim/sortieAdapter";
 import type { EventBonusSettings, SortieSettings } from "../../sim/sortieAdapter";
 import type { AssumptionData } from "./Assumptions";
 import type { SimRequest } from "./useSimRun";
@@ -36,8 +35,8 @@ export interface SortieOutcome {
   compSets: Record<string, EnemyCompSet>;
   /** 目標マス (主要率をこのマスで数えた)。省略はボス */
   target?: string;
-  /** 敵連合艦隊を主力だけで近似したマス */
-  enemyCombined: string[];
+  /** 基地空襲の被害 (hpLostMean) の各基地の番号 (第n基地) */
+  baseNumbers: number[];
   assumptions: AssumptionData;
   seed: number;
 }
@@ -46,6 +45,7 @@ export interface CompRun {
   comp: EnemyComp;
   count: number;
   summary: SimulationSummary;
+  /** 主力の後に随伴 (頭に「随伴」) */
   enemyNames: string[];
 }
 
@@ -54,8 +54,8 @@ export interface BattleOutcome {
   total: SimulationSummary;
   comps: CompRun[];
   friendNames: string[];
-  /** 敵連合艦隊を主力だけで近似したマス (選んだ編成に随伴があれば そのマス) */
-  enemyCombined: string[];
+  /** 基地空襲の被害 (hpLostMean) の各基地の番号 (第n基地) */
+  baseNumbers: number[];
   assumptions: AssumptionData;
   seed: number;
 }
@@ -101,10 +101,10 @@ const eventBonusNote = (e: EventBonusSettings): string => {
   return `イベント特効: ${r.source === "manual" ? "手入力データ" : "kancolle-replay"}${meta ? ` (${meta})` : ""}${e.debuff ? "、装甲破砕済み" : ""}`;
 };
 
-/** 結果の味方の並び (sim-core: 主力の後に随伴) の艦名。随伴は頭に「随伴」 */
-const friendNamesOf = (f: FriendBuild): string[] => [
-  ...f.input.map((s) => s.name ?? `#${s.id}`),
-  ...(f.escort ?? []).map((s) => `随伴 ${s.name ?? `#${s.id}`}`),
+/** 結果の並び (sim-core: 主力の後に随伴) の艦名。随伴は頭に「随伴」 */
+const namesOf = (ships: ShipInput[], escort: ShipInput[] = []): string[] => [
+  ...ships.map((s) => s.name ?? `#${s.id}`),
+  ...escort.map((s) => `随伴 ${s.name ?? `#${s.id}`}`),
 ];
 
 interface Common {
@@ -144,11 +144,11 @@ export const sortieRequest = (
             kind: "sortie",
             summary,
             data,
-            friendNames: friendNamesOf(build.friend),
+            friendNames: namesOf(build.friend.input, build.friend.escort),
             uncertain: build.uncertain,
             target: st.target,
             compSets: build.compSets,
-            enemyCombined: build.enemyCombined,
+            baseNumbers: build.baseNumbers,
             assumptions: {
               friend: build.friend,
               enemy: build.enemyBuilds,
@@ -164,6 +164,18 @@ export const sortieRequest = (
   };
 };
 
+/** 単一マス戦闘で足す艦隊・空襲 (Conditions の設定) */
+export interface BattleExtras {
+  /** 選んだマスがボス (支援は決戦支援、それ以外は道中支援) */
+  boss: boolean;
+  /** 支援艦隊を出すか (道中 / 決戦) */
+  support?: { node: boolean; boss: boolean };
+  /** 友軍艦隊が来る確率 (0..1)。省略は友軍なし */
+  friendChance?: number;
+  /** 選んだ編成が基地航空隊を空襲する */
+  baseRaid?: boolean;
+}
+
 /** 単一マス戦闘。`compId` は "all" (出現率で重み付け) か編成 ID。 */
 export const battleRequest = (
   preset: Preset,
@@ -171,18 +183,28 @@ export const battleRequest = (
   data: MapData,
   set: EnemyCompSet,
   compId: string,
-  o: Common & { applyFit: boolean; kind: BattleKind; node: string }
+  o: Common & BattleExtras & { applyFit: boolean; kind: BattleKind; node: string }
 ): SimRequest<SimOutcome> => {
   const chosen = [...set.comps].sort((a, b) => b.weight - a.weight).filter((c) => compId === "all" || String(c.id) === compId);
   if (chosen.length === 0) throw new Error("敵編成がありません");
-  const friend = buildFriendShips(preset, master, { fitBonuses: o.fit ?? undefined, applyFit: o.applyFit });
+  const fitOpts = { fitBonuses: o.fit ?? undefined, applyFit: o.applyFit };
+  const friend = buildFriendShips(preset, master, fitOpts);
   if (friend.input.length === 0) throw new Error("味方艦がいません");
   if (friend.combined && (friend.escort?.length ?? 0) === 0) throw new Error("随伴艦隊に艦がいません");
   const lookup = mapLookup(data);
-  const builds = chosen.map((c) => buildEnemyShips(c.main, lookup, { useServerEstimates: o.useServerEstimates }));
+  const enemies = chosen.map((c) => buildEnemyFleet(c, lookup, { useServerEstimates: o.useServerEstimates }));
   const fleet = friendFleet(friend, friendFormationOf(preset));
   const lbas = landBaseWaves(preset.lbas, o.node, master);
   const extras: Partial<BattleInput> = {};
+  const extraWarnings: string[] = [];
+  const supportFleet = (o.boss ? o.support?.boss : o.support?.node)
+    ? extraFleet(preset, o.boss ? "supportBoss" : "supportNode", master, fitOpts, extraWarnings)
+    : null;
+  if (supportFleet) extras.support = { fleet: supportFleet, ...(o.boss ? { boss: true } : {}) };
+  const ffFleet = o.friendChance !== undefined ? extraFleet(preset, "friendFleet", master, fitOpts, extraWarnings) : null;
+  if (ffFleet) extras.friendFleet = { fleet: ffFleet, chance: o.friendChance };
+  const raid = o.baseRaid ? raidBases(preset.lbas, master) : { bases: [], numbers: [] };
+  if (o.baseRaid && raid.bases.length === 0) extraWarnings.push("基地空襲: 中隊のある基地航空隊がありません");
   const bonusWarnings: string[] = [];
   if (o.eventBonus) {
     const e = o.eventBonus;
@@ -202,11 +224,14 @@ export const battleRequest = (
     bonusWarnings.push(eventBonusNote(e), ...b.warnings);
   }
   const balloons = isBalloonNode(data.detail.map.world, data.detail.map.no, o.node);
-  const inputs = chosen.map((c, i) => ({ ...buildBattleInput(fleet, builds[i].input, { kind: o.kind, enemyFormation: enemyFormationOf(c), lbas, balloons }), ...extras }));
-  const enemyCombined = hasEnemyEscort(chosen) ? [o.node] : [];
+  const inputs = enemies.map((e) => ({
+    ...buildBattleInput(fleet, e.fleet, { kind: o.kind, lbas, balloons }),
+    ...extras,
+    ...(raid.bases.length > 0 ? { baseRaid: { enemy: e.fleet, bases: raid.bases } } : {}),
+  }));
   const assumptions: AssumptionData = {
     friend,
-    enemy: builds,
+    enemy: enemies.map((e) => e.build),
     applyFit: o.applyFit,
     serverEstimates: o.useServerEstimates,
     warnings: [
@@ -214,9 +239,9 @@ export const battleRequest = (
         ...(o.applyFit && !o.fit ? [FIT_MISSING] : []),
         ...(o.eventBonusFailed ? [EVENT_MISSING] : []),
         ...bonusWarnings,
-        ...(enemyCombined.length > 0 ? [enemyCombinedNote(enemyCombined)] : []),
         ...friend.warnings,
-        ...builds.flatMap((b) => b.warnings),
+        ...extraWarnings,
+        ...enemies.flatMap((e) => e.build.warnings),
       ]),
     ],
   };
@@ -233,14 +258,14 @@ export const battleRequest = (
           const byKey = new Map(results.map((r) => [r.key, r.summary]));
           const comps = chosen.flatMap((comp, i): CompRun[] => {
             const summary = byKey.get(String(comp.id));
-            return summary ? [{ comp, count: counts[i], summary, enemyNames: builds[i].input.map((s) => s.name ?? `#${s.id}`) }] : [];
+            return summary ? [{ comp, count: counts[i], summary, enemyNames: namesOf(enemies[i].fleet.ships, enemies[i].fleet.escort) }] : [];
           });
           return {
             kind: "battle",
             total: mergeSummaries(comps.map((r) => r.summary), { skipEnemy: comps.length > 1 }),
             comps,
-            friendNames: friendNamesOf(friend),
-            enemyCombined,
+            friendNames: namesOf(friend.input, friend.escort),
+            baseNumbers: raid.numbers,
             assumptions,
             seed: o.seed,
           };

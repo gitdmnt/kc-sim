@@ -1,6 +1,7 @@
 /** プリセット + 海域データ → sim-core の SortieInput。 */
 import type {
   EnemyComp as SimComp,
+  FleetInput,
   Formation,
   GaugeMorale,
   Advance,
@@ -10,16 +11,17 @@ import type {
   ResourceAmounts,
   RetreatPolicy,
   RoutingDocument,
+  SortieBaseRaid,
   SortieInput,
   SortieMap,
   SortieNode,
 } from "@sim-core";
 import type { MapData } from "../data/mapData";
 import { describeRule } from "../data/routing";
-import type { EnemyCompSet, RoutingDoc, Rule, Predicate } from "@shared/data/types";
+import type { EnemyCompSet, NodeType, RoutingDoc, Rule, Predicate } from "@shared/data/types";
 import type { MasterData, Preset, PresetAirBase } from "@shared/fleet/types";
-import { buildEnemyShips, buildFriendShips, buildSquadrons, enemyFormationOf, friendFleet, isCombinedFormation } from "@shared/sim/adapter";
-import type { BuildEnemyOptions, EnemyBuild, EnemyLookup, FriendBuild } from "@shared/sim/adapter";
+import { buildEnemyFleet, buildFriendShips, buildSquadrons, friendFleet, isCombinedFormation } from "@shared/sim/adapter";
+import type { BuildEnemyOptions, EnemyBuild, EnemyLookup, FriendBuild, FriendOptions } from "@shared/sim/adapter";
 import { bonusAt, buildBonuses, debuffsAt } from "@shared/sim/bonuses";
 import type { AccEvaMode, EventBonusResponse } from "@shared/sim/bonuses";
 import type { FitEntry } from "@shared/sim/fit";
@@ -57,24 +59,34 @@ export const mapLookup = (data: Pick<MapData, "ships" | "equips">): EnemyLookup 
   detail: (id) => data.ships.get(id),
 });
 
-/** 敵の随伴艦隊を持つ編成があるか (sim-core は敵連合艦隊を持たないので主力だけで近似する) */
-export const hasEnemyEscort = (comps: { escort: unknown[] }[]): boolean => comps.some((c) => c.escort.length > 0);
-
-/** 結果パネルと前提に出す注記 (`nodes` は敵連合艦隊のマス、単一戦闘なら選んだマス) */
-export const enemyCombinedNote = (nodes: string[]): string => `敵連合艦隊 (${nodes.join(", ")}) は随伴を除き主力のみで近似`;
-
-/** 敵編成 → sim-core。敵連合艦隊は随伴を落として主力だけ (sim-core は味方連合 vs 敵通常艦隊のみ) */
+/** 敵編成 → sim-core。随伴のある編成は敵連合艦隊 (主力 + 随伴) */
 export const toSimComps = (
   set: EnemyCompSet,
   data: Pick<MapData, "ships" | "equips">,
   opts: BuildEnemyOptions = {}
 ): { comps: SimComp[]; builds: EnemyBuild[] } => {
   const lookup = mapLookup(data);
-  const builds = set.comps.map((c) => buildEnemyShips(c.main, lookup, opts));
-  return {
-    builds,
-    comps: set.comps.map((c, i) => ({ weight: c.weight, fleet: { ships: builds[i].input, formation: enemyFormationOf(c) } })),
-  };
+  const built = set.comps.map((c) => buildEnemyFleet(c, lookup, opts));
+  return { builds: built.map((b) => b.build), comps: set.comps.map((c, i) => ({ weight: c.weight, fleet: built[i].fleet })) };
+};
+
+/** 戦闘のあるマスの種類 (API の nodes[].type) */
+export const BATTLE_NODE_TYPES: NodeType[] = ["battle", "boss", "night_battle", "air_battle", "air_raid", "night_to_day"];
+
+/** 支援艦隊・友軍艦隊のプリセットの欄と、警告に付ける艦隊名 */
+export const EXTRA_FLEETS = { supportNode: "道中支援", supportBoss: "決戦支援", friendFleet: "友軍" } as const;
+export type ExtraFleetKey = keyof typeof EXTRA_FLEETS;
+
+/** プリセットの支援艦隊・友軍艦隊 → sim-core の艦隊 (通常艦隊)。艦がいなければ null で、`warnings` に理由を足す */
+export const extraFleet = (preset: Preset, key: ExtraFleetKey, master: MasterData, opts: FriendOptions, warnings: string[]): FleetInput | null => {
+  const ships = preset[key] ?? [];
+  if (ships.length === 0) {
+    warnings.push(`${EXTRA_FLEETS[key]}艦隊に艦がいません (来ません)`);
+    return null;
+  }
+  const b = buildFriendShips({ ...preset, fleetType: "single", ships }, master, { ...opts, prefix: EXTRA_FLEETS[key] });
+  warnings.push(...b.warnings);
+  return { ships: b.input };
 };
 
 // ---- ルーティング文書の走査 (設定 UI 用) ----
@@ -190,12 +202,18 @@ export interface SortieSettings {
   /** マス → 資源・渦潮の効果 */
   nodeEffects?: Record<string, NodeEffect>;
   repair?: RepairPolicy;
-  /** 支援艦隊などエンジンが数えない費用 (1 出撃あたり) */
+  /** エンジンが数えない費用 (ほかの艦隊の遠征など、1 出撃あたり)。支援艦隊の費用はエンジンが数える */
   extraPerSortie?: ResourceAmounts;
   /** 連続出撃 (士気を出撃間で持ち越す) */
   consecutive?: GaugeMorale;
   hqLevel: number;
   applyFit: boolean;
+  /** 支援艦隊を出すか (道中 = 目標マス以外の戦闘マス、決戦 = 目標マス)。艦はプリセットの supportNode / supportBoss */
+  support?: { node: boolean; boss: boolean };
+  /** 友軍艦隊 (プリセットの friendFleet): 来る確率 0..1 と来るマス (空は目標マス) */
+  friendFleet?: { chance: number; nodes: string[] };
+  /** 基地空襲: `node` に着いたとき確率 `chance` (0..1) で、`compNode` の敵編成が基地を空襲する */
+  baseRaid?: { node: string; chance: number; compNode: string };
 }
 
 export interface SortieBuild {
@@ -206,8 +224,8 @@ export interface SortieBuild {
   uncertain: Set<string>;
   /** ノード → シミュレーションに使った編成セット (出典表示用) */
   compSets: Record<string, EnemyCompSet>;
-  /** 敵連合艦隊が出るマス (主力だけで近似した) */
-  enemyCombined: string[];
+  /** input.lbas の各基地の番号 (第n基地)。基地空襲の被害の表示用 */
+  baseNumbers: number[];
 }
 
 export const buildSortieInput = (
@@ -221,16 +239,20 @@ export const buildSortieInput = (
   const routing = data.detail.routing;
   if (!routing) throw new Error("この海域のルーティングルールは未登録です");
 
-  const friend = buildFriendShips(preset, master, { fitBonuses: opts.fitBonuses, applyFit: s.applyFit });
+  const friendOpts: FriendOptions = { fitBonuses: opts.fitBonuses, applyFit: s.applyFit };
+  const friend = buildFriendShips(preset, master, friendOpts);
   if (friend.input.length === 0) throw new Error("味方艦がいません");
   if (friend.combined && (friend.escort?.length ?? 0) === 0) throw new Error("随伴艦隊に艦がいません");
 
   const enemyBuilds: EnemyBuild[] = [];
   const compSets: Record<string, EnemyCompSet> = {};
-  const enemyCombined: string[] = [];
   const nodes: Record<string, SortieNode> = {};
   for (const n of data.detail.nodes) {
-    nodes[n.letter] = { kind: (n.type ?? undefined) as SortieNode["kind"], boss: n.isBoss };
+    nodes[n.letter] = {
+      kind: (n.type === "night_to_day" ? "nightToDay" : (n.type ?? undefined)) as SortieNode["kind"],
+      boss: n.isBoss,
+      ...(typeof n.lbasDistance === "number" ? { lbasDistance: n.lbasDistance } : {}),
+    };
     if (isBalloonNode(data.detail.map.world, data.detail.map.no, n.letter)) nodes[n.letter].balloons = true;
     const sets = data.comps[n.letter];
     if (!sets?.length) continue;
@@ -240,12 +262,11 @@ export const buildSortieInput = (
     const { comps, builds } = toSimComps(picked.set, data, opts);
     nodes[n.letter].comps = comps;
     compSets[n.letter] = picked.set;
-    if (hasEnemyEscort(picked.set.comps)) enemyCombined.push(n.letter);
     enemyBuilds.push(...builds);
   }
 
   const bossNode = data.detail.nodes.find((n) => n.isBoss)?.letter;
-  const noComps = data.detail.nodes.filter((n) => ["battle", "boss", "night_battle", "air_battle", "air_raid"].includes(n.type ?? "") && !nodes[n.letter].comps);
+  const noComps = data.detail.nodes.filter((n) => BATTLE_NODE_TYPES.includes(n.type) && !nodes[n.letter].comps);
   if (noComps.length) warnings.push(`敵編成データが無いため空きマス扱い: ${noComps.map((n) => n.letter).join(", ")}`);
   if (bossNode && !nodes[bossNode]?.comps) warnings.push("ボスマスの敵編成データがありません");
 
@@ -254,19 +275,35 @@ export const buildSortieInput = (
   const advance = Object.fromEntries(Object.entries(s.advance ?? {}).filter(([l]) => Object.hasOwn(nodes, l)));
   const smoke = (s.smoke ?? []).filter((l) => Object.hasOwn(nodes, l));
 
-  // 基地航空隊: 出撃の隊のうち、この海域のマスを目標にした波だけ (`lbasBases` はエンジンの基地の順)
+  // 基地空襲: 空襲する編成は選んだマスの敵編成
+  const raid = s.baseRaid && Object.hasOwn(nodes, s.baseRaid.node) ? s.baseRaid : undefined;
+  const raidComps = raid && nodes[raid.compNode]?.comps;
+  if (raid && !raidComps) warnings.push(`基地空襲: ${raid.compNode} マスの敵編成データが無いため空襲なし`);
+  const baseRaids: SortieBaseRaid[] = raid && raidComps ? [{ node: raid.node, chance: raid.chance, comps: raidComps }] : [];
+
+  // 基地航空隊: 出撃の隊のうち、この海域のマスを目標にした波。基地空襲があれば防空・待機の隊も (空襲を受ける)。
+  // `lbasBases` / `baseNumbers` はエンジンの基地の順
   const lbasBases: PresetAirBase[] = [];
-  const lbas: LandBase[] = (preset.lbas ?? []).flatMap((b, i) => {
-    if (b.mode !== "sortie") return [];
-    const targets = b.targets.filter((t) => Object.hasOwn(nodes, t));
+  const baseNumbers: number[] = [];
+  const lbas: LandBase[] = [];
+  (preset.lbas ?? []).forEach((b, i) => {
     const squadrons = buildSquadrons(b, master);
-    if (targets.length === 0 || squadrons.length === 0) {
+    const targets = b.mode === "sortie" ? b.targets.filter((t) => Object.hasOwn(nodes, t)) : [];
+    if (b.mode === "sortie" && (targets.length === 0 || squadrons.length === 0)) {
       warnings.push(`第${i + 1}基地航空隊: ${squadrons.length === 0 ? "中隊がありません" : "この海域の目標マスが未設定"} (出撃しません)`);
-      return [];
     }
+    if (squadrons.length === 0 || (targets.length === 0 && baseRaids.length === 0)) return;
+    lbas.push({ squadrons, targets, ...(b.mode === "defense" ? { defense: true } : {}) });
     lbasBases.push(b);
-    return [{ squadrons, targets }];
+    baseNumbers.push(i + 1);
   });
+  if (baseRaids.length > 0 && lbas.length === 0) warnings.push("基地空襲: 中隊のある基地航空隊がありません");
+
+  const support = {
+    ...(s.support?.node && { node: extraFleet(preset, "supportNode", master, friendOpts, warnings) }),
+    ...(s.support?.boss && { boss: extraFleet(preset, "supportBoss", master, friendOpts, warnings) }),
+  };
+  const friendFleetInput = s.friendFleet && extraFleet(preset, "friendFleet", master, friendOpts, warnings);
   const combined = !!friend.combined;
 
   // イベント特効: 戦闘のあるマスごとに、艦・基地の値とデバフ
@@ -319,7 +356,13 @@ export const buildSortieInput = (
     ...(s.repair?.bucketAboveSec !== undefined ? { repair: s.repair } : {}),
     ...(s.extraPerSortie && Object.values(s.extraPerSortie).some((v) => v) ? { extraPerSortie: s.extraPerSortie } : {}),
     ...(s.consecutive ? { consecutive: s.consecutive } : {}),
+    ...(support.node || support.boss
+      ? { support: { ...(support.node && { node: { fleet: support.node } }), ...(support.boss && { boss: { fleet: support.boss } }) } }
+      : {}),
+    ...(friendFleetInput && s.friendFleet
+      ? { friendFleet: { fleet: friendFleetInput, chance: s.friendFleet.chance, ...(s.friendFleet.nodes.length > 0 ? { nodes: s.friendFleet.nodes } : {}) } }
+      : {}),
+    ...(baseRaids.length > 0 ? { baseRaids } : {}),
   };
-  if (enemyCombined.length > 0) warnings.push(enemyCombinedNote(enemyCombined));
-  return { input, warnings: [...warnings, ...friend.warnings], friend, enemyBuilds, uncertain: uncertainNodes(routing), compSets, enemyCombined };
+  return { input, warnings: [...warnings, ...friend.warnings], friend, enemyBuilds, uncertain: uncertainNodes(routing), compSets, baseNumbers };
 };

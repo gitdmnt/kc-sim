@@ -30,7 +30,7 @@ export const isCombinedFleetType = (t: PresetFleetType): boolean => t !== "singl
 /** 第一艦隊の最大隻数 (遊撃部隊は 7 隻)。 */
 export const maxShipsOf = (t: PresetFleetType): number => (t === "striking_force" ? 7 : 6);
 
-/** 基地航空隊の行動 (poi: api_action_kind 1 出撃, 2 防空, 0 待機・その他)。シミュレーションで飛ぶのは出撃だけ */
+/** 基地航空隊の行動 (poi: api_action_kind 1 出撃, 2 防空, 0 待機・その他)。出撃の隊は目標マスへ飛び、防空の隊は基地空襲を迎え撃つ */
 export type AirBaseMode = "sortie" | "defense" | "standby";
 
 /** 基地航空隊 1 隊。 */
@@ -102,6 +102,12 @@ export interface Preset {
   escort?: PresetShip[];
   /** 基地航空隊 (最大 3 隊) */
   lbas?: PresetAirBase[];
+  /** 道中支援艦隊 (最大 6 隻)。出撃では目標マス以外の戦闘マスに来る */
+  supportNode?: PresetShip[];
+  /** 決戦支援艦隊 (最大 6 隻)。出撃ではボス (目標マス) に来る */
+  supportBoss?: PresetShip[];
+  /** 友軍艦隊 (手入力、所持していない艦も可。最大 7 隻)。夜戦の前に戦う */
+  friendFleet?: PresetShip[];
   hqLevel?: number;
   source?: PresetSource;
   note?: string;
@@ -151,6 +157,8 @@ export interface EquipMaster {
   api_houk?: number;
   api_saku?: number;
   api_leng?: number;
+  /** 戦闘行動半径 (航空機のみ) */
+  api_distance?: number;
   api_sortno?: number;
   api_luck?: number;
 }

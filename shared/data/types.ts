@@ -1,7 +1,7 @@
 /** docs/API.md §2 の応答型 (camelCase)。 */
 
 export type NodeType =
-  | "start" | "battle" | "boss" | "night_battle" | "air_battle" | "air_raid"
+  | "start" | "battle" | "boss" | "night_battle" | "air_battle" | "air_raid" | "night_to_day"
   | "empty" | "select" | "resource" | "maelstrom" | "landing" | "escort_success"
   | "air_recon" | "anchorage_repair" | null;
 
@@ -30,6 +30,8 @@ export interface MapNode {
   eventKind: number | null;
   type: NodeType;
   isBoss: boolean;
+  /** 基地航空隊の距離 (捕捉した api_cell_data の api_distance)。null / 省略は不明 (古い API・バンドル) */
+  lbasDistance?: number | null;
 }
 
 export interface MapEdge {

@@ -6,7 +6,7 @@ import { STORAGE_PREFIX, isCombinedFleetType, maxShipsOf } from "../../fleet";
 import type { Preset, PresetFleetType } from "../../fleet";
 import { abyssalName } from "../../data/names";
 import { useMapData, useMapList } from "../../data/useMapData";
-import { enemyCombinedNote, pickSet, resolveSelects } from "../../sim/sortieAdapter";
+import { pickSet, resolveSelects } from "../../sim/sortieAdapter";
 import type { SortieSettings } from "../../sim/sortieAdapter";
 import { Button, EmptyState, Popover, Select, Tabs, S, cx } from "../../ui";
 import type { TabItem } from "../../ui";
@@ -203,7 +203,7 @@ export const Workspace = () => {
         return { req: sortieRequest(preset, catalog.master, data, st, common), error: null };
       }
       if (!nodeSet || !node) return { req: null, error: null, why: "この海域には敵編成のデータがありません" };
-      return { req: battleRequest(preset, catalog.master, data, nodeSet, compId, { ...common, applyFit: prefs.applyFit, kind: prefs.battleKind, node }), error: null };
+      return { req: battleRequest(preset, catalog.master, data, nodeSet, compId, { ...common, applyFit: prefs.applyFit, kind: prefs.battleKind, node, boss: node === bossLetter }), error: null };
     } catch (e) {
       return { req: null, error: (e as Error).message };
     }
@@ -444,7 +444,6 @@ export const Workspace = () => {
           {loadError && <DataError error={loadError} />}
           {error && <p className="text-xs text-danger-400">{error}</p>}
           {why && <p className="text-xs text-ink-300">{why}</p>}
-          {out && out.enemyCombined.length > 0 && <p className="text-xs text-warn-400">{enemyCombinedNote(out.enemyCombined)}</p>}
           {out?.kind === "sortie" ? (
             <SortieResults out={out} meta={meta} />
           ) : out?.kind === "battle" ? (

@@ -1,6 +1,6 @@
 /** simulateBattle を分割実行して結果を合成する (Worker と単体テストの両方から使う)。 */
 import type {
-  BattleInput, Dist, NodeSummary, PathRate, Rank, ShipSummary, SimulationSummary, SortieInput, SortieShipSummary, SortieSummary,
+  AirState, BaseRaidSummary, BattleInput, Dist, NodeSummary, PathRate, Rank, ShipSummary, SimulationSummary, SortieInput, SortieShipSummary, SortieSummary,
 } from "@sim-core";
 
 export type Engine = (input: BattleInput, count: number, seed: number) => SimulationSummary;
@@ -67,6 +67,9 @@ export const mergeSummaries = (list: SimulationSummary[], opts: { skipEnemy?: bo
     friendSunkAnyRate: weighted(nPart((p) => p.friendSunkAnyRate)).v,
     friend: ships("friend"),
     enemy: ships("enemy"),
+    ...optional("supportRate", optRate(parts.map((p) => ({ n: p.count, v: p.supportRate })))),
+    ...optional("friendFleetRate", optRate(parts.map((p) => ({ n: p.count, v: p.friendFleetRate })))),
+    ...optional("baseRaid", mergeBaseRaid(parts.map((p) => ({ n: p.count, s: p.baseRaid })))),
   };
 };
 
@@ -149,6 +152,28 @@ const mergeDist = (parts: { n: number; v: Dist }[]): Dist => ({
   p90: wavg(parts.map((p) => ({ n: p.n, v: p.v.p90 }))),
 });
 const RANK_KEYS: Rank[] = ["SS", "S", "A", "B", "C", "D", "E"];
+const AIR_KEYS: AirState[] = ["none", "supremacy", "superiority", "parity", "denial", "incapability"];
+
+/** 省略できる欄: 値が無ければ欄ごと省く (sim-core と同じく、入力に無い機能の欄は出さない) */
+const optional = <K extends string, V>(key: K, v: V | undefined): Partial<Record<K, V>> => (v === undefined ? {} : ({ [key]: v } as Record<K, V>));
+
+/** 支援・友軍の率: 値のある部分だけで重み付け平均。どの部分にも無ければ undefined */
+const optRate = (parts: { n: number; v: number | undefined }[]): number | undefined => {
+  const have = parts.filter((p): p is { n: number; v: number } => p.v !== undefined);
+  return have.length === 0 ? undefined : wavg(have);
+};
+
+/** 基地空襲: 起きた割合 (rate) は件数で、空襲の結果 (制空・被害) は空襲の回数 (件数 × rate) で重み付け */
+const mergeBaseRaid = (parts: { n: number; s?: BaseRaidSummary }[]): BaseRaidSummary | undefined => {
+  const raids = parts.flatMap((p) => (p.s ? [{ n: p.n * (p.s.rate ?? 1), s: p.s }] : []));
+  if (raids.length === 0) return undefined;
+  const bases = Math.max(...raids.map((r) => r.s.hpLostMean.length));
+  return {
+    ...(raids[0].s.rate !== undefined ? { rate: wavg(parts.map((p) => ({ n: p.n, v: p.s?.rate ?? 0 }))) } : {}),
+    airStateRates: wrec(raids.map((r) => ({ n: r.n, rec: r.s.airStateRates })), AIR_KEYS),
+    hpLostMean: Array.from({ length: bases }, (_, i) => wavg(raids.map((r) => ({ n: r.n, v: r.s.hpLostMean[i] ?? 0 })))),
+  };
+};
 
 /** 出撃サマリを出撃数で重み付けして合成する。経路は上位リスト同士の合算 (落ちた分は other へ)。 */
 export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): SortieSummary => {
@@ -188,6 +213,8 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
       retreatModerateRate: perSortie((n) => n.retreatModerateRate),
       nightRate: wavg(ns.map((x) => ({ n: x.count * x.s.battleRate, v: x.s.nightRate }))),
       fcfRate: perSortie((n) => n.fcfRate),
+      ...optional("supportRate", optRate(ns.map((x) => ({ n: x.count * x.s.battleRate, v: x.s.supportRate })))),
+      ...optional("friendFleetRate", optRate(ns.map((x) => ({ n: x.count * x.s.battleRate, v: x.s.friendFleetRate })))),
     };
   }
 
@@ -235,6 +262,14 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
         bauxite: wavg(by((s) => s.lbasCostMean?.bauxite ?? 0)),
       },
     }),
+    ...(parts[0].supportCostMean && {
+      supportCostMean: {
+        fuel: wavg(by((s) => s.supportCostMean?.fuel ?? 0)),
+        ammo: wavg(by((s) => s.supportCostMean?.ammo ?? 0)),
+        steel: wavg(by((s) => s.supportCostMean?.steel ?? 0)),
+        bauxite: wavg(by((s) => s.supportCostMean?.bauxite ?? 0)),
+      },
+    }),
     ...(parts[0].waitMinutesMean !== undefined && { waitMinutesMean: wavg(by((s) => s.waitMinutesMean ?? 0)) }),
     sunkRate: wavg(by((s) => s.sunkRate)),
     battlesMean: wavg(by((s) => s.battlesMean)),
@@ -271,6 +306,7 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
     },
     friend,
     gauge: parts.find((p) => p.gauge)?.gauge,
+    ...optional("baseRaid", mergeBaseRaid(parts.map((p) => ({ n: p.count, s: p.baseRaid })))),
     warnings: [...new Set(parts.flatMap((p) => p.warnings))],
   };
 };
