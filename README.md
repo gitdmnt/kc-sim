@@ -122,7 +122,7 @@ bun run kcnav:status                                           # 進捗・ETA・
 ```sh
 cd web
 bun install
-bun run dev           # http://localhost:5173 (/api は 127.0.0.1:8787 に中継。変更は HMR で反映)
+bun run dev           # http://localhost:5173 (/api は 127.0.0.1:8787 に中継。変更は HMR で反映。sim-core/pkg は起動時と Rust の変更時に作り直す)
 ```
 
 poi なしのブラウザでは poi のデータが無いので、設定タブの「内蔵サンプルデータを使う」で同梱の艦・装備を使えます

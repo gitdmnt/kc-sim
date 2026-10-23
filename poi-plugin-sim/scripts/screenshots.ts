@@ -27,10 +27,12 @@ const findChromium = (): string => {
   throw new Error("chromium_headless_shell not found; set CHROMIUM_PATH");
 };
 
+// web の開発サーバは listen の前に sim-core/pkg を作る (web/vite.config.ts の buildWasm)。cargo の初回ビルドも待つ
 const startVite = async (cwd: string, port: number) => {
   const proc = Bun.spawn(["bunx", "vite", "--port", String(port), "--strictPort"], { cwd, stdout: "ignore", stderr: "inherit" });
   for (let i = 0; !(await fetch(`http://localhost:${port}/`).then((r) => r.ok, () => false)); i++) {
-    if (i > 300) throw new Error(`vite in ${cwd} did not start`);
+    if (proc.exitCode !== null) throw new Error(`vite in ${cwd} exited (${proc.exitCode})`);
+    if (i > 3000) throw new Error(`vite in ${cwd} did not start`);
     await Bun.sleep(100);
   }
   return proc;

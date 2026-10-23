@@ -1,7 +1,10 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
+import { readFileSync } from "fs";
+import { initSync, simulateSortie } from "@sim-core";
 import type { SortieSummary } from "@sim-core";
 import { DataApi } from "../data/api";
 import { loadMapData } from "../data/mapData";
+import type { MapData } from "../data/mapData";
 import type { MapBundle, RoutingDoc } from "@shared/data/types";
 import { MemoryStorage } from "../fleet/storage";
 import type { MasterData, Preset } from "@shared/fleet/types";
@@ -345,5 +348,45 @@ describe("runSortieJob", () => {
     const r = geometricSorties(0.5)!;
     expect(r).toEqual({ mean: 2, p50: 1, p90: 4 });
     expect(geometricSorties(1)).toEqual({ mean: 1, p50: 1, p90: 1 });
+  });
+});
+
+describe("runSortieJob with sim-core", () => {
+  // 本物の wasm の出力を塊に分けて合成する (UI は 2,000 出撃ずつ回して合成する)。合成した結果は合成しない 1 回の結果と
+  // 同じ形: エンジンの欄を落とさず、合成が読む各艦の欄 (friend[i].repair など) もエンジンが出している
+  beforeAll(() => {
+    initSync({ module: readFileSync(new URL("../../../sim-core/pkg/sim_core_bg.wasm", import.meta.url)) });
+  });
+  const data: MapData = {
+    key: "9-9", source: "bundle", stale: false,
+    detail: {
+      map: bundle.map, nodes: bundle.nodes, edges: [], enemyCompNodes: ["A", "B"],
+      routing: { map: "9-9", sources: [{ id: "test", note: "" }], nodes: { Start1: { rules: [{ to: "A" }] }, A: { rules: [{ to: "B" }] }, B: { end: true } } },
+    },
+    comps: { A: bundle.enemyComps.A, B: bundle.enemyComps.A },
+    compSelection: {},
+    ships: new Map([[1501, {
+      ship: { id: 1501, name: "イ", nameEn: null, yomi: null, stype: 2, ctype: null, speed: 10, range: 1, slotNum: 1, isAbyssal: true, hp: 20, fp: 5, tp: 15, aa: 6, ar: 5, luck: null, maxStats: null, slots: [0], equips: [1501], flags: null },
+      estimates: [], best: { ev: { value: 14, confidence: "datamined", source: "s" } },
+    }]]),
+    equips: new Map([[1501, bundle.equipments["1501"]]]),
+  };
+  /** 値を除いた欄の木 (undefined の欄は JSON と同じく無いものとする) */
+  const shape = (v: unknown): unknown =>
+    Array.isArray(v) ? v.map(shape)
+    : v !== null && typeof v === "object" ? Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined).map(([k, x]) => [k, shape(x)]))
+    : typeof v;
+  const ships = (n: number) => Array.from({ length: n }, () => preset.ships[0]);
+  test.each([
+    ["single fleet", preset],
+    ["striking force, 7 ships", { ...preset, fleetType: "striking_force", ships: ships(7) }],
+    ["combined fleet", { ...preset, fleetType: "carrier_task_force", ships: ships(6), escort: ships(6) }],
+  ] satisfies [string, Preset][])("%s: chunks merge into the engine's summary shape", (_, p) => {
+    const { input } = buildSortieInput(p, master, data, { start: "Start1", selects: {}, flags: {}, difficulty: 0, night: "bossOnly", retreat: { onHeavy: true }, formations: {}, hqLevel: 100, applyFit: false });
+    const whole = simulateSortie(input, 300, 1);
+    const merged = runSortieJob((i, n, seed) => simulateSortie(i, n, seed), { input, count: 300, seed: 1 }, { chunk: 100 });
+    expect(merged.count).toBe(300);
+    expect(merged.friend).toHaveLength(p.ships.length + (p.escort?.length ?? 0));
+    expect(shape(merged)).toEqual(shape(whole));
   });
 });

@@ -15,10 +15,15 @@ Requirements: [bun](https://bun.sh) ≥ 1.3, Rust with the `wasm32-unknown-unkno
 bun install
 bun run dev                    # vite on http://localhost:5173, /api → http://127.0.0.1:8787 (KCSIM_API to change)
 bun run build                  # wasm-pack (../sim-core) + vite → dist/
-SKIP_WASM_BUILD=1 bun run build   # reuse an existing ../sim-core/pkg
+SKIP_WASM_BUILD=1 bun run build   # reuse an existing ../sim-core/pkg (also for dev)
 bun test
 bun run typecheck
 ```
+
+`bun run dev` builds `../sim-core/pkg` before it listens and rebuilds it whenever `../sim-core/src`, `Cargo.toml`,
+`Cargo.lock` or `sim_core_types.d.ts` change (edits, `git merge` / `pull`); the page reloads on the new pkg, and a
+failed build shows in the error overlay. HMR updates the TypeScript at once, so without the rebuild the new runner
+would read summary fields the old wasm does not produce. `SKIP_WASM_BUILD=1` serves the existing pkg and does not watch.
 
 `dist/`: `index.html`, `assets/` (hashed JS, CSS, `sim.worker-*.js`, `sim_core_bg-*.wasm`) and, when
 `../server/dist/maps` exists (`cd ../server && bun run export:bundle`), `maps/` (the static map bundles the UI reads
