@@ -100,3 +100,30 @@ fn combined_and_land_base_json() {
     let single: BattleInput = serde_json::from_str(INPUT).unwrap();
     assert!(serde_json::to_value(run_battle(&single, 1).unwrap()).unwrap()["result"].get("mvpEscort").is_none());
 }
+
+#[test]
+fn special_attack_keys() {
+    let mut input: BattleInput = serde_json::from_str(INPUT).unwrap();
+    input.friend.special_attack_used = Some(true);
+    input.friend.kongou_special_count = Some(2);
+    input.options.special_attack_rates = Some(SpecialAttackRates { nelson_touch: Some(70.0), sub_fleet_second: Some(50.0), ..Default::default() });
+    let v = serde_json::to_value(&input).unwrap();
+    assert_eq!(v["friend"]["specialAttackUsed"], true);
+    assert_eq!(v["friend"]["kongouSpecialCount"], 2);
+    assert_eq!(v["options"]["specialAttackRates"]["nelsonTouch"], 70.0);
+    assert_eq!(v["options"]["specialAttackRates"]["subFleetSecond"], 50.0);
+    for (s, name) in [
+        (SpecialAttack::NelsonTouch, "nelsonTouch"),
+        (SpecialAttack::QueenElizabethCutin, "queenElizabethCutin"),
+        (SpecialAttack::YamatoCutin3, "yamatoCutin3"),
+        (SpecialAttack::SubFleetAttack, "subFleetAttack"),
+        (SpecialAttack::CvciJfJbJb, "cvciJfJbJb"),
+        (SpecialAttack::Bomber634Cutin, "bomber634Cutin"),
+        (SpecialAttack::NightZuiunZzr, "nightZuiunZzr"),
+    ] {
+        assert_eq!(serde_json::to_value(s).unwrap(), name);
+    }
+    let out = serde_json::to_value(run_battle(&input, 1).unwrap()).unwrap();
+    assert!(out["result"]["airDefense"].is_array(), "log adds airDefense");
+    assert_eq!(out["state"]["friend"]["specialAttackUsed"], true);
+}

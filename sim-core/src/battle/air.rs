@@ -1,7 +1,8 @@
-//! Air combat: fighter power → air state, stage 1 (fighter combat), stage 2 (AA fire, generic
-//! AACI), contact, stage 3 (airstrikes). Ported from kcsim `compareAP`, `AADefenceFighters`,
-//! `getAAShotProp`, `getAAShotFlat`, `getAACI`, `getContact`, `AADefenceBombersAndAirstrike`,
-//! `airstrike` (KC3Kai/kancolle-replay, MIT © fourinone41).
+//! Air combat: fighter power → air state, stage 1 (fighter combat), stage 2 (AA fire, AACI of
+//! both sides, plane AA resistance), contact, rocket barrage, stage 3 (airstrikes). Ported from
+//! kcsim `compareAP`, `AADefenceFighters`, `getAAShotProp`, `getAAShotFlat`, `getAACI`,
+//! `getContact`, `AADefenceBombersAndAirstrike`, `airstrike` and kcships `rocketBarrageChance`
+//! (KC3Kai/kancolle-replay, MIT © fourinone41).
 //!
 //! Friend combined fleet vs a single enemy (kcsimcombined `simCombined` → `compareAP(F1,F2)`,
 //! `airPhase(alive1.concat(alive1C), …)` without `includeEscort`): only the main fleet's planes
@@ -12,9 +13,10 @@ use super::calc;
 use super::{side_air, Battle, List};
 use crate::equipment::{f, Equip};
 use crate::formulas::{self, Roll};
-use crate::model::{AttackKind, BattleKind, SpecialAttack};
+use crate::model::{AirDefenseEvent, AttackKind, BattleKind, Side, SpecialAttack};
 use crate::rng::Rng;
-use crate::ship::{AACI_TABLE, MAX_SLOTS};
+use crate::aaci::{priority, AACI_TABLE};
+use crate::ship::MAX_SLOTS;
 
 /// Friend plane loss in fighter combat (kcsim `AADefenceFighters`, side 0) for `n` planes at
 /// friend air state `air`, multiplier `m` (jets 0.6).
@@ -188,28 +190,42 @@ impl<'a> Battle<'a> {
         }
     }
 
-    /// Fixed AA shot-down of the defending side's AACI roll: (fixed count, multiplier).
-    fn roll_aaci(&mut self, def_side: usize) -> (i32, f64) {
-        if !self.fleets[def_side].is_player {
-            return (0, 1.0);
-        }
-        let mut best: Option<usize> = None;
+    /// kcsim `getAACI` (multi-roll, `aaciMultiRoll`): every afloat defender rolls each of its AACI
+    /// kinds independently; the success with the best priority fires. Returns (table index, ship).
+    fn roll_aaci(&mut self, def_side: usize) -> Option<(usize, usize)> {
+        let mut best: Option<(usize, usize)> = None;
         for i in 0..self.len(def_side) {
             if !self.alive(def_side, i) {
                 continue;
             }
             let kinds = &self.core(def_side, i).aaci;
             for &k in kinds {
-                let Some(pri) = AACI_TABLE.iter().position(|t| t.0 == k) else { continue };
-                if best.is_none_or(|b| pri < b) && self.rng().chance(AACI_TABLE[pri].3) {
-                    best = Some(pri);
+                let Some(pri) = priority(k) else { continue };
+                if best.is_none_or(|b| pri < b.0) && self.rng().chance(AACI_TABLE[pri].3) {
+                    best = Some((pri, i));
                 }
             }
         }
-        match best {
-            Some(p) => (AACI_TABLE[p].1, AACI_TABLE[p].2),
-            None => (0, 1.0),
+        best
+    }
+
+    fn log_air(&mut self, def_side: usize, ship: usize, aaci: Option<u8>, rocket_barrage: bool) {
+        let phase = self.phase;
+        if let Some(ev) = self.air_events.as_mut() {
+            ev.push(AirDefenseEvent { phase, side: if def_side == 0 { Side::Friend } else { Side::Enemy }, ship, aaci, rocket_barrage });
         }
+    }
+
+    /// kcships `rocketBarrageChance` (CAV / BBV / carriers / AV with the 12cm 30-tube rocket
+    /// launcher Kai 2): `(2·wAA + 0.9·luck) / (400 − (48 + 30 + 40·n + 70·[Ise class]))`
+    /// [unverified: wikiwiki gives `(加重対空 + 運)/282 + 15%·(n − 1) + 25%·[Ise class]`].
+    fn rocket_barrage_chance(&self, side: usize, i: usize) -> f64 {
+        let c = self.core(side, i);
+        if c.rocket_barrage == 0 {
+            return 0.0;
+        }
+        let class_bonus = if c.ship_class == 2 { 70.0 } else { 0.0 };
+        (2.0 * c.weighted_aa + 0.9 * c.luck) / (400.0 - (48.0 + 30.0 + 40.0 * c.rocket_barrage as f64 + class_bonus))
     }
 
     /// kcsim `getContact`: contact multiplier for the attacking side.
@@ -252,31 +268,65 @@ impl<'a> Battle<'a> {
         if bombers.is_empty() {
             return;
         }
-        let (aaci_num, aaci_mod) = self.roll_aaci(def_side);
+        let aaci = self.roll_aaci(def_side);
+        if let Some((p, ship)) = aaci {
+            self.log_air(def_side, ship, Some(AACI_TABLE[p].0), false);
+        }
+        let (aaci_num, aaci_mod, aaci_num1) = aaci.map_or((0, 1.0, 0), |(p, _)| (AACI_TABLE[p].1, AACI_TABLE[p].2, AACI_TABLE[p].4));
         let air = side_air(self.air, att_side);
         let mut contact = if air != -2 && air != 0 { self.roll_contact(att_side, carriers) } else { 1.0 };
         // kcsim `AADefenceBombersAndAirstrike`: own balloons +2 % each, the target fleet's −5 % each.
         contact *= (1.0 + self.balloons(att_side) as f64 / 50.0) * (1.0 - self.balloons(def_side) as f64 / 20.0);
+        let targets = self.surface(def_side);
+        // Rocket barrage: a triggered ship evades every airstrike of this phase.
+        let mut barrage = List::default();
+        for &t in targets.as_slice() {
+            let chance = self.rocket_barrage_chance(def_side, t);
+            if chance > 0.0 && self.rng().chance(chance) {
+                barrage.push(t);
+                self.log_air(def_side, t, None, true);
+            }
+        }
         let mut defenders = List::default();
         for i in 0..self.len(def_side) {
             if self.alive(def_side, i) {
                 defenders.push(i);
             }
         }
-        let targets = self.surface(def_side);
         let def_player = self.fleets[def_side].is_player;
-        let fleet_aa = if def_player { (self.fleet_aa[def_side] / 1.3).floor() } else { self.fleet_aa[def_side] };
         let flat_mod = if def_player { 0.2 } else { 0.1875 };
         let mut attacks: Vec<(usize, usize, usize, bool)> = Vec::new();
         for (i, s) in bombers {
             if !defenders.is_empty() {
                 let d = defenders.as_slice()[self.rng().below(defenders.len())];
                 let cfm = self.combined_aa_mod(def_side, d);
-                let waa = self.core(def_side, d).weighted_aa * cfm;
+                let waa = self.core(def_side, d).weighted_aa;
+                // kcEQDATA `aaResistShip` / `aaResistFleet` (1 = none).
+                let (rs, rf) = self.core(att_side, i).slots[s].as_ref().map_or((1.0, 1.0), |e| (e.aa_resist_ship, e.aa_resist_fleet));
                 let n = self.st[att_side][i].planes[s];
-                let prop = if self.rng().chance(0.5) { (n as f64 * waa / 200.0).floor() as i32 } else { 0 };
-                let flat = if self.rng().chance(0.5) { ((waa + fleet_aa * cfm) * flat_mod * aaci_mod).floor() as i32 } else { 0 };
-                let fix = if def_player || aaci_num > 0 { 1 } else { 0 } + aaci_num;
+                let prop = if self.rng().chance(0.5) {
+                    let saa = if rs != 1.0 { (waa * rs).floor() } else { waa };
+                    (n as f64 * saa * cfm / 200.0).floor() as i32
+                } else {
+                    0
+                };
+                let flat = if self.rng().chance(0.5) {
+                    let saa = (waa * rs).floor();
+                    let mut faa = (self.fleet_aa[def_side] * rf).floor();
+                    if def_player {
+                        faa = (faa / 1.3).floor();
+                    }
+                    ((saa + faa) * cfm * flat_mod * aaci_mod).floor() as i32
+                } else {
+                    0
+                };
+                let mut fix = if def_player || aaci_num > 0 { 1 } else { 0 } + aaci_num;
+                // kcsim `aaResist`: planes resisting both keep 60% of the AACI part `num1` (ship
+                // resistance ≤ 0.5: 3 fewer).
+                if rs != 1.0 && rf != 1.0 && fix > 0 {
+                    let (n1, n2) = if aaci_num > 0 { (aaci_num1, fix - aaci_num1) } else { (fix, 0) };
+                    fix = if rs <= 0.5 { (fix - 3).max(0) } else { (n1 as f64 * 0.6 + n2 as f64).floor() as i32 };
+                }
                 let st = &mut self.st[att_side][i];
                 st.planes[s] = (n - prop - flat - fix).max(0);
                 if st.planes[s] <= 0 {
@@ -286,7 +336,9 @@ impl<'a> Battle<'a> {
             }
             if !targets.is_empty() {
                 let (t, covered) = self.choose_target(def_side, targets.as_slice(), 0);
-                attacks.push((i, s, t, covered));
+                if !barrage.as_slice().contains(&t) {
+                    attacks.push((i, s, t, covered));
+                }
             }
         }
         for (i, s, t, covered) in attacks {

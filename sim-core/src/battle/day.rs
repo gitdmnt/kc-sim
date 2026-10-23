@@ -2,7 +2,8 @@
 //! `shellPhaseTarget`, `shell`, `ASW`, `orderByRange` and kcships `canASW`, `canOASW`, `canShell`,
 //! `canAS`, `ASchance` (KC3Kai/kancolle-replay, MIT © fourinone41).
 
-use super::calc::{self, Unit};
+use super::calc::{self, Special, Unit};
+use super::special::Fsa;
 use super::{side_air, Battle, List};
 use crate::equipment::{cat, f};
 use crate::formulas::{self, Roll};
@@ -88,16 +89,31 @@ pub fn can_still_shell(c: &ShipCore, st: &ShipState, opening: bool) -> bool {
     true
 }
 
-/// Artillery spotting / CVCI possible right now (kcsim `canAS`).
+/// Slots with `pred` and planes left.
+fn plane_slots(c: &ShipCore, st: &ShipState, pred: impl Fn(&crate::equipment::Equip) -> bool) -> usize {
+    (0..MAX_SLOTS).filter(|&s| c.slots[s].as_ref().is_some_and(&pred) && st.planes[s] > 0).count()
+}
+
+/// Cut-in kind usable with the current plane counts: each carrier cut-in needs its plane types,
+/// Zuiun / 634 cut-ins two such slots (kcsim `canASZuiun`), artillery spotting a recon plane.
+fn ci_available(c: &ShipCore, st: &ShipState, k: DayCi) -> bool {
+    let n = |k: u32| plane_slots(c, st, |e| e.cat == k);
+    match k {
+        DayCi::Zuiun => plane_slots(c, st, |e| e.has(f::ZUIUN)) >= 2,
+        DayCi::Bomber634 => plane_slots(c, st, |e| e.has(f::BOMBER_634)) >= 2,
+        DayCi::CvciFba => n(cat::FIGHTER) > 0 && n(cat::DIVE_BOMBER) > 0 && n(cat::TORP_BOMBER) > 0,
+        DayCi::CvciBba => n(cat::DIVE_BOMBER) >= 2 && n(cat::TORP_BOMBER) > 0,
+        DayCi::CvciBa => n(cat::DIVE_BOMBER) > 0 && n(cat::TORP_BOMBER) > 0,
+        DayCi::CvciJfJbJb => n(cat::JET_FIGHTER) > 0 && n(cat::JET_BOMBER) >= 2,
+        DayCi::CvciJfJb => n(cat::JET_FIGHTER) > 0 && n(cat::JET_BOMBER) > 0,
+        DayCi::CvciJfBa => n(cat::JET_FIGHTER) > 0 && n(cat::DIVE_BOMBER) > 0 && n(cat::TORP_BOMBER) > 0,
+        _ => c.has_planes(st, f::RECON),
+    }
+}
+
+/// Artillery spotting / CVCI possible right now (kcsim `canAS` / `CV.canAS`).
 fn can_as(c: &ShipCore, st: &ShipState) -> bool {
-    if c.day_ci.is_empty() || st.hp_ratio(c.max_hp) <= 0.25 {
-        return false;
-    }
-    if c.cv_like() {
-        let has = |k: u32| (0..MAX_SLOTS).any(|s| c.slots[s].as_ref().is_some_and(|e| e.cat == k) && st.planes[s] > 0);
-        return has(cat::DIVE_BOMBER) && has(cat::TORP_BOMBER);
-    }
-    c.has_planes(st, f::RECON)
+    !c.day_ci.is_empty() && st.hp_ratio(c.max_hp) > 0.25 && c.day_ci.iter().any(|&k| ci_available(c, st, k))
 }
 
 pub fn day_ci_special(ci: Option<DayCi>) -> SpecialAttack {
@@ -111,6 +127,11 @@ pub fn day_ci_special(ci: Option<DayCi>) -> SpecialAttack {
         Some(DayCi::CvciFba) => SpecialAttack::CvciFba,
         Some(DayCi::CvciBba) => SpecialAttack::CvciBba,
         Some(DayCi::CvciBa) => SpecialAttack::CvciBa,
+        Some(DayCi::CvciJfJbJb) => SpecialAttack::CvciJfJbJb,
+        Some(DayCi::CvciJfJb) => SpecialAttack::CvciJfJb,
+        Some(DayCi::CvciJfBa) => SpecialAttack::CvciJfBa,
+        Some(DayCi::Zuiun) => SpecialAttack::ZuiunCutin,
+        Some(DayCi::Bomber634) => SpecialAttack::Bomber634Cutin,
     }
 }
 
@@ -124,6 +145,11 @@ pub fn special_day_ci(s: SpecialAttack) -> Option<DayCi> {
         SpecialAttack::CvciFba => Some(DayCi::CvciFba),
         SpecialAttack::CvciBba => Some(DayCi::CvciBba),
         SpecialAttack::CvciBa => Some(DayCi::CvciBa),
+        SpecialAttack::CvciJfJbJb => Some(DayCi::CvciJfJbJb),
+        SpecialAttack::CvciJfJb => Some(DayCi::CvciJfJb),
+        SpecialAttack::CvciJfBa => Some(DayCi::CvciJfBa),
+        SpecialAttack::ZuiunCutin => Some(DayCi::Zuiun),
+        SpecialAttack::Bomber634Cutin => Some(DayCi::Bomber634),
         _ => None,
     }
 }
@@ -173,13 +199,35 @@ impl<'a> Battle<'a> {
                 if k < orders[side].len() {
                     let a = orders[side].as_slice()[k];
                     if can_still_shell(self.core(side, a), &self.st[side][a], opening) {
-                        self.shell_turn(side, a, opening);
+                        // kcsim `shellPhase`: the friend main flagship's turn may become a fleet special attack.
+                        let special = if side == 0 && a == 0 && !opening && !self.surface(1).is_empty() { self.try_fleet_special(false, 0) } else { None };
+                        match special {
+                            Some((kind, attackers)) => self.special_shelling(kind, attackers),
+                            None => self.shell_turn(side, a, opening),
+                        }
                     }
                 }
                 if !self.any_alive(1 - side) {
                     return;
                 }
             }
+        }
+    }
+
+    /// Fleet special attack in the day battle: each attacker shells a surface target (kcsim
+    /// `getSpecialAttackShips` + `shellPhaseTarget(ship, alive2, [])` + `shell(…, attackSpecial)`).
+    fn special_shelling(&mut self, kind: Fsa, attackers: List) {
+        for &a in attackers.as_slice() {
+            let targets = self.surface(1);
+            if targets.is_empty() {
+                break;
+            }
+            if !self.alive(0, a) {
+                continue;
+            }
+            let (t, covered) = self.choose_preferred(0, a, targets.as_slice(), true, 0);
+            let sp = self.special_mods(kind, 0, a);
+            self.shell_attack(0, a, t, covered, Some((sp, kind.event())));
         }
     }
 
@@ -222,7 +270,7 @@ impl<'a> Battle<'a> {
             return;
         }
         let (t, covered) = self.choose_preferred(side, a, targets.as_slice(), true, 0);
-        self.shell_attack(side, a, t, covered);
+        self.shell_attack(side, a, t, covered, None);
     }
 
     /// Artillery spotting chance (kcsim `ASchance`), 0 when not possible.
@@ -250,15 +298,16 @@ impl<'a> Battle<'a> {
         chance * 0.01
     }
 
-    fn shell_attack(&mut self, side: usize, a: usize, d: usize, covered: bool) {
+    /// One shelling attack; `special`: fleet special attack modifiers and event kind (no spotting roll).
+    fn shell_attack(&mut self, side: usize, a: usize, d: usize, covered: bool, special: Option<(Special, SpecialAttack)>) {
         let def = 1 - side;
         let mut ci = None;
-        let chance = self.as_chance(side, a);
+        let chance = if special.is_none() { self.as_chance(side, a) } else { 0.0 };
         if chance > 0.0 {
             let c = self.core(side, a);
             let target_inst = self.core(def, d).is_installation;
             for &k in &c.day_ci {
-                if k.is_cvci() && target_inst {
+                if (k.is_cvci() && target_inst) || !ci_available(c, &self.st[side][a], k) {
                     continue;
                 }
                 if self.rng().chance(chance / k.data().chance) {
@@ -267,24 +316,27 @@ impl<'a> Battle<'a> {
                 }
             }
         }
+        let sp = special.map(|s| s.0);
         let hits = if ci.is_some_and(|k| k.data().double) { 2 } else { 1 };
         let (acc, pow) = {
             let au = self.unit(side, a);
             let du = self.unit(def, d);
-            (calc::shelling_acc(&au, &du, ci), calc::shelling_power(&au, &du, self.eng, ci))
+            (calc::shelling_acc(&au, &du, ci, sp), calc::shelling_power(&au, &du, self.eng, ci, sp))
         };
+        let cutin = ci.is_some() || special.is_some();
+        let event = special.map_or_else(|| day_ci_special(ci), |s| s.1);
         let ammo = self.unit(side, a).ammo_mod();
         let armor = self.core(def, d).ar;
         for _ in 0..hits {
             let roll = formulas::roll_hit(self.rng(), &acc.hc, acc.crit_dmg);
             let hp_before = self.st[def][d].hp;
             let dmg = match roll {
-                Roll::Miss if ci.is_some() => formulas::scratch(self.rng(), hp_before),
+                Roll::Miss if cutin => formulas::scratch(self.rng(), hp_before),
                 Roll::Miss => 0,
                 _ => formulas::damage_common(self.rng(), pow, roll, armor, ammo, hp_before),
             };
             let real = self.take_damage(def, d, dmg);
-            self.record(AttackKind::Shelling, day_ci_special(ci), side, a, d, covered, None, roll, real, hp_before, &acc.hc);
+            self.record(AttackKind::Shelling, event, side, a, d, covered, None, roll, real, hp_before, &acc.hc);
         }
     }
 

@@ -14,12 +14,14 @@ pub mod calc;
 mod day;
 pub mod lbas;
 mod night;
+pub mod special;
 mod torpedo;
 
 
 pub use day::special_day_ci as day_ci_of;
 pub use night::special_night as night_attack_of;
 use crate::bonus::{self, BaseBonus, Bonus};
+pub use special::{FleetCarry, Rates};
 use crate::equipment::{f, ID_DAMECON_GODDESS, ID_DAMECON_TEAM};
 use crate::formation::{self, roll_engagement};
 use crate::formulas;
@@ -117,6 +119,9 @@ pub struct Prepared {
     /// Event bonuses of the friend ships (main then escort) and of the waves (empty = none).
     bonus: Vec<Option<Bonus>>,
     lb_bonus: Vec<Option<BaseBonus>>,
+    /// Friend sortie carry-over at the start of the battle and special-attack trigger rates.
+    pub carry: FleetCarry,
+    pub rates: Rates,
 }
 
 fn validate_ships(name: &str, ships: &[ShipInput], max: usize) -> Result<(), String> {
@@ -211,6 +216,8 @@ impl Prepared {
             lbas,
             bonus: ship_bonus,
             lb_bonus,
+            carry: FleetCarry::of(&input.friend),
+            rates: Rates::new(input.options.special_attack_rates.as_ref()),
         })
     }
 
@@ -220,6 +227,8 @@ impl Prepared {
         if !self.lbas.is_empty() {
             b.set_lbas(&self.lbas, &self.lb_waves, lbas::initial_planes(&self.lbas));
         }
+        b.carry = self.carry;
+        b.special_rates = self.rates;
         b
     }
 }
@@ -296,6 +305,12 @@ pub struct Battle<'a> {
     /// empty / missing = none.
     bonus: &'a [Option<Bonus>],
     lb_bonus: &'a [Option<BaseBonus>],
+    /// AACI / rocket barrage log (`setup.log`).
+    pub air_events: Option<Vec<AirDefenseEvent>>,
+    /// Friend sortie carry-over (special attacks used), updated by the battle.
+    pub carry: FleetCarry,
+    /// Fleet special attack trigger-rate overrides.
+    pub special_rates: Rates,
 }
 
 impl<'a> Battle<'a> {
@@ -348,6 +363,9 @@ impl<'a> Battle<'a> {
             smoke: 0,
             bonus: &[],
             lb_bonus: &[],
+            air_events: if setup.log { Some(Vec::new()) } else { None },
+            carry: FleetCarry::default(),
+            special_rates: Rates::default(),
         }
     }
 

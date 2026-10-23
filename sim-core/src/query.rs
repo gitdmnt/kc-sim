@@ -3,7 +3,8 @@
 
 use std::collections::BTreeMap;
 
-use crate::battle::calc::{self, AccTerms, NightEnv, Unit};
+use crate::battle::calc::{self, AccTerms, NightEnv, Special, Unit};
+use crate::battle::special::night_zuiun_mods;
 use crate::battle::{day_ci_of, night_attack_of};
 use crate::bonus::Bonus;
 use crate::equipment::f;
@@ -88,6 +89,21 @@ impl Ctx {
         self.q.special.unwrap_or_default()
     }
 
+    /// Night Zuiun cut-in modifiers. Fleet special attacks depend on the whole fleet (partners,
+    /// positions) and are not supported by the single-ship forward model.
+    fn special_mods(&self) -> Result<Option<Special>, String> {
+        use SpecialAttack::*;
+        let s = self.special();
+        if let Some((pow, acc)) = night_zuiun_mods(s) {
+            return Ok(Some(Special { pow, acc, sub: false }));
+        }
+        match s {
+            NelsonTouch | NagatoCutin | MutsuCutin | ColoradoCutin | KongouCutin | RichelieuCutin | QueenElizabethCutin | SubFleetAttack
+            | YamatoCutin3 | YamatoCutin2 => Err(format!("special {s:?}: fleet special attacks are not supported by the forward model")),
+            _ => Ok(None),
+        }
+    }
+
     /// Attacking slot for air queries: requested slot, else the first bomber slot with planes.
     fn air_slot(&self) -> Result<usize, String> {
         if let Some(s) = self.q.slot {
@@ -104,12 +120,12 @@ impl Ctx {
     fn acc(&self) -> Result<AccTerms, String> {
         let (a, d) = self.units();
         Ok(match self.q.kind {
-            QueryKind::Shelling => calc::shelling_terms(&a, &d, day_ci_of(self.special())),
+            QueryKind::Shelling => calc::shelling_terms(&a, &d, day_ci_of(self.special()), self.special_mods()?),
             QueryKind::Torpedo => {
                 let power = calc::torpedo_power(&a, self.engagement(), a.hp_ratio());
                 calc::torpedo_terms(&a, &d, power)
             }
-            QueryKind::Night => calc::night_terms(&a, &d, &self.env(), night_attack_of(self.special())),
+            QueryKind::Night => calc::night_terms(&a, &d, &self.env(), night_attack_of(self.special()), self.special_mods()?),
             QueryKind::Asw => calc::asw_terms(&a, &d, false),
             QueryKind::OpeningAsw => calc::asw_terms(&a, &d, true),
             QueryKind::Air => {
@@ -125,13 +141,13 @@ impl Ctx {
         let eng = self.engagement();
         let armor = self.def.ar;
         Ok(match self.q.kind {
-            QueryKind::Shelling => (vec![(calc::shelling_power(&a, &d, eng, day_ci_of(self.special())), 1.0)], armor),
+            QueryKind::Shelling => (vec![(calc::shelling_power(&a, &d, eng, day_ci_of(self.special()), self.special_mods()?), 1.0)], armor),
             QueryKind::Torpedo => {
                 let power = a.bonus_dmg(calc::torpedo_power(&a, eng, a.hp_ratio()), || false);
                 let pow = calc::torpedo_target_power(&self.att, &self.def, power);
                 (vec![(pow, 1.0)], armor)
             }
-            QueryKind::Night => (vec![(calc::night_power(&a, &d, &self.env(), night_attack_of(self.special())), 1.0)], armor),
+            QueryKind::Night => (vec![(calc::night_power(&a, &d, &self.env(), night_attack_of(self.special()), self.special_mods()?), 1.0)], armor),
             QueryKind::Asw | QueryKind::OpeningAsw => {
                 (vec![(calc::asw_power(&a, eng, false, self.q.kind == QueryKind::OpeningAsw), 1.0)], calc::effective_armor(&self.att, &self.def))
             }

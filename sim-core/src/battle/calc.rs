@@ -114,6 +114,18 @@ impl<'a> Unit<'a> {
     }
 }
 
+/// Modifiers of a fleet special attack / night Zuiun cut-in for one attacker (kcsim
+/// `getSpecialAttackMod`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Special {
+    /// Power multiplier: post-cap in the day, pre-cap at night (kcsim `shell` / `NBattack`).
+    pub pow: f64,
+    /// Accuracy multiplier on the hit-rate modifier.
+    pub acc: f64,
+    /// Submarine fleet attack: day power is the attacker's torpedo stat (kcsim attackSpecial 300–302).
+    pub sub: bool,
+}
+
 /// Day damage-state power modifier.
 #[inline]
 pub fn damage_state_mod(ratio: f64) -> f64 {
@@ -213,8 +225,8 @@ enum HitTail {
     Plain,
     /// shelling: `(h + fit) × ap/CI mod`, then − 0.13 for DE (after smoke / PT)
     Shell { fit: f64, mod2: f64, de: bool },
-    /// night: `h + fit`, then + 0.07 with an own searchlight
-    Night { fit: f64, searchlight: bool },
+    /// night: `h + fit`, + 0.07 with an own searchlight, + heavy cruiser 20.3cm bonus
+    Night { fit: f64, searchlight: bool, ca: f64 },
     /// airstrike: fixed
     Fixed(f64),
 }
@@ -278,13 +290,10 @@ impl HitFn {
         let mut h = match self.tail {
             HitTail::Plain => h,
             HitTail::Shell { fit, mod2, .. } => (h + fit) * mod2,
-            HitTail::Night { fit, searchlight } => {
+            HitTail::Night { fit, searchlight, ca } => {
                 let h = h + fit;
-                if searchlight {
-                    h + 0.07
-                } else {
-                    h
-                }
+                let h = if searchlight { h + 0.07 } else { h };
+                h + ca
             }
             HitTail::Fixed(h) => return h,
         };
@@ -370,11 +379,11 @@ pub fn carrier_shelling(c: &ShipCore) -> bool {
 }
 
 #[inline]
-pub fn shelling_acc(att: &Unit, def: &Unit, ci: Option<DayCi>) -> AttackAcc {
-    shelling_terms(att, def, ci).resolve()
+pub fn shelling_acc(att: &Unit, def: &Unit, ci: Option<DayCi>, sp: Option<Special>) -> AttackAcc {
+    shelling_terms(att, def, ci, sp).resolve()
 }
 
-pub fn shelling_terms(att: &Unit, def: &Unit, ci: Option<DayCi>) -> AccTerms {
+pub fn shelling_terms(att: &Unit, def: &Unit, ci: Option<DayCi>, sp: Option<Special>) -> AccTerms {
     let a = att.core;
     let mut acc_mod = morale_acc(att.st.morale, false);
     if !countered(att.form, def.form) {
@@ -384,6 +393,9 @@ pub fn shelling_terms(att: &Unit, def: &Unit, ci: Option<DayCi>) -> AccTerms {
         acc_mod *= 1.1;
     }
     acc_mod *= def.vanguard_target_mod(false);
+    if let Some(s) = sp {
+        acc_mod *= s.acc;
+    }
     let mut acc_mod2 = ap_acc(a, def.core);
     if let Some(ci) = ci {
         acc_mod2 *= ci.data().acc;
@@ -429,6 +441,8 @@ fn cvci_crit(a: &ShipCore, st: &ShipState, ci: DayCi, prof_crit_rate: f64) -> (f
     if let Some(e0) = a.slots[0].as_ref() {
         let first_ok = match ci {
             DayCi::CvciFba => [cat::FIGHTER, cat::DIVE_BOMBER, cat::TORP_BOMBER].contains(&e0.cat),
+            DayCi::CvciJfJbJb | DayCi::CvciJfJb => [cat::JET_FIGHTER, cat::JET_BOMBER].contains(&e0.cat),
+            DayCi::CvciJfBa => [cat::JET_FIGHTER, cat::DIVE_BOMBER, cat::TORP_BOMBER].contains(&e0.cat),
             _ => [cat::DIVE_BOMBER, cat::TORP_BOMBER].contains(&e0.cat),
         };
         if first_ok {
@@ -508,20 +522,29 @@ fn pt_damage(att: &ShipCore, def: &ShipCore, pow: f64) -> f64 {
 }
 
 /// Post-cap shelling power before the critical multiplier.
-pub fn shelling_power(att: &Unit, def: &Unit, engagement: f64, ci: Option<DayCi>) -> f64 {
-    let pre = att.fm().shell_pow * engagement * damage_state_mod(att.hp_ratio());
-    let mut pow = soft_cap((shell_basic_power(att.core, def.core, att.cf.shell_pow) + att.core.fit_fp) * pre, CAP_DAY).floor();
+pub fn shelling_power(att: &Unit, def: &Unit, engagement: f64, ci: Option<DayCi>, sp: Option<Special>) -> f64 {
+    let a = att.core;
+    let (pre, basic) = match sp {
+        // kcsim: preMod = 1 and FPfit += TP − shellPower ⇒ power = TP + FPfit.
+        Some(s) if s.sub => (1.0, a.tp + a.fit_fp),
+        _ => (att.fm().shell_pow * engagement * damage_state_mod(att.hp_ratio()), shell_basic_power(a, def.core, att.cf.shell_pow) + a.fit_fp),
+    };
+    let mut pow = soft_cap(basic * pre, CAP_DAY).floor();
     if let Some(ci) = ci {
         pow *= ci.data().dmg;
     }
+    if let Some(s) = sp {
+        pow *= s.pow;
+    }
     // kcsim: balloons join the cut-in multiplier (before the AP floor) or the extra multiplier.
-    if ci.is_some() && att.balloons > 0 {
+    let cutin = ci.is_some() || sp.is_some();
+    if cutin && att.balloons > 0 {
         pow *= att.balloon_mod();
     }
-    if ap_weak(def.core.class) && att.core.ap_type > 0 {
-        pow = (pow * ap_pow(att.core, def.core)).floor();
+    if ap_weak(def.core.class) && a.ap_type > 0 {
+        pow = (pow * ap_pow(a, def.core)).floor();
     }
-    if ci.is_none() && att.balloons > 0 {
+    if !cutin && att.balloons > 0 {
         pow *= att.balloon_mod();
     }
     pow *= target_post(att.core, def.core);
@@ -699,11 +722,11 @@ fn contact_effects(contact_acc: Option<f64>) -> (f64, f64, f64) {
 }
 
 #[inline]
-pub fn night_acc(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack) -> AttackAcc {
-    night_terms(att, def, env, na).resolve()
+pub fn night_acc(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack, sp: Option<Special>) -> AttackAcc {
+    night_terms(att, def, env, na, sp).resolve()
 }
 
-pub fn night_terms(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack) -> AccTerms {
+pub fn night_terms(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack, sp: Option<Special>) -> AccTerms {
     let a = att.core;
     let (_, base_mul, crit_mod) = contact_effects(env.contact_acc);
     let acc_base = (69.0 + if env.own_starshell { 5.0 } else { 0.0 }) * base_mul;
@@ -713,7 +736,10 @@ pub fn night_terms(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack) -> A
     }
     acc_mod *= def.vanguard_target_mod(false);
     acc_mod *= night_mods(a, na).acc;
-    let tail = HitTail::Night { fit: a.fit_acc * 0.01, searchlight: env.own_searchlight };
+    if let Some(s) = sp {
+        acc_mod *= s.acc;
+    }
+    let tail = HitTail::Night { fit: a.fit_acc * 0.01, searchlight: env.own_searchlight, ca: a.ca_night_acc * 0.01 };
     let (post, np) = post_flat(a.imp.acc_nb, a, def.core);
     let hit = HitFn::new(acc_base, a.level, a.acc, &post[..np], acc_mod, tail)
         .with(1.0, pt_acc_mod(att, def, 0.7, true))
@@ -750,11 +776,14 @@ pub fn night_basic_power(att: &ShipCore, def: &ShipCore) -> f64 {
     }
 }
 
-pub fn night_power(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack) -> f64 {
+pub fn night_power(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack, sp: Option<Special>) -> f64 {
     let (bonus, _, _) = contact_effects(env.contact_acc);
     let mut pre = damage_state_mod(att.hp_ratio()) * night_mods(att.core, na).dmg;
     if att.form == Formation::Vanguard && formation::vanguard_front(att.idx, att.len) {
         pre *= 0.5;
+    }
+    if let Some(s) = sp {
+        pre *= s.pow;
     }
     let basic = if att.core.can_night_air(att.st) { night_air_power(att, def.core) } else { night_basic_power(att.core, def.core) };
     let pow = soft_cap((basic + bonus + att.core.fit_fp) * pre, CAP_NIGHT).floor() * target_post(att.core, def.core);
@@ -770,11 +799,19 @@ pub fn night_power(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack) -> f
 /// Carrier night air attack power (kcsim `CV.NBPower`): naked FP + naked TP (+ visible TP bonus)
 /// + per night plane: FP + √★ + TP (torpedo planes, not vs installations) or bombing,
 /// + 3 × planes and 0.45 × (FP + TP + ASW + bombing) × √planes (0.3 × … for Swordfish-type planes).
+///
+/// Ark Royal class without night aviation personnel: plus FP + TP + √★ of each Swordfish.
 pub fn night_air_power(att: &Unit, def: &ShipCore) -> f64 {
     let a = att.core;
     let mut power = a.naked.fp + a.naked.tp;
     if !def.is_installation {
         power += a.bonus.tp;
+    }
+    if !a.night_air_gear {
+        for e in a.slots.iter().flatten().filter(|e| e.has(f::SWORDFISH)) {
+            power += e.fp + e.tp + (e.level as f64).sqrt();
+        }
+        return power.max(0.0);
     }
     for (i, e) in a.slots.iter().enumerate() {
         let Some(e) = e else { continue };

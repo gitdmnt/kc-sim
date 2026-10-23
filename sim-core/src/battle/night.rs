@@ -1,9 +1,11 @@
-//! Night battle (kcsim `nightPhase`, `nightPhaseTarget`, `NBattack`, `getNightEquipsScout`,
-//! KC3Kai/kancolle-replay, MIT © fourinone41).
+//! Night battle (kcsim `nightPhase`, `nightPhaseTarget`, `NBattack`, `getNightEquipsScout`; fleet
+//! special attacks and night Zuiun cut-ins via `canSpecialAttack`), KC3Kai/kancolle-replay,
+//! MIT © fourinone41.
 
-use super::calc::{self, NightAttack, NightEnv};
+use super::calc::{self, NightAttack, NightEnv, Special};
 use super::day::can_asw_night;
-use super::{side_air, Battle};
+use super::special::Fsa;
+use super::{side_air, Battle, List};
 use crate::equipment::f;
 use crate::formulas::{self, Roll};
 use crate::model::{AttackKind, Phase, SpecialAttack};
@@ -70,12 +72,23 @@ struct SideNight {
     contact: Option<f64>,
 }
 
+fn env(sides: &[SideNight; 2], side: usize) -> NightEnv {
+    NightEnv {
+        own_starshell: sides[side].starshell,
+        enemy_starshell: sides[1 - side].starshell,
+        own_searchlight: sides[side].searchlight > 0,
+        enemy_searchlight: sides[1 - side].searchlight > 0,
+        contact_acc: sides[side].contact,
+    }
+}
+
 impl<'a> Battle<'a> {
     fn night_setup(&mut self, side: usize, night_only: bool) -> SideNight {
         let mut s = SideNight::default();
+        // Star shell: each equipping ship in order, 71% unless HP ≤ 4 (wikiwiki 照明弾; kcsim 70%).
         for i in self.engaged(side) {
             let (c, st) = (self.core(side, i), &self.st[side][i]);
-            if st.hp > 0 && c.has_starshell && st.hp > 4 && self.rng().chance(0.7) {
+            if c.has_starshell && st.hp > 4 && self.rng().chance(0.71) {
                 s.starshell = true;
                 break;
             }
@@ -112,21 +125,22 @@ impl<'a> Battle<'a> {
     pub(super) fn night_phase(&mut self, night_only: bool) {
         self.phase = Phase::Night;
         self.engaged[0] = self.night_range();
-        let sides = [self.night_setup(0, night_only), self.night_setup(1, night_only)];
+        let mut sides = [self.night_setup(0, night_only), self.night_setup(1, night_only)];
         let ranges = [self.engaged(0), self.engaged(1)];
         let n = ranges[0].len().max(ranges[1].len());
         'rounds: for k in 0..n {
             for side in 0..2 {
                 let a = ranges[side].start + k;
                 if a < ranges[side].end && can_night(self.core(side, a), &self.st[side][a]) {
-                    let env = NightEnv {
-                        own_starshell: sides[side].starshell,
-                        enemy_starshell: sides[1 - side].starshell,
-                        own_searchlight: sides[side].searchlight > 0,
-                        enemy_searchlight: sides[1 - side].searchlight > 0,
-                        contact_acc: sides[side].contact,
-                    };
-                    self.night_turn(side, a, &env, sides[1 - side].searchlight, night_only);
+                    let cand = side == 0 && (a == ranges[0].start || self.core(0, a).night_zuiun);
+                    let special = if cand && !self.surface(1).is_empty() { self.night_special_roll(a, ranges[0].start, &sides) } else { None };
+                    match special {
+                        Some((kind, attackers)) => self.special_night_attack(kind, ranges[0].start, attackers, &mut sides),
+                        None => {
+                            let env = env(&sides, side);
+                            self.night_turn(side, a, &env, sides[1 - side].searchlight, night_only);
+                        }
+                    }
                 }
                 if !self.any_alive(1 - side) {
                     break 'rounds;
@@ -134,6 +148,51 @@ impl<'a> Battle<'a> {
             }
         }
         self.engaged[0] = (0, self.len(0));
+    }
+
+    /// kcsim `canSpecialAttack(ship, isNB)` for friend ship `a` (night fleet flagship `flag`): a
+    /// fleet special attack on the flagship's turn, else a night Zuiun cut-in.
+    fn night_special_roll(&mut self, a: usize, flag: usize, sides: &[SideNight; 2]) -> Option<(Fsa, List)> {
+        if a == flag {
+            if let Some(s) = self.try_fleet_special(true, flag) {
+                return Some(s);
+            }
+        }
+        if !self.core(0, a).night_zuiun {
+            return None;
+        }
+        let e = env(sides, 0);
+        let mut chance = self.core(0, a).nb_chance_base + if self.is_flagship(0, a) { 15.0 } else { 0.0 };
+        chance += 4.0 * e.own_starshell as u8 as f64 - 10.0 * e.enemy_starshell as u8 as f64;
+        chance += 7.0 * e.own_searchlight as u8 as f64 - 5.0 * e.enemy_searchlight as u8 as f64;
+        let kind = self.try_night_zuiun(a, chance, e.own_starshell, e.own_searchlight)?;
+        let mut l = List::default();
+        l.push(a);
+        l.push(a);
+        Some((kind, l))
+    }
+
+    /// Special attack at night: each attacker makes a night attack on a surface target with the
+    /// special modifiers (kcsim `nightPhase` special branch + `NBattack(…, attackSpecial)`). A night
+    /// Zuiun cut-in lights the enemy like an own star shell for the rest of the battle.
+    fn special_night_attack(&mut self, kind: Fsa, flag: usize, attackers: List, sides: &mut [SideNight; 2]) {
+        for &a in attackers.as_slice() {
+            let targets = self.surface(1);
+            if targets.is_empty() {
+                break;
+            }
+            // Attackers that cannot attack at night sit out, except in Nelson Touch (kcsim `NBattack`).
+            if !self.alive(0, a) || (!can_night(self.core(0, a), &self.st[0][a]) && kind != Fsa::Nelson) {
+                continue;
+            }
+            let (t, covered) = self.choose_preferred(0, a, targets.as_slice(), false, sides[1].searchlight);
+            if matches!(kind, Fsa::NightZuiun(_)) {
+                sides[0].starshell = true;
+            }
+            let e = env(sides, 0);
+            let sp = self.special_mods(kind, flag, a);
+            self.night_attack(0, a, t, covered, &e, Some((sp, kind.event())));
+        }
     }
 
     fn night_turn(&mut self, side: usize, a: usize, env: &NightEnv, sl_rerolls: u8, night_only: bool) {
@@ -154,7 +213,7 @@ impl<'a> Battle<'a> {
             return;
         }
         let (t, covered) = self.choose_preferred(side, a, surface.as_slice(), false, sl_rerolls);
-        self.night_attack(side, a, t, covered, env);
+        self.night_attack(side, a, t, covered, env, None);
     }
 
     fn roll_night_ci(&mut self, side: usize, a: usize, d: usize, env: &NightEnv) -> NightAttack {
@@ -178,7 +237,8 @@ impl<'a> Battle<'a> {
         }
         chance *= 0.01;
         let target_inst = self.core(1 - side, d).is_installation;
-        let kinds = if c.can_night_air(st) { c.night_cv_ci(st) } else { c.night_ci.clone() };
+        // kcsim `CV.NBtypes`: carrier night cut-ins need night aviation personnel (not Ark Royal's Swordfish).
+        let kinds = if c.night_air_gear && c.can_night_air(st) { c.night_cv_ci(st) } else { c.night_ci.clone() };
         for &k in &kinds {
             let data = k.data();
             let mut kind = k;
@@ -217,28 +277,32 @@ impl<'a> Battle<'a> {
         NightAttack { ci: None, double_variant: false }
     }
 
-    fn night_attack(&mut self, side: usize, a: usize, d: usize, covered: bool, env: &NightEnv) {
+    /// One night attack; `special`: special attack modifiers and event kind (no cut-in roll).
+    fn night_attack(&mut self, side: usize, a: usize, d: usize, covered: bool, env: &NightEnv, special: Option<(Special, SpecialAttack)>) {
         let def = 1 - side;
-        let na = self.roll_night_ci(side, a, d, env);
+        let na = if special.is_some() { NightAttack { ci: None, double_variant: false } } else { self.roll_night_ci(side, a, d, env) };
         let mods = calc::night_mods(self.core(side, a), na);
+        let sp = special.map(|s| s.0);
         let (acc, pow) = {
             let au = self.unit(side, a);
             let du = self.unit(def, d);
-            (calc::night_acc(&au, &du, env, na), calc::night_power(&au, &du, env, na))
+            (calc::night_acc(&au, &du, env, na, sp), calc::night_power(&au, &du, env, na, sp))
         };
         let ammo = self.unit(side, a).ammo_mod();
         let armor = self.core(def, d).ar;
-        let special = night_special(na);
+        let event = special.map_or_else(|| night_special(na), |s| s.1);
+        let cutin = na.ci.is_some() || special.is_some();
         for _ in 0..mods.hits {
-            let roll = formulas::roll_hit(self.rng(), &acc.hc, 1.0);
+            // kcsim `NBattack`: night air attacks take the planes' proficiency critical bonus.
+            let roll = formulas::roll_hit(self.rng(), &acc.hc, acc.crit_dmg);
             let hp_before = self.st[def][d].hp;
             let dmg = match roll {
-                Roll::Miss if na.ci.is_some() => formulas::scratch(self.rng(), hp_before),
+                Roll::Miss if cutin => formulas::scratch(self.rng(), hp_before),
                 Roll::Miss => 0,
                 _ => formulas::damage_common(self.rng(), pow, roll, armor, ammo, hp_before),
             };
             let real = self.take_damage(def, d, dmg);
-            self.record(AttackKind::Night, special, side, a, d, covered, None, roll, real, hp_before, &acc.hc);
+            self.record(AttackKind::Night, event, side, a, d, covered, None, roll, real, hp_before, &acc.hc);
         }
     }
 }
