@@ -528,9 +528,20 @@ const summary: Summary = {
 if (existsSync(SUMMARY)) {
   // Written by this script.
   const prev = JSON.parse(readFileSync(SUMMARY, "utf8")) as Summary;
-  const keys = Object.keys(summary).filter((k) => typeof summary[k as keyof Summary] === "number") as (keyof Summary)[];
+  const rows: [string, keyof Summary, (x: number) => string][] = [
+    ["scored battles", "scored", String], ["rank Brier", "rankBrier", f3], ["rank skill vs node", "rankSkillNode", f3],
+    ["rank log-loss", "rankLogLoss", f3], ["ship end state Brier", "stateBrier", f3], ["P(heavy or sunk) Brier", "taihaBrier", f3],
+    ["P(enemy sunk) Brier", "enemySunkBrier", f3], ["player HP MAE", "hpMaeFriend", f1], ["enemy HP MAE", "hpMaeEnemy", f1],
+    ["P(S) predicted / observed", "predS", pct],
+  ];
   console.log(`vs previous summary (${prev.generatedAt.slice(0, 16)}, engine ${prev.engine}, ${prev.scored} battles):`);
-  for (const k of keys) console.log(`  ${k}: ${prev[k]} → ${summary[k]}`);
+  for (const [, k] of rows) console.log(`  ${k}: ${prev[k]} → ${summary[k]}`);
+  // An engine change on the same battles (e.g. --offline after a sim-core merge) goes into the document.
+  if (prev.engine !== engine && prev.scored === summary.scored) {
+    out.push("", `#### Change against the previous engine (sim-core/src at ${prev.engine}, same ${prev.scored} battles)`, "",
+      "| | before | now |", "|---|---|---|",
+      ...rows.map(([label, k, f]) => `| ${label} | ${f(Number(prev[k]))}${k === "predS" ? ` / ${pct(prev.obsS)}` : ""} | ${f(Number(summary[k]))}${k === "predS" ? ` / ${pct(summary.obsS)}` : ""} |`));
+  }
 }
 writeFileSync(SUMMARY, `${JSON.stringify(summary, null, 2)}\n`);
 if (!values["no-doc"]) {
