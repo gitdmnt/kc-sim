@@ -53,6 +53,10 @@ export type DamageState = "healthy" | "light" | "moderate" | "heavy" | "sunk";
  * - `airBattle`: aerial battle node (航空戦マス): two air-combat phases, no shelling/torpedo.
  * - `airRaid`: air raid node (空襲マス): enemy air attack only; rank from friend HP loss
  *   (0% SS, <10% A, <20% B, <50% C, <80% D, else E).
+ * - `nightToDay`: night-to-day node (払暁戦): night battle first, then the day battle while the
+ *   enemy is afloat (vs an enemy combined fleet: while its main fleet is afloat and at most 3
+ *   escort ships are above 50% HP; the day part fights its main fleet). Single friend fleets only
+ *   (a friend combined fleet is a validation error). Supply 20% fuel / 30% ammo.
  */
 export type BattleKind = "day" | "dayNight" | "nightOnly" | "airBattle" | "airRaid" | "nightToDay";
 
@@ -66,8 +70,11 @@ export type Phase =
   | "airStrike"
   | "openingAsw"
   | "openingTorpedo"
-  /** Combined friend fleet: rounds follow kcsim api_hougeki1..3 — carrier/transport: escort,
-   *  main (by range), main (by position); surface: main (by range), main (by position), escort. */
+  /** Combined friend vs single enemy: rounds follow kcsim api_hougeki1..3 — carrier/transport:
+   *  escort, main (by range), main (by position); surface: main (by range), main (by position),
+   *  escort. Vs an enemy combined fleet (6 vs 12): vs escort, vs main, vs both (by position);
+   *  12 vs 12 carrier/transport: main vs main, escort vs escort, mains vs both; surface: main vs
+   *  main, mains vs both, escort vs escort. */
   | "shelling1"
   | "shelling2"
   | "shelling3"
@@ -488,10 +495,10 @@ export interface AttackEvent {
   kind: AttackKind;
   special: SpecialAttack;
   attackerSide: Side;
-  /** Index in the attacker's fleet. Friend combined fleets: main ships first, then the escort.
-   *  `landBase` events: index of the wave in the battle's wave list. */
+  /** Index in the attacker's fleet. Combined fleets (either side): main ships first, then the
+   *  escort. `landBase` events: index of the wave in the battle's wave list. */
   attacker: number;
-  /** Index in the defender's fleet (the other side). */
+  /** Index in the defender's fleet (the other side; main ships first, then the escort). */
   defender: number;
   /** True if the original target was the flagship and another ship covered it (かばう). */
   covered: boolean;
@@ -733,7 +740,8 @@ export type NodeKind =
 export interface EnemyComp {
   /** Relative weight (API `weight`); normalised over the node's comps. */
   weight: number;
-  /** Enemy fleet in BattleInput `enemy` shape; `fleet.formation` is the enemy formation. */
+  /** Enemy fleet in BattleInput `enemy` shape; `fleet.formation` is the enemy formation. A fleet
+   *  with `escort` is an enemy combined fleet (default formation "combinedBattle"). */
   fleet: FleetInput;
 }
 
