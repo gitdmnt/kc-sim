@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::model::{ArmorDebuff, BaseBonusSet, EquipmentInput, FleetInput, Formation, FriendFleetInput, RankRates, ShipBonusSet, SupportInput};
+use crate::model::{ArmorDebuff, BaseBonusSet, BaseRaidSummary, EquipmentInput, FleetInput, Formation, FriendFleetInput, RankRates, ShipBonusSet, SupportInput};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -65,6 +65,9 @@ pub struct SortieNode {
     /// Armor debuffs of the enemy ships here (at the goal node also `gauge.finalComps`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub debuffs: Option<Vec<ArmorDebuff>>,
+    /// Land-base distance of the node (api_distance). Waves to a node beyond a base's radius are
+    /// dropped (warning).
+    pub lbas_distance: Option<u32>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -152,6 +155,22 @@ pub struct GaugeInput {
 pub struct LandBase {
     pub squadrons: Vec<EquipmentInput>,
     pub targets: Vec<String>,
+    /// 防空: the base never sorties (its `targets` are ignored) and defends against `baseRaids`.
+    pub defense: bool,
+}
+
+/// Enemy air raid on the land bases on arrival at `node`, before its battle.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SortieBaseRaid {
+    pub node: String,
+    /// Default 1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chance: Option<f64>,
+    pub comps: Vec<EnemyComp>,
+    /// High-altitude raid even without heavy bombers in the comps.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high_altitude: Option<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -180,6 +199,8 @@ pub struct SortieInput {
     /// Friend fleet (友軍艦隊) at the night battles of `friendFleet.nodes` (default: goal node).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub friend_fleet: Option<FriendFleetInput>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_raids: Option<Vec<SortieBaseRaid>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -277,5 +298,8 @@ pub struct SortieSummary {
     pub friend: Vec<SortieShipSummary>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gauge: Option<GaugeSummary>,
+    /// Present with `baseRaids`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_raid: Option<BaseRaidSummary>,
     pub warnings: Vec<String>,
 }

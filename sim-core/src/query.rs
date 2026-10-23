@@ -424,6 +424,7 @@ mod tests {
             improvement: Some(rng.below(11) as u32),
             proficiency: Some(rng.below(8) as u32),
             planes: Some(rng.below(40) as i32),
+            radius: None,
         }
     }
 

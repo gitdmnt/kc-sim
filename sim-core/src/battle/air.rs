@@ -99,7 +99,7 @@ impl<'a> Battle<'a> {
         ap.floor()
     }
 
-    fn has_fighter_slots(&self, side: usize) -> bool {
+    pub(super) fn has_fighter_slots(&self, side: usize) -> bool {
         (0..self.air_fleet_end(side)).any(|i| {
             self.alive(side, i) && {
                 let c = self.core(side, i);
@@ -250,7 +250,7 @@ impl<'a> Battle<'a> {
     /// kcsim `getAAShotProp` / `getAAShotFlat` multiplier (`forceCF`: the defender is in a
     /// combined fleet, or a friend ship shoots at an enemy combined fleet's planes; `isRaid` lowers
     /// the main fleet's from 0.8 to 0.72).
-    fn combined_aa_mod(&self, def_side: usize, d: usize) -> f64 {
+    pub(super) fn combined_aa_mod(&self, def_side: usize, d: usize) -> f64 {
         let def_combined = self.has_escort(def_side);
         if !def_combined && !(def_side == 0 && self.has_escort(1)) {
             1.0

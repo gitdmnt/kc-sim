@@ -44,6 +44,7 @@ fn equip(id: u32, cat: u32, los: f64, level: u32) -> Option<EquipmentInput> {
         improvement: Some(level),
         proficiency: None,
         planes: None,
+        radius: None,
     })
 }
 
@@ -60,6 +61,7 @@ fn input(routing: Value, ships: Vec<ShipInput>) -> SortieInput {
         lbas: None,
         support: None,
         friend_fleet: None,
+        base_raids: None,
     }
 }
 

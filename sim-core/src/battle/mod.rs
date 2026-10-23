@@ -16,8 +16,10 @@ pub mod calc;
 mod combined;
 mod day;
 pub mod friend;
+mod jet;
 pub mod lbas;
 mod night;
+pub mod raid;
 pub mod special;
 pub mod support;
 mod torpedo;
@@ -125,8 +127,9 @@ pub struct Prepared {
     pub fleets: [FleetCore; 2],
     pub init: [Vec<ShipState>; 2],
     pub setup: BattleSetup,
-    /// Land-base waves (one base each).
+    /// Land bases of the waves (consecutive identical waves share one base).
     pub lbas: Vec<LandBaseCore>,
+    /// Base index of each wave.
     lb_waves: Vec<usize>,
     /// Event bonuses of the friend ships (main then escort) and of the waves (empty = none).
     bonus: Vec<Option<Bonus>>,
@@ -136,6 +139,8 @@ pub struct Prepared {
     pub rates: Rates,
     pub support: Option<SupportCore>,
     pub friend_fleet: Option<FriendCore>,
+    /// Enemy air raid on the bases, resolved before the battle.
+    pub raid: Option<raid::BattleRaid>,
 }
 
 fn validate_ships(name: &str, ships: &[ShipInput], max: usize) -> Result<(), String> {
@@ -219,16 +224,27 @@ impl Prepared {
             return Err(format!("lbas: {} waves (max {})", waves.len(), lbas::MAX_WAVES));
         }
         let mut lbas = Vec::with_capacity(waves.len());
+        let mut lb_waves = Vec::with_capacity(waves.len());
         for (i, w) in waves.iter().enumerate() {
-            lbas.push(LandBaseCore::new(&format!("lbas wave #{i}"), &w.squadrons)?);
+            if i == 0 || w.squadrons != waves[i - 1].squadrons {
+                lbas.push(LandBaseCore::new(&format!("lbas wave #{i}"), &w.squadrons)?);
+            }
+            lb_waves.push(lbas.len() - 1);
         }
+        let raid = input.base_raid.as_ref().map(raid::BattleRaid::new).transpose()?;
         let (ff, fs) = FleetCore::build(&input.friend, true);
         let debuffs = input.debuffs.as_deref().unwrap_or(&[]);
         bonus::validate_debuffs("battle", debuffs)?;
         let (ef, es) = FleetCore::build(&bonus::debuffed(&input.enemy, debuffs), false);
         let (main, esc) = (input.friend.ships.len(), input.friend.escort_ships().len());
         let ship_bonus = bonus::build_fleet(input.bonuses.as_deref(), input.escort_bonuses.as_deref(), main, esc, "")?;
-        let lb_bonus = bonus::build_bases("lbasBonuses", input.lbas_bonuses.as_deref(), lbas.len(), MAX_SQUADRONS)?;
+        // Per wave; a concentrated base takes its first wave's bonus.
+        let wave_bonus = bonus::build_bases("lbasBonuses", input.lbas_bonuses.as_deref(), waves.len(), MAX_SQUADRONS)?;
+        let lb_bonus = if wave_bonus.is_empty() {
+            wave_bonus
+        } else {
+            (0..lbas.len()).map(|b| lb_waves.iter().position(|&x| x == b).and_then(|w| wave_bonus.get(w).cloned().flatten())).collect()
+        };
         Ok(Prepared {
             fleets: [ff, ef],
             init: [fs, es],
@@ -242,7 +258,7 @@ impl Prepared {
                 smoke_used: input.friend.smoke_used.unwrap_or(false),
                 balloons: input.options.balloons,
             },
-            lb_waves: (0..lbas.len()).collect(),
+            lb_waves,
             lbas,
             bonus: ship_bonus,
             lb_bonus,
@@ -250,6 +266,7 @@ impl Prepared {
             rates: Rates::new(input.options.special_attack_rates.as_ref()),
             support: input.support.as_ref().map(|s| SupportCore::new(s, s.boss.unwrap_or(false))).transpose()?,
             friend_fleet: input.friend_fleet.as_ref().map(FriendCore::new).transpose()?,
+            raid,
         })
     }
 
@@ -620,7 +637,8 @@ impl<'a> Battle<'a> {
     /// kcsim `choiceWProtect`: random target, searchlight re-rolls, vanguard re-roll, flagship
     /// protection. Returns (target, covered). Combined fleets (en wiki "Shooting Order and
     /// Targeting", Combined Fleets): by day only the main flagship is protected, by escort ships
-    /// only in airstrikes and opening ASW (kcsim `includeEscort`); at night the flagship of the
+    /// only in airstrikes, both jet assaults (kcsim `airPhase` → `choiceWProtect(…, true)`) and
+    /// opening ASW (kcsim `includeEscort`); at night the flagship of the
     /// fleet fighting is protected.
     pub fn choose_target(&mut self, def_side: usize, cands: &[usize], sl_rerolls: u8) -> (usize, bool) {
         self.choose_target_ex(def_side, cands, sl_rerolls, true, None)
@@ -643,7 +661,8 @@ impl<'a> Battle<'a> {
             return (t, false);
         }
         let es = self.escort_start(def_side);
-        let include_escort = include_escort.unwrap_or(night || matches!(self.phase, Phase::AirStrike | Phase::OpeningAsw));
+        let include_escort =
+            include_escort.unwrap_or(night || matches!(self.phase, Phase::AirStrike | Phase::JetAirStrike | Phase::JetLandBase | Phase::OpeningAsw));
         let rate = formation::protection_rate(form);
         if self.rng.chance(rate) {
             let mut defenders = List::default();
@@ -877,15 +896,17 @@ impl<'a> Battle<'a> {
                 }
             }
             BattleKind::AirRaid => {
-                self.lbas_phase();
+                self.land_base_phases(false);
                 if self.both_alive() {
                     self.air_phase(false, false);
+                } else {
+                    self.raid_cleared();
                 }
             }
             BattleKind::AirBattle => {
                 detection = self.detection();
                 let failed = matches!(detection, Detection::Failure | Detection::FailureLost | Detection::NotFound);
-                self.lbas_phase();
+                self.land_base_phases(true);
                 for k in 0..2 {
                     if self.both_alive() {
                         self.air_phase(failed, true);
@@ -957,12 +978,12 @@ impl<'a> Battle<'a> {
         }
     }
 
-    /// Day battle: detection, land-base waves, air phase and the surface phases of the fleet
-    /// matchup.
+    /// Day battle: detection, jet assaults, land-base waves, air phase and the surface phases of the
+    /// fleet matchup.
     fn day_battle(&mut self) -> Detection {
         let detection = self.detection();
         let failed = matches!(detection, Detection::Failure | Detection::FailureLost | Detection::NotFound);
-        self.lbas_phase();
+        self.land_base_phases(true);
         // Night-to-day: air support before the air phase (shelling / torpedo support came at night).
         let night_first = self.setup.kind == BattleKind::NightToDay;
         if night_first {

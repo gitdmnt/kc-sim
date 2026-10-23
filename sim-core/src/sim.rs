@@ -1,5 +1,6 @@
 //! Native entry points: one battle with post-battle state, and Monte-Carlo aggregation.
 
+use crate::battle::raid::RaidAcc;
 use crate::battle::{damage_state, write_state, Battle, Prepared};
 use crate::model::*;
 use crate::rng::Rng;
@@ -27,6 +28,7 @@ fn ship_results(b: &Battle, side: usize) -> Vec<ShipResult> {
 pub fn run_battle(input: &BattleInput, seed: u64) -> Result<RunBattleOutput, String> {
     let p = Prepared::new(input)?;
     let mut rng = Rng::new(seed);
+    let base_raid = p.raid.as_ref().map(|r| r.run(&mut rng));
     let mut b = p.battle(&mut rng);
     let o = b.run();
     let result = BattleResult {
@@ -46,6 +48,7 @@ pub fn run_battle(input: &BattleInput, seed: u64) -> Result<RunBattleOutput, Str
         air_defense: b.air_events.take(),
         support: b.support_result(),
         friend_fleet: b.friend_fleet_fought(),
+        base_raid,
     };
     let mut state = BattleState { friend: input.friend.clone(), enemy: input.enemy.clone() };
     write_state(&mut state.friend, &p.fleets[0].ships, &b.st[0]);
@@ -108,11 +111,16 @@ pub fn simulate(input: &BattleInput, count: u32, seed: u64) -> Result<Simulation
         p.fleets[0].ships.iter().map(|c| ShipAcc::new(c.max_hp)).collect(),
         p.fleets[1].ships.iter().map(|c| ShipAcc::new(c.max_hp)).collect(),
     ];
+    let mut raids = RaidAcc::default();
     let mut ranks = [0u32; 7];
     let mut airs = [0u32; 6];
     let (mut nights, mut flag_sunk, mut heavy_any, mut sunk_any) = (0u32, 0u32, 0u32, 0u32);
     let (mut supports, mut friend_fleets) = (0u32, 0u32);
     for _ in 0..count {
+        if let Some(r) = &p.raid {
+            let o = r.run(&mut rng);
+            raids.add(o.air_state, &o.hp_lost);
+        }
         let mut b = p.battle(&mut rng);
         let o = b.run();
         ranks[o.rank as usize] += 1;
@@ -181,5 +189,6 @@ pub fn simulate(input: &BattleInput, count: u32, seed: u64) -> Result<Simulation
         enemy: ea.into_iter().map(|a| a.summary(n)).collect(),
         support_rate: p.support.as_ref().map(|_| r(supports)),
         friend_fleet_rate: p.friend_fleet.as_ref().map(|_| r(friend_fleets)),
+        base_raid: p.raid.as_ref().map(|r| raids.summary(None, r.bases())),
     })
 }

@@ -610,6 +610,7 @@ mod tests {
             improvement: Some(lv),
             proficiency: None,
             planes: None,
+            radius: None,
         })
     }
 

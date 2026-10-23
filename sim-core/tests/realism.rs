@@ -12,7 +12,7 @@ use sim_core::query::{damage_distribution, hit_probability};
 use sim_core::sim::run_battle;
 
 fn eqp(id: u32, cat: u32, icon: u32, stats: EquipmentStats, planes: i32) -> Option<EquipmentInput> {
-    Some(EquipmentInput { id, types: vec![0, 0, cat, icon, 0], stats: Some(stats), improvement: None, proficiency: None, planes: Some(planes) })
+    Some(EquipmentInput { id, types: vec![0, 0, cat, icon, 0], stats: Some(stats), planes: Some(planes), ..Default::default() })
 }
 
 /// Wiki (Damage Calculations, overkill protection): a 32 HP DD hit by an overkill has a 15.5% chance to

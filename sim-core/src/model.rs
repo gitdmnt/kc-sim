@@ -147,6 +147,10 @@ pub enum Detection {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Phase {
+    /// Jet assault (噴式強襲) of land-base jets, before the land-base waves.
+    JetLandBase,
+    /// Jet assault of the fleets' carrier jets, before the land-base waves.
+    JetAirStrike,
     /// Land-based air squadron waves (before the air phase).
     LandBase,
     AirStrike,
@@ -268,7 +272,7 @@ pub struct EquipmentStats {
     pub range: Option<f64>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EquipmentInput {
     pub id: u32,
@@ -281,6 +285,9 @@ pub struct EquipmentInput {
     pub proficiency: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub planes: Option<i32>,
+    /// Aircraft combat radius (master api_distance). Land-base reach checks only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radius: Option<u32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -459,6 +466,9 @@ pub struct BattleInput {
     /// Land-base waves in order, resolved before the air phase. Each wave is independent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lbas: Option<Vec<LandBaseWave>>,
+    /// Enemy air raid on the land bases (基地空襲), resolved before the battle.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_raid: Option<BaseRaidInput>,
     /// Event historical bonuses of the friend ships, in `friend.ships` order (`null` / missing = none).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bonuses: Option<Vec<Option<ShipBonusSet>>>,
@@ -583,11 +593,54 @@ pub struct SupportResult {
 }
 
 /// One land-base wave: one base's squadrons (1..4). `planes` is the squadron size (default 18,
-/// recon categories 4, large land-based bombers 9).
+/// recon categories 4, large land-based bombers 9). Consecutive waves with identical squadrons are
+/// one base sent twice to this node (集中): the jet assault counts it once.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LandBaseWave {
     pub squadrons: Vec<EquipmentInput>,
+}
+
+/// A land base under an enemy air raid. Only `defense` bases send planes up.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RaidBase {
+    pub squadrons: Vec<EquipmentInput>,
+    /// 防空 (air defence).
+    pub defense: bool,
+    /// Current base HP (default 200).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hp: Option<i32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BaseRaidInput {
+    /// Raiding enemy fleet (its bombers attack the bases).
+    pub enemy: FleetInput,
+    pub bases: Vec<RaidBase>,
+    /// High-altitude raid (高高度空襲) even without heavy bombers in `enemy` (most recent event raids).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high_altitude: Option<bool>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BaseRaidResult {
+    pub air_state: AirState,
+    /// HP lost per base (index as `bases`).
+    pub hp_lost: Vec<i32>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BaseRaidSummary {
+    /// Sorties only: fraction of sorties in which a raid happened.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rate: Option<f64>,
+    pub air_state_rates: AirStateRates,
+    /// Mean HP lost per base, over the raids.
+    pub hp_lost_mean: Vec<f64>,
 }
 
 // ---------------------------------------------------------------- output ----
@@ -656,6 +709,9 @@ pub struct BattleResult {
     /// Present when `friendFleet` was given: true if it fought.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub friend_fleet: Option<bool>,
+    /// Present when `baseRaid` was given.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_raid: Option<BaseRaidResult>,
 }
 
 /// Air defence event of the defending side in one air-combat phase.
@@ -750,6 +806,9 @@ pub struct SimulationSummary {
     /// Present with `friendFleet`: fraction of battles in which the friend fleet fought.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub friend_fleet_rate: Option<f64>,
+    /// Present with `baseRaid`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_raid: Option<BaseRaidSummary>,
 }
 
 // --------------------------------------------------------- forward model ----

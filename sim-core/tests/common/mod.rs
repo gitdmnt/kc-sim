@@ -4,7 +4,7 @@
 use sim_core::model::*;
 
 pub fn eq(id: u32, cat: u32, icon: u32, stats: EquipmentStats) -> Option<EquipmentInput> {
-    Some(EquipmentInput { id, types: vec![0, 0, cat, icon, 0], stats: Some(stats), improvement: None, proficiency: None, planes: None })
+    Some(EquipmentInput { id, types: vec![0, 0, cat, icon, 0], stats: Some(stats), ..Default::default() })
 }
 
 pub fn plane(id: u32, cat: u32, icon: u32, stats: EquipmentStats, planes: i32, prof: u32) -> Option<EquipmentInput> {

@@ -9,7 +9,8 @@ pub mod model;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use crate::battle::friend::FriendCore;
-use crate::battle::lbas::{initial_planes, LandBaseCore, LbPlanes, MAX_SQUADRONS};
+use crate::battle::lbas::{initial_planes, LandBaseCore, LbPlanes, MAX_SQUADRONS, MAX_WAVES};
+use crate::battle::raid::{air_state_of, base_raid, has_heavy_bombers, BaseTarget, RaidAcc, RaidBases, Raider, BASE_HP};
 use crate::battle::support::SupportCore;
 use crate::battle::{enemy_formation, validate_fleet, validate_friend, Battle, BattleSetup, FleetCarry, FleetCore, NIGHT_TO_DAY_COMBINED};
 use crate::bonus::{self, BaseBonus, Bonus};
@@ -36,6 +37,8 @@ struct Comp {
     init: Vec<ShipState>,
     formation: Formation,
     flagship_max_hp: i32,
+    /// Carries heavy (high-altitude) bombers (base raids).
+    heavy: bool,
 }
 
 struct CompSet {
@@ -59,7 +62,7 @@ impl CompSet {
             let flagship_max_hp = core.ships[0].max_hp;
             total += c.weight;
             cum.push(total);
-            out.push(Comp { core, init, formation: enemy_formation(&c.fleet), flagship_max_hp });
+            out.push(Comp { flagship_max_hp, heavy: has_heavy_bombers(&core), core, init, formation: enemy_formation(&c.fleet) });
         }
         if out.is_empty() || total <= 0.0 {
             return Err(format!("{what}: comps need a positive total weight"));
@@ -95,6 +98,14 @@ struct NodeInfo {
     lb_bonus: Vec<Option<BaseBonus>>,
     /// The friend fleet can arrive here (`friendFleet.nodes`, default the goal node).
     friend_fleet: bool,
+    /// Base raids on arrival at this node, before its battle.
+    raids: Vec<NodeRaid>,
+}
+
+struct NodeRaid {
+    chance: f64,
+    comps: CompSet,
+    high_altitude: bool,
 }
 
 /// Prepared sortie (static derivations done once).
@@ -114,6 +125,10 @@ pub struct Sortie {
     retreat: RetreatPolicy,
     lbas: Vec<LandBaseCore>,
     lb_init: LbPlanes,
+    /// 防空 bases.
+    lb_defense: Vec<bool>,
+    raid_target: BaseTarget,
+    has_raids: bool,
     warnings: Vec<String>,
     /// Armor debuffs of the goal node (also applied to `gauge.finalComps`).
     goal_debuffs: Vec<ArmorDebuff>,
@@ -166,6 +181,9 @@ struct Rec {
     nodes: u64,
     ships: Vec<ShipRec>,
     warnings: BTreeSet<String>,
+    raid: RaidAcc,
+    /// Sorties with at least one base raid.
+    raid_sorties: u32,
 }
 
 fn route_ship(s: &crate::model::ShipInput) -> RouteShip {
@@ -303,8 +321,19 @@ impl Sortie {
                     }
                 }
             };
-            let lb_waves =
-                bases.iter().enumerate().flat_map(|(b, base)| base.targets.iter().filter(|t| **t == letter).map(move |_| b)).collect();
+            // Waves of sortie bases at this node, dropped when beyond the base radius.
+            let distance = input.map.nodes.get(&letter).and_then(|n| n.lbas_distance);
+            let mut lb_waves = Vec::new();
+            for (b, base) in bases.iter().enumerate().filter(|(_, base)| !base.defense) {
+                for _ in base.targets.iter().filter(|t| **t == letter) {
+                    match (distance, lbas[b].radius) {
+                        (Some(d), Some(r)) if d > r => {
+                            warnings.push(format!("lbas #{b}: node {letter} (distance {d}) is beyond the base radius {r}; wave dropped"))
+                        }
+                        _ => lb_waves.push(b),
+                    }
+                }
+            }
             let goal = target.map_or(boss, |t| t == i);
             let n = input.map.nodes.get(&letter);
             if goal {
@@ -313,7 +342,24 @@ impl Sortie {
             let (main_len, esc_len) = (input.friend.ships.len(), input.friend.escort_ships().len());
             let ship_bonus = bonus::build_fleet(n.and_then(|n| n.bonuses.as_deref()), n.and_then(|n| n.escort_bonuses.as_deref()), main_len, esc_len, &format!("node {letter} "))?;
             let lb_bonus = bonus::build_bases(&format!("node {letter} lbasBonuses"), n.and_then(|n| n.lbas_bonuses.as_deref()), bases.len(), MAX_SQUADRONS)?;
-            nodes.push(NodeInfo { battle, boss, goal, formation, warning, lb_waves, bonus: ship_bonus, lb_bonus, friend_fleet: false });
+            nodes.push(NodeInfo { battle, boss, goal, formation, warning, lb_waves, bonus: ship_bonus, lb_bonus, friend_fleet: false, raids: Vec::new() });
+        }
+        for (i, b) in bases.iter().enumerate() {
+            if b.defense && !b.targets.is_empty() {
+                warnings.push(format!("lbas #{i}: air defence base; targets ignored"));
+            }
+        }
+        for (k, r) in input.base_raids.iter().flatten().enumerate() {
+            let chance = r.chance.unwrap_or(1.0);
+            if !(0.0..=1.0).contains(&chance) {
+                return Err(format!("baseRaids #{k}: chance must be in [0, 1]"));
+            }
+            let comps = CompSet::new(&format!("baseRaids #{k}"), &r.comps, &[])?;
+            match router.index(&r.node) {
+                _ if bases.is_empty() => warnings.push(format!("baseRaids #{k}: no land bases; ignored")),
+                None => warnings.push(format!("baseRaids #{k}: node {} is not in the routing document; ignored", r.node)),
+                Some(n) => nodes[n].raids.push(NodeRaid { chance, comps, high_altitude: r.high_altitude.unwrap_or(false) }),
+            }
         }
         for (i, b) in bases.iter().enumerate() {
             for t in &b.targets {
@@ -351,6 +397,7 @@ impl Sortie {
                 warnings.push(format!("friend ship #{i} has no speed; routing assumes fast (10)"));
             }
         }
+        let has_raids = nodes.iter().any(|n| !n.raids.is_empty());
         Ok(Sortie {
             router,
             nodes,
@@ -363,6 +410,9 @@ impl Sortie {
             night: input.policy.night,
             retreat: input.policy.retreat.clone(),
             lb_init: initial_planes(&lbas),
+            lb_defense: bases.iter().map(|b| b.defense).collect(),
+            raid_target: BaseTarget::default(),
+            has_raids,
             lbas,
             warnings,
             goal_debuffs,
@@ -454,6 +504,8 @@ impl Sortie {
         let mut carry = FleetCarry::default();
         // Support fleets: plane counts carry from node to node within the sortie.
         let mut sup_st = [0, 1].map(|k| self.support[k].as_ref().map_or_else(Vec::new, |s| s.init.clone()));
+        let mut lb_hp = [BASE_HP; MAX_WAVES];
+        let mut raided = false;
         loop {
             let info = &self.nodes[node];
             let first_visit = !path[..path.len() - 1].contains(&node);
@@ -471,6 +523,19 @@ impl Sortie {
                 boss_reached = true;
             }
             let mut fought = false;
+            for raid in &info.raids {
+                if !rng.chance(raid.chance) {
+                    continue;
+                }
+                let comp = raid.comps.pick(rng);
+                let raider = Raider { fleet: &comp.core, init: &comp.init, formation: comp.formation, high_altitude: raid.high_altitude || comp.heavy };
+                let bases = RaidBases { bases: &self.lbas, defense: &self.lb_defense, planes: &mut lb_planes, hp: &mut lb_hp };
+                let (air, lost) = base_raid(rng, &raider, bases, &self.raid_target);
+                raided = true;
+                if let Some(r) = rec.as_deref_mut() {
+                    r.raid.add(air_state_of(air), &lost[..self.lbas.len()]);
+                }
+            }
             if let Some((nb, comps)) = &info.battle {
                 let (set, hp_override) = match boss_override {
                     Some((set, hp)) if info.goal => (set, hp),
@@ -563,6 +628,9 @@ impl Sortie {
             *r.paths.entry(path.iter().map(|&n| n as u16).collect()).or_insert(0) += 1;
             r.battles += battles;
             r.nodes += (path.len() - 1) as u64;
+            if raided {
+                r.raid_sorties += 1;
+            }
             if retreated {
                 r.retreats += 1;
             }
@@ -677,6 +745,7 @@ impl Sortie {
                 })
                 .collect(),
             gauge: None,
+            base_raid: self.has_raids.then(|| rec.raid.summary(Some(rate(rec.raid_sorties)), self.lbas.len())),
             warnings: warnings.into_iter().collect(),
         }
     }

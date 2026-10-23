@@ -51,8 +51,9 @@ export type DamageState = "healthy" | "light" | "moderate" | "heavy" | "sunk";
  * - `dayNight`: day battle, then night battle if any enemy ship is still afloat.
  * - `nightOnly`: night battle node (夜戦マス).
  * - `airBattle`: aerial battle node (航空戦マス): two air-combat phases, no shelling/torpedo.
- * - `airRaid`: air raid node (空襲マス): enemy air attack only; rank from friend HP loss
- *   (0% SS, <10% A, <20% B, <50% C, <80% D, else E).
+ * - `airRaid`: air raid node (空襲マス): enemy air attack only (friend fighters and AA still fight;
+ *   land-base jets and waves attack, no fleet jet assault); rank from friend HP loss (0% SS, <10% A,
+ *   <20% B, <50% C, <80% D, else E). Enemy sunk by land bases: air supremacy if the fleet has planes.
  * - `nightToDay`: night-to-day node (払暁戦): night battle first, then the day battle while the
  *   enemy is afloat (vs an enemy combined fleet: while its main fleet is afloat and at most 3
  *   escort ships are above 50% HP; the day part fights its main fleet). Single friend fleets only
@@ -80,9 +81,11 @@ export type Phase =
   | "shelling3"
   | "closingTorpedo"
   | "night"
-  /** Jet assault (噴式強襲) of land-base jets, before the land-base waves. `attacker` = base. */
+  /** Jet assault (噴式強襲) of land-base jets, before the fleet jet assault (also when detection
+   *  fails). `attacker` = the base's first wave; `slot` = squadron. Jet losses carry into the waves. */
   | "jetLandBase"
-  /** Jet assault of the fleet's carrier jets, before the air phase. */
+  /** Jet assault of both fleets' carrier jets (friend: main fleet), before the land-base waves;
+   *  not at `airRaid` nodes. Jets also attack again in the waves / air phase (×0.7071). */
   | "jetAirStrike"
   /** Support expedition (支援艦隊). `attacker` = support fleet ship index. */
   | "support"
@@ -185,7 +188,7 @@ export interface EquipmentInput {
   proficiency?: number;
   /** Current plane count in this slot (api_onslot). Default 0. Ignored for non-aircraft. */
   planes?: number;
-  /** Aircraft combat radius (master api_distance). Land-base reach checks only. */
+  /** Aircraft combat radius (master api_distance). Land-base reach checks only (sorties). */
   radius?: number;
 }
 
@@ -359,7 +362,8 @@ export interface BattleInput {
   enemy: FleetInput;
   options?: BattleOptions;
   /** Land-base waves in order (max 6), resolved before the friend's air phase (not in night-only
-   *  battles). Each wave starts from its own squadron sizes. */
+   *  battles). Consecutive waves with identical squadrons are one base sent twice (集中): the jet
+   *  assault counts it once and both waves start from the squadron sizes after the jet assault. */
   lbas?: LandBaseWave[];
   /** Event historical bonuses of the friend ships, in `friend.ships` order (`null` / missing = none).
    *  `shared/sim/bonuses.ts` builds them from `GET /maps/{map}/bonuses`. */
@@ -462,9 +466,12 @@ export interface RaidBase {
 }
 
 export interface BaseRaidInput {
-  /** Raiding enemy fleet (its planes attack the bases). */
+  /** Raiding enemy fleet (its bombers attack random bases). */
   enemy: FleetInput;
   bases: RaidBase[];
+  /** High-altitude raid (高高度空襲; rocket interceptor rule) even without heavy bombers
+   *  (深海空要塞 1594/1595/1597/1598) in `enemy`. Default false. */
+  highAltitude?: boolean;
 }
 
 export interface BaseRaidResult {
@@ -848,9 +855,10 @@ export interface GaugeInput {
 }
 
 /** A sortie land base: squadrons (as in `LandBaseWave`) and the node letters of its two waves
- *  (same letter twice = both waves at that node; empty = not sortied, e.g. 防空/待機). Squadron
- *  sizes reset every sortie; losses carry from node to node (two waves at one node both start
- *  from the sizes before that battle, kcsim). */
+ *  (same letter twice = both waves at that node; empty = not sortied, e.g. 待機). Squadron sizes
+ *  reset every sortie; losses carry from node to node (two waves at one node both start from the
+ *  sizes before that node's waves, after its jet assault). A wave whose node `lbasDistance` exceeds
+ *  the base radius (shortest squadron `radius` + recon extension) is dropped with a warning. */
 export interface LandBase {
   squadrons: EquipmentInput[];
   targets: string[];
@@ -864,6 +872,8 @@ export interface SortieBaseRaid {
   /** Default 1. */
   chance?: number;
   comps: EnemyComp[];
+  /** High-altitude raid even without heavy bombers in the comps. Default false. */
+  highAltitude?: boolean;
 }
 
 export interface SortieInput {

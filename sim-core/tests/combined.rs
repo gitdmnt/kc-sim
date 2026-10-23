@@ -34,6 +34,7 @@ fn land_bomber() -> EquipmentInput {
         improvement: None,
         proficiency: Some(7),
         planes: None,
+        radius: None,
     }
 }
 
@@ -171,6 +172,7 @@ fn lbas_fighters_shoot_down_enemy_planes() {
         improvement: None,
         proficiency: Some(7),
         planes: None,
+        radius: None,
     };
     let mut with_lb = plain.clone();
     with_lb.lbas = Some(vec![LandBaseWave { squadrons: vec![fighter(), fighter(), fighter(), fighter()] }; 6]);

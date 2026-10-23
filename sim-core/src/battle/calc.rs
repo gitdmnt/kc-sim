@@ -55,6 +55,12 @@ pub struct Unit<'a> {
 }
 
 impl<'a> Unit<'a> {
+    /// A unit outside a fleet battle context (land-base jets, base raids): no combined-fleet
+    /// terms, smoke, balloons or bonus.
+    pub fn plain(core: &'a ShipCore, st: &'a ShipState, form: Formation, idx: usize, len: usize) -> Unit<'a> {
+        Unit { core, st, form, idx, len, cf: CF_NONE, smoke: 0, balloons: 0, bonus: None }
+    }
+
     #[inline]
     pub fn fm(&self) -> &'static FormMods {
         formation::mods(self.form, self.idx, self.len)

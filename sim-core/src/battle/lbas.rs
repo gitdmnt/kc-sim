@@ -8,18 +8,27 @@
 //! Per wave: fighter power of the base (interceptor evasion ×1.5, land recon multiplier) vs the
 //! enemy's planes of every kind → air state; stage 1 losses on both sides; for each bomber
 //! squadron a stage 2 AA roll by a random enemy ship, then a target; all attacks land after the
-//! targeting pass. Not modelled: the jet assault phase (jets attack in the normal waves with the
-//! jet power multiplier) and plane-specific bonuses beyond the equipment ids listed in
-//! [`Battle::lb_strike`]. Target bonuses (kcsim `airstrikeLBAS`: special abyssals, PT imps,
-//! `LBWeak`, `divebombWeak`) and balloons are applied.
+//! targeting pass. Jets also attack in the waves (×0.7 + 0.5, wikiwiki 基地航空隊 種別倍率 噴式機
+//! 0.7071) after their own jet assault ([`super::jet`]). Waves of one base at one node (集中)
+//! both start from the squadron sizes before the first wave (wikiwiki 基地航空隊 「同じマスに
+//! 集中させた場合」: the first wave's losses are undone; jet-assault losses are not). Against an
+//! enemy combined fleet (kcsim `LBASPhase` / `airstrikeLBAS`): the main fleet is targeted 45% of
+//! the time, evasion constant `lbasEvaModCombined` 0.68 (B-25 0.7), post-cap ×1.1. Target bonuses
+//! (kcsim `airstrikeLBAS`: special abyssals, PT imps, `LBWeak`, `divebombWeak`) and balloons are
+//! applied. Not modelled: plane-specific bonuses beyond the equipment ids listed in
+//! [`Battle::lb_strike`].
+//!
+//! Base radius (wikiwiki 基地航空隊 戦闘行動半径): shortest radius of the squadrons with planes, plus
+//! round(√(longest recon radius − shortest)) ≤ 3 for flying boats / carrier, seaplane and land
+//! recon; the extension is void with an autogyro or ASW patrol plane other than ids 489 / 491.
 
 use super::air::{contact_roll, friend_fighter_loss};
 use super::{Battle, List};
 use crate::equipment::{cat, f, Equip};
 use crate::formulas::{self, evade, evade_luck, hit_term, soft_cap, PlaneBonus, Roll};
-use crate::model::{AttackEvent, AttackKind, EquipmentInput, HitResult, Phase, Side, SpecialAttack};
+use crate::model::{AttackEvent, AttackKind, EquipmentInput, HitResult, Phase, ShipInput, ShipStats, Side, SpecialAttack};
 use crate::bonus::BaseBonus;
-use crate::ship::{ShipClass, MAX_SLOTS};
+use crate::ship::{ShipClass, ShipCore, ShipState, MAX_SLOTS};
 
 /// Squadrons per base.
 pub const MAX_SQUADRONS: usize = 4;
@@ -32,8 +41,10 @@ pub type LbPlanes = [[i32; MAX_SQUADRONS]; MAX_WAVES];
 const CAP_LBAS: f64 = 220.0;
 /// kcsim `SIMCONSTS.lbasAccBase`.
 const ACC_BASE: f64 = 0.9;
-/// kcsim `SIMCONSTS.lbasEvaModSingle` (the enemy is always a single fleet here).
+/// kcsim `SIMCONSTS.lbasEvaModSingle` / `lbasEvaModCombined` / `lbasEvaModCombinedB25`.
 const EV_POST_SINGLE: f64 = 0.86;
+const EV_POST_COMBINED: f64 = 0.68;
+const EV_POST_COMBINED_B25: f64 = 0.7;
 const FIGHTER_TABLE: [f64; 8] = [0.0, 0.0, 2.0, 5.0, 9.0, 14.0, 14.0, 22.0];
 
 /// One land base: its squadrons and derived constants.
@@ -43,11 +54,18 @@ pub struct LandBaseCore {
     /// Full squadron sizes.
     pub planes: [i32; MAX_SQUADRONS],
     /// Fighter-power proficiency bonus per squadron (`setProficiency(rank, forLBAS)`).
-    ap_bonus: [f64; MAX_SQUADRONS],
+    pub(super) ap_bonus: [f64; MAX_SQUADRONS],
     /// Land recon fighter-power multiplier (×1.15 / ×1.18).
     recon_ap: f64,
     /// Land recon multiplier on attack power (×1.12 / ×1.15).
     recon_contact: f64,
+    /// Air-defence fighter-power recon multiplier (wikiwiki 基地航空隊 防空時 偵察機補正).
+    pub(super) recon_defense: f64,
+    /// Combat radius; `None` when a squadron with planes has no `radius`.
+    pub radius: Option<u32>,
+    /// Jet squadrons as one-plane carriers for the jet assault (kcships `createJetLandBase`:
+    /// level 1, luck 3): (squadron, core, state).
+    pub(super) jets: Vec<(usize, ShipCore, ShipState)>,
 }
 
 /// Squadron size of an item without an explicit `planes`: recon 4, large land-based bomber 9,
@@ -94,7 +112,8 @@ impl LandBaseCore {
         let squadrons: Vec<Equip> = inputs.iter().map(Equip::from_input).collect();
         let mut planes = [0; MAX_SQUADRONS];
         let mut ap_bonus = [0.0; MAX_SQUADRONS];
-        let (mut recon_ap, mut recon_contact) = (1.0f64, 1.0f64);
+        let (mut recon_ap, mut recon_contact, mut recon_defense) = (1.0f64, 1.0f64, 1.0f64);
+        let mut jets = Vec::new();
         for (k, (e, input)) in squadrons.iter().zip(inputs).enumerate() {
             planes[k] = input.planes.unwrap_or_else(|| default_planes(e.cat)).max(0);
             ap_bonus[k] = lb_ap_bonus(e);
@@ -110,8 +129,28 @@ impl LandBaseCore {
                     recon_contact = 1.12;
                 }
             }
+            recon_defense = recon_defense.max(defense_recon_mod(e));
+            if e.has(f::JET) && e.has(f::PLANE) {
+                let ship = ShipInput {
+                    ship_type: 11,
+                    level: Some(1.0),
+                    max_hp: 1,
+                    stats: ShipStats { luck: Some(3.0), ..Default::default() },
+                    slots: vec![Some(EquipmentInput { planes: Some(planes[k]), ..input.clone() })],
+                    ..Default::default()
+                };
+                let core = ShipCore::new(&ship, true);
+                let st = core.initial_state(&ship);
+                jets.push((k, core, st));
+            }
         }
-        Ok(LandBaseCore { squadrons, planes, ap_bonus, recon_ap, recon_contact })
+        let radius = base_radius(&squadrons, inputs, &planes);
+        Ok(LandBaseCore { squadrons, planes, ap_bonus, recon_ap, recon_contact, recon_defense, radius, jets })
+    }
+
+    /// Whether the base has any jet squadron (kcsim `hasjet`).
+    pub(super) fn has_jets(&self) -> bool {
+        !self.jets.is_empty()
     }
 
     /// kcsim `LandBase.airPower('isPlane')` (sortie): every plane, interceptors add 1.5 × evasion.
@@ -132,6 +171,43 @@ impl LandBaseCore {
     }
 }
 
+/// Air-defence recon multiplier of one squadron (wikiwiki 基地航空隊 防空時 偵察機補正; kcships
+/// `LandBase.airPowerDefend` has the same values, land recon by accuracy instead of LoS).
+fn defense_recon_mod(e: &Equip) -> f64 {
+    match e.cat {
+        cat::SEAPLANE | cat::FLYING_BOAT if e.los >= 9.0 => 1.16,
+        cat::SEAPLANE | cat::FLYING_BOAT if e.los >= 8.0 => 1.13,
+        cat::SEAPLANE | cat::FLYING_BOAT => 1.1,
+        cat::CARRIER_SCOUT | cat::CARRIER_SCOUT2 if e.los >= 9.0 => 1.3,
+        cat::CARRIER_SCOUT | cat::CARRIER_SCOUT2 => 1.2,
+        cat::LAND_SCOUT if e.los >= 9.0 => 1.23,
+        cat::LAND_SCOUT => 1.18,
+        _ => 1.0,
+    }
+}
+
+/// Base radius (see the module docs).
+fn base_radius(squadrons: &[Equip], inputs: &[EquipmentInput], planes: &[i32; MAX_SQUADRONS]) -> Option<u32> {
+    let mut min: Option<u32> = None;
+    let mut recon = 0;
+    let mut no_ext = false;
+    for (k, (e, input)) in squadrons.iter().zip(inputs).enumerate() {
+        if planes[k] <= 0 {
+            continue;
+        }
+        let r = input.radius?;
+        min = Some(min.map_or(r, |m| m.min(r)));
+        match e.cat {
+            cat::FLYING_BOAT | cat::CARRIER_SCOUT | cat::CARRIER_SCOUT2 | cat::SEAPLANE | cat::LAND_SCOUT => recon = recon.max(r),
+            cat::AUTOGYRO | cat::ASW_PLANE if e.id != 489 && e.id != 491 => no_ext = true,
+            _ => {}
+        }
+    }
+    let min = min?;
+    let ext = if no_ext || recon <= min { 0 } else { (((recon - min) as f64).sqrt().round() as u32).min(3) };
+    Some(min + ext)
+}
+
 /// Initial squadron sizes of `bases` (≤ [`MAX_WAVES`]).
 pub fn initial_planes(bases: &[LandBaseCore]) -> LbPlanes {
     let mut p = [[0; MAX_SQUADRONS]; MAX_WAVES];
@@ -142,7 +218,7 @@ pub fn initial_planes(bases: &[LandBaseCore]) -> LbPlanes {
 }
 
 /// kcsim `compareAP`: air state of the first side (2 AS+ .. −2 AI).
-fn compare_ap(ap1: f64, ap2: f64) -> i8 {
+pub(super) fn compare_ap(ap1: f64, ap2: f64) -> i8 {
     if ap1 >= ap2 * 3.0 {
         2
     } else if ap1 >= ap2 * 1.5 {
@@ -276,13 +352,17 @@ impl<'a> Battle<'a> {
                     continue;
                 }
             }
-            let subs = self.subs(1);
-            let cands = if asw_plane && !subs.is_empty() {
-                subs
-            } else if surface_plane {
-                self.surface(1)
+            let cands = if self.enemy_combined() {
+                self.lb_targets_combined(asw_plane, surface_plane)
             } else {
-                continue;
+                let subs = self.subs(1);
+                if asw_plane && !subs.is_empty() {
+                    subs
+                } else if surface_plane {
+                    self.surface(1)
+                } else {
+                    continue;
+                }
             };
             if cands.is_empty() {
                 continue;
@@ -295,6 +375,38 @@ impl<'a> Battle<'a> {
             let bonus = bonus.map_or((1.0, 1.0), |bb| bb.mods(k, &planes[..]));
             self.lb_strike(w, base, k, planes[k], t, covered, contact, bonus);
         }
+    }
+
+    /// The enemy is a combined fleet (main + escort).
+    pub(super) fn enemy_combined(&self) -> bool {
+        self.fleets[1].escort_start < self.fleets[1].ships.len()
+    }
+
+    /// kcsim `LBASPhase` targets against an enemy combined fleet: ASW planes submarines (with
+    /// surface planes: submarines and surface ships), then the main fleet 45% / the escort 55%,
+    /// then an ASW plane keeps only the submarines of that fleet if any.
+    fn lb_targets_combined(&mut self, asw_plane: bool, surface_plane: bool) -> List {
+        let (subs, surface) = (self.subs(1), self.surface(1));
+        let mut all = List::default();
+        for &i in subs.as_slice().iter().filter(|_| asw_plane).chain(surface.as_slice().iter().filter(|_| surface_plane)) {
+            all.push(i);
+        }
+        let es = self.fleets[1].escort_start;
+        let has_main = all.as_slice().iter().any(|&i| i < es);
+        let has_escort = all.as_slice().iter().any(|&i| i >= es);
+        let main = if has_main && has_escort { self.rng().chance(0.45) } else { has_main };
+        let mut picked = List::default();
+        for &i in all.as_slice().iter().filter(|&&i| (i < es) == main) {
+            picked.push(i);
+        }
+        if asw_plane && picked.as_slice().iter().any(|&i| self.core(1, i).class.is_sub()) {
+            let mut only = List::default();
+            for &i in picked.as_slice().iter().filter(|&&i| self.core(1, i).class.is_sub()) {
+                only.push(i);
+            }
+            return only;
+        }
+        picked
     }
 
     /// kcsim `airstrikeLBAS` of squadron `k` (`n` planes) on enemy ship `t`.
@@ -384,7 +496,12 @@ impl<'a> Battle<'a> {
             let du = self.unit(1, t);
             let ev = du.evasion(1.0, 0.0);
             let plane = Some(PlaneBonus { acc: acc_plane, crit_rate: critval * 0.8 });
-            formulas::hit_crit_post(hit_term(acc), evade(ev.ev, evade_luck(ev.luck), 1.0), &ev, 0.0, plane, 0.0, EV_POST_SINGLE)
+            let ev_post = match (self.enemy_combined(), e.id) {
+                (false, _) => EV_POST_SINGLE,
+                (true, 459) => EV_POST_COMBINED_B25,
+                (true, _) => EV_POST_COMBINED,
+            };
+            formulas::hit_crit_post(hit_term(acc), evade(ev.ev, evade_luck(ev.luck), 1.0), &ev, 0.0, plane, 0.0, ev_post)
         };
         let roll = formulas::roll_hit(self.rng(), &hc, crit_dmg);
         let hp_before = self.st[1][t].hp;
@@ -455,6 +572,9 @@ impl<'a> Battle<'a> {
             }
             pre *= base.recon_contact;
             let mut post = if e.cat == cat::LAND_BOMBER { 1.8 } else { 1.0 };
+            if self.enemy_combined() {
+                post *= 1.1;
+            }
             if e.id == 459 {
                 if inst {
                     pre *= 0.9;
