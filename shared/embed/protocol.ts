@@ -46,7 +46,7 @@ const FLEET_KEYS = ["api_id", "api_name", "api_ship"];
 const SHIP_KEYS = [
   "api_id", "api_ship_id", "api_lv", "api_slot", "api_onslot", "api_slotnum", "api_slot_ex", "api_kyouka", "api_maxhp",
   "api_nowhp", "api_karyoku", "api_raisou", "api_taiku", "api_soukou", "api_kaihi", "api_taisen", "api_sakuteki",
-  "api_lucky", "api_leng", "api_soku", "api_cond",
+  "api_lucky", "api_leng", "api_soku", "api_cond", "api_sp_effect_items",
 ];
 const EQUIP_KEYS = ["api_id", "api_slotitem_id", "api_level", "api_alv"];
 const AIRBASE_KEYS = ["api_area_id", "api_rid", "api_name", "api_action_kind"];

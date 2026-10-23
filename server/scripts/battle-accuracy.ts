@@ -164,7 +164,10 @@ const FRIEND_IMPROVE: Record<number, number> = { 172: 0, 183: 4, 308: 0, 376: 4,
 /** api_type[2] left at ★0: landing craft, special amphibious tanks, army units (kcEQDATA 24 / 46 / 52). */
 const FRIEND_NO_IMPROVE_TYPES = new Set([24, 46, 52]);
 
-/** KCNav ship → preset ship with its displayed stats as `observed` (what poi would import). */
+/**
+ * KCNav ship → preset ship with its displayed stats as `observed` (what poi would import, special-effect items added:
+ * the game's displayed stats leave them out, api_fParam and the battle include them).
+ */
 function presetShip(s: BattleSetupShip, maxHp: number, nowHp: number): PresetShip {
   const slotNum = master.data.ships[s.id]?.api_slot_num ?? 4;
   const normal = Math.max(slotNum, 4);
@@ -174,11 +177,15 @@ function presetShip(s: BattleSetupShip, maxHp: number, nowHp: number): PresetShi
     return { masterId: id, improvement: Math.max(0, s.improvements?.[j] ?? 0), proficiency: Math.max(0, s.proficiency?.[j] ?? 0), slotSize: s.slots?.[j] };
   };
   const st = s.stats;
+  const sp = s.ribbons ?? {};
   return {
     masterId: s.id, level: s.lvl, luckMod: 0, hpMod: 0, aswMod: 0, morale: s.morale ?? 49,
     equips: Array.from({ length: slotNum }, (_, j) => equip(j)),
     exSlot: s.equips.length === normal + 1 ? equip(normal) : null,
-    observed: { maxHp, nowHp, firepower: st.fp, torpedo: st.tp, antiAir: st.aa, armor: st.ar, evasion: st.ev, asw: st.as, los: st.ls, luck: st.lk },
+    observed: {
+      maxHp, nowHp, firepower: st.fp + (sp.fp ?? 0), torpedo: st.tp + (sp.tp ?? 0), antiAir: st.aa, armor: st.ar + (sp.ar ?? 0),
+      evasion: st.ev + (sp.ev ?? 0), asw: st.as, los: st.ls, luck: st.lk,
+    },
   };
 }
 

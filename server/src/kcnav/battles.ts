@@ -55,8 +55,13 @@ const entrySchema = z.object({
 const setupShip = z.object({
   id: z.number().int(),
   lvl: z.number().int(),
-  /** Displayed totals (equipment and fit bonuses included); `as` = ASW, `ls` = LoS, `lk` = luck. */
+  /** Displayed totals (equipment and fit bonuses included, special-effect items not); `as` = ASW, `ls` = LoS, `lk` = luck. */
   stats: z.object({ fp: z.number(), tp: z.number(), aa: z.number(), ar: z.number(), ev: z.number(), as: z.number(), ls: z.number(), lk: z.number() }),
+  /**
+   * Special-effect items (KC3 `statsSp` of api_sp_effect_items: 海色リボン TP +1 AR +1, 白たすき FP +2 EV +2). The game's
+   * displayed stats (api_karyoku …, so `stats`) leave them out; the battle's api_fParam includes them.
+   */
+  ribbons: z.object({ fp: z.number().optional(), tp: z.number().optional(), ar: z.number().optional(), ev: z.number().optional() }).nullish(),
   /** max(slot count, 4) normal slots, then the reinforcement slot when one longer; −1 = empty. */
   equips: nums,
   improvements: nums.nullish(),

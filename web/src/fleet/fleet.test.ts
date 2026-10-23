@@ -98,6 +98,14 @@ describe("importFromPoi", () => {
     expect(p.ships[1].exSlot).toBeNull();
   });
 
+  test("adds special-effect items (海色リボン / 白たすき), which the displayed stats leave out", () => {
+    const state = poiState();
+    const ships = state.info.ships as Record<number, Record<string, unknown>>;
+    ships[11]!.api_sp_effect_items = [{ api_kind: 1, api_raig: 1, api_souk: 1 }, { api_kind: 2, api_houg: 2, api_kaih: 2 }];
+    const o = importFromPoi(state, 0)!.ships[0]!.observed!;
+    expect([o.firepower, o.torpedo, o.armor, o.evasion, o.antiAir]).toEqual([98, 1, 101, 47, 90]);
+  });
+
   test("never throws on missing data", () => {
     expect(importFromPoi(undefined, 0)).toBeNull();
     expect(importFromPoi({}, 0)).toBeNull();

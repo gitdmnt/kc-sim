@@ -20,6 +20,10 @@ const first = (v: unknown, fallback = 0): number =>
 const numOr = (v: unknown, fallback: number): number =>
   typeof v === "number" && Number.isFinite(v) ? v : fallback;
 
+/** 特殊効果アイテム (api_sp_effect_items: 海色リボン 雷装 +1 装甲 +1、白たすき 火力 +2 回避 +2) の `key` の合計 */
+const spEffect = (items: unknown, key: string): number =>
+  Array.isArray(items) ? items.reduce((sum: number, it: unknown) => sum + (it && typeof it === "object" ? numOr(Reflect.get(it, key), 0) : 0), 0) : 0;
+
 export const masterFromPoi = (state: any): MasterData => ({
   ships: state?.const?.$ships ?? {},
   equips: state?.const?.$equips ?? {},
@@ -57,14 +61,16 @@ export const shipFromPoi = (instanceId: number, state: any): PresetShip | null =
     .map((id, i) => equipFromInstance(id, state, onslot[i]));
 
   const kyouka: number[] = Array.isArray(s.api_kyouka) ? s.api_kyouka : [];
+  // 表示値 (api_karyoku など) は特殊効果アイテムを含まない。戦闘 (api_fParam) は含むので足す。
+  const sp = s.api_sp_effect_items;
   const observed: ObservedShipStats = {
     maxHp: numOr(s.api_maxhp, 0),
     nowHp: numOr(s.api_nowhp, 0),
-    firepower: first(s.api_karyoku),
-    torpedo: first(s.api_raisou),
+    firepower: first(s.api_karyoku) + spEffect(sp, "api_houg"),
+    torpedo: first(s.api_raisou) + spEffect(sp, "api_raig"),
     antiAir: first(s.api_taiku),
-    armor: first(s.api_soukou),
-    evasion: first(s.api_kaihi),
+    armor: first(s.api_soukou) + spEffect(sp, "api_souk"),
+    evasion: first(s.api_kaihi) + spEffect(sp, "api_kaih"),
     asw: first(s.api_taisen),
     los: first(s.api_sakuteki),
     luck: first(s.api_lucky),

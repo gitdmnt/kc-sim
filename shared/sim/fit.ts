@@ -3,7 +3,7 @@
  * `js/data/mst_slotitem_bonus.json` (KC3Kai/kancolle-replay、MIT) をそのまま使い、意味も kancolle-replay
  * `getBonusStats` (js/kcEQDATA.js) に合わせる。ElectronicObserver の FitBonuses.json は 2025-03 で更新が止まり、KCNav の
  * 実戦 716 通りの艦 + 装備で、ゲームの装備ボーナス (表示値 − 装備 − api_fParam) と火力が 79% しか合わなかった
- * (こちらは 98%、docs/VALIDATION.md §4)。
+ * (こちらは表示値に特殊効果アイテムを足して FP/TP/AA/AR とも 99.9% 以上、docs/VALIDATION.md §4)。
  *
  * - エントリは艦が ids/types (api_type[2]) のどれかの装備を載せていれば対象。対象装備数 n、その改修値の一覧を集める。
  * - bonuses の各定義は独立に判定し、成立したもの全てを加算する。
