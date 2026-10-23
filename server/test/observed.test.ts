@@ -55,7 +55,7 @@ const sortie = (battles: string[] = [], extra: Record<string, unknown> = {}) => 
   sortie: {
     deckId: 1, combined: 0, endKind: "boss", endedAt: at(seq + 1),
     cells: [cell(1, null, 4, 1), cell(4, 1, 4, 2), cell(6, 4, 4, 2), cell(7, 6, 6, 1), cell(12, 7, 5, 0, battles)],
-    cellData: LAYOUT.map((no) => ({ no, colorNo: no === 0 ? 0 : 4, passed: 1 })),
+    cellData: LAYOUT.map((no) => ({ no, colorNo: no === 0 ? 0 : 4, passed: 1, ...(no === 7 ? { distance: 3 } : {}) })),
     features: { stypes: [2, 2, 2], speed: 10, los: null, hqLevel: 120 },
   },
   ...extra,
@@ -67,6 +67,7 @@ interface SetJson { source: string; totalCount: number; comps: CompJson[] }
 interface CompsJson { selection: unknown[]; sets: SetJson[] }
 interface DetailJson {
   enemyCompNodes: string[]; compSets: unknown[];
+  nodes: { letter: string; lbasDistance: number | null }[];
   observed: { layout: unknown; edges: { from: number; to: number; fromLetter: string; toLetter: string; count: number }[]; cells: { no: number }[]; mismatches: unknown[] };
 }
 interface StatusJson { observations: unknown[]; layouts: unknown[] }
@@ -452,6 +453,9 @@ describe("API", () => {
     expect(detail.observed.edges[0]).toEqual({ from: 0, to: 1, fromLetter: "Start", toLetter: "A", count: 1 });
     expect(detail.observed.cells.find((c) => c.no === 7)).toMatchObject({ letter: "G", eventId: 6, visits: 1 });
     expect(detail.observed.mismatches).toEqual([]);
+    expect(detail.observed.cells.find((c) => c.no === 7)).toMatchObject({ lbasDistance: 3 });
+    expect(detail.nodes.find((n) => n.letter === "G")).toMatchObject({ lbasDistance: 3 });
+    expect(detail.nodes.find((n) => n.letter === "A")).toMatchObject({ lbasDistance: null });
   });
 
   test("admin: delete by clientId, rebuild, status", async () => {

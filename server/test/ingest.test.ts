@@ -43,6 +43,7 @@ describe("map naming", () => {
     expect(nodeTypeFromEvent(6, 2)).toBe("select");
     expect(nodeTypeFromEvent(6, 0)).toBe("empty");
     expect(nodeTypeFromEvent(9, 0)).toBe("landing");
+    expect(nodeTypeFromEvent(4, 7)).toBe("night_to_day");
   });
 });
 

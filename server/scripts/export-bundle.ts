@@ -17,7 +17,7 @@ import {
 import { mapName, parseMapKey } from "../src/maps";
 import { OBSERVED_SOURCE } from "../src/observed/aggregate";
 import {
-  MISMATCH_COLS, OBSERVED_CELL_COLS, OBSERVED_EDGE_GROUP, OBSERVED_EDGE_SQL, OBSERVED_LAYOUT_COLS, observedGraphJson,
+  MISMATCH_COLS, OBSERVED_CELL_COLS, OBSERVED_EDGE_GROUP, OBSERVED_EDGE_SQL, OBSERVED_LAYOUT_COLS, lbasDistanceByLetter, observedGraphJson,
 } from "../src/observed/graph";
 import { DEFAULT_MIN_OBSERVED, selectCompSets } from "../src/observed/select";
 
@@ -103,17 +103,19 @@ for (const m of selected) {
   }
   for (const sh of chosenShips) for (const e of sh.equips as number[]) if (e > 0) myEquipIds.add(e);
   const head = heads.find((h) => h.map_id === id);
+  const observed = observedGraphJson({
+    layouts: observedRows.layouts.filter((r) => r.map_id === id), cells: observedRows.cells.filter((r) => r.map_id === id),
+    edgeCounts: observedRows.edgeCounts.filter((r) => r.map_id === id), mismatches: observedRows.mismatches.filter((r) => r.map_id === id),
+    edges: edges.filter((e) => e.map_id === id),
+  });
+  const lbas = lbasDistanceByLetter(observed);
   const bundle = {
     format: "kc-sim-map-bundle", version: 1, generatedAt,
     map: mapJson(m),
-    nodes: nodes.filter((n) => n.map_id === id).sort((a, b) => String(a.letter).localeCompare(String(b.letter))).map(nodeJson),
+    nodes: nodes.filter((n) => n.map_id === id).sort((a, b) => String(a.letter).localeCompare(String(b.letter))).map((n) => nodeJson(n, lbas)),
     edges: edges.filter((e) => e.map_id === id).sort((a, b) => (a.edge_id as number) - (b.edge_id as number)).map(edgeJson),
     routing: head ? routingDocJson(head, rules.filter((r) => r.map_id === id)) : null,
-    observed: observedGraphJson({
-      layouts: observedRows.layouts.filter((r) => r.map_id === id), cells: observedRows.cells.filter((r) => r.map_id === id),
-      edgeCounts: observedRows.edgeCounts.filter((r) => r.map_id === id), mismatches: observedRows.mismatches.filter((r) => r.map_id === id),
-      edges: edges.filter((e) => e.map_id === id),
-    }),
+    observed,
     enemyComps,
     enemyCompSelection,
     ships: shipMap,

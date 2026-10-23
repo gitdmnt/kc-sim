@@ -103,17 +103,18 @@ export function observationStatements(db: D1Database, o: ObservationRow): D1Prep
 
   const s = JSON.parse(o.sortie) as SortieRecord;
   const boss = s.cells.find((c) => c.bossCellNo != null)?.bossCellNo ?? null;
-  const cellUpsert = (no: number, color: number | null | undefined, eventId: number | null | undefined, eventKind: number | null | undefined, visits: number) =>
+  const cellUpsert = (no: number, color: number | null | undefined, eventId: number | null | undefined, eventKind: number | null | undefined, visits: number, distance?: number | null) =>
     db.prepare(
-      `INSERT INTO poi_cells (map_id, layout, cell_no, color_no, event_id, event_kind, visits, is_boss)
-       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8 WHERE ${GUARD.replace("?", "?9")}
+      `INSERT INTO poi_cells (map_id, layout, cell_no, color_no, event_id, event_kind, visits, is_boss, lbas_distance)
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?10 WHERE ${GUARD.replace("?", "?9")}
        ON CONFLICT (map_id, layout, cell_no) DO UPDATE SET color_no = COALESCE(excluded.color_no, poi_cells.color_no),
+         lbas_distance = COALESCE(excluded.lbas_distance, poi_cells.lbas_distance),
          event_id = COALESCE(excluded.event_id, poi_cells.event_id), event_kind = COALESCE(excluded.event_kind, poi_cells.event_kind),
          visits = poi_cells.visits + excluded.visits, is_boss = MAX(poi_cells.is_boss, excluded.is_boss)`,
-    ).bind(o.map_id, layout, no, color ?? null, eventId ?? null, eventKind ?? null, visits, no === boss ? 1 : 0, o.id);
+    ).bind(o.map_id, layout, no, color ?? null, eventId ?? null, eventKind ?? null, visits, no === boss ? 1 : 0, o.id, distance ?? null);
 
   out.push(layoutUpsert(1, 0, s.cellData ? JSON.stringify(s.cellData) : null, boss));
-  for (const c of s.cellData ?? []) out.push(cellUpsert(c.no, c.colorNo, null, null, 0));
+  for (const c of s.cellData ?? []) out.push(cellUpsert(c.no, c.colorNo, null, null, 0, c.distance));
   for (const c of s.cells) out.push(cellUpsert(c.no, c.colorNo, c.eventId, c.eventKind, 1));
   if (boss !== null && !s.cells.some((c) => c.no === boss) && !s.cellData?.some((c) => c.no === boss)) out.push(cellUpsert(boss, null, null, null, 0));
   let prev: number | null = null;

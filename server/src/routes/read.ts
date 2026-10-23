@@ -8,7 +8,7 @@ import {
   estimateJson, jsonArraySql, mapJson, nodeJson, parseJson, posteriorFields, routingJson, shipJson,
 } from "../assemble";
 import {
-  MISMATCH_COLS, OBSERVED_CELL_COLS, OBSERVED_EDGE_GROUP, OBSERVED_EDGE_SQL, OBSERVED_LAYOUT_COLS, observedGraphJson,
+  MISMATCH_COLS, OBSERVED_CELL_COLS, OBSERVED_EDGE_GROUP, OBSERVED_EDGE_SQL, OBSERVED_LAYOUT_COLS, lbasDistanceByLetter, observedGraphJson,
 } from "../observed/graph";
 import { DEFAULT_MIN_OBSERVED, SOURCE_PREFS, type SourcePref, selectCompSets } from "../observed/select";
 
@@ -67,15 +67,17 @@ read.get("/maps/:map", async (c) => {
     db.prepare(`SELECT ${MISMATCH_COLS} FROM poi_graph_mismatches WHERE map_id = ?1 ORDER BY kind, to_cell, from_cell`).bind(key.id).all(),
   ]);
   const routing = await routingOf(db, key.id);
+  const observed = observedGraphJson({ layouts: layouts.results, cells: cells.results, edgeCounts: edgeCounts.results, mismatches: mismatches.results, edges: edges.results });
+  const lbas = lbasDistanceByLetter(observed);
   return c.json({
     map: mapJson(map),
-    nodes: nodes.results.map(nodeJson),
+    nodes: nodes.results.map((n) => nodeJson(n, lbas)),
     edges: edges.results.map(edgeJson),
     routing: routing?.doc ?? null,
     routingMeta: routing?.meta ?? null,
     enemyCompNodes: [...new Set(compSets.results.map((r) => r.node_letter as string))].sort(),
     compSets: compSets.results.map(compSetSummaryJson),
-    observed: observedGraphJson({ layouts: layouts.results, cells: cells.results, edgeCounts: edgeCounts.results, mismatches: mismatches.results, edges: edges.results }),
+    observed,
   });
 });
 

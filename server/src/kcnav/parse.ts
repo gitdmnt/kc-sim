@@ -98,7 +98,7 @@ export function parseMap(json: unknown): ParsedMap {
 }
 
 /** Node types for which enemy comps exist. */
-export const COMBAT_NODE_TYPES = ["battle", "boss", "night_battle", "air_battle", "air_raid"];
+export const COMBAT_NODE_TYPES = ["battle", "boss", "night_battle", "air_battle", "air_raid", "night_to_day"];
 
 const nodeSummaryResponse = z.object({
   // KCNav omits zero values: `runs` is absent when no sortie passed the edge (seen with minSpeed=20).

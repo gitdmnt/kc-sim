@@ -38,8 +38,9 @@ export const mapJson = (m: Row) => ({
 });
 
 export const NODE_COLS = "map_id, letter, x, y, color_no, event_id, event_kind, node_type, is_boss";
-export const nodeJson = (n: Row) => ({
+export const nodeJson = (n: Row, lbasDistance?: ReadonlyMap<string, number>) => ({
   letter: n.letter, x: n.x, y: n.y, colorNo: n.color_no, eventId: n.event_id, eventKind: n.event_kind, type: n.node_type, isBoss: !!n.is_boss,
+  lbasDistance: lbasDistance?.get(n.letter as string) ?? null,
 });
 
 export const EDGE_COLS = "map_id, edge_id, from_letter, to_letter";

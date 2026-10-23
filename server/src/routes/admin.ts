@@ -146,7 +146,7 @@ admin.get("/kcnav/status", async (c) => {
     db.prepare(
       `SELECT m.id AS map_id,
          (SELECT COUNT(DISTINCT s.node_letter) FROM enemy_comp_sets s WHERE s.map_id = m.id) AS comp_nodes,
-         (SELECT COUNT(*) FROM nodes n WHERE n.map_id = m.id AND n.node_type IN ('battle','boss','night_battle','air_battle','air_raid')) AS combat_nodes,
+         (SELECT COUNT(*) FROM nodes n WHERE n.map_id = m.id AND n.node_type IN ('battle','boss','night_battle','air_battle','air_raid','night_to_day')) AS combat_nodes,
          (SELECT COUNT(*) FROM routing_maps r WHERE r.map_id = m.id) AS has_routing
        FROM maps m WHERE m.world BETWEEN 1 AND 7 ORDER BY m.id`,
     ).all<{ map_id: number; comp_nodes: number; combat_nodes: number; has_routing: number }>(),

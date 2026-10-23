@@ -31,13 +31,15 @@ export function normalizeLetter(label: string, multipleStarts: boolean): string 
 /**
  * Node type from game api_event_id / api_event_kind (KCNav route[3]; kcwiki node_types `id`/`kind`).
  * Combinations checked against kcwiki db/node_types-57..62.json; event ids 7 and 8 are unverified.
+ * Kind 7 = 夜昼戦 (払暁戦, KC3Kai src/library/objects/Node.js `knownNodeExtraClasses` "nc_night_to_day"
+ * and kc3-translations terms `BattleKindNightToDay`; not in the kcwiki files).
  */
 export function nodeTypeFromEvent(eventId: number | null | undefined, eventKind?: number | null): string | null {
   switch (eventId) {
     case 0: return eventKind === 0 ? "landing" : "start";
     case 2: return "resource";
     case 3: return "maelstrom";
-    case 4: return eventKind === 2 ? "night_battle" : eventKind === 4 ? "air_battle" : eventKind === 6 ? "air_raid" : "battle";
+    case 4: return eventKind === 2 ? "night_battle" : eventKind === 4 ? "air_battle" : eventKind === 6 ? "air_raid" : eventKind === 7 ? "night_to_day" : "battle";
     case 5: return "boss";
     case 6: return eventKind === 2 ? "select" : "empty";
     case 7: return eventKind === 0 ? "air_recon" : "air_battle";

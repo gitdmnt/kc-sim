@@ -4,7 +4,7 @@ import { cellLetters } from "./aggregate";
 type Row = Record<string, unknown>;
 
 export const OBSERVED_LAYOUT_COLS = "map_id, layout, version, boss_cell, sorties, encounters, first_seen, last_seen";
-export const OBSERVED_CELL_COLS = "map_id, layout, cell_no, color_no, event_id, event_kind, visits, is_boss";
+export const OBSERVED_CELL_COLS = "map_id, layout, cell_no, color_no, event_id, event_kind, visits, is_boss, lbas_distance";
 export const OBSERVED_EDGE_SQL = "SELECT map_id, layout, from_cell, to_cell, SUM(count) AS count FROM poi_edge_counts";
 export const OBSERVED_EDGE_GROUP = "GROUP BY map_id, layout, from_cell, to_cell";
 export const MISMATCH_COLS = "map_id, layout, kind, from_cell, to_cell, count, observed, stored, checked_at";
@@ -29,7 +29,7 @@ export function observedGraphJson(rows: { layouts: Row[]; cells: Row[]; edgeCoun
     layoutVersions: rows.layouts.length,
     cells: rows.cells.filter(mine).sort((a, b) => (a.cell_no as number) - (b.cell_no as number)).map((c) => ({
       no: c.cell_no, letter: letters.get(c.cell_no as number) ?? null, colorNo: c.color_no, eventId: c.event_id,
-      eventKind: c.event_kind, visits: c.visits, isBoss: !!c.is_boss,
+      eventKind: c.event_kind, visits: c.visits, isBoss: !!c.is_boss, lbasDistance: c.lbas_distance ?? null,
     })),
     edges: rows.edgeCounts.filter(mine).sort((a, b) => (a.to_cell as number) - (b.to_cell as number) || (a.from_cell as number) - (b.from_cell as number))
       .map((e) => {
@@ -43,4 +43,14 @@ export function observedGraphJson(rows: { layouts: Row[]; cells: Row[]; edgeCoun
       stored: m.stored, checkedAt: m.checked_at,
     })),
   };
+}
+
+/** Node letter -> LBAS distance from the observed cells (the nearest cell when a letter has several). */
+export function lbasDistanceByLetter(observed: { cells: { letter: string | null; lbasDistance: unknown }[] } | null): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const c of observed?.cells ?? []) {
+    if (c.letter === null || c.lbasDistance === null) continue;
+    out.set(c.letter, Math.min(out.get(c.letter) ?? Infinity, c.lbasDistance as number));
+  }
+  return out;
 }
