@@ -126,6 +126,8 @@ struct NodeInfo {
     formation: Formation,
     /// `node.supply`: fuel / ammo fractions of the battle.
     supply: Option<[f64; 2]>,
+    /// `node.battleKind`: replaces the kind derived from the node kind and the night policy.
+    battle_kind: Option<BattleKind>,
     advance: Option<Advance>,
     warning: Option<String>,
     /// Land-base waves at this node: base index per wave, in base order then target order.
@@ -408,6 +410,7 @@ impl Sortie {
             let mut boss = false;
             let mut landing = false;
             let mut supply = None;
+            let mut battle_kind = None;
             let mut effect = Effect::None;
             match input.map.nodes.get(&letter) {
                 None => {
@@ -419,6 +422,7 @@ impl Sortie {
                     boss = n.boss.unwrap_or(false) || n.kind == Some(NodeKind::Boss);
                     landing = n.kind == Some(NodeKind::Landing);
                     supply = n.supply.map(|s| [s.fuel, s.ammo]);
+                    battle_kind = n.battle_kind;
                     match n.kind {
                         Some(NodeKind::Resource | NodeKind::Landing) => {
                             if let Some(r) = n.resource {
@@ -492,7 +496,7 @@ impl Sortie {
                 bases.iter().enumerate().flat_map(|(b, base)| base.targets.iter().filter(|t| **t == letter).map(move |_| b)).collect();
             let goal = target.map_or(boss, |t| t == i);
             let advance = input.policy.advance.get(&letter).copied();
-            nodes.push(NodeInfo { effect, battle, boss, goal, landing, formation, supply, advance, warning, lb_waves });
+            nodes.push(NodeInfo { effect, battle, boss, goal, landing, formation, supply, battle_kind, advance, warning, lb_waves });
         }
         let mut lb_sortied = vec![false; bases.len()];
         for (i, b) in bases.iter().enumerate() {
@@ -629,11 +633,12 @@ impl Sortie {
     }
 
     fn setup(&self, nb: NodeBattle, info: &NodeInfo, comp: &Comp) -> BattleSetup {
-        let (kind, night_unless) = match nb {
-            NodeBattle::Night => (BattleKind::NightOnly, None),
-            NodeBattle::Air => (BattleKind::AirBattle, None),
-            NodeBattle::Raid => (BattleKind::AirRaid, None),
-            NodeBattle::Day => match self.night {
+        let (kind, night_unless) = match (info.battle_kind, nb) {
+            (Some(k), _) => (k, None),
+            (None, NodeBattle::Night) => (BattleKind::NightOnly, None),
+            (None, NodeBattle::Air) => (BattleKind::AirBattle, None),
+            (None, NodeBattle::Raid) => (BattleKind::AirRaid, None),
+            (None, NodeBattle::Day) => match self.night {
                 NightPolicy::Never => (BattleKind::Day, None),
                 NightPolicy::BossOnly if info.boss => (BattleKind::DayNight, None),
                 NightPolicy::BossOnly => (BattleKind::Day, None),

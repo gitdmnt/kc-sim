@@ -510,6 +510,9 @@ export interface SortieNode {
    *  PT imps only 4 % / 8 %. Set it for other node types, e.g. radar ambush `{ fuel: 0.04, ammo: 0 }`,
    *  anti-sub air raid `{ fuel: 0.12, ammo: 0.06 }`, 6-4 / 6-5 air raids `{ fuel: 0.04, ammo: 0.08 }`. */
   supply?: { fuel: number; ammo: number };
+  /** Battle kind of the node, replacing the one from `kind` and the night policy (a battle-type
+   *  node with comps still decides whether there is a battle). */
+  battleKind?: BattleKind;
 }
 
 export interface ResourceAmounts {

@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::model::{EquipmentInput, FleetInput, Formation, RankRates};
+use crate::model::{BattleKind, EquipmentInput, FleetInput, Formation, RankRates};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -55,6 +55,9 @@ pub struct SortieNode {
     /// Fuel / ammo consumed by the node's battle as fractions of the ship's capacity, replacing
     /// the defaults derived from the node kind and the enemy (see SIM_INTERFACE "Supply").
     pub supply: Option<SupplyRates>,
+    /// Battle kind of the node, replacing the one derived from `kind` and the night policy
+    /// (e.g. a night-to-day node).
+    pub battle_kind: Option<BattleKind>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]

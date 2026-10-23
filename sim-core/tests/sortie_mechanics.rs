@@ -262,3 +262,14 @@ fn kill_gauge_counts_sunk_flagships() {
     let r = &s.boss.rank_rates;
     assert!(s.boss.kill_rate <= r.ss + r.s + r.a + r.b + 1e-12);
 }
+
+#[test]
+fn node_battle_kind_override() {
+    let dd = json!([{ "weight": 1.0, "fleet": { "ships": [enemy_dd(), enemy_dd()] } }]);
+    let s = simulate_sortie(&one_battle(dd.clone(), json!({ "battleKind": "nightOnly" })), 50, 1).unwrap();
+    assert_eq!(s.nodes["A"].night_rate, 1.0);
+    // Night-only battles cost 10 % / 10 %.
+    assert_eq!(s.friend[4].fuel_used_mean, 10.0);
+    let s = simulate_sortie(&one_battle(dd, json!({})), 50, 1).unwrap();
+    assert_eq!(s.nodes["A"].night_rate, 0.0);
+}
