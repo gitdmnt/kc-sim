@@ -2,6 +2,7 @@ import { STORAGE_PREFIX } from "../fleet";
 import type { KeyValueStorage } from "../fleet";
 import { defaultStorage, keysWithPrefix } from "../fleet/storage";
 import type { FitEntry } from "@shared/sim/fit";
+import type { EventBonusResponse } from "@shared/sim/bonuses";
 import type {
   ApiEquipment,
   ApiShip,
@@ -166,6 +167,10 @@ export class DataApi {
   async fitBonuses() {
     const r = await this.get<{ fitBonuses: FitEntry[] }>("/api/v1/fit-bonuses");
     return { data: r.data.fitBonuses, stale: r.stale };
+  }
+  /** イベント特効と装甲デバフ (docs/API.md)。データの無い海域は HTTP 404 の DataApiError。 */
+  eventBonuses(map: string) {
+    return this.get<EventBonusResponse>(`/api/v1/maps/${encodeURIComponent(map)}/bonuses`);
   }
   async abyssalEquipments() {
     const r = await this.get<{ equipments: ApiEquipment[] }>("/api/v1/equipments?abyssal=1");

@@ -337,6 +337,8 @@ fn forward_model_matches_engine() {
                     night: None,
                     slot: None,
                     contact_modifier: None,
+                    attacker_bonus: None,
+                    defender_bonus: None,
                 };
                 let hp = hit_probability(&q).unwrap();
                 assert!((hp.p_hit - e.p_hit).abs() < 1e-12 && (hp.p_crit - e.p_crit).abs() < 1e-12);
@@ -369,6 +371,8 @@ fn damage_distribution_shape() {
         night: None,
         slot: None,
         contact_modifier: None,
+        attacker_bonus: None,
+        defender_bonus: None,
     };
     let d = damage_distribution(&q).unwrap();
     let total: f64 = d.hit.iter().map(|p| p.p).sum();

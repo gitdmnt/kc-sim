@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::model::{EquipmentInput, FleetInput, Formation, RankRates};
+use crate::model::{ArmorDebuff, BaseBonusSet, EquipmentInput, FleetInput, Formation, RankRates, ShipBonusSet};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -49,6 +49,18 @@ pub struct SortieNode {
     pub kind: Option<NodeKind>,
     pub boss: Option<bool>,
     pub comps: Option<Vec<EnemyComp>>,
+    /// Event bonuses of the friend ships at this node, in `friend.ships` order (`null` = none).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bonuses: Option<Vec<Option<ShipBonusSet>>>,
+    /// Event bonuses of the friend escort ships at this node, in `friend.escort` order.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub escort_bonuses: Option<Vec<Option<ShipBonusSet>>>,
+    /// Event bonuses of the land bases attacking this node, in `lbas` (base) order.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lbas_bonuses: Option<Vec<Option<BaseBonusSet>>>,
+    /// Armor debuffs of the enemy ships here (at the goal node also `gauge.finalComps`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub debuffs: Option<Vec<ArmorDebuff>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

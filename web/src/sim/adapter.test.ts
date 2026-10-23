@@ -38,9 +38,9 @@ const preset: Preset = {
 
 describe("buildFriendShips", () => {
   test("naked stats = observed − equipment (− fit bonus), equipment carried over", () => {
-    const { input, warnings, fitSkipped } = buildFriendShips(preset, master);
+    const { input, warnings, fitUnresolved } = buildFriendShips(preset, master);
     expect(warnings).toEqual([]);
-    expect(fitSkipped).toBe(0);
+    expect(fitUnresolved).toBe(0);
     const s = input[0];
     expect(s).toMatchObject({ id: 1, shipType: 3, level: 50, maxHp: 35, morale: 40, range: 2, speed: 10 });
     expect(s.stats).toEqual({ firepower: 26, torpedo: 20, antiAir: 15, armor: 12, evasion: 40, asw: 25, los: 25, luck: 12 });
@@ -62,6 +62,13 @@ describe("buildFriendShips", () => {
     const off = buildFriendShips(preset, master, { fitBonuses: fit, applyFit: false });
     expect(off.input[0].stats.firepower).toBe(26);
     expect(off.input[0].equipBonus).toBeUndefined();
+  });
+
+  test("fit range bonus extends a computed range, an observed range already includes it", () => {
+    const fit = [{ id: 1, ids: [10], types: null, bonuses: [{ shipX: [1], bonus: { leng: 1 } }] }];
+    const manual: Preset = { ...preset, ships: [{ ...preset.ships[0], observed: undefined }] };
+    expect(buildFriendShips(manual, master, { fitBonuses: fit }).input[0].range).toBe(3);
+    expect(buildFriendShips(preset, master, { fitBonuses: fit }).input[0].range).toBe(2);
   });
 
   test("manual ship without observed uses computed values and warns about unknowns", () => {
@@ -105,7 +112,9 @@ describe("buildEnemyShips", () => {
     );
     const [dd, cv] = r.input;
     expect(dd).toMatchObject({ id: 1501, shipType: 2, level: 1, maxHp: 20, range: 1 });
-    expect(dd.stats).toEqual({ firepower: 5, torpedo: 15, antiAir: 6, armor: 5, evasion: 14, asw: 25, los: 0, luck: 0 });
+    // los / luck have no estimate: stype-median fallback for a regular DD (kcSHIPDATA), flagged
+    expect(dd.stats).toEqual({ firepower: 5, torpedo: 15, antiAir: 6, armor: 5, evasion: 14, asw: 25, los: 20, luck: 60 });
+    expect(r.reliability.find((x) => x.shipId === 1501 && x.stat === "luck")).toMatchObject({ confidence: "placeholder", value: 60, source: "fallback:stype-median" });
     // tacc (kcsim TACC) is torpedo-only, never the all-attack hiddenAccuracy
     expect(dd.torpedoAccuracy).toBe(3);
     expect(dd.hiddenAccuracy).toBeUndefined();
@@ -113,11 +122,32 @@ describe("buildEnemyShips", () => {
     expect(dd.slots[1]).toBeNull();
     expect(cv.slots[0]).toMatchObject({ id: 1540, planes: 10 });
     expect(cv.torpedoAccuracy).toBeUndefined();
-    // missing estimate → warning + "unknown" reliability
-    expect(r.warnings.some((w) => w.includes("空母ヲ級") && w.includes("推定値"))).toBe(true);
+    // no estimate at all → fallback values for ev/asw/los/luck, warning, "unknown" for acc
+    expect(cv.stats).toMatchObject({ evasion: 40, asw: 30, los: 40, luck: 30 });
+    expect(r.warnings.some((w) => w.includes("空母ヲ級") && w.includes("代替値"))).toBe(true);
     expect(r.reliability.find((x) => x.shipId === 1501 && x.stat === "tacc")).toMatchObject({ confidence: "placeholder", value: 3 });
     expect(r.reliability.find((x) => x.shipId === 1501 && x.stat === "acc")).toMatchObject({ confidence: "unknown", value: null });
-    expect(r.reliability.find((x) => x.shipId === 1550 && x.stat === "ev")).toMatchObject({ confidence: "unknown", value: null });
+    expect(r.reliability.find((x) => x.shipId === 1550 && x.stat === "ev")).toMatchObject({ confidence: "placeholder", value: 40 });
+  });
+
+  test("kcSHIPDATA flags → installation / PT / supply depot / special target / night attack / OASW", () => {
+    const flagged = new Map<number, ApiShip>([
+      [1653, { id: 1653, name: "集積地棲姫", stype: 10, slots: [], hp: 500, flags: { installtype: 3, divebombWeak: 2.1, LBWeak: 1.32 } } as unknown as ApiShip],
+      [1637, { id: 1637, name: "PT小鬼群", stype: 2, slots: [], hp: 35, flags: { isPT: true } } as unknown as ApiShip],
+      [1696, { id: 1696, name: "戦艦夏姫", stype: 9, slots: [], hp: 400, flags: { isSummerBB: true } } as unknown as ApiShip],
+      [1585, { id: 1585, name: "空母棲姫", stype: 11, slots: [], hp: 350, flags: { nightattack: 3 } } as unknown as ApiShip],
+      [1639, { id: 1639, name: "x", stype: 1, slots: [], hp: 30, flags: { alwaysOASW: true, isSupplyDepot: true } } as unknown as ApiShip],
+    ]);
+    const lk = { ...lookup, ship: (i: number) => flagged.get(i) };
+    const comp = [...flagged.keys()].map((shipId) => ({ shipId, level: 1, hp: 0, fp: 0, tp: 0, aa: 0, ar: 0, equips: [] as number[] }));
+    const [depot, pt, summer, cv, de] = buildEnemyShips(comp, lk, { skipHiddenStats: true }).input;
+    expect(depot).toMatchObject({ installationKind: "supplyDepot", divebombWeak: 2.1, lbWeak: 1.32 });
+    expect(pt).toMatchObject({ ptImp: true });
+    expect(summer).toMatchObject({ targetGroup: "summerBattleship" });
+    expect(cv).toMatchObject({ nightAttacker: true });
+    expect(de).toMatchObject({ alwaysOpeningAsw: true, supplyDepot: true });
+    expect(depot.isInstallation).toBeUndefined();
+    expect(pt.installationKind).toBeUndefined();
   });
 
   test("acc → hiddenAccuracy, tacc → torpedoAccuracy", () => {
@@ -166,7 +196,7 @@ describe("buildEnemyShips", () => {
       }
     });
 
-    test("off: the server's values are ignored; the next best source or 0 is used", () => {
+    test("off: the server's values are ignored; the next best source or the fallback is used", () => {
       const r = buildEnemyShips(comp, lk, { useServerEstimates: false });
       expect(r.input[0].stats.evasion).toBe(14);
       expect(r.input[0].stats.asw).toBe(25);

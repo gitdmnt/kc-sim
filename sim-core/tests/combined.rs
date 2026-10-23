@@ -18,7 +18,7 @@ fn escort_fleet() -> Vec<ShipInput> {
 }
 
 fn combined(ct: CombinedType) -> FleetInput {
-    FleetInput { ships: main_fleet(), escort: Some(escort_fleet()), combined: Some(ct), formation: None }
+    FleetInput { ships: main_fleet(), escort: Some(escort_fleet()), combined: Some(ct), ..Default::default() }
 }
 
 fn hp_sum(s: &SimulationSummary) -> f64 {

@@ -88,7 +88,7 @@ fn bench_hit_probability_grid() {
     let query = |kind: QueryKind, attacker: ShipInput, defender: ShipInput, side: Side| AttackQuery {
         kind, attacker, defender, attacker_side: Some(side), attacker_formation: None, defender_formation: None, attacker_index: None,
         attacker_fleet_size: None, defender_index: None, defender_fleet_size: None, engagement: None, special: None, night: None, slot: None,
-        contact_modifier: None,
+        contact_modifier: None, attacker_bonus: None, defender_bonus: None,
     };
     let evasion = |q: AttackQuery| HitGridQuery { query: q, target: GridTarget::Defender, evasion: axis(201), luck: axis(101), hidden_accuracy: vec![] };
     let accuracy = |q: AttackQuery| HitGridQuery { query: q, target: GridTarget::Attacker, evasion: vec![], luck: axis(101), hidden_accuracy: axis(201) };

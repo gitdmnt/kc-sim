@@ -4,10 +4,12 @@
 //! KC3Kai/kancolle-replay (MIT, © 2016 fourinone41) and cross-checked with en.kancollewiki.net.
 
 pub mod battle;
+pub mod bonus;
 pub mod equipment;
 pub mod formation;
 pub mod fit;
 pub mod formulas;
+pub mod install;
 pub mod model;
 pub mod query;
 pub mod rng;

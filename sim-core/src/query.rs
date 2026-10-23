@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 
 use crate::battle::calc::{self, AccTerms, NightEnv, Unit};
 use crate::battle::{day_ci_of, night_attack_of};
+use crate::bonus::Bonus;
 use crate::equipment::f;
 use crate::formulas::{evade, evade_luck, hit_term, HitCrit};
 use crate::formation::engagement_mod;
@@ -17,6 +18,8 @@ struct Ctx {
     ast: ShipState,
     dst: ShipState,
     q: AttackQuery,
+    /// Event bonuses of the attacker and the defender.
+    bonus: [Option<Bonus>; 2],
 }
 
 impl Ctx {
@@ -34,7 +37,9 @@ impl Ctx {
         let def = ShipCore::new(&q.defender, !friend);
         let ast = att.initial_state(&q.attacker);
         let dst = def.initial_state(&q.defender);
-        Ok(Ctx { att, def, ast, dst, q: q.clone() })
+        let bonus = |name: &str, s: &Option<ShipBonusSet>| s.as_ref().map(|s| Bonus::build(name, s)).transpose();
+        let bonus = [bonus("attackerBonus", &q.attacker_bonus)?, bonus("defenderBonus", &q.defender_bonus)?];
+        Ok(Ctx { att, def, ast, dst, q: q.clone(), bonus })
     }
 
     fn units(&self) -> (Unit<'_>, Unit<'_>) {
@@ -46,6 +51,9 @@ impl Ctx {
             idx: q.attacker_index.unwrap_or(0),
             len: q.attacker_fleet_size.unwrap_or(6).max(1),
             cf: calc::CF_NONE,
+            smoke: 0,
+            balloons: 0,
+            bonus: self.bonus[0].as_ref(),
         };
         let d = Unit {
             core: &self.def,
@@ -54,6 +62,9 @@ impl Ctx {
             idx: q.defender_index.unwrap_or(0),
             len: q.defender_fleet_size.unwrap_or(6).max(1),
             cf: calc::CF_NONE,
+            smoke: 0,
+            balloons: 0,
+            bonus: self.bonus[1].as_ref(),
         };
         (a, d)
     }
@@ -115,10 +126,14 @@ impl Ctx {
         let armor = self.def.ar;
         Ok(match self.q.kind {
             QueryKind::Shelling => (vec![(calc::shelling_power(&a, &d, eng, day_ci_of(self.special())), 1.0)], armor),
-            QueryKind::Torpedo => (vec![(calc::torpedo_power(&a, eng, a.hp_ratio()), 1.0)], armor),
+            QueryKind::Torpedo => {
+                let power = a.bonus_dmg(calc::torpedo_power(&a, eng, a.hp_ratio()), || false);
+                let pow = calc::torpedo_target_power(&self.att, &self.def, power);
+                (vec![(pow, 1.0)], armor)
+            }
             QueryKind::Night => (vec![(calc::night_power(&a, &d, &self.env(), night_attack_of(self.special())), 1.0)], armor),
             QueryKind::Asw | QueryKind::OpeningAsw => {
-                (vec![(calc::asw_power(&a, eng, false), 1.0)], calc::effective_armor(&self.att, &self.def))
+                (vec![(calc::asw_power(&a, eng, false, self.q.kind == QueryKind::OpeningAsw), 1.0)], calc::effective_armor(&self.att, &self.def))
             }
             QueryKind::Air => {
                 let slot = self.air_slot()?;
@@ -127,6 +142,15 @@ impl Ctx {
                 let planes = self.ast.planes[slot];
                 let p = |m: f64| calc::air_power(&self.att, slot, planes, &self.def, m, contact, calc::AIR_BASE);
                 let branches = if dive { vec![(p(1.0), 1.0)] } else { vec![(p(0.8), 0.5), (p(1.5), 0.5)] };
+                // Target bonus (special abyssals, PT imps, supply depots, dive-bomber weakness).
+                let (tp, hi, lo) = calc::air_target_mod(&self.att, slot, &self.def);
+                let branches: Vec<(f64, f64)> = if tp >= 1.0 {
+                    branches.into_iter().map(|(v, w)| (v * hi, w)).collect()
+                } else {
+                    branches.into_iter().flat_map(|(v, w)| [(v * hi, w * tp), (v * lo, w * (1.0 - tp))]).collect()
+                };
+                // Event bonus of the attacker (after the target bonus, as in the engine).
+                let branches = branches.into_iter().map(|(v, w)| (a.bonus_dmg(v, || true), w)).collect();
                 (branches, armor)
             }
         })
@@ -431,7 +455,18 @@ mod tests {
             }),
             slot: None,
             contact_modifier: None,
+            attacker_bonus: rng.chance(0.3).then(|| bonus(rng)),
+            defender_bonus: rng.chance(0.3).then(|| bonus(rng)),
         }
+    }
+
+    fn bonus(rng: &mut Rng) -> ShipBonusSet {
+        let m = |rng: &mut Rng| rng.chance(0.7).then(|| 1.0 + rng.below(30) as f64 / 100.0);
+        let mods = DamageMods { dmg: m(rng), acc: m(rng), eva: m(rng) };
+        let planes = rng.chance(0.5).then(|| {
+            vec![PlaneBonusGroup { slots: vec![rng.below(6)], mods: DamageMods { dmg: m(rng), acc: m(rng), eva: m(rng) }, not_air_only: rng.chance(0.5) }]
+        });
+        ShipBonusSet { mods, planes }
     }
 
     /// 1–5 values from `lo..=hi`, integers or (with `fractions`) quarter steps.

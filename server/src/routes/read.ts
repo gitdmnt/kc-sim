@@ -153,6 +153,19 @@ read.get("/equipments/:id", async (c) => {
   return e ? c.json({ equipment: equipJson(e) }) : c.json({ error: "equipment not found" }, 404);
 });
 
+read.get("/maps/:map/bonuses", async (c) => {
+  const key = parseMapKey(c.req.param("map"));
+  if (!key) return c.json({ error: "bad map key" }, 400);
+  const row = await c.env.DB.prepare(
+    "SELECT b.date, b.note, b.bonuses, b.lbas_bonuses, b.debuffs, s.key AS source, s.revision FROM event_bonuses b LEFT JOIN sources s ON s.id = b.source_id WHERE b.map_id = ?1",
+  ).bind(key.id).first();
+  if (!row) return c.json({ error: "no event bonus data for this map" }, 404);
+  return c.json({
+    map: mapName(key.id), date: row.date, note: row.note, source: row.source === "manual-event-bonus" ? "manual" : "kancolle-replay", revision: row.revision,
+    bonuses: parseJson(row.bonuses), lbasBonuses: parseJson(row.lbas_bonuses), debuffs: parseJson(row.debuffs),
+  });
+});
+
 read.get("/fit-bonuses", async (c) => {
   const { results } = await c.env.DB.prepare("SELECT id, equip_ids, equip_types, bonuses FROM fit_bonuses ORDER BY id").all();
   return c.json({

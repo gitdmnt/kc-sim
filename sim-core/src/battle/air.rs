@@ -254,7 +254,9 @@ impl<'a> Battle<'a> {
         }
         let (aaci_num, aaci_mod) = self.roll_aaci(def_side);
         let air = side_air(self.air, att_side);
-        let contact = if air != -2 && air != 0 { self.roll_contact(att_side, carriers) } else { 1.0 };
+        let mut contact = if air != -2 && air != 0 { self.roll_contact(att_side, carriers) } else { 1.0 };
+        // kcsim `AADefenceBombersAndAirstrike`: own balloons +2 % each, the target fleet's −5 % each.
+        contact *= (1.0 + self.balloons(att_side) as f64 / 50.0) * (1.0 - self.balloons(def_side) as f64 / 20.0);
         let mut defenders = List::default();
         for i in 0..self.len(def_side) {
             if self.alive(def_side, i) {
@@ -310,7 +312,13 @@ impl<'a> Battle<'a> {
                 1.5
             };
             let base = calc::AIR_BASE + self.unit(def_side, d).cf.air_pow;
-            let pow = calc::air_power(att, slot, self.st[att_side][a].planes[slot], def, mult, contact, base);
+            let mut pow = calc::air_power(att, slot, self.st[att_side][a].planes[slot], def, mult, contact, base);
+            let (p, hi, lo) = calc::air_target_mod(att, slot, def);
+            if hi != 1.0 || lo != 1.0 {
+                pow *= if p >= 1.0 || self.rng().chance(p) { hi } else { lo };
+            }
+            // kcsim `airstrike` `postMod`: the attacker's event bonus (every plane group counts).
+            pow = self.unit(att_side, a).bonus_dmg(pow, || true);
             let ammo = self.unit(att_side, a).ammo_mod();
             let dmg = formulas::damage_common(self.rng(), pow, roll, def.ar, ammo, hp_before);
             real = self.take_damage(def_side, d, dmg);

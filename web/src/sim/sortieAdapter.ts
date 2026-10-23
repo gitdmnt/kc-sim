@@ -14,10 +14,22 @@ import type {
 import type { MapData } from "../data/mapData";
 import { describeRule } from "../data/routing";
 import type { EnemyCompSet, RoutingDoc, Rule, Predicate } from "@shared/data/types";
-import type { MasterData, Preset } from "@shared/fleet/types";
+import type { MasterData, Preset, PresetAirBase } from "@shared/fleet/types";
 import { buildEnemyShips, buildFriendShips, buildSquadrons, enemyFormationOf, friendFleet, isCombinedFormation } from "@shared/sim/adapter";
 import type { BuildEnemyOptions, EnemyBuild, EnemyLookup, FriendBuild } from "@shared/sim/adapter";
+import { bonusAt, buildBonuses, debuffsAt } from "@shared/sim/bonuses";
+import type { AccEvaMode, EventBonusResponse } from "@shared/sim/bonuses";
 import type { FitEntry } from "@shared/sim/fit";
+
+/** イベント特効の入力 (`GET /maps/{map}/bonuses` の応答と設定)。 */
+export interface EventBonusSettings {
+  response: EventBonusResponse;
+  /** 推測値 (`unconfirmed`) も使う */
+  unconfirmed?: boolean;
+  accEva?: AccEvaMode;
+  /** 装甲破砕 (デバフ) 済みとして敵の装甲を下げる */
+  debuff: boolean;
+}
 
 /** 指定難易度の最新セットを選ぶ。無ければ最も高い難易度に代替 (fallback=true)。 */
 export const pickSet = (sets: EnemyCompSet[], difficulty: number): { set: EnemyCompSet; fallback: boolean } | undefined => {
@@ -183,7 +195,7 @@ export const buildSortieInput = (
   master: MasterData,
   data: MapData,
   s: SortieSettings,
-  opts: BuildEnemyOptions & { fitBonuses?: FitEntry[]; topPaths?: number } = {}
+  opts: BuildEnemyOptions & { fitBonuses?: FitEntry[]; topPaths?: number; eventBonus?: EventBonusSettings } = {}
 ): SortieBuild => {
   const warnings: string[] = [];
   const routing = data.detail.routing;
@@ -225,7 +237,8 @@ export const buildSortieInput = (
     }
   }
 
-  // 基地航空隊: 出撃の隊のうち、この海域のマスを目標にした波だけ
+  // 基地航空隊: 出撃の隊のうち、この海域のマスを目標にした波だけ (`lbasBases` はエンジンの基地の順)
+  const lbasBases: PresetAirBase[] = [];
   const lbas: LandBase[] = (preset.lbas ?? []).flatMap((b, i) => {
     if (b.mode !== "sortie") return [];
     const targets = b.targets.filter((t) => Object.hasOwn(nodes, t));
@@ -234,9 +247,28 @@ export const buildSortieInput = (
       warnings.push(`第${i + 1}基地航空隊: ${squadrons.length === 0 ? "中隊がありません" : "この海域の目標マスが未設定"} (出撃しません)`);
       return [];
     }
+    lbasBases.push(b);
     return [{ squadrons, targets }];
   });
   const combined = !!friend.combined;
+
+  // イベント特効: 戦闘のあるマスごとに、艦・基地の値とデバフ
+  if (opts.eventBonus) {
+    const e = opts.eventBonus;
+    const b = buildBonuses(preset, e.response, master, { unconfirmed: e.unconfirmed, accEva: e.accEva, lbas: lbasBases });
+    for (const [letter, n] of Object.entries(nodes)) {
+      if (!n.comps) continue;
+      const ships = b.bonuses.map((x) => bonusAt(x, letter));
+      if (ships.some((x) => x)) n.bonuses = ships;
+      const escort = combined ? (b.escortBonuses ?? []).map((x) => bonusAt(x, letter)) : [];
+      if (escort.some((x) => x)) n.escortBonuses = escort;
+      const bases = (b.lbasBonuses ?? []).map((x) => bonusAt(x, letter));
+      if (bases.some((x) => x)) n.lbasBonuses = bases;
+      const debuffs = e.debuff ? debuffsAt(e.response, letter) : [];
+      if (debuffs.length) n.debuffs = debuffs;
+    }
+    warnings.push(...b.warnings);
+  }
   const formations = Object.fromEntries(Object.entries(s.formations).filter(([, f]) => isCombinedFormation(f) === combined));
 
   const map: SortieMap = { routing: routing as unknown as RoutingDocument, nodes };

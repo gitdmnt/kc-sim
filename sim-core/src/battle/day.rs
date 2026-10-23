@@ -57,18 +57,23 @@ pub fn can_oasw(c: &ShipCore, st: &ShipState) -> bool {
     }
 }
 
-/// Ship may take a turn in this shelling round (order construction).
-pub fn can_shell(c: &ShipCore, st: &ShipState, opening: bool) -> bool {
+/// Ship may take a turn in this shelling round (order construction). `vs_install`: an enemy
+/// installation is afloat (kcsim `orderByRange(…, hasInstall)`: only then do submarines with a
+/// WG42 / amphibious tank shell).
+pub fn can_shell(c: &ShipCore, st: &ShipState, opening: bool, vs_install: bool) -> bool {
     if st.hp <= 0 {
         return false;
     }
-    if c.cv_like() {
+    if c.cv_like() || c.vs.cv_shell {
         return opening
             || (0..MAX_SLOTS).any(|s| {
                 c.slots[s].as_ref().is_some_and(|e| matches!(e.cat, cat::DIVE_BOMBER | cat::TORP_BOMBER | cat::JET_BOMBER)) && st.planes[s] > 0
             });
     }
-    !c.class.is_sub()
+    if c.class.is_sub() {
+        return vs_install && c.vs.sub_shell;
+    }
+    true
 }
 
 /// Ship can still act when its turn comes (kcsim `canStillShell`).
@@ -76,7 +81,7 @@ pub fn can_still_shell(c: &ShipCore, st: &ShipState, opening: bool) -> bool {
     if st.hp <= 0 {
         return false;
     }
-    if c.cv_like() && !opening {
+    if (c.cv_like() || c.vs.cv_shell) && !opening {
         let limit = if c.class == ShipClass::CVB { 0.25 } else { 0.5 };
         return st.hp_ratio(c.max_hp) > limit;
     }
@@ -144,15 +149,21 @@ impl<'a> Battle<'a> {
     pub(super) fn shelling(&mut self, second: bool) {
         let mut orders = [List::default(), List::default()];
         for side in 0..2 {
+            let vs_install = self.has_installation(1 - side);
             let mut l = List::default();
             for i in self.engaged(side) {
-                if can_shell(self.core(side, i), &self.st[side][i], false) {
+                if can_shell(self.core(side, i), &self.st[side][i], false, vs_install) {
                     l.push(i);
                 }
             }
             orders[side] = if second { l } else { self.order_by_range(side, l) };
         }
         self.shell_phase(orders, false);
+    }
+
+    /// An installation of `side` is afloat (kcsim `hasInstall`).
+    fn has_installation(&self, side: usize) -> bool {
+        (0..self.len(side)).any(|i| self.alive(side, i) && self.core(side, i).is_installation)
     }
 
     fn shell_phase(&mut self, orders: [List; 2], opening: bool) {
@@ -187,13 +198,16 @@ impl<'a> Battle<'a> {
         }
         let surface = self.surface(def);
         let mut targets = List::default();
-        let has_dive_planes = c.cv_like()
-            && (0..MAX_SLOTS).any(|s| {
-                c.slots[s].as_ref().is_some_and(|e| matches!(e.cat, cat::DIVE_BOMBER | cat::JET_BOMBER)) && self.st[side][a].planes[s] > 0
-            });
+        // kcsim `CV.canShellInstallation`: carriers with dive bombers skip installations unless a
+        // bomber that can attack them is aboard.
+        let st = &self.st[side][a];
+        let has_dive_planes = (c.cv_like() || c.vs.cv_shell)
+            && (0..MAX_SLOTS).any(|s| c.slots[s].as_ref().is_some_and(|e| matches!(e.cat, cat::DIVE_BOMBER | cat::JET_BOMBER)) && st.planes[s] > 0);
+        let can_install = !has_dive_planes
+            || (0..MAX_SLOTS).any(|s| c.slots[s].as_ref().is_some_and(|e| crate::install::can_shell_install(e.id)) && st.planes[s] > 0);
         for &t in surface.as_slice() {
             let inst = self.core(def, t).is_installation;
-            let ok = if has_dive_planes {
+            let ok = if !can_install {
                 !inst
             } else if c.class.is_sub() {
                 inst
@@ -207,7 +221,7 @@ impl<'a> Battle<'a> {
         if targets.is_empty() {
             return;
         }
-        let (t, covered) = self.choose_target(def, targets.as_slice(), 0);
+        let (t, covered) = self.choose_preferred(side, a, targets.as_slice(), true, 0);
         self.shell_attack(side, a, t, covered);
     }
 
@@ -280,7 +294,7 @@ impl<'a> Battle<'a> {
         let (acc, pow) = {
             let au: Unit = self.unit(side, a);
             let du = self.unit(def, d);
-            (calc::asw_acc(&au, &du, opening), calc::asw_power(&au, self.eng, night_scratch))
+            (calc::asw_acc(&au, &du, opening), calc::asw_power(&au, self.eng, night_scratch, opening))
         };
         let roll = formulas::roll_hit(self.rng(), &acc.hc, acc.crit_dmg);
         let hp_before = self.st[def][d].hp;

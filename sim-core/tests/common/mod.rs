@@ -141,7 +141,7 @@ pub fn enemy_fleet() -> FleetInput {
 }
 
 pub fn battle(friend: FleetInput, enemy: FleetInput, kind: BattleKind) -> BattleInput {
-    BattleInput { friend, enemy, options: BattleOptions { kind, engagement: None, log: false }, lbas: None }
+    BattleInput { friend, enemy, options: BattleOptions { kind, ..Default::default() }, ..Default::default() }
 }
 
 // --- 1-5 sortie from the saved server API responses -------------------------------------

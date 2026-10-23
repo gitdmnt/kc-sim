@@ -12,6 +12,7 @@
     "ingest:abyssal": "bun scripts/ingest-abyssal.ts",
     "ingest:graph": "bun scripts/ingest-map-graph.ts",
     "ingest:fit": "bun scripts/ingest-fit-bonuses.ts",
+    "ingest:event-bonus": "bun scripts/ingest-event-bonuses.ts",
     "ingest:routing": "bun scripts/ingest-routing.ts",
     "kcnav": "bun scripts/kcnav.ts",
     "routing:schema": "bun scripts/routing-schema.ts",

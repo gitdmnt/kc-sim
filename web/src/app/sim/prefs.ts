@@ -29,6 +29,10 @@ export interface WorkspacePrefs {
   allowDamecon: boolean;
   onModerate: boolean;
   applyFit: boolean;
+  /** イベント特効 (`/maps/{map}/bonuses`) を掛ける */
+  eventBonus: boolean;
+  /** 装甲破砕 (デバフ) 済みとして敵の装甲を下げる */
+  eventDebuff: boolean;
   battleKind: OfferedKind;
 }
 
@@ -51,6 +55,8 @@ export const DEFAULT_PREFS: WorkspacePrefs = {
   allowDamecon: true,
   onModerate: false,
   applyFit: true,
+  eventBonus: true,
+  eventDebuff: false,
   battleKind: "day",
 };
 

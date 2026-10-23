@@ -3,10 +3,12 @@
 //! Ported from KC3Kai/kancolle-replay `js/kcsim.js` (`shell`, `ASW`, `torpedoPhase`, `NBattack`,
 //! `airstrike`) and `js/kcships.js` (`shellPower`, `NBPower`, `ASWPower`), MIT © fourinone41.
 
+use crate::bonus::Bonus;
 use crate::equipment::{cat, f};
 use crate::formation::{self, countered, FormMods};
 use crate::formulas::*;
-use crate::model::Formation;
+use crate::install::{airstrike_target_mod, pt_acc, pt_pow};
+use crate::model::{Formation, InstallationKind};
 use crate::ship::{DayCi, NightCi, ShipClass, ShipCore, ShipState};
 
 /// Combined-fleet terms of one ship's attacks (kcsim `basepowshell` / `baseaccshell`,
@@ -40,6 +42,12 @@ pub struct Unit<'a> {
     pub idx: usize,
     pub len: usize,
     pub cf: Cf,
+    /// Smoke screen layers in effect for this attack (0 none, 1..3; day battle only).
+    pub smoke: u8,
+    /// Barrage balloons of this ship's side (0..3; balloon nodes, day battle only).
+    pub balloons: u8,
+    /// Event historical bonus of this ship (friend ships of a battle with bonuses).
+    pub bonus: Option<&'a Bonus>,
 }
 
 impl<'a> Unit<'a> {
@@ -61,7 +69,25 @@ impl<'a> Unit<'a> {
             ev_flat,
             fuel_pct: if self.core.is_player { fuel_pct(self.st.fuel, self.st.fuel_max) } else { 100 },
             morale: self.st.morale,
+            // kcsim `bonusSpecialEv` (after `evModPost`).
+            ev_bonus: self.bonus.map_or(1.0, |b| b.eva(&self.st.planes)),
         }
+    }
+
+    /// `pow` × the attacker's event damage bonus (kcsim `getBonusDmg` × `getBonusSpecialPlane`);
+    /// `air()`: the attack uses planes (all plane groups count, else only `notAirOnly` ones).
+    #[inline]
+    pub fn bonus_dmg(&self, pow: f64, air: impl FnOnce() -> bool) -> f64 {
+        match self.bonus {
+            Some(b) => pow * b.dmg(&self.st.planes, air()),
+            None => pow,
+        }
+    }
+
+    /// Event accuracy bonus of the attacker as a hit-fraction multiplier (1 = none).
+    #[inline]
+    fn bonus_acc(&self, air: impl FnOnce() -> bool) -> f64 {
+        self.bonus.map_or(1.0, |b| b.acc(&self.st.planes, air()))
     }
 
     #[inline]
@@ -79,6 +105,12 @@ impl<'a> Unit<'a> {
         } else {
             1.0
         }
+    }
+
+    /// kcsim `1 + getNumBalloons()/50`: own balloons raise shelling / ASW / airstrike power.
+    #[inline]
+    pub fn balloon_mod(&self) -> f64 {
+        1.0 + self.balloons as f64 / 50.0
     }
 }
 
@@ -136,6 +168,37 @@ fn ap_pow(att: &ShipCore, def: &ShipCore) -> f64 {
     }
 }
 
+// ---------------------------------------------------------------- smoke ----
+
+/// Attack kinds affected by a smoke screen.
+#[derive(Clone, Copy)]
+enum SmokeKind {
+    Shell,
+    Asw,
+    Torpedo,
+}
+
+/// Accuracy multiplier under a smoke screen of 1..3 layers, friend (F) / enemy (E) attacker, with
+/// or without a radar for shelling. kcsim `SIMCONSTS.smokeEst` (kcsim's own estimates of the
+/// wiki observations: shelling without radar nearly never hits, ASW ≈ 25 %) [unverified].
+fn smoke_mod(att: &Unit, kind: SmokeKind) -> f64 {
+    if att.smoke == 0 {
+        return 1.0;
+    }
+    let i = (att.smoke.min(3) - 1) as usize;
+    let t: [f64; 3] = match (kind, att.core.is_player, att.core.radars > 0) {
+        (SmokeKind::Shell, true, false) => [0.01, 0.01, 0.01],
+        (SmokeKind::Shell, true, true) => [0.35, 0.25, 0.25],
+        (SmokeKind::Shell, false, false) => [0.5, 0.5, 0.5],
+        (SmokeKind::Shell, false, true) => [0.9, 0.83, 0.75],
+        (SmokeKind::Asw, true, _) => [0.25, 0.25, 0.25],
+        (SmokeKind::Asw, false, _) => [1.0, 1.0, 1.0],
+        (SmokeKind::Torpedo, true, _) => [0.45, 0.42, 0.42],
+        (SmokeKind::Torpedo, false, _) => [0.7, 0.6, 0.5],
+    };
+    t[i]
+}
+
 /// Accuracy part of an attack: integer hit/crit percents plus the critical damage multiplier.
 #[derive(Clone, Copy, Debug)]
 pub struct AttackAcc {
@@ -143,12 +206,12 @@ pub struct AttackAcc {
     pub crit_dmg: f64,
 }
 
-/// What follows `hit_rate` in an attack's accuracy fraction.
+/// What follows `hit_rate` in an attack's accuracy fraction (then smoke, PT imp transform, DE).
 #[derive(Clone, Copy, Debug)]
 enum HitTail {
     /// torpedo, ASW
     Plain,
-    /// shelling: `(h + fit) × ap/CI mod`, then − 0.13 for DE
+    /// shelling: `(h + fit) × ap/CI mod`, then − 0.13 for DE (after smoke / PT)
     Shell { fit: f64, mod2: f64, de: bool },
     /// night: `h + fit`, then + 0.07 with an own searchlight
     Night { fit: f64, searchlight: bool },
@@ -169,13 +232,30 @@ pub struct HitFn {
     n_post: usize,
     modifier: f64,
     tail: HitTail,
+    /// Smoke screen multiplier.
+    smoke: f64,
+    /// PT imp target: multiplier after kcsim's PT accuracy transform (0 = not a PT target).
+    pt: f64,
 }
 
 impl HitFn {
     fn new(base: f64, level: f64, pre: f64, post: &[f64], modifier: f64, tail: HitTail) -> HitFn {
         let mut p = [0.0; 3];
         p[..post.len()].copy_from_slice(post);
-        HitFn { base, level, pre, post: p, n_post: post.len(), modifier, tail }
+        HitFn { base, level, pre, post: p, n_post: post.len(), modifier, tail, smoke: 1.0, pt: 0.0 }
+    }
+
+    fn with(mut self, smoke: f64, pt: f64) -> HitFn {
+        self.smoke = smoke;
+        self.pt = pt;
+        self
+    }
+
+    /// Multiply the event accuracy bonus into the post multiplier (kcsim `getBonusAcc`: after the
+    /// tail's own modifiers, before smoke and the PT transform). Call after [`HitFn::with`].
+    fn with_bonus(mut self, bonus: f64) -> HitFn {
+        self.smoke *= bonus;
+        self
     }
 
     #[inline]
@@ -195,16 +275,9 @@ impl HitFn {
     #[inline]
     pub fn finish(&self, luck_part: f64, flat: f64) -> f64 {
         let h = hit_rate_from(luck_part, flat, self.modifier);
-        match self.tail {
+        let mut h = match self.tail {
             HitTail::Plain => h,
-            HitTail::Shell { fit, mod2, de } => {
-                let h = (h + fit) * mod2;
-                if de {
-                    h - 0.13
-                } else {
-                    h
-                }
-            }
+            HitTail::Shell { fit, mod2, .. } => (h + fit) * mod2,
             HitTail::Night { fit, searchlight } => {
                 let h = h + fit;
                 if searchlight {
@@ -213,8 +286,18 @@ impl HitFn {
                     h
                 }
             }
-            HitTail::Fixed(h) => h,
+            HitTail::Fixed(h) => return h,
+        };
+        if self.smoke != 1.0 {
+            h *= self.smoke;
         }
+        if self.pt != 0.0 {
+            h = pt_acc(h) * self.pt;
+        }
+        if let HitTail::Shell { de: true, .. } = self.tail {
+            h -= 0.13;
+        }
+        h
     }
 
     #[inline]
@@ -252,6 +335,33 @@ impl AccTerms {
     }
 }
 
+/// Flat accuracy terms after the improvement term: kcsim `ptAccFlat` against PT imps.
+#[inline]
+fn post_flat(imp: f64, att: &ShipCore, def: &ShipCore) -> ([f64; 2], usize) {
+    if def.target.pt && att.vs.pt_acc_flat != 0.0 {
+        ([imp, att.vs.pt_acc_flat], 2)
+    } else {
+        ([imp, 0.0], 1)
+    }
+}
+
+/// PT imp accuracy multiplier after the transform (kcsim `ptAccMod`, ×1.2 in vanguard), 0 for
+/// other targets. `base`: 1 for shelling, 0.7 for torpedoes and night attacks.
+#[inline]
+fn pt_acc_mod(att: &Unit, def: &Unit, base: f64, with_ship_mod: bool) -> f64 {
+    if !def.core.target.pt {
+        return 0.0;
+    }
+    let mut m = base;
+    if with_ship_mod {
+        m *= att.core.vs.pt_acc;
+        if att.form == Formation::Vanguard {
+            m *= 1.2;
+        }
+    }
+    m
+}
+
 // ------------------------------------------------------------- shelling ----
 
 /// Ships that shell with the carrier formula (carriers and air-capable AOs with bombers).
@@ -279,7 +389,10 @@ pub fn shelling_terms(att: &Unit, def: &Unit, ci: Option<DayCi>) -> AccTerms {
         acc_mod2 *= ci.data().acc;
     }
     let tail = HitTail::Shell { fit: a.fit_acc * 0.01, mod2: acc_mod2, de: a.class == ShipClass::DE };
-    let hit = HitFn::new(att.cf.shell_acc, a.level, a.acc + a.bonus.acc, &[a.imp.acc_shell], acc_mod, tail);
+    let (post, np) = post_flat(a.imp.acc_shell, a, def.core);
+    let hit = HitFn::new(att.cf.shell_acc, a.level, a.acc + a.bonus.acc, &post[..np], acc_mod, tail)
+        .with(smoke_mod(att, SmokeKind::Shell), pt_acc_mod(att, def, 1.0, true))
+        .with_bonus(att.bonus_acc(|| carrier_shelling(a)));
     let ev = def.evasion(def.fm().shell_ev, def.core.imp.ev_shell);
     let planes = carrier_shelling(a);
     let (crit_rate, mut crit_dmg, acc_plane) = a.proficiency(att.st);
@@ -340,23 +453,57 @@ fn cvci_crit(a: &ShipCore, st: &ShipState, ci: DayCi, prof_crit_rate: f64) -> (f
     (rate, dmg)
 }
 
-/// Basic shelling power (kcsim `shellPower`): `base` is added to the usual +5 (0 for single fleets).
+/// Basic shelling power (kcsim `shellPower` / `CV.shellPower`): `base` is added to the usual +5
+/// (0 for single fleets). Against an installation: FP × installation multiplier (× day multiplier
+/// for gun shelling) + flat bonus; carriers count only the bombers that can attack installations.
 pub fn shell_basic_power(att: &ShipCore, def: &ShipCore, base: f64) -> f64 {
-    if carrier_shelling(att) {
+    let kind = def.target.kind;
+    if carrier_shelling(att) || att.vs.cv_shell {
         let mut dp = 0.0;
         let mut tp = att.bonus.tp;
         for e in att.slots.iter().flatten() {
-            dp += e.bomb;
+            if kind.is_none() || crate::install::can_shell_install(e.id) {
+                dp += e.bomb;
+            }
             tp += e.tp;
         }
-        if def.is_installation {
+        let mut fp = att.fp + (5.0 + base) + att.imp.p_shell;
+        if let Some(k) = kind {
             tp = 0.0;
+            fp = fp * att.vs.inst.mult(k).0 + att.vs.inst.flat;
         }
-        let fp = att.fp + (5.0 + base) + att.imp.p_shell;
         25.0 + (1.5 * (15.0 + fp + tp + (1.3 * dp).floor())).floor()
+    } else if let Some(k) = kind {
+        let sub_bonus = if att.class.is_sub() { 30.0 } else { 0.0 };
+        let fp = att.fp + sub_bonus + (5.0 + base) + att.imp.p_shell;
+        let (m, day) = att.vs.inst.mult(k);
+        fp * m * day + att.vs.inst.flat
     } else {
-        let sub_bonus = if att.class.is_sub() && def.is_installation { 30.0 } else { 0.0 };
-        att.fp + sub_bonus + (5.0 + base) + att.imp.p_shell
+        att.fp + (5.0 + base) + att.imp.p_shell
+    }
+}
+
+/// Post-cap multiplier of the target kind (kcsim `postModExtra`): supply depots, special target
+/// groups.
+#[inline]
+fn target_post(att: &ShipCore, def: &ShipCore) -> f64 {
+    let mut m = 1.0;
+    if def.target.supply_depot {
+        m *= att.vs.inst.supply_post;
+    }
+    if let Some(g) = def.target.group {
+        m *= att.vs.inst.group(g);
+    }
+    m
+}
+
+/// PT imp damage transform (kcsim `pow·0.3 + √pow + 10`, × `ptDmgMod`).
+#[inline]
+fn pt_damage(att: &ShipCore, def: &ShipCore, pow: f64) -> f64 {
+    if def.target.pt {
+        pt_pow(pow) * att.vs.pt_dmg
+    } else {
+        pow
     }
 }
 
@@ -367,10 +514,20 @@ pub fn shelling_power(att: &Unit, def: &Unit, engagement: f64, ci: Option<DayCi>
     if let Some(ci) = ci {
         pow *= ci.data().dmg;
     }
+    // kcsim: balloons join the cut-in multiplier (before the AP floor) or the extra multiplier.
+    if ci.is_some() && att.balloons > 0 {
+        pow *= att.balloon_mod();
+    }
     if ap_weak(def.core.class) && att.core.ap_type > 0 {
         pow = (pow * ap_pow(att.core, def.core)).floor();
     }
-    pow
+    if ci.is_none() && att.balloons > 0 {
+        pow *= att.balloon_mod();
+    }
+    pow *= target_post(att.core, def.core);
+    // kcsim `postModExtra`: event bonus (plane groups count for carrier shelling).
+    pow = att.bonus_dmg(pow, || carrier_shelling(att.core));
+    pt_damage(att.core, def.core, pow)
 }
 
 // ------------------------------------------------------------------ ASW ----
@@ -393,7 +550,9 @@ pub fn asw_terms(att: &Unit, def: &Unit, opening: bool) -> AccTerms {
         acc_mod *= fm.asw_acc.unwrap_or(fm.shell_acc);
     }
     acc_mod *= def.vanguard_target_mod(false);
-    let hit = HitFn::new(80.0, a.level, a.sonar_acc, &[], acc_mod, HitTail::Plain);
+    let hit = HitFn::new(80.0, a.level, a.sonar_acc, &[], acc_mod, HitTail::Plain)
+        .with(smoke_mod(att, SmokeKind::Asw), 0.0)
+        .with_bonus(att.bonus_acc(|| asw_uses_plane_prof(a, opening)));
     let ev = def.evasion(def.fm().asw_ev, 0.0);
     let use_prof = asw_uses_plane_prof(a, opening);
     let (crit_rate, crit_dmg, acc_plane) = a.proficiency(att.st);
@@ -405,9 +564,12 @@ pub fn asw_terms(att: &Unit, def: &Unit, opening: bool) -> AccTerms {
 }
 
 /// Post-cap ASW power. `night_scratch`: day-battle night ASW (power 0 ⇒ scratch damage only).
-pub fn asw_power(att: &Unit, engagement: f64, night_scratch: bool) -> f64 {
+/// Balloons (day only: `Unit::balloons` is 0 at night) multiply after the cap. `opening`: opening
+/// ASW (the event bonus counts every plane group only for plane ASW outside it).
+pub fn asw_power(att: &Unit, engagement: f64, night_scratch: bool, opening: bool) -> f64 {
     let pre = if night_scratch { 0.0 } else { att.fm().asw_pow * engagement * damage_state_mod(att.hp_ratio()) };
-    soft_cap(att.core.asw_power * pre, CAP_ASW).floor()
+    let pow = soft_cap(att.core.asw_power * pre, CAP_ASW).floor() * att.balloon_mod();
+    att.bonus_dmg(pow, || asw_uses_plane_prof(att.core, opening))
 }
 
 /// Defender armor against this attacker (ASW armor penetration against submarines).
@@ -428,6 +590,19 @@ pub fn torpedo_power(att: &Unit, engagement: f64, damage_ratio: f64) -> f64 {
     soft_cap(base * att.fm().torp_pow * engagement * torpedo_state_mod(damage_ratio), CAP_TORPEDO).floor()
 }
 
+/// Torpedo power against this target (kcsim `torpedoPhase`): special-target post-cap multipliers
+/// (not supply depots; 泊地水鬼 バカンスmode not since `anchorageTorpNerf`), PT imp transform.
+pub fn torpedo_target_power(att: &ShipCore, def: &ShipCore, power: f64) -> f64 {
+    let mut pow = power;
+    if let Some(g) = def.target.group.filter(|&g| g != crate::model::TargetGroup::Anchorage) {
+        pow *= att.vs.inst.group(g);
+    }
+    if def.target.pt {
+        pow = pt_pow(pow);
+    }
+    pow
+}
+
 #[inline]
 pub fn torpedo_acc(att: &Unit, def: &Unit, power: f64) -> AttackAcc {
     torpedo_terms(att, def, power).resolve()
@@ -441,7 +616,9 @@ pub fn torpedo_terms(att: &Unit, def: &Unit, power: f64) -> AccTerms {
         acc_mod *= 1.2;
     }
     acc_mod *= def.vanguard_target_mod(true);
-    let hit = HitFn::new(85.0, a.level, a.acc, &post, acc_mod, HitTail::Plain);
+    let hit = HitFn::new(85.0, a.level, a.acc, &post, acc_mod, HitTail::Plain)
+        .with(smoke_mod(att, SmokeKind::Torpedo), pt_acc_mod(att, def, 0.7, false))
+        .with_bonus(att.bonus_acc(|| false));
     let ev = def.evasion(def.fm().torp_ev, def.core.imp.ev_torp);
     AccTerms { hit, luck: a.luck, hidden_acc: a.hidden_acc, ev, crit_mod: 1.5, plane: None, crit_flat: 0.0, crit_dmg: 1.0 }
 }
@@ -537,7 +714,10 @@ pub fn night_terms(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack) -> A
     acc_mod *= def.vanguard_target_mod(false);
     acc_mod *= night_mods(a, na).acc;
     let tail = HitTail::Night { fit: a.fit_acc * 0.01, searchlight: env.own_searchlight };
-    let hit = HitFn::new(acc_base, a.level, a.acc, &[a.imp.acc_nb], acc_mod, tail);
+    let (post, np) = post_flat(a.imp.acc_nb, a, def.core);
+    let hit = HitFn::new(acc_base, a.level, a.acc, &post[..np], acc_mod, tail)
+        .with(1.0, pt_acc_mod(att, def, 0.7, true))
+        .with_bonus(att.bonus_acc(|| a.can_night_air(att.st)));
     let d = def.core;
     let mut ev_mod = def.fm().night_ev;
     let mut ev_flat = if matches!(d.class, ShipClass::CA | ShipClass::CAV) { 5.0 } else { 0.0 };
@@ -557,11 +737,14 @@ pub fn night_terms(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack) -> A
     terms
 }
 
-/// Basic night power (kcsim `NBPower`): FP + TP (+★); vs installations FP only.
+/// Basic night power (kcsim `NBPower`): FP + TP (+★); vs installations FP × installation
+/// multiplier + flat bonus (northernmost landing princess: + TP).
 pub fn night_basic_power(att: &ShipCore, def: &ShipCore) -> f64 {
-    if def.is_installation {
+    if let Some(k) = def.target.kind {
         let sub = if att.class.is_sub() { 30.0 } else { 0.0 };
-        att.fp + sub + att.imp.p_nb
+        let fp = att.fp + sub + att.imp.p_nb;
+        let tp = if k == InstallationKind::Northernmost { att.tp } else { 0.0 };
+        fp * att.vs.inst.mult(k).0 + tp + att.vs.inst.flat
     } else {
         att.fp + att.tp + att.imp.p_nb
     }
@@ -574,7 +757,14 @@ pub fn night_power(att: &Unit, def: &Unit, env: &NightEnv, na: NightAttack) -> f
         pre *= 0.5;
     }
     let basic = if att.core.can_night_air(att.st) { night_air_power(att, def.core) } else { night_basic_power(att.core, def.core) };
-    soft_cap((basic + bonus + att.core.fit_fp) * pre, CAP_NIGHT).floor()
+    let pow = soft_cap((basic + bonus + att.core.fit_fp) * pre, CAP_NIGHT).floor() * target_post(att.core, def.core);
+    let pow = att.bonus_dmg(pow, || att.core.can_night_air(att.st));
+    if def.core.target.pt {
+        // kcsim `NBattack`: the PT transform × 0.6 at night.
+        pt_damage(att.core, def.core, pow) * 0.6
+    } else {
+        pow
+    }
 }
 
 /// Carrier night air attack power (kcsim `CV.NBPower`): naked FP + naked TP (+ visible TP bonus)
@@ -621,7 +811,9 @@ pub fn air_terms(att: &Unit, def: &Unit) -> AccTerms {
     let a = att.core;
     let (crit_rate, crit_dmg, acc_plane) = a.proficiency(att.st);
     let ev = def.evasion(1.0, 0.0);
-    let hit = HitFn::new(0.0, 0.0, 0.0, &[], 0.0, HitTail::Fixed(0.95 + def.cf.air_acc));
+    // kcsim `getBonusAcc(…, isAir)`: only the plane groups raise airstrike accuracy.
+    let acc = (0.95 + def.cf.air_acc) * att.bonus.map_or(1.0, |b| b.acc_air(&att.st.planes));
+    let hit = HitFn::new(0.0, 0.0, 0.0, &[], 0.0, HitTail::Fixed(acc));
     AccTerms {
         hit, luck: a.luck, hidden_acc: a.hidden_acc, ev, crit_mod: 0.0, plane: Some(PlaneBonus { acc: acc_plane, crit_rate }), crit_flat: 0.0,
         crit_dmg,
@@ -643,13 +835,28 @@ pub fn air_plane_base(att: &ShipCore, slot: usize, def: &ShipCore) -> (f64, bool
     (base, dive)
 }
 
-/// Post-cap airstrike power (before crit), given the torpedo-bomber multiplier (1 for dive bombers)
-/// and the power base ([`AIR_BASE`], lower against combined fleets).
+/// Post-cap airstrike power (before crit and the target bonus [`air_target_mod`]), given the
+/// torpedo-bomber multiplier (1 for dive bombers) and the power base ([`AIR_BASE`], lower
+/// against combined fleets). Skip bombers take their pre-cap target multiplier here.
 pub fn air_power(att: &ShipCore, slot: usize, planes: i32, def: &ShipCore, mult: f64, contact: f64, base_pow: f64) -> f64 {
     let (base, _) = air_plane_base(att, slot, def);
     let mut pow = (base_pow + (planes.max(0) as f64).sqrt() * base) * mult;
-    if att.slots[slot].as_ref().is_some_and(|e| e.has(f::JET)) {
-        pow = pow * 0.7 + 0.5;
+    if let Some(e) = att.slots[slot].as_ref() {
+        pow *= crate::install::skip_bomber_mod(e.id, def.class, def.is_installation);
+        if e.has(f::JET) {
+            pow = pow * 0.7 + 0.5;
+        }
     }
     soft_cap(pow, CAP_AIR).floor() * contact
+}
+
+/// Post-cap target bonus of an airstrike from `slot` (kcsim `airstrike`): `(p, high, low)`, × `high`
+/// with probability `p` else × `low` (special abyssal targets, PT imps, supply depots, dive-bomber
+/// weakness), times the special-target group multiplier.
+pub fn air_target_mod(att: &ShipCore, slot: usize, def: &ShipCore) -> (f64, f64, f64) {
+    let dive = att.slots[slot].as_ref().is_some_and(|e| e.has(f::DIVE));
+    let t = &def.target;
+    let (p, hi, lo) = airstrike_target_mod(def.master_id, t.pt, t.supply_depot, dive, t.divebomb_weak);
+    let g = t.group.map_or(1.0, |g| if g == crate::model::TargetGroup::Anchorage { 1.0 } else { att.vs.inst.group(g) });
+    (p, hi * g, lo * g)
 }

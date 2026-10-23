@@ -95,6 +95,13 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, select
     <>
       <Group title="計算">
         <Checkbox label="装備ボーナスを考慮" checked={prefs.applyFit} onChange={(e) => setPrefs({ applyFit: e.target.checked })} />
+        <Checkbox label="イベント特効を適用 (データのある海域)" checked={prefs.eventBonus} onChange={(e) => setPrefs({ eventBonus: e.target.checked })} />
+        <Checkbox
+          label="装甲破砕済み (敵の装甲を下げる)"
+          checked={prefs.eventDebuff}
+          disabled={!prefs.eventBonus}
+          onChange={(e) => setPrefs({ eventDebuff: e.target.checked })}
+        />
       </Group>
       <Field label="実行の回数">
         <Select value={prefs.count} onChange={(e) => setPrefs({ count: Number(e.target.value) })}>
