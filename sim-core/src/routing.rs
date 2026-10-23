@@ -3,6 +3,7 @@
 //! and validated on the way: unknown keys, metrics, ship types or equipment groups, a last rule with
 //! `when`, bad `random` weights, non-descending `los` thresholds and unknown destinations are errors.
 
+use std::cell::Cell;
 use std::collections::HashMap;
 
 use serde_json::{Map, Value};
@@ -250,6 +251,8 @@ pub struct RouteCtx<'a> {
     pub main: usize,
     /// Friend combined fleet type (`None` = single fleet).
     pub combined: Option<CombinedType>,
+    /// A single fleet sortied as a striking force (遊撃部隊): fleet type `striking`.
+    pub striking: bool,
     /// Nodes passed so far, including the current node.
     pub visited: &'a [usize],
 }
@@ -273,8 +276,8 @@ pub struct Router {
     start: Option<Vec<Rule>>,
     hq: f64,
     difficulty: f64,
-    phase: f64,
-    gauge: f64,
+    phase: Cell<f64>,
+    gauge: Cell<f64>,
 }
 
 struct Compiler<'c> {
@@ -786,9 +789,27 @@ impl Router {
             start,
             hq: cfg.hq,
             difficulty: cfg.difficulty,
-            phase: cfg.phase.or(phase).unwrap_or(1.0),
-            gauge: cfg.gauge.or(gauge).unwrap_or(1.0),
+            phase: Cell::new(cfg.phase.or(phase).unwrap_or(1.0)),
+            gauge: Cell::new(cfg.gauge.or(gauge).unwrap_or(1.0)),
         })
+    }
+
+    /// Gauge phase seen by the `phase` predicate (advanced between the phases of a gauge run).
+    pub fn phase(&self) -> f64 {
+        self.phase.get()
+    }
+
+    pub fn set_phase(&self, phase: f64) {
+        self.phase.set(phase);
+    }
+
+    /// Gauge number seen by the `gauge` predicate (advanced between the gauges of a gauge run).
+    pub fn gauge(&self) -> f64 {
+        self.gauge.get()
+    }
+
+    pub fn set_gauge(&self, gauge: f64) {
+        self.gauge.set(gauge);
     }
 
     pub fn len(&self) -> usize {
@@ -907,6 +928,7 @@ impl Router {
                     Metric::Los(cn) => c.num(ctx.los(*cn, self.hq)),
                     Metric::FleetType(list) => {
                         let t = match ctx.combined {
+                            None if ctx.striking => "striking",
                             None => "single",
                             Some(CombinedType::Carrier) => "ctf",
                             Some(CombinedType::Surface) => "stf",
@@ -916,8 +938,8 @@ impl Router {
                     }
                     Metric::Flagship { mask, fleet } => Self::fleet(ctx, *fleet).first().is_some_and(|s| in_mask(*mask, s)),
                     Metric::Difficulty => c.num(self.difficulty),
-                    Metric::Phase => c.num(self.phase),
-                    Metric::Gauge => c.num(self.gauge),
+                    Metric::Phase => c.num(self.phase.get()),
+                    Metric::Gauge => c.num(self.gauge.get()),
                     Metric::Hq => c.num(self.hq),
                     Metric::Visited(n) => boolean(ctx.visited.contains(n)),
                     Metric::Flag(v) => boolean(*v),

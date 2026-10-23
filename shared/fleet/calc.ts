@@ -9,6 +9,7 @@
  *   改修補正は 艦戦/水戦/局戦 0.2★・艦爆 0.25★ (対空値を持つもののみ)。
  */
 import type { EquipMaster, MasterData, Preset, PresetEquip, PresetShip } from "./types";
+import { shipBoostedSpeed } from "./speed";
 import { resolveShipStats, sumEquipStats } from "./stats";
 
 // api_type[2] (装備カテゴリ)
@@ -153,8 +154,10 @@ const DRUM_CANISTER_ID = 75;
 export interface FleetSummary {
   /** 艦隊速力 (最も遅い艦)。不明な艦しか無ければ null */
   speed: number | null;
-  /** 装備による速力補正 (缶・タービン) を含まない値か */
+  /** 装備による速力補正 (缶・タービン) を含まない値か。補正を計算できなかった艦 (master 無し) があるとき true */
   speedIsBase: boolean;
+  /** 補正の計算に、一覧に無い艦の既定の速力グループを使った艦があるか */
+  speedGuessed: boolean;
   los: { cn1: number; cn2: number; cn3: number; cn4: number } | null;
   fighterPower: number;
   drums: { total: number; ships: number };
@@ -180,6 +183,7 @@ export const summarizeFleet = (
   const speeds = ships
     .map((s) => resolveShipStats(s, master).speed.value)
     .filter((v): v is number => v !== null);
+  const unobserved = ships.filter((s) => !s.observed || s.observed.speed === undefined);
 
   const fullSize = losFullSize(combined);
   let los: FleetSummary["los"] = null;
@@ -219,7 +223,11 @@ export const summarizeFleet = (
 
   return {
     speed: speeds.length > 0 ? Math.min(...speeds) : null,
-    speedIsBase: ships.some((s) => !s.observed || s.observed.speed === undefined),
+    speedIsBase: unobserved.some((s) => !master.ships[s.masterId]),
+    speedGuessed: unobserved.some((s) => {
+      const m = master.ships[s.masterId];
+      return !!m && shipBoostedSpeed(m, [...s.equips, s.exSlot].filter((e) => !!e)).guessed;
+    }),
     los,
     fighterPower: fleetFighterPower(ships, master),
     drums: { total: drumTotal, ships: drumShips },

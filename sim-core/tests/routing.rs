@@ -58,6 +58,9 @@ fn input(routing: Value, ships: Vec<ShipInput>) -> SortieInput {
         max_nodes: None,
         top_paths: None,
         lbas: None,
+        striking: None,
+        repair: None,
+        extra_per_sortie: None,
     }
 }
 

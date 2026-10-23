@@ -6,8 +6,10 @@
  * - 手入力艦は master から計算する。艦娘の api_kaih/api_tais/api_saku は start2 に無いことが多く、
  *   [lv1, lv99] の2要素配列で存在するときだけ線形補間 floor(min + (max-min)*lv/99) する。無ければ unknown。
  * - 耐久は Lv 毎の成長表が master に無く、補間すると実値とずれるため observed が無ければ unknown。
+ * - 速力は master の素の速力に機関部強化 (タービン・缶) の補正を `speed.ts` で加える。
  * - 火力/雷装/対空/装甲は api_xxx[0] (近代化・固有ボーナス前) + 装備合計。改修(★)の火力補正は含まない。
  */
+import { shipBoostedSpeed } from "./speed";
 import type { EquipMaster, MasterData, ObservedShipStats, PresetShip } from "./types";
 
 /** nowHp は戦闘開始時の状態なので解決対象外。 */
@@ -95,7 +97,7 @@ export const resolveShipStats = (ship: PresetShip, master?: MasterData): Resolve
       m && typeof m.api_leng === "number"
         ? computed(Math.max(m.api_leng, eq.range))
         : UNKNOWN,
-    speed: m && typeof m.api_soku === "number" ? computed(m.api_soku) : UNKNOWN,
+    speed: m && typeof m.api_soku === "number" ? computed(shipBoostedSpeed(m, [...ship.equips, ship.exSlot].filter((e) => !!e)).value) : UNKNOWN,
   };
 
   for (const [key, value] of Object.entries(ship.observed ?? {})) {
