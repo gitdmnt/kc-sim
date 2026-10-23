@@ -56,7 +56,7 @@ describe("battles: normalize", () => {
     expect(battleKind("api_req_sortie/ld_airbattle", false)).toBe("airRaid");
     expect(battleKind("api_req_sortie/airbattle", false)).toBe("airBattle");
     expect(battleKind("api_req_sortie/ld_shooting", false)).toBeNull();
-    expect(battleKind("api_req_sortie/night_to_day", false)).toBeNull();
+    expect(battleKind("api_req_sortie/night_to_day", false)).toBe("nightToDay");
 
     const full = (hp: number): [number, number, number] => [hp, hp, hp];
     const sunk = (hp: number): [number, number, number] => [hp, hp, 0];

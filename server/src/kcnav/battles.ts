@@ -69,21 +69,37 @@ const setupShip = z.object({
 });
 const setupBase = z.object({ planes: nums, slots: nums, proficiency: nums, improvements: nums });
 const nums2 = z.array(nums);
+/** Event friend fleet (友軍艦隊) as the game sends it: `api_Param` [FP, TP, AA, AR] like `api_fParam` (naked). */
+const friendlyInfo = z.object({
+  api_ship_id: nums, api_ship_lv: nums, api_maxhps: nums, api_nowhps: nums, api_Param: nums2, api_Slot: nums2,
+  api_slot_ex: nums.nullish(),
+});
 const setupPacket = z.object({
   api_ship_ke: nums, api_ship_lv: nums, api_eParam: nums2, api_eSlot: nums2,
   api_e_maxhps: nums, api_e_nowhps: nums, api_f_maxhps: nums, api_f_nowhps: nums, api_fParam: nums2,
   api_f_maxhps_combined: nums.nullish(), api_f_nowhps_combined: nums.nullish(), api_fParam_combined: nums2.nullish(),
+  api_ship_ke_combined: nums.nullish(), api_ship_lv_combined: nums.nullish(), api_eParam_combined: nums2.nullish(),
+  api_eSlot_combined: nums2.nullish(), api_e_maxhps_combined: nums.nullish(), api_e_nowhps_combined: nums.nullish(),
   /** `api_base_id` is the game's base number (KCNav's `fleet.lbas` lists only the sortied bases); `api_squadron_plane`
    *  holds each squadron's plane id and count at launch. */
   api_air_base_attack: z.array(z.object({
     api_base_id: z.number().int(),
     api_squadron_plane: z.array(z.object({ api_mst_id: z.number().int(), api_count: z.number().int() }).loose().nullable()).nullish(),
   }).loose()).nullish(),
+  /** Support that arrived: 1 air, 2 shelling, 3 torpedo, 4 anti-submarine air (night support: api_n_support_flag). */
+  api_support_flag: z.number().nullish(),
+  api_n_support_flag: z.number().nullish(),
+  api_friendly_info: friendlyInfo.nullish(),
 });
 const setupSchema = z.object({
   battle: z.object({
     rawapi: setupPacket,
-    fleet: z.object({ fleettype: z.number().int(), fleet1: z.array(setupShip), fleet2: z.array(setupShip).nullish(), lbas: z.array(setupBase).nullish() }),
+    yasen_rawapi: z.object({ api_n_support_flag: z.number().nullish(), api_friendly_info: friendlyInfo.nullish() }).nullish(),
+    fleet: z.object({
+      fleettype: z.number().int(), fleet1: z.array(setupShip), fleet2: z.array(setupShip).nullish(), lbas: z.array(setupBase).nullish(),
+      /** The support expedition fleet the player sent (node or boss support), in the ships' shape. */
+      support: z.array(setupShip).nullish(),
+    }),
   }),
 });
 export type BattleSetup = z.infer<typeof setupSchema>["battle"];
@@ -104,12 +120,13 @@ const pageSchema = z.object({
   }).loose(),
 }).loose();
 
-/** sim-core `BattleKind` of a packet pair, or null for kinds the engine does not model (radar ambush, night-to-day). */
-export type BattleKindName = "day" | "dayNight" | "nightOnly" | "airBattle" | "airRaid";
+/** sim-core `BattleKind` of a packet pair, or null for kinds the engine does not model (radar ambush). */
+export type BattleKindName = "day" | "dayNight" | "nightOnly" | "airBattle" | "airRaid" | "nightToDay";
 
 export function battleKind(apiName: string, yasen: boolean): BattleKindName | null {
   const name = apiName.slice(apiName.lastIndexOf("/") + 1);
-  if (name.includes("night_to_day") || name === "ld_shooting") return null;
+  if (name.includes("night_to_day")) return "nightToDay";
+  if (name === "ld_shooting") return null;
   if (name.includes("sp_midnight")) return "nightOnly";
   if (name === "ld_airbattle") return "airRaid";
   if (name === "airbattle") return "airBattle";

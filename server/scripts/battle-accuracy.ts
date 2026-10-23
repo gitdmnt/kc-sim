@@ -7,7 +7,7 @@
 // land-base waves that flew and the HP at the start of the battle. It is simulated --runs times (plus --logged runs
 // with event logs for the per-phase damage) and scored against what happened.
 //
-//   bun scripts/battle-accuracy.ts [--runs 2000] [--logged 100] [--offline] [--no-doc]
+//   bun scripts/battle-accuracy.ts [--runs 2000] [--logged 100] [--offline] [--no-doc] [--debuffs] [--no-pursuit]
 //
 // Online it reads D1 (production with D1_REMOTE=1, read-only) and GET /api/v1/ships/{id} on DATA_API (default
 // https://kc-sim.udama.net), and saves the inputs to .tmp/battle-accuracy-input.json; --offline reuses that file
@@ -15,12 +15,14 @@
 // sim-core/validation/battle-accuracy-summary.json, printing the change against the previous summary.
 // Needs sim-core/pkg (`bun run build:wasm`).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import vm from "node:vm";
 import { parseArgs } from "node:util";
 import { initSync, runBattle, simulateBattle } from "../../sim-core/pkg/sim_core";
-import type { BattleInput, Engagement, Formation, ShipInput, SimulationSummary } from "../../sim-core/pkg/sim_core";
+import type { BattleInput, Engagement, Formation, FriendFleetInput, LandBaseWave, ShipInput, SimulationSummary, SupportInput, SupportType } from "../../sim-core/pkg/sim_core";
 import type { CompShip, ShipDetail } from "../../shared/data/types";
 import { COMBINED_FLAG_TYPES } from "../../shared/fleet/poiImport";
-import type { PresetEquip, PresetShip } from "../../shared/fleet/types";
+import type { Preset, PresetAirBase, PresetEquip, PresetShip } from "../../shared/fleet/types";
+import { type EventBonusResponse, type NodeBonus, bonusAt, buildBonuses, debuffsAt } from "../../shared/sim/bonuses";
 import { ENEMY_FORMATION_BY_ID, buildEnemyShips, buildFriendShips, buildSquadrons, friendFleet } from "../../shared/sim/adapter";
 import type { FitEntry } from "../../shared/sim/fit";
 import { type BattleOutcome, type BattleSetupShip, type OutcomePhase, parseBattleSetup } from "../src/kcnav/battles";
@@ -29,7 +31,7 @@ import { openD1 } from "./lib/d1-database";
 
 const { values } = parseArgs({
   args: Bun.argv.slice(2),
-  options: { runs: { type: "string" }, logged: { type: "string" }, offline: { type: "boolean" }, "no-doc": { type: "boolean" } },
+  options: { runs: { type: "string" }, logged: { type: "string" }, offline: { type: "boolean" }, "no-doc": { type: "boolean" }, debuffs: { type: "boolean" }, "no-pursuit": { type: "boolean" } },
 });
 const RUNS = Number(values.runs ?? 2000);
 const LOGGED = Number(values.logged ?? 100);
@@ -50,7 +52,12 @@ interface Row {
   air_state: number | null; support: number; friend_fleet: number; lbas_waves: number; rank: string; verified: number | null;
   outcome: string; raw: string;
 }
-interface Input { savedAt: string; rows: Row[]; ships: ShipRow[]; equips: EquipRow[]; fit: FitEntry[]; details: Record<number, ShipDetail> }
+interface Input { savedAt: string; rows: Row[]; ships: ShipRow[]; equips: EquipRow[]; fit: FitEntry[]; details: Record<number, ShipDetail>;
+  /** Event maps: GET /api/v1/maps/{map}/bonuses by map id. */
+  eventBonuses: Record<number, EventBonusResponse>;
+  /** Hidden stats of the event friend-fleet ships (kancolle-replay kcSHIPDATA, MIT): Lv1 and Lv99 EV / ASW / LoS, luck. */
+  friendStats: Record<number, FriendStats> }
+interface FriendStats { EV: number; EVbase: number; ASW: number; ASWbase: number; LOS: number; LOSbase: number; LUK: number }
 
 async function loadOnline(): Promise<Input> {
   const db = openD1();
@@ -79,6 +86,12 @@ async function loadOnline(): Promise<Input> {
   }
   const master = await loadMaster(db, shipIds, equipIds);
   const details: Record<number, ShipDetail> = {};
+  const eventBonuses: Record<number, EventBonusResponse> = {};
+  for (const mapId of new Set(rows.map((r) => r.map_id).filter((m) => m > 100))) {
+    const res = await fetch(`${API}/api/v1/maps/${Math.floor(mapId / 10)}-${mapId % 10}/bonuses`);
+    // Our own data API; the web UI reads the same JSON as EventBonusResponse (web/src/data/api.ts).
+    if (res.ok) eventBonuses[mapId] = (await res.json()) as EventBonusResponse;
+  }
   for (const id of [...enemyIds].filter((x) => x > 0).sort((a, b) => a - b)) {
     const res = await fetch(`${API}/api/v1/ships/${id}`);
     // Our own data API; the web UI reads the same JSON as ShipDetail (web/src/data/api.ts).
@@ -86,11 +99,28 @@ async function loadOnline(): Promise<Input> {
   }
   const input: Input = {
     savedAt: new Date().toISOString(), rows, ships: [...master.ships.values()], equips: [...master.equips.values()],
-    fit: await loadFitBonuses(db), details,
+    fit: await loadFitBonuses(db), details, eventBonuses, friendStats: await loadFriendStats(rows),
   };
   mkdirSync(new URL("../.tmp/", import.meta.url).pathname, { recursive: true });
   writeFileSync(INPUT, JSON.stringify(input));
   return input;
+}
+
+/** kcSHIPDATA entries of the ships that appear in event friend fleets (the packet has no EV / ASW / LoS / luck). */
+async function loadFriendStats(rows: Row[]): Promise<Record<number, FriendStats>> {
+  const ids = new Set<number>();
+  for (const r of rows) {
+    if (!r.friend_fleet) continue;
+    const b = JSON.parse(r.raw).battle;
+    for (const id of b.yasen_rawapi?.api_friendly_info?.api_ship_id ?? b.rawapi?.api_friendly_info?.api_ship_id ?? []) ids.add(id);
+  }
+  if (!ids.size) return {};
+  const src = await (await fetch("https://raw.githubusercontent.com/KC3Kai/kancolle-replay/master/js/kcSHIPDATA.js")).text();
+  const ctx = vm.createContext({});
+  vm.runInContext(`${src}\n;globalThis.__S = SHIPDATA;`, ctx);
+  // kcSHIPDATA is a plain-data script (var SHIPDATA = {...}); read its table from the sandbox.
+  const all = (ctx as { __S: Record<number, FriendStats> }).__S;
+  return Object.fromEntries([...ids].flatMap((id) => (all[id] ? [[id, all[id]!]] : [])));
 }
 
 // Written by loadOnline above.
@@ -128,9 +158,6 @@ interface Built { input: BattleInput; nakedDiff: number[][]; warnings: string[] 
 
 /** One stored battle → BattleInput, or the reason it is not simulated. */
 function build(r: Row): Built | string {
-  if (r.enemy_combined) return "enemy combined fleet (not modelled)";
-  if (r.support) return "support expedition (not modelled)";
-  if (r.friend_fleet) return "event friend fleet (not modelled)";
   if (r.kind === "unsupported") return `battle type ${r.api_name.split("/")[1]} (not modelled)`;
   if (r.verified === 0) return "day result disagrees with the night packet";
   const s = parseBattleSetup(JSON.parse(r.raw));
@@ -166,17 +193,26 @@ function build(r: Row): Built | string {
   friend.input.forEach((sh, i) => setShip(sh, s.fleet.fleet1[i]!, p.api_f_nowhps[i] ?? sh.maxHp, p.api_fParam[i]));
   friend.escort?.forEach((sh, i) => setShip(sh, s.fleet.fleet2![i]!, p.api_f_nowhps_combined?.[i] ?? sh.maxHp, p.api_fParam_combined?.[i]));
 
-  const comp: CompShip[] = p.api_ship_ke.flatMap((id, i) => id > 0 ? [{
-    shipId: id, level: p.api_ship_lv[i] ?? 1, hp: p.api_e_maxhps[i] ?? 1,
-    fp: p.api_eParam[i]?.[0] ?? 0, tp: p.api_eParam[i]?.[1] ?? 0, aa: p.api_eParam[i]?.[2] ?? 0, ar: p.api_eParam[i]?.[3] ?? 0,
-    equips: p.api_eSlot[i] ?? [],
-  }] : []);
-  const enemy = buildEnemyShips(comp, lookup);
-  enemy.input.forEach((sh, i) => (sh.hp = p.api_e_nowhps[i] ?? sh.maxHp));
+  const enemyFleet = (ke: number[], lv: number[] | null | undefined, param: number[][] | null | undefined, slots: number[][] | null | undefined,
+    maxhps: number[] | null | undefined, nowhps: number[] | null | undefined) => {
+    const comp: CompShip[] = ke.flatMap((id, i) => id > 0 ? [{
+      shipId: id, level: lv?.[i] ?? 1, hp: maxhps?.[i] ?? 1,
+      fp: param?.[i]?.[0] ?? 0, tp: param?.[i]?.[1] ?? 0, aa: param?.[i]?.[2] ?? 0, ar: param?.[i]?.[3] ?? 0,
+      equips: slots?.[i] ?? [],
+    }] : []);
+    const built = buildEnemyShips(comp, lookup);
+    built.input.forEach((sh, i) => (sh.hp = nowhps?.[i] ?? sh.maxHp));
+    return built;
+  };
+  const enemy = enemyFleet(p.api_ship_ke, p.api_ship_lv, p.api_eParam, p.api_eSlot, p.api_e_maxhps, p.api_e_nowhps);
+  const enemyEscort = p.api_ship_ke_combined?.length
+    ? enemyFleet(p.api_ship_ke_combined, p.api_ship_lv_combined, p.api_eParam_combined, p.api_eSlot_combined, p.api_e_maxhps_combined, p.api_e_nowhps_combined)
+    : null;
 
   // Land-base waves as they flew. KCNav lists only the sortied bases, so a wave's base is found by its planes; the
   // squadron sizes are the counts its base launched in its first wave of this battle (KCNav's slots can be older).
-  const lbas = [];
+  const lbas: LandBaseWave[] = [];
+  const lbasBases: PresetAirBase[] = [];
   const firstWave = new Map<number, { id: number; count: number }[]>();
   for (const w of p.api_air_base_attack ?? []) {
     const planes = (w.api_squadron_plane ?? []).flatMap((q) => (q && q.api_mst_id > 0 ? [{ id: q.api_mst_id, count: q.api_count }] : []));
@@ -186,27 +222,113 @@ function build(r: Row): Built | string {
     const base = s.fleet.lbas?.find((b) => b.planes.filter((id) => id > 0).join(",") === key);
     if (!base) return "land base missing from KCNav's fleet";
     const slotOf = base.planes.flatMap((id, j) => (id > 0 ? [j] : []));
-    const squadrons = buildSquadrons({
-      mode: "sortie", targets: ["", ""],
+    const preset: PresetAirBase = {
+      mode: "sortie", targets: [r.node_letter, r.node_letter],
       squadrons: launched.map((q, k) => {
         const j = slotOf[k]!;
         return { masterId: q.id, improvement: Math.max(0, base.improvements[j] ?? 0), proficiency: Math.max(0, base.proficiency[j] ?? 0), slotSize: q.count };
       }),
-    }, master.data);
-    if (squadrons.length) lbas.push({ squadrons });
+    };
+    const squadrons = buildSquadrons(preset, master.data);
+    if (squadrons.length) {
+      lbas.push({ squadrons });
+      lbasBases.push(preset);
+    }
+  }
+
+  // Support expedition that arrived (api_support_flag / api_n_support_flag): KCNav's `fleet.support` ships, forced to
+  // arrive with the observed type. Their HP does not matter (enemies do not shoot back) and is the master's level-1 HP.
+  const SUPPORT_TYPE: Record<number, SupportType> = { 1: "air", 2: "shelling", 3: "torpedo", 4: "asw" };
+  const flag = p.api_support_flag || p.api_n_support_flag || s.yasen_rawapi?.api_n_support_flag || 0;
+  let support: SupportInput | undefined;
+  const warnings: string[] = [];
+  if (flag > 0) {
+    if (!s.fleet.support?.length) return "support arrived but KCNav has no support fleet";
+    const ships = s.fleet.support.map((sh) => {
+      const hp = master.data.ships[sh.id]?.api_taik?.[0] ?? 1;
+      return presetShip(sh, hp, hp);
+    });
+    if (ships.some((x) => !master.data.ships[x.masterId])) return "ship missing from master data";
+    const built = buildFriendShips({ id: "", name: "", createdAt: 0, updatedAt: 0, fleetType: "single", formation: "line_ahead", ships }, master.data, { fitBonuses: input.fit });
+    warnings.push(...built.warnings);
+    support = { fleet: { ships: built.input }, type: SUPPORT_TYPE[flag], chance: 1 };
+  }
+
+  // Event friend fleet (api_friendly_info): FP/TP/AA/AR naked from api_Param, equipment from api_Slot (improvements
+  // unknown: 0), HP as sent. EV/ASW/LoS (scaled to the level) and luck from kancolle-replay kcSHIPDATA.
+  let friendFleetIn: FriendFleetInput | undefined;
+  const fi = s.yasen_rawapi?.api_friendly_info ?? p.api_friendly_info;
+  if (fi) {
+    const ships: PresetShip[] = fi.api_ship_id.map((id, i) => {
+      const slotNum = master.data.ships[id]?.api_slot_num ?? 4;
+      const eq = (e: number | undefined): PresetEquip | null => (e && e > 0 ? { masterId: e, improvement: 0, proficiency: 7 } : null);
+      return {
+        masterId: id, level: fi.api_ship_lv[i] ?? 1, luckMod: 0, hpMod: 0, aswMod: 0, morale: 49,
+        equips: Array.from({ length: slotNum }, (_, j) => eq(fi.api_Slot[i]?.[j])),
+        exSlot: eq(fi.api_slot_ex?.[i]),
+      };
+    });
+    if (ships.some((x) => !master.data.ships[x.masterId])) return "friend fleet ship missing from master data";
+    const built = buildFriendShips({ id: "", name: "", createdAt: 0, updatedAt: 0, fleetType: "single", formation: "line_ahead", ships }, master.data);
+    built.input.forEach((sh, i) => {
+      const [fp = 0, tp = 0, aa = 0, ar = 0] = fi.api_Param[i] ?? [];
+      sh.maxHp = fi.api_maxhps[i] ?? sh.maxHp;
+      sh.hp = fi.api_nowhps[i] ?? sh.maxHp;
+      const k = input.friendStats?.[sh.id ?? 0];
+      const lv = (base: number, max: number) => Math.floor(base + ((max - base) * (sh.level ?? 1)) / 99);
+      sh.stats = {
+        ...sh.stats, firepower: fp, torpedo: tp, antiAir: aa, armor: ar,
+        ...(k ? { evasion: lv(k.EVbase, k.EV), asw: lv(k.ASWbase, k.ASW), los: lv(k.LOSbase, k.LOS), luck: k.LUK } : {}),
+      };
+      delete sh.equipBonus;
+    });
+    friendFleetIn = { fleet: { ships: built.input }, chance: 1 };
+  }
+
+  // Event historical bonuses at this node (kancolle-replay data via GET /maps/{map}/bonuses); debuffs only with
+  // --debuffs, since whether the player had cleared the armor gimmick is not in the data.
+  const res = input.eventBonuses[r.map_id];
+  const bonusIn: Partial<BattleInput> = {};
+  if (res) {
+    const preset: Preset = { id: "", name: "", createdAt: 0, updatedAt: 0, fleetType, formation: "line_ahead", ships: main, escort };
+    const b = buildBonuses(preset, res, master.data, { lbas: lbasBases });
+    warnings.push(...b.warnings);
+    const at = <T extends object>(xs: (NodeBonus<T> | null)[] | undefined) => xs?.map((x) => bonusAt(x, r.node_letter));
+    if (b.bonuses.some((x) => bonusAt(x, r.node_letter))) bonusIn.bonuses = at(b.bonuses);
+    if (b.escortBonuses?.some((x) => bonusAt(x, r.node_letter))) bonusIn.escortBonuses = at(b.escortBonuses);
+    if (b.lbasBonuses?.some((x) => bonusAt(x, r.node_letter))) bonusIn.lbasBonuses = at(b.lbasBonuses);
+    if (values.debuffs) {
+      const d = debuffsAt(res, r.node_letter);
+      if (d.length) bonusIn.debuffs = d;
+    }
   }
   const formation = FRIEND_FORMATION[r.formation ?? 1];
   const engagement = ENGAGEMENT[r.engagement ?? 0];
+  // Night pursuit is the player's choice, and only offered while an enemy is afloat. A day-only battle that ended with
+  // every enemy sunk says nothing about that choice; simulating it as `day` would score the model on battles selected
+  // for a good day result (6-5 M: 27 such battles, S 100% observed vs 82% simulated as day-only). At boss nodes, where
+  // players pursue, such battles are simulated as `dayNight` (the night only happens when the simulation leaves an
+  // enemy afloat); elsewhere, and whenever an enemy survived the day, as observed. [inference: boss pursuit policy]
+  const annihilated = JSON.parse(r.outcome).enemy.every(([, before, after]: [number, number, number]) => before <= 0 || after <= 0);
+  // KCNav marks boss battles on the entry (`is_boss`).
+  const isBoss = (JSON.parse(r.raw) as { is_boss?: boolean }).is_boss === true;
+  const kind = r.kind === "day" && isBoss && annihilated && !values["no-pursuit"] ? "dayNight" : r.kind;
   return {
     input: {
       friend: friendFleet(friend, formation),
-      enemy: { ships: enemy.input, formation: ENEMY_FORMATION_BY_ID[r.enemy_formation ?? 1] ?? "lineAhead" },
+      // Enemy combined fleets use the combined cruising formations (api_formation 11–14), single fleets 1–6.
+      enemy: enemyEscort
+        ? { ships: enemy.input, escort: enemyEscort.input, formation: FRIEND_FORMATION[r.enemy_formation ?? 14] ?? "combinedBattle" }
+        : { ships: enemy.input, formation: ENEMY_FORMATION_BY_ID[r.enemy_formation ?? 1] ?? "lineAhead" },
       // The kind is a sim-core BattleKind here (unsupported kinds returned above).
-      options: { kind: r.kind as NonNullable<BattleInput["options"]>["kind"], ...(engagement ? { engagement } : {}) },
+      options: { kind: kind as NonNullable<BattleInput["options"]>["kind"], ...(engagement ? { engagement } : {}) },
       ...(lbas.length ? { lbas } : {}),
+      ...(support ? { support } : {}),
+      ...(friendFleetIn ? { friendFleet: friendFleetIn } : {}),
+      ...bonusIn,
     },
     nakedDiff,
-    warnings: [...friend.warnings, ...enemy.warnings],
+    warnings: [...friend.warnings, ...enemy.warnings, ...(enemyEscort?.warnings ?? []), ...warnings],
   };
 }
 
@@ -219,6 +341,7 @@ const stateIdx = (hp: number, max: number) => (hp <= 0 ? 0 : hp / max <= 0.25 ? 
 const PHASES: [string, OutcomePhase][] = [
   ["landBase", "lbas"], ["airStrike", "air"], ["openingAsw", "opening_asw"], ["openingTorpedo", "opening_torpedo"],
   ["shelling1", "shelling1"], ["shelling2", "shelling2"], ["shelling3", "shelling3"], ["closingTorpedo", "closing_torpedo"], ["night", "night"],
+  ["support", "support"], ["friendFleet", "friendFleet"],
 ];
 const AIR: Record<number, keyof SimulationSummary["airStateRates"]> = { 0: "parity", 1: "supremacy", 2: "superiority", 3: "denial", 4: "incapability" };
 
@@ -470,7 +593,7 @@ const skippedLines = [...skipped].sort((a, b) => b[1] - a[1]).map(([k, v]) => `$
 const rankCal = RANKS.map((r, k) => `${r} ${pct(mean(scored.map((s) => (s.rankO === k ? 1 : 0))))} / ${pct(mean(scored.map((s) => s.rankP[k]!)))}`).join(" · ");
 
 const out: string[] = [
-  `Generated by \`bun scripts/battle-accuracy.ts\` (server/) on ${new Date().toISOString().slice(0, 10)}: engine = sim-core/src at ${engine || "?"}, ${RUNS} runs per battle (${LOGGED} with event logs for the phases), seeds = KCNav battle ids. Inputs saved ${input.savedAt.slice(0, 16)}Z.`,
+  `Generated by \`bun scripts/battle-accuracy.ts\` (server/) on ${new Date().toISOString().slice(0, 10)}: engine = sim-core/src at ${engine || "?"}, ${RUNS} runs per battle (${LOGGED} with event logs for the phases), seeds = KCNav battle ids${values.debuffs ? ", event armor debuffs on" : ""}${values["no-pursuit"] ? ", no boss night pursuit" : ""}. Inputs saved ${input.savedAt.slice(0, 16)}Z.`,
   "",
   `Data: ${input.rows.length} KCNav battles (${maps.join(", ")}; ${dates[0] ?? "–"} … ${dates.at(-1) ?? "–"}). **Scored: ${scored.length} battles, ${head.ships} player ships.** Not simulated: ${skippedLines}.`,
   "",
@@ -514,6 +637,8 @@ const out: string[] = [
   ...groupTable("node", (s) => s.node),
   ...groupTable("battle type", (s) => s.row.kind),
   ...groupTable("fleet", (s) => `${s.fleet}${s.lbas ? " + land bases" : ""}`),
+  ...groupTable("enemy fleet", (s) => (s.row.enemy_combined ? "combined (12 ships)" : "single")),
+  ...groupTable("extra fleets", (s) => [s.row.support ? "support" : "", s.row.friend_fleet ? "friend fleet" : ""].filter(Boolean).join(" + ") || "none"),
   "#### HP removed per phase (mean per battle; overkill included)",
   "",
   ...phaseLines(),
