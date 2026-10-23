@@ -1,5 +1,7 @@
 import type {
+  AirBaseMode,
   Preset,
+  PresetAirBase,
   PresetEquip,
   PresetFleetType,
   PresetFormation,
@@ -24,6 +26,10 @@ const FLEET_TYPES: PresetFleetType[] = [
   "surface_task_force",
   "transport_escort",
 ];
+const AIR_BASE_MODES: readonly string[] = ["sortie", "defense", "standby"] satisfies AirBaseMode[];
+/** 1 隊の中隊数と、隊の数の上限 */
+export const SQUADRONS = 4;
+export const MAX_AIR_BASES = 3;
 
 const num = (v: unknown, fallback: number): number => {
   const n = typeof v === "string" && v.trim() !== "" ? Number(v) : v;
@@ -68,6 +74,20 @@ export const normalizeShip = (raw: any): PresetShip => {
   return ship;
 };
 
+const field = (raw: unknown, key: string): unknown => (raw && typeof raw === "object" ? (raw as Record<string, unknown>)[key] : undefined);
+const target = (v: unknown): string => (typeof v === "string" ? v.slice(0, 16) : "");
+
+export const normalizeAirBase = (raw: unknown): PresetAirBase => {
+  const squadrons = field(raw, "squadrons");
+  const targets = field(raw, "targets");
+  const mode = field(raw, "mode");
+  return {
+    mode: typeof mode === "string" && AIR_BASE_MODES.includes(mode) ? (mode as AirBaseMode) : "standby",
+    squadrons: Array.from({ length: SQUADRONS }, (_, i) => normalizeEquip(Array.isArray(squadrons) ? squadrons[i] : null)),
+    targets: Array.isArray(targets) ? [target(targets[0]), target(targets[1])] : ["", ""],
+  };
+};
+
 /** 外部入力 (JSON import 等) を Preset に整形する。ships が配列でなければ例外。 */
 export const normalizePreset = (
   raw: any,
@@ -89,6 +109,7 @@ export const normalizePreset = (
     ships: raw.ships.map(normalizeShip),
   };
   if (Array.isArray(raw.escort)) preset.escort = raw.escort.map(normalizeShip);
+  if (Array.isArray(raw.lbas)) preset.lbas = raw.lbas.slice(0, MAX_AIR_BASES).map(normalizeAirBase);
   if (raw.hqLevel !== undefined) preset.hqLevel = num(raw.hqLevel, 120);
   if (typeof raw.source === "string") preset.source = raw.source as Preset["source"];
   if (typeof raw.note === "string") preset.note = raw.note;

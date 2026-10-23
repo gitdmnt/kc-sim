@@ -17,22 +17,29 @@ interface Props {
   select: (id: string | null) => void;
   /** 選んだ海域の分岐が使う索敵の係数 (33式の Cn) */
   losCns: number[];
+  /** 連合艦隊の主力 (ships) と随伴 (escort) のどちらを編集するか。既定は主力 */
+  fleet?: "main" | "escort";
 }
 
-/** 艦隊の編集: 上に艦隊の諸元、下に 1 隻 1 行。プリセットの切り替え・管理はツールバー (PresetMenu)。プリセットが無ければ最初の艦の追加で作る。 */
-export const FleetPanel = ({ store, preset, select, losCns }: Props) => {
+/**
+ * 艦隊の編集: 上に艦隊の諸元、下に 1 隻 1 行。プリセットの切り替え・管理はツールバー (PresetMenu)。プリセットが無ければ最初の艦の追加で作る。
+ * 連合艦隊の随伴は `fleet="escort"` で同じ部品を使う。
+ */
+export const FleetPanel = ({ store, preset, select, losCns, fleet = "main" }: Props) => {
   const poiFleets = usePoiFleets();
-  const { importPoi, reimport, reimportFleetNo } = useImportPoi(store, select);
-  const ships = preset?.ships ?? [];
-  const setShips = (next: PresetShip[]) => (preset ? store.save({ ...preset, ships: next }) : select(store.save({ ...blankPreset(), ships: next }).id));
+  const { importPoi, importEscort, reimport, reimportTitle } = useImportPoi(store, select);
+  const escort = fleet === "escort";
+  const ships = (escort ? preset?.escort : preset?.ships) ?? [];
+  const setShips = (next: PresetShip[]) =>
+    preset ? store.save(escort ? { ...preset, escort: next } : { ...preset, ships: next }) : select(store.save({ ...blankPreset(), ships: next }).id);
 
   return (
     <section className="flex min-w-0 flex-col gap-2 rounded-md border border-ink-800 bg-ink-900 px-4 py-3 lg:min-h-0">
       {preset && ships.length > 0 && (
         <div className="flex min-w-0 items-start justify-between gap-2">
-          <FleetStats preset={preset} cns={losCns} />
+          <FleetStats preset={escort ? { ...preset, ships } : preset} cns={losCns} />
           {poiFleets.length > 0 && (
-            <Button size="sm" className="-my-0.5" title={S.fleet.reimportTitle(reimportFleetNo)} onClick={() => reimport(preset)}>
+            <Button size="sm" className="-my-0.5" title={reimportTitle(preset)} onClick={() => reimport(preset)}>
               <RefreshCw size={14} aria-hidden />
               {S.fleet.reimportPoi}
             </Button>
@@ -68,7 +75,7 @@ export const FleetPanel = ({ store, preset, select, losCns }: Props) => {
               <div className="flex items-center gap-1 pl-5">
                 <span className="mr-2 text-sm text-ink-400">{S.fleet.importPoi}</span>
                 {[0, 1, 2, 3].map((i) => (
-                  <Button key={i} size="sm" icon disabled={!poiFleets[i]} title={`第${i + 1}艦隊`} onClick={() => importPoi(i)}>
+                  <Button key={i} size="sm" icon disabled={!poiFleets[i]} title={`第${i + 1}艦隊`} onClick={() => (escort && preset ? importEscort(preset, i) : importPoi(i))}>
                     {i + 1}
                   </Button>
                 ))}

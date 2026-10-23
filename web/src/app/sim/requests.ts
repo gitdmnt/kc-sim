@@ -2,7 +2,8 @@
 import type { BattleKind, SimulationSummary, SortieSummary } from "@sim-core";
 import type { EnemyComp, EnemyCompSet } from "@shared/data/types";
 import type { MasterData, Preset } from "@shared/fleet/types";
-import { buildBattleInput, buildEnemyShips, buildFriendShips, enemyFormationOf, friendFormationOf } from "@shared/sim/adapter";
+import { buildBattleInput, buildEnemyShips, buildFriendShips, enemyFormationOf, friendFleet, friendFormationOf, landBaseWaves } from "@shared/sim/adapter";
+import type { FriendBuild } from "@shared/sim/adapter";
 import type { FitEntry } from "@shared/sim/fit";
 import { getDataApi } from "../../data/api";
 import type { MapData } from "../../data/mapData";
@@ -21,6 +22,8 @@ export interface SortieOutcome {
   uncertain: Set<string>;
   /** ノード → 使った編成セット (出典表示用) */
   compSets: Record<string, EnemyCompSet>;
+  /** 目標マス (主要率をこのマスで数えた)。省略はボス */
+  target?: string;
   assumptions: AssumptionData;
   seed: number;
 }
@@ -55,6 +58,12 @@ export const loadFitBonuses = (): Promise<FitEntry[] | null> =>
 
 const FIT_MISSING = "装備ボーナスを取得できず未適用";
 
+/** 結果の味方の並び (sim-core: 主力の後に随伴) の艦名。随伴は頭に「随伴」 */
+const friendNamesOf = (f: FriendBuild): string[] => [
+  ...f.input.map((s) => s.name ?? `#${s.id}`),
+  ...(f.escort ?? []).map((s) => `随伴 ${s.name ?? `#${s.id}`}`),
+];
+
 interface Common {
   fit: FitEntry[] | null;
   useServerEstimates: boolean;
@@ -81,8 +90,9 @@ export const sortieRequest = (
             kind: "sortie",
             summary,
             data,
-            friendNames: build.friend.input.map((s) => s.name ?? `#${s.id}`),
+            friendNames: friendNamesOf(build.friend),
             uncertain: build.uncertain,
+            target: st.target,
             compSets: build.compSets,
             assumptions: {
               friend: build.friend,
@@ -106,18 +116,18 @@ export const battleRequest = (
   data: MapData,
   set: EnemyCompSet,
   compId: string,
-  o: Common & { applyFit: boolean; kind: BattleKind }
+  o: Common & { applyFit: boolean; kind: BattleKind; node: string }
 ): SimRequest<SimOutcome> => {
   const chosen = [...set.comps].sort((a, b) => b.weight - a.weight).filter((c) => compId === "all" || String(c.id) === compId);
   if (chosen.length === 0) throw new Error("敵編成がありません");
   const friend = buildFriendShips(preset, master, { fitBonuses: o.fit ?? undefined, applyFit: o.applyFit });
   if (friend.input.length === 0) throw new Error("味方艦がいません");
+  if (friend.combined && (friend.escort?.length ?? 0) === 0) throw new Error("随伴艦隊に艦がいません");
   const lookup = mapLookup(data);
   const builds = chosen.map((c) => buildEnemyShips(c.main, lookup, { useServerEstimates: o.useServerEstimates }));
-  const friendFormation = friendFormationOf(preset);
-  const inputs = chosen.map((c, i) =>
-    buildBattleInput(friend.input, builds[i].input, { kind: o.kind, friendFormation, enemyFormation: enemyFormationOf(c) })
-  );
+  const fleet = friendFleet(friend, friendFormationOf(preset));
+  const lbas = landBaseWaves(preset.lbas, o.node, master);
+  const inputs = chosen.map((c, i) => buildBattleInput(fleet, builds[i].input, { kind: o.kind, enemyFormation: enemyFormationOf(c), lbas }));
   const assumptions: AssumptionData = {
     friend,
     enemy: builds,
@@ -144,7 +154,7 @@ export const battleRequest = (
             kind: "battle",
             total: mergeSummaries(comps.map((r) => r.summary), { skipEnemy: comps.length > 1 }),
             comps,
-            friendNames: friend.input.map((s) => s.name ?? `#${s.id}`),
+            friendNames: friendNamesOf(friend),
             assumptions,
             seed: o.seed,
           };

@@ -2,18 +2,78 @@
 //! AACI), contact, stage 3 (airstrikes). Ported from kcsim `compareAP`, `AADefenceFighters`,
 //! `getAAShotProp`, `getAAShotFlat`, `getAACI`, `getContact`, `AADefenceBombersAndAirstrike`,
 //! `airstrike` (KC3Kai/kancolle-replay, MIT © fourinone41).
+//!
+//! Friend combined fleet vs a single enemy (kcsimcombined `simCombined` → `compareAP(F1,F2)`,
+//! `airPhase(alive1.concat(alive1C), …)` without `includeEscort`): only the main fleet's planes
+//! count for fighter power and launch; enemy planes target and are shot at by both fleets, with
+//! the combined-fleet AA multipliers (escort ×0.48, main ×0.8 / ×0.72 in air raids).
 
 use super::calc;
 use super::{side_air, Battle, List};
-use crate::equipment::f;
+use crate::equipment::{f, Equip};
 use crate::formulas::{self, Roll};
-use crate::model::{AttackKind, SpecialAttack};
+use crate::model::{AttackKind, BattleKind, SpecialAttack};
+use crate::rng::Rng;
 use crate::ship::{AACI_TABLE, MAX_SLOTS};
 
+/// Friend plane loss in fighter combat (kcsim `AADefenceFighters`, side 0) for `n` planes at
+/// friend air state `air`, multiplier `m` (jets 0.6).
+pub(super) fn friend_fighter_loss(rng: &mut Rng, n: i32, air: i8, m: f64) -> i32 {
+    let (rmin, rplus) = match air {
+        2 => (0.025, 0.0333),
+        1 => (0.075, 0.1),
+        0 => (0.125, 0.1666),
+        -1 => (0.175, 0.2333),
+        _ => (0.25, 0.3333),
+    };
+    let randplus = rng.floor_mul((1000.0f64 * rplus).floor() + 1.0) / 1000.0;
+    (n as f64 * (rmin + randplus) * m).floor() as i32
+}
+
+/// kcsim `getContact` over (equipment, planes) of the attacking side: contact multiplier, if any.
+pub(super) fn contact_roll<'e, I>(rng: &mut Rng, air: i8, items: I) -> Option<f64>
+where
+    I: Iterator<Item = (&'e Equip, i32)> + Clone,
+{
+    let mut los_power = 1.0;
+    for (e, planes) in items.clone() {
+        if e.has(f::CAN_CONTACT) && e.los > 0.0 && !e.has(f::TORP_BOMBER) {
+            los_power += ((planes.max(0) as f64).sqrt() * e.los).floor();
+        }
+    }
+    let (chance, cmod) = match air {
+        2 => (los_power / 25.0, 14.0),
+        1 => (los_power / 40.0, 16.0),
+        _ => (los_power / 55.0, 18.0),
+    };
+    if !rng.chance(chance) {
+        return None;
+    }
+    let mut contact: Option<f64> = None;
+    for (e, _) in items {
+        if !e.has(f::CAN_CONTACT) || e.los <= 0.0 {
+            continue;
+        }
+        if contact.is_some_and(|acc| acc >= e.acc) {
+            continue;
+        }
+        if rng.chance(e.los / cmod) {
+            contact = Some(e.acc);
+        }
+    }
+    contact.map(|a| if a >= 3.0 { 1.2 } else if a >= 2.0 { 1.17 } else { 1.12 })
+}
+
 impl<'a> Battle<'a> {
+    /// Ships `0..n` of `side` whose planes fight in the air phase: a combined friend fleet's main
+    /// fleet only.
+    fn air_fleet_end(&self, side: usize) -> usize {
+        self.fleets[side].escort_start
+    }
+
     fn air_power(&self, side: usize) -> f64 {
         let mut ap = 0.0;
-        for i in 0..self.len(side) {
+        for i in 0..self.air_fleet_end(side) {
             if !self.alive(side, i) {
                 continue;
             }
@@ -31,7 +91,7 @@ impl<'a> Battle<'a> {
     }
 
     fn has_fighter_slots(&self, side: usize) -> bool {
-        (0..self.len(side)).any(|i| {
+        (0..self.air_fleet_end(side)).any(|i| {
             self.alive(side, i) && {
                 let c = self.core(side, i);
                 (0..MAX_SLOTS).any(|s| c.slots[s].as_ref().is_some_and(|e| e.has(f::FIGHTER)) && self.st[side][i].planes[s] > 0)
@@ -69,27 +129,28 @@ impl<'a> Battle<'a> {
             if side == 0 && friend_excluded {
                 continue;
             }
-            for i in 0..self.len(side) {
+            for i in 0..self.air_fleet_end(side) {
                 if self.alive(side, i) {
                     carriers[side].push(i);
                 }
             }
         }
-        self.stage1(0, carriers[0]);
-        self.stage1(1, carriers[1]);
+        let air = self.air;
+        self.fighter_losses(0, carriers[0], f::FIGHTER, air);
+        self.fighter_losses(1, carriers[1], f::FIGHTER, -air);
         if !friend_excluded && friend_bombs {
             self.stage23(0, carriers[0]);
         }
         self.stage23(1, carriers[1]);
     }
 
-    fn stage1(&mut self, side: usize, carriers: List) {
-        let air = side_air(self.air, side);
+    /// Stage 1 losses of `side`'s `carriers` slots matching `filter`, at `side`'s air state `air`.
+    pub(super) fn fighter_losses(&mut self, side: usize, carriers: List, filter: u64, air: i8) {
         for &i in carriers.as_slice() {
             let c = self.core(side, i);
             for s in 0..MAX_SLOTS {
                 let Some(e) = c.slots[s].as_ref() else { continue };
-                if !e.has(f::FIGHTER) {
+                if !e.has(filter) {
                     continue;
                 }
                 let n = self.st[side][i].planes[s];
@@ -97,23 +158,15 @@ impl<'a> Battle<'a> {
                     continue;
                 }
                 let lost = if side == 0 {
-                    let (rmin, rplus) = match air {
-                        2 => (0.025, 0.0333),
-                        1 => (0.075, 0.1),
-                        0 => (0.125, 0.1666),
-                        -1 => (0.175, 0.2333),
-                        _ => (0.25, 0.3333),
-                    };
-                    let randplus = self.rng().floor_mul((1000.0f64 * rplus).floor() + 1.0) / 1000.0;
                     let mut m = if e.has(f::JET) { 0.6 } else { 1.0 };
-                    if e.has(f::AUTOGYRO_LIKE) {
+                    if filter == f::FIGHTER && e.has(f::AUTOGYRO_LIKE) {
                         m = match air {
                             -2 => 0.9,
                             -1 => 0.5,
                             _ => 0.3,
                         };
                     }
-                    (n as f64 * (rmin + randplus) * m).floor() as i32
+                    friend_fighter_loss(self.rng(), n, air, m)
                 } else {
                     let rmax = match air {
                         2 => 2.0,
@@ -162,45 +215,26 @@ impl<'a> Battle<'a> {
     /// kcsim `getContact`: contact multiplier for the attacking side.
     fn roll_contact(&mut self, att_side: usize, carriers: List) -> f64 {
         let air = side_air(self.air, att_side);
-        let mut los_power = 1.0;
-        for &i in carriers.as_slice() {
-            let c = self.core(att_side, i);
-            for s in 0..MAX_SLOTS {
-                let Some(e) = c.slots[s].as_ref() else { continue };
-                if e.has(f::CAN_CONTACT) && e.los > 0.0 && !e.has(f::TORP_BOMBER) {
-                    los_power += ((self.st[att_side][i].planes[s].max(0) as f64).sqrt() * e.los).floor();
-                }
-            }
-        }
-        let (chance, cmod) = match air {
-            2 => (los_power / 25.0, 14.0),
-            1 => (los_power / 40.0, 16.0),
-            _ => (los_power / 55.0, 18.0),
-        };
-        if !self.rng().chance(chance) {
-            return 1.0;
-        }
-        let mut contact: Option<f64> = None;
-        for &i in carriers.as_slice() {
-            let c = self.core(att_side, i);
-            for s in 0..MAX_SLOTS {
-                let Some(e) = c.slots[s].as_ref() else { continue };
-                if !e.has(f::CAN_CONTACT) || e.los <= 0.0 {
-                    continue;
-                }
-                if contact.is_some_and(|acc| acc >= e.acc) {
-                    continue;
-                }
-                if self.rng().chance(e.los / cmod) {
-                    contact = Some(e.acc);
-                }
-            }
-        }
-        match contact {
-            Some(a) if a >= 3.0 => 1.2,
-            Some(a) if a >= 2.0 => 1.17,
-            Some(_) => 1.12,
-            None => 1.0,
+        let fl = self.fleets[att_side];
+        let st = &self.st[att_side];
+        let items = carriers.as_slice().iter().flat_map(|&i| {
+            let c = &fl.ships[i];
+            (0..MAX_SLOTS).filter_map(move |s| c.slots[s].as_ref().map(|e| (e, st[i].planes[s])))
+        });
+        contact_roll(self.rng, air, items).unwrap_or(1.0)
+    }
+
+    /// kcsim `getAAShotProp` / `getAAShotFlat` multiplier of a defender in a friend combined fleet
+    /// (`isRaid` lowers the main fleet's from 0.8 to 0.72).
+    fn combined_aa_mod(&self, def_side: usize, d: usize) -> f64 {
+        if def_side != 0 || self.combined.is_none() {
+            1.0
+        } else if d >= self.fleets[0].escort_start {
+            0.48
+        } else if self.setup.kind == BattleKind::AirRaid {
+            0.72
+        } else {
+            0.8
         }
     }
 
@@ -235,10 +269,11 @@ impl<'a> Battle<'a> {
         for (i, s) in bombers {
             if !defenders.is_empty() {
                 let d = defenders.as_slice()[self.rng().below(defenders.len())];
-                let waa = self.core(def_side, d).weighted_aa;
+                let cfm = self.combined_aa_mod(def_side, d);
+                let waa = self.core(def_side, d).weighted_aa * cfm;
                 let n = self.st[att_side][i].planes[s];
                 let prop = if self.rng().chance(0.5) { (n as f64 * waa / 200.0).floor() as i32 } else { 0 };
-                let flat = if self.rng().chance(0.5) { ((waa + fleet_aa) * flat_mod * aaci_mod).floor() as i32 } else { 0 };
+                let flat = if self.rng().chance(0.5) { ((waa + fleet_aa * cfm) * flat_mod * aaci_mod).floor() as i32 } else { 0 };
                 let fix = if def_player || aaci_num > 0 { 1 } else { 0 } + aaci_num;
                 let st = &mut self.st[att_side][i];
                 st.planes[s] = (n - prop - flat - fix).max(0);
@@ -274,7 +309,8 @@ impl<'a> Battle<'a> {
             } else {
                 1.5
             };
-            let pow = calc::air_power(att, slot, self.st[att_side][a].planes[slot], def, mult, contact);
+            let base = calc::AIR_BASE + self.unit(def_side, d).cf.air_pow;
+            let pow = calc::air_power(att, slot, self.st[att_side][a].planes[slot], def, mult, contact, base);
             let ammo = self.unit(att_side, a).ammo_mod();
             let dmg = formulas::damage_common(self.rng(), pow, roll, def.ar, ammo, hp_before);
             real = self.take_damage(def_side, d, dmg);

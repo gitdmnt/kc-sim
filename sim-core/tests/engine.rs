@@ -43,8 +43,8 @@ fn sane_outcome_strong_vs_weak() {
 #[test]
 fn sinking_protection_rules() {
     // Strong enemy fleet vs weak friend fleet: healthy friends never sink.
-    let strong_enemy = FleetInput { ships: vec![enemy_bb(), enemy_bb(), enemy_bb(), enemy_bb(), enemy_bb(), enemy_bb()], formation: None };
-    let weak = FleetInput { ships: vec![friend_dd(), friend_dd(), friend_dd(), friend_dd()], formation: None };
+    let strong_enemy = FleetInput { ships: vec![enemy_bb(), enemy_bb(), enemy_bb(), enemy_bb(), enemy_bb(), enemy_bb()], formation: None, ..Default::default() };
+    let weak = FleetInput { ships: vec![friend_dd(), friend_dd(), friend_dd(), friend_dd()], formation: None, ..Default::default() };
     let s = simulate(&battle(weak.clone(), strong_enemy.clone(), BattleKind::DayNight), 3000, 3).unwrap();
     assert_eq!(s.friend_sunk_any_rate, 0.0);
     assert!(s.friend_heavy_any_rate > 0.3);
@@ -78,17 +78,14 @@ fn sinking_protection_rules() {
 #[test]
 fn edge_cases_do_not_panic() {
     let kinds = [BattleKind::Day, BattleKind::DayNight, BattleKind::NightOnly];
-    let empty = FleetInput { ships: vec![], formation: None };
-    let subs = FleetInput { ships: vec![enemy_ss(), enemy_ss(), enemy_ss()], formation: Some(Formation::LineAbreast) };
-    let friend_subs = FleetInput { ships: vec![enemy_ss(), enemy_ss()], formation: None };
-    let one_hp = FleetInput {
-        ships: (0..6).map(|_| {
-            let mut s = enemy_dd();
-            s.hp = Some(1);
-            s
-        }).collect(),
-        formation: Some(Formation::Vanguard),
-    };
+    let empty = FleetInput { ships: vec![], formation: None, ..Default::default() };
+    let subs = FleetInput { ships: vec![enemy_ss(), enemy_ss(), enemy_ss()], formation: Some(Formation::LineAbreast), ..Default::default() };
+    let friend_subs = FleetInput { ships: vec![enemy_ss(), enemy_ss()], formation: None, ..Default::default() };
+    let one_hp = FleetInput { ships: (0..6).map(|_| {
+        let mut s = enemy_dd();
+        s.hp = Some(1);
+        s
+    }).collect(), formation: Some(Formation::Vanguard), ..Default::default() };
     let mut seven = friend_fleet();
     seven.ships.push(friend_dd());
     seven.formation = Some(Formation::Vanguard);
@@ -99,8 +96,8 @@ fn edge_cases_do_not_panic() {
         s.ammo = Some(0);
         s.fuel = Some(0);
     }
-    let bare = FleetInput { ships: vec![ship(2, 1.0, 10, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, vec![])], formation: None };
-    let carriers = FleetInput { ships: vec![friend_cv(), friend_cv(), friend_dd_asw()], formation: Some(Formation::Diamond) };
+    let bare = FleetInput { ships: vec![ship(2, 1.0, 10, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, vec![])], formation: None, ..Default::default() };
+    let carriers = FleetInput { ships: vec![friend_cv(), friend_cv(), friend_dd_asw()], formation: Some(Formation::Diamond), ..Default::default() };
     let cases: Vec<(FleetInput, FleetInput)> = vec![
         (friend_fleet(), empty.clone()),
         (friend_fleet(), subs.clone()),
@@ -144,8 +141,8 @@ fn edge_cases_do_not_panic() {
 #[test]
 fn subs_only_targetable_by_asw_ships() {
     // Battleship + heavy cruisers cannot attack submarines; the battle ends with no damage dealt.
-    let f = FleetInput { ships: vec![friend_bb(), friend_ca()], formation: None };
-    let e = FleetInput { ships: vec![enemy_ss(), enemy_ss()], formation: None };
+    let f = FleetInput { ships: vec![friend_bb(), friend_ca()], formation: None, ..Default::default() };
+    let e = FleetInput { ships: vec![enemy_ss(), enemy_ss()], formation: None, ..Default::default() };
     let mut input = battle(f, e, BattleKind::DayNight);
     input.options.log = true;
     for seed in 0..50 {
@@ -155,8 +152,8 @@ fn subs_only_targetable_by_asw_ships() {
         assert!(out.result.enemy.iter().all(|s| s.hp_end == s.max_hp));
     }
     // ASW destroyers do opening ASW and shell submarines.
-    let f = FleetInput { ships: vec![friend_dd_asw(), friend_dd_asw()], formation: Some(Formation::LineAbreast) };
-    let e = FleetInput { ships: vec![enemy_ss(), enemy_ss()], formation: None };
+    let f = FleetInput { ships: vec![friend_dd_asw(), friend_dd_asw()], formation: Some(Formation::LineAbreast), ..Default::default() };
+    let e = FleetInput { ships: vec![enemy_ss(), enemy_ss()], formation: None, ..Default::default() };
     let mut input = battle(f, e, BattleKind::Day);
     input.options.log = true;
     let out = run_battle(&input, 3).unwrap();
@@ -168,7 +165,7 @@ fn subs_only_targetable_by_asw_ships() {
 
 #[test]
 fn phases_and_air_state() {
-    let f = FleetInput { ships: vec![friend_cv(), friend_cv(), friend_bb(), friend_bb(), friend_dd(), friend_dd()], formation: None };
+    let f = FleetInput { ships: vec![friend_cv(), friend_cv(), friend_bb(), friend_bb(), friend_dd(), friend_dd()], formation: None, ..Default::default() };
     let mut input = battle(f, enemy_fleet(), BattleKind::DayNight);
     let s = simulate(&input, 300, 9).unwrap();
     // Enemy has no aircraft: supremacy every time.
@@ -189,13 +186,13 @@ fn phases_and_air_state() {
         assert!(phases.contains(p), "missing phase {p}: {phases:?}");
     }
     // No aircraft at all: air state none.
-    let s = simulate(&battle(FleetInput { ships: vec![friend_dd()], formation: None }, enemy_fleet(), BattleKind::Day), 50, 1).unwrap();
+    let s = simulate(&battle(FleetInput { ships: vec![friend_dd()], formation: None, ..Default::default() }, enemy_fleet(), BattleKind::Day), 50, 1).unwrap();
     assert_eq!(s.air_state_rates.none, 1.0);
 }
 
 #[test]
 fn engagement_distribution() {
-    let input = battle(FleetInput { ships: vec![friend_dd()], formation: None }, FleetInput { ships: vec![], formation: None }, BattleKind::Day);
+    let input = battle(FleetInput { ships: vec![friend_dd()], formation: None, ..Default::default() }, FleetInput { ships: vec![], formation: None, ..Default::default() }, BattleKind::Day);
     let mut counts = std::collections::HashMap::new();
     for seed in 0..20000 {
         let out = run_battle(&input, seed).unwrap();
@@ -229,25 +226,25 @@ fn supply_and_morale_chain() {
         friend = out.state.friend;
     }
     // Night pursuit costs extra ceil(10%) ammo.
-    let out = run_battle(&battle(friend_fleet(), FleetInput { ships: vec![enemy_bb()], formation: None }, BattleKind::DayNight), 1).unwrap();
+    let out = run_battle(&battle(friend_fleet(), FleetInput { ships: vec![enemy_bb()], formation: None, ..Default::default() }, BattleKind::DayNight), 1).unwrap();
     if out.result.night_battle {
         let bb = &out.state.friend.ships[0];
         assert_eq!(bb.ammo, Some(ammo_max - (ammo_max as f64 * 0.2).floor() as i32 - (ammo_max as f64 * 0.1).ceil() as i32));
     }
     // Submarine-only enemy: 8% fuel, no ammo.
-    let f = FleetInput { ships: vec![friend_dd_asw()], formation: None };
-    let out = run_battle(&battle(f, FleetInput { ships: vec![enemy_ss()], formation: None }, BattleKind::Day), 1).unwrap();
+    let f = FleetInput { ships: vec![friend_dd_asw()], formation: None, ..Default::default() };
+    let out = run_battle(&battle(f, FleetInput { ships: vec![enemy_ss()], formation: None, ..Default::default() }, BattleKind::Day), 1).unwrap();
     let dd = &out.state.friend.ships[0];
     assert_eq!(dd.fuel, Some(100 - 8));
     assert_eq!(dd.ammo, Some(100));
     // Morale example: flagship of an S-rank battle with morale 49 and MVP: 49 - 3 + 4 + 3 + 10 = 63.
-    let mut solo = FleetInput { ships: vec![friend_bb()], formation: None };
+    let mut solo = FleetInput { ships: vec![friend_bb()], formation: None, ..Default::default() };
     solo.ships[0].morale = Some(49);
     let weak = FleetInput { ships: vec![{
         let mut s = enemy_dd();
         s.hp = Some(1);
         s
-    }], formation: None };
+    }], formation: None, ..Default::default() };
     let out = run_battle(&battle(solo, weak, BattleKind::Day), 2).unwrap();
     if matches!(out.result.rank, Rank::S | Rank::SS) {
         assert_eq!(out.state.friend.ships[0].morale, Some(63));

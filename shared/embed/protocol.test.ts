@@ -5,11 +5,12 @@ import {
   isAllowedParentOrigin,
   parsePluginMessage,
   parseWebMessage,
+  projectCombinedFlag,
   projectConst,
   projectInfo,
   serverOrigin,
 } from "./protocol";
-import { importFromPoi } from "../fleet/poiImport";
+import { airBasesFromPoi, importCombinedFromPoi, importFromPoi } from "../fleet/poiImport";
 import sample from "../../web/src/sampleState.json";
 
 const env = { src: "kcsim", v: EMBED_VERSION };
@@ -29,23 +30,40 @@ describe("projection", () => {
       fleets: [{ api_id: 1, api_name: "第1艦隊", api_ship: [5, -1] }],
       ships: { 5: { api_id: 5, api_ship_id: 1, api_lv: 99 } },
       equips: { 7: { api_id: 7, api_slotitem_id: 2, api_level: 10 } },
+      airbase: undefined,
     });
     expect(JSON.stringify(projectInfo(info))).not.toContain("api_member_id");
+    const bases = [
+      {
+        api_area_id: 6, api_rid: 1, api_name: "第1基地航空隊", api_action_kind: 1, api_distance: { api_base: 7, api_bonus: 0 },
+        api_plane_info: [{ api_squadron_id: 1, api_state: 1, api_slotid: 7, api_count: 18, api_max_count: 18, api_cond: 1 }],
+      },
+    ];
+    expect(projectInfo({ ...info, airbase: bases }).airbase).toEqual([
+      {
+        api_area_id: 6, api_rid: 1, api_name: "第1基地航空隊", api_action_kind: 1,
+        api_plane_info: [{ api_squadron_id: 1, api_state: 1, api_slotid: 7, api_count: 18, api_max_count: 18 }],
+      },
+    ]);
     const c = { $ships: {}, $equips: {}, $shipTypes: {}, $equipTypes: {}, $mapareas: {}, $missions: {} };
     expect(Object.keys(projectConst(c)).sort()).toEqual(["$equipTypes", "$equips", "$mapareas", "$shipTypes", "$ships"]);
   });
 
-  test("the projection keeps everything importFromPoi reads", () => {
-    const state = { info: sample.info, const: sample.const };
-    const projected = { info: projectInfo(sample.info), const: projectConst(sample.const) };
+  test("the projection keeps everything importFromPoi / importCombinedFromPoi / airBasesFromPoi read", () => {
+    const state = { info: sample.info, const: sample.const, combinedFlag: 2 };
+    const projected = { info: projectInfo(sample.info), const: projectConst(sample.const), combinedFlag: projectCombinedFlag(2) };
     for (const fleet of [0, 1, 2, 3]) {
       expect(importFromPoi(projected, fleet, { now: 1, id: "x" })).toEqual(importFromPoi(state, fleet, { now: 1, id: "x" }));
     }
     expect(importFromPoi(projected, 0)?.ships.length).toBeGreaterThan(0);
+    expect(importCombinedFromPoi(projected, undefined, { now: 1, id: "x" })).toEqual(importCombinedFromPoi(state, undefined, { now: 1, id: "x" }));
+    expect(airBasesFromPoi(projected, 6)).toEqual(airBasesFromPoi(state, 6));
+    expect(airBasesFromPoi(projected, 6)).toHaveLength(3);
   });
 
   test("missing slices (poi not logged in) project to undefined fields", () => {
-    expect(projectInfo(undefined)).toEqual({ basic: { api_level: undefined }, fleets: undefined, ships: undefined, equips: undefined });
+    expect(projectInfo(undefined)).toEqual({ basic: { api_level: undefined }, fleets: undefined, ships: undefined, equips: undefined, airbase: undefined });
+    expect([0, 3, 4, -1, 1.5, "1", null].map(projectCombinedFlag)).toEqual([0, 3, undefined, undefined, undefined, undefined, undefined]);
   });
 });
 
@@ -64,6 +82,9 @@ describe("parsePluginMessage", () => {
     expect(m.const?.$ships).toEqual({});
     const n = parsePluginMessage({ ...env, type: "state", info: {} });
     expect(n && "const" in n).toBe(false);
+    expect(n && "combinedFlag" in n).toBe(false);
+    expect(parsePluginMessage({ ...env, type: "state", info: {}, combinedFlag: 1 })).toMatchObject({ combinedFlag: 1 });
+    expect(parsePluginMessage({ ...env, type: "state", info: {}, combinedFlag: 9 })).not.toHaveProperty("combinedFlag");
   });
 
   test("rejects foreign, malformed and unsupported messages", () => {

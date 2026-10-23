@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ArrowLeftRight, Copy, Download, Ellipsis, FilePlus, Trash } from "lucide-react";
-import { importFromPoi } from "../../fleet";
+import { airBasesFromPoi, importCombinedFromPoi, importFromPoi } from "../../fleet";
 import type { Preset } from "../../fleet";
 import { Button, ConfirmDialog, Field, NumberInput, Popover, Select, TextInput, S, useToast } from "../../ui";
 import { useApp } from "../context";
@@ -22,9 +22,13 @@ export const usePoiFleets = (): unknown[] => {
 
 let lastFleet = 0;
 
+const isCombined = (p: Preset) => p.fleetType !== "single";
+
 /**
- * poi の艦隊の取り込み。importPoi(i) は第 i+1 艦隊を新しいプリセットとして保存して選ぶ。
- * reimport は最後に取り込んだ艦隊 (まだなら第 1) の今の編成で、開いているプリセットの艦を置き換える (名前・陣形・メモは保つ)。
+ * poi の艦隊の取り込み。importPoi(i) は第 i+1 艦隊を新しいプリセットとして保存して選ぶ。importCombined は第1 + 第2 艦隊を
+ * 連合艦隊 (種別は poi の連合艦隊フラグ、組んでいなければ機動部隊) として、importEscort は第 i+1 艦隊を開いているプリセットの随伴に。
+ * reimport は開いているプリセットの艦を poi の今の編成で置き換える (名前・陣形・メモ・基地航空隊は保つ): 連合艦隊なら第1 + 第2、
+ * そうでなければ最後に取り込んだ艦隊 (まだなら第 1)。importAirBases は基地航空隊を置き換える (目標マスは保つ)。
  */
 export const useImportPoi = (store: PresetsApi, select: (id: string | null) => void) => {
   const { state } = useApp();
@@ -35,19 +39,43 @@ export const useImportPoi = (store: PresetsApi, select: (id: string | null) => v
     else toast.push(`第${i + 1}艦隊を取り込めませんでした`, "danger");
     return p;
   };
+  const loadCombined = (into?: Preset) => {
+    const p = importCombinedFromPoi(state, into && into.fleetType !== "single" ? into.fleetType : undefined);
+    if (!p) toast.push("第1・第2艦隊を連合艦隊として取り込めませんでした", "danger");
+    return p;
+  };
   return {
     importPoi: (i: number) => {
       const p = load(i);
       if (p) select(store.save(p).id);
     },
+    importCombined: () => {
+      const p = loadCombined();
+      if (p) select(store.save(p).id);
+    },
+    importEscort: (into: Preset, i: number) => {
+      const p = load(i);
+      if (p) store.save({ ...into, escort: p.ships });
+    },
+    importAirBases: (into: Preset, areaId: number | undefined) => {
+      const bases = airBasesFromPoi(state, areaId);
+      if (bases.length === 0) return toast.push("poi に基地航空隊がありません", "danger");
+      // 目標マスは海域ごとに選ぶもので poi には無い。今の選択を隊の順に残す
+      store.save({ ...into, lbas: bases.map((b, i) => ({ ...b, targets: into.lbas?.[i]?.targets ?? b.targets })) });
+    },
     reimport: (into: Preset | null) => {
+      if (into && isCombined(into)) {
+        const p = loadCombined(into);
+        if (p) store.save({ ...into, ships: p.ships, escort: p.escort, hqLevel: p.hqLevel ?? into.hqLevel, source: "poi" });
+        return;
+      }
       const p = load(lastFleet);
       if (!p) return;
       if (into) store.save({ ...into, ships: p.ships, hqLevel: p.hqLevel ?? into.hqLevel, source: "poi" });
       else select(store.save(p).id);
     },
-    /** reimport が取り込む艦隊の番号 (1 始まり) */
-    reimportFleetNo: lastFleet + 1,
+    /** reimport のツールチップ */
+    reimportTitle: (into: Preset | null) => (into && isCombined(into) ? S.fleet.reimportCombinedTitle : S.fleet.reimportTitle(lastFleet + 1)),
   };
 };
 
@@ -57,7 +85,7 @@ export const PresetMenu = ({ store, preset, select }: Props) => {
   const [io, setIo] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const poiFleets = usePoiFleets();
-  const { importPoi } = useImportPoi(store, select);
+  const { importPoi, importCombined } = useImportPoi(store, select);
   const patch = (p: Partial<Preset>) => preset && save({ ...preset, ...p });
 
   const duplicate = () => {
@@ -121,6 +149,17 @@ export const PresetMenu = ({ store, preset, select }: Props) => {
                   {i + 1}
                 </Button>
               ))}
+              <Button
+                size="sm"
+                disabled={!poiFleets[0] || !poiFleets[1]}
+                title={S.fleet.importCombinedTitle}
+                onClick={() => {
+                  importCombined();
+                  close();
+                }}
+              >
+                {S.fleet.importCombined}
+              </Button>
             </div>
             <div className="grid grid-cols-2 gap-1">
               <Button size="sm" onClick={() => (select(save(blankPreset()).id), close())}>

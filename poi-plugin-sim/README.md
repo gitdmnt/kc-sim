@@ -86,7 +86,7 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
 | Direction | `type` | Fields | When |
 |---|---|---|---|
 | web → plugin | `ready` | `v` = the web UI's protocol version | once the web UI listens |
-| plugin → web | `state` | `info`, `const?` | after every `ready` (with `const`), then when the parts below change (coalesced, 250 ms); `const` only when it changes |
+| plugin → web | `state` | `info`, `const?`, `combinedFlag?` | after every `ready` (with `const`), then when the parts below change (coalesced, 250 ms); `const` only when it changes |
 | plugin → web | `presets` | `json` (`kcsim-presets` export) | after `ready`, until acknowledged once for that origin |
 | web → plugin | `presets-ack` | `imported`, `skipped`, `persisted` | after the import |
 
@@ -100,10 +100,12 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
   `info.basic.api_level`; `info.fleets[]` as `{api_id, api_name, api_ship}`; per ship instance `api_id, api_ship_id,
   api_lv, api_slot, api_onslot, api_slotnum, api_slot_ex, api_kyouka, api_maxhp, api_nowhp, api_karyoku, api_raisou,
   api_taiku, api_soukou, api_kaihi, api_taisen, api_sakuteki, api_lucky, api_leng, api_soku, api_cond`; per equipment
-  instance `api_id, api_slotitem_id, api_level, api_alv`; and `const.{$ships, $equips, $shipTypes, $equipTypes,
-  $mapareas}`. Everything else (the admiral's name and member id, including `api_member_id` on each fleet, missions,
-  resources, quests) is dropped, by the plugin before posting and again by the web UI on receipt. It goes to the iframe
-  and nowhere else; the web UI never uploads it.
+  instance `api_id, api_slotitem_id, api_level, api_alv`; land bases `info.airbase[]` as `{api_area_id, api_rid,
+  api_name, api_action_kind, api_plane_info[]: {api_squadron_id, api_state, api_slotid, api_count, api_max_count}}`;
+  poi's `sortie.combinedFlag` as the message's `combinedFlag` (0–3); and `const.{$ships, $equips, $shipTypes,
+  $equipTypes, $mapareas}`. Everything else (the admiral's name and member id, including `api_member_id` on each fleet,
+  base distances, missions, resources, quests) is dropped, by the plugin before posting and again by the web UI on
+  receipt. It goes to the iframe and nowhere else; the web UI never uploads it.
 - **Origins and senders:** the plugin posts with the server URL's origin as the target and accepts messages only from
   the iframe's window with that origin. In poi's window mode the plugin's code runs in poi's main window and its view is
   portaled into the plugin window, so the sender the iframe sees is the main window, i.e. `window.parent.opener`. The

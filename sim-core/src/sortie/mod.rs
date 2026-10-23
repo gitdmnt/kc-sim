@@ -1,16 +1,22 @@
 //! Sortie (海域周回) simulator: routing evaluator + chained battles with state carry-over,
-//! retreat policy, aggregation and gauge estimation. Contract: docs/SIM_INTERFACE.md "Sortie".
+//! retreat policy, land-base waves, aggregation and gauge estimation. Contract:
+//! docs/SIM_INTERFACE.md "Sortie". A combined friend fleet is carried node to node as one side
+//! (main ships then escort ships); 護衛退避 (escort retreat) is not modelled.
 
 pub mod model;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
-use crate::battle::{validate_fleet, Battle, BattleSetup, FleetCore};
-use crate::model::{BattleKind, Formation, Rank, RankRates};
+use crate::battle::lbas::{initial_planes, LandBaseCore, LbPlanes};
+use crate::battle::{validate_fleet, validate_friend, Battle, BattleSetup, FleetCore};
+use crate::model::{BattleKind, CombinedType, Formation, Rank, RankRates};
 use crate::rng::Rng;
 use crate::routing::{RouteConfig, RouteCtx, RouteEquip, RouteShip, Router};
 use crate::ship::ShipState;
 use model::*;
+
+/// Land bases of a sortie.
+const MAX_BASES: usize = 3;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum NodeBattle {
@@ -68,23 +74,33 @@ impl CompSet {
 
 struct NodeInfo {
     battle: Option<(NodeBattle, CompSet)>,
+    /// Boss node of the map (night policy `bossOnly`).
     boss: bool,
+    /// Node whose battle feeds the boss outputs and the gauge: `config.target`, else the boss.
+    goal: bool,
     formation: Formation,
     warning: Option<String>,
+    /// Land-base waves at this node: base index per wave, in base order then target order.
+    lb_waves: Vec<usize>,
 }
 
 /// Prepared sortie (static derivations done once).
 pub struct Sortie {
     router: Router,
     nodes: Vec<NodeInfo>,
+    /// Friend fleet (main ships, then escort ships).
     friend: FleetCore,
     init: Vec<ShipState>,
     route_ships: Vec<RouteShip>,
     /// Fixed start node; `None` = picked per sortie by the routing document's start rules.
     start: Option<usize>,
+    /// `config.target`: the sortie ends right after this node.
+    target: Option<usize>,
     max_nodes: usize,
     night: NightPolicy,
     retreat: RetreatPolicy,
+    lbas: Vec<LandBaseCore>,
+    lb_init: LbPlanes,
     warnings: Vec<String>,
 }
 
@@ -163,7 +179,19 @@ fn rank_rates(c: &[u32; 7]) -> RankRates {
 
 impl Sortie {
     pub fn new(input: &SortieInput) -> Result<Sortie, String> {
-        validate_fleet("friend", &input.friend, false)?;
+        validate_friend(&input.friend)?;
+        let combined = input.friend.combined;
+        let bases = input.lbas.as_deref().unwrap_or(&[]);
+        if bases.len() > MAX_BASES {
+            return Err(format!("lbas: {} land bases (max {MAX_BASES})", bases.len()));
+        }
+        let mut lbas = Vec::with_capacity(bases.len());
+        for (i, b) in bases.iter().enumerate() {
+            if b.targets.len() > 2 {
+                return Err(format!("lbas #{i}: {} targets (max 2)", b.targets.len()));
+            }
+            lbas.push(LandBaseCore::new(&format!("lbas #{i}"), &b.squadrons)?);
+        }
         let mut warnings = Vec::new();
         let cfg = RouteConfig {
             hq: input.hq_level,
@@ -181,6 +209,10 @@ impl Sortie {
             Some(name) => Some(router.index(name).ok_or_else(|| format!("start node '{name}' is not in the routing document"))?),
             None if router.has_start_rules() => None,
             None => Some(router.index("Start").ok_or("routing has neither a 'Start' node nor top-level start rules; set config.start")?),
+        };
+        let target = match &input.config.target {
+            Some(t) => Some(router.index(t).ok_or_else(|| format!("config.target: node '{t}' is not in the routing document"))?),
+            None => None,
         };
 
         let mut nodes = Vec::with_capacity(router.len());
@@ -229,15 +261,41 @@ impl Sortie {
                 }
             }
             let formation = match input.policy.formations.get(&letter) {
-                Some(f) => *f,
-                None if battle.as_ref().is_some_and(|(_, cs)| cs.all_subs()) => Formation::LineAbreast,
-                None => Formation::LineAhead,
+                Some(&f) => {
+                    if f.is_combined() != combined.is_some() {
+                        return Err(format!(
+                            "policy.formations.{letter}: {} fleet cannot use formation {f:?}",
+                            if combined.is_some() { "a combined" } else { "a single" }
+                        ));
+                    }
+                    f
+                }
+                None => {
+                    let subs = battle.as_ref().is_some_and(|(_, cs)| cs.all_subs());
+                    match (combined.is_some(), subs) {
+                        (false, true) => Formation::LineAbreast,
+                        (false, false) => Formation::LineAhead,
+                        (true, true) => Formation::CombinedAntiSub,
+                        (true, false) => Formation::CombinedBattle,
+                    }
+                }
             };
-            nodes.push(NodeInfo { battle, boss, formation, warning });
+            let lb_waves =
+                bases.iter().enumerate().flat_map(|(b, base)| base.targets.iter().filter(|t| **t == letter).map(move |_| b)).collect();
+            let goal = target.map_or(boss, |t| t == i);
+            nodes.push(NodeInfo { battle, boss, goal, formation, warning, lb_waves });
+        }
+        for (i, b) in bases.iter().enumerate() {
+            for t in &b.targets {
+                if router.index(t).is_none() {
+                    warnings.push(format!("lbas #{i}: target node {t} is not in the routing document; ignored"));
+                }
+            }
         }
 
         let (friend, init) = FleetCore::build(&input.friend, true);
-        for (i, s) in input.friend.ships.iter().enumerate() {
+        let friend_ships = || input.friend.ships.iter().chain(input.friend.escort_ships());
+        for (i, s) in friend_ships().enumerate() {
             if s.speed.is_none() {
                 warnings.push(format!("friend ship #{i} has no speed; routing assumes fast (10)"));
             }
@@ -247,13 +305,30 @@ impl Sortie {
             nodes,
             friend,
             init,
-            route_ships: input.friend.ships.iter().map(route_ship).collect(),
+            route_ships: friend_ships().map(route_ship).collect(),
             start,
+            target,
             max_nodes: input.max_nodes.unwrap_or(20) as usize,
             night: input.policy.night,
             retreat: input.policy.retreat.clone(),
+            lb_init: initial_planes(&lbas),
+            lbas,
             warnings,
         })
+    }
+
+    /// Counted routing ships (afloat): main fleet, then escort. Returns the main-fleet count.
+    fn counted<'s>(&'s self, st: &[ShipState], out: &mut Vec<&'s RouteShip>) -> usize {
+        let es = self.friend.escort_start;
+        let afloat = |r: (&'s RouteShip, &ShipState)| (r.1.hp > 0).then_some(r.0);
+        out.extend(self.route_ships[..es].iter().zip(&st[..es]).filter_map(afloat));
+        let main = out.len();
+        out.extend(self.route_ships[es..].iter().zip(&st[es..]).filter_map(afloat));
+        main
+    }
+
+    fn combined(&self) -> Option<CombinedType> {
+        self.friend.combined
     }
 
     fn setup(&self, nb: NodeBattle, boss: bool, formation: Formation, enemy_formation: Formation) -> BattleSetup {
@@ -273,14 +348,20 @@ impl Sortie {
         BattleSetup { kind, engagement: None, formations: [formation, enemy_formation], night_unless, log: false }
     }
 
+    /// Retreat after a battle: a heavily damaged main flagship always ends the sortie; the escort
+    /// flagship cannot sink and is ignored (kcsimcombined: "don't count escort flag taiha").
     fn retreat_reason(&self, st: &[ShipState]) -> Option<Retreat> {
         let mut reason = None;
+        let escort_flag = self.friend.combined.map(|_| self.friend.escort_start);
         for (i, (s, c)) in st.iter().zip(&self.friend.ships).enumerate() {
             if s.hp <= 0 {
                 continue;
             }
             let r = s.hp_ratio(c.max_hp);
             if r <= 0.25 {
+                if Some(i) == escort_flag {
+                    continue;
+                }
                 if i == 0 || (self.retreat.on_heavy && !(self.retreat.allow_damecon && s.damecon_slots != 0)) {
                     return Some(Retreat::Heavy);
                 }
@@ -295,8 +376,11 @@ impl Sortie {
         if let Some(s) = self.start {
             return s;
         }
-        let ships: Vec<&RouteShip> = self.route_ships.iter().zip(&self.init).filter(|(_, s)| s.hp > 0).map(|(r, _)| r).collect();
-        self.router.start_node(&RouteCtx { ships: &ships, visited: &[] }, rng).expect("router has start rules when start is None")
+        let mut ships = Vec::with_capacity(self.route_ships.len());
+        let main = self.counted(&self.init, &mut ships);
+        self.router
+            .start_node(&RouteCtx { ships: &ships, main, combined: self.combined(), visited: &[] }, rng)
+            .expect("router has start rules when start is None")
     }
 
     /// One sortie. `boss_override`: comps and flagship HP for boss battles (HP-gauge final form).
@@ -308,7 +392,9 @@ impl Sortie {
         let mut boss_reached = false;
         let mut battles = 0u64;
         let mut retreated = false;
-        let mut ships_ctx: Vec<&RouteShip> = Vec::with_capacity(7);
+        let mut ships_ctx: Vec<&RouteShip> = Vec::with_capacity(self.route_ships.len());
+        // Land-base squadron sizes: full at the start of every sortie, carried between nodes.
+        let mut lb_planes = self.lb_init;
         loop {
             let info = &self.nodes[node];
             let first_visit = !path[..path.len() - 1].contains(&node);
@@ -322,13 +408,13 @@ impl Sortie {
                     r.reach[node] += 1;
                 }
             }
-            if info.boss {
+            if info.goal {
                 boss_reached = true;
             }
             let mut fought = false;
             if let Some((nb, comps)) = &info.battle {
                 let (set, hp_override) = match boss_override {
-                    Some((set, hp)) if info.boss => (set, hp),
+                    Some((set, hp)) if info.goal => (set, hp),
                     _ => (comps, None),
                 };
                 let comp = set.pick(rng);
@@ -338,11 +424,17 @@ impl Sortie {
                 }
                 let setup = self.setup(*nb, info.boss, info.formation, comp.formation);
                 let mut b = Battle::new([&self.friend, &comp.core], [std::mem::take(&mut st), enemy], setup, rng);
+                if !info.lb_waves.is_empty() {
+                    b.set_lbas(&self.lbas, &info.lb_waves, lb_planes);
+                }
                 let o = b.run();
+                if let Some(p) = b.lb_planes() {
+                    lb_planes = p;
+                }
                 st = std::mem::take(&mut b.st[0]);
                 fought = true;
                 battles += 1;
-                if info.boss {
+                if info.goal {
                     let start = b.hp_start[1].first().copied().unwrap_or(0);
                     let end = b.st[1].first().map(|s| s.hp.max(0)).unwrap_or(0);
                     boss_result = Some((o.rank, start > 0 && end <= 0, (start - end).max(0)));
@@ -354,6 +446,9 @@ impl Sortie {
                         r.night[node] += 1;
                     }
                 }
+            }
+            if self.target == Some(node) {
+                break;
             }
             if !self.router.has_rules(node) {
                 break;
@@ -378,8 +473,8 @@ impl Sortie {
                 break;
             }
             ships_ctx.clear();
-            ships_ctx.extend(self.route_ships.iter().zip(&st).filter(|(_, s)| s.hp > 0).map(|(r, _)| r));
-            let ctx = RouteCtx { ships: &ships_ctx, visited: &path };
+            let main = self.counted(&st, &mut ships_ctx);
+            let ctx = RouteCtx { ships: &ships_ctx, main, combined: self.combined(), visited: &path };
             match self.router.next(node, &ctx, rng) {
                 Some(next) => {
                     path.push(next);
@@ -532,7 +627,7 @@ impl Sortie {
 
     fn gauge(&self, g: &GaugeInput, kill_rate: f64, rng: &mut Rng) -> Result<(GaugeSummary, Option<String>), String> {
         let max_sorties = g.max_sorties.unwrap_or(500).max(1);
-        let has_boss = self.nodes.iter().any(|n| n.boss && n.battle.is_some());
+        let has_boss = self.nodes.iter().any(|n| n.goal && n.battle.is_some());
         let mut warning = None;
         let mut sorties: Vec<u32> = Vec::new();
         let mut capped = 0u32;
@@ -569,7 +664,7 @@ impl Sortie {
                     let threshold = g.final_threshold.unwrap_or_else(|| {
                         let sets: Vec<&CompSet> = match &final_set {
                             Some(s) => vec![s],
-                            None => self.nodes.iter().filter(|n| n.boss).filter_map(|n| n.battle.as_ref().map(|b| &b.1)).collect(),
+                            None => self.nodes.iter().filter(|n| n.goal).filter_map(|n| n.battle.as_ref().map(|b| &b.1)).collect(),
                         };
                         sets.iter().flat_map(|s| s.comps.iter().map(|c| c.flagship_max_hp)).max().unwrap_or(0) as f64
                     });
@@ -636,10 +731,9 @@ impl Sortie {
         ))
     }
 
-    /// Final form with the boss node's own comps: run with an HP override only.
+    /// Final form with the boss (or `config.target`) node's own comps: HP override only.
     fn run_final_default(&self, rng: &mut Rng, hp: i32) -> Option<BossResult> {
-        // The boss node's comps are used; the override set is looked up per boss node.
-        let boss_set = self.nodes.iter().find(|n| n.boss).and_then(|n| n.battle.as_ref().map(|b| &b.1))?;
+        let boss_set = self.nodes.iter().find(|n| n.goal).and_then(|n| n.battle.as_ref().map(|b| &b.1))?;
         self.run_one(rng, Some((boss_set, Some(hp))), None)
     }
 }
@@ -664,11 +758,12 @@ pub fn simulate_sortie(input: &SortieInput, count: u32, seed: u64) -> Result<Sor
 pub fn route_once(input: &SortieInput, seed: u64) -> Result<Vec<String>, String> {
     let sortie = Sortie::new(input)?;
     let mut rng = Rng::new(seed);
-    let ships: Vec<&RouteShip> = sortie.route_ships.iter().zip(&sortie.init).filter(|(_, s)| s.hp > 0).map(|(r, _)| r).collect();
+    let mut ships = Vec::with_capacity(sortie.route_ships.len());
+    let main = sortie.counted(&sortie.init, &mut ships);
     let mut node = sortie.start_node(&mut rng);
     let mut path = vec![node];
     while path.len() <= sortie.max_nodes {
-        let ctx = RouteCtx { ships: &ships, visited: &path };
+        let ctx = RouteCtx { ships: &ships, main, combined: sortie.combined(), visited: &path };
         match sortie.router.next(node, &ctx, &mut rng) {
             Some(n) => {
                 path.push(n);

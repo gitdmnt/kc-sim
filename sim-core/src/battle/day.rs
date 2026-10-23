@@ -128,7 +128,7 @@ impl<'a> Battle<'a> {
         let mut orders = [List::default(), List::default()];
         for side in 0..2 {
             let mut l = List::default();
-            for i in 0..self.len(side) {
+            for i in self.engaged(side) {
                 let c = self.core(side, i);
                 if self.alive(side, i) && !c.class.is_sub() && can_oasw(c, &self.st[side][i]) {
                     l.push(i);
@@ -145,7 +145,7 @@ impl<'a> Battle<'a> {
         let mut orders = [List::default(), List::default()];
         for side in 0..2 {
             let mut l = List::default();
-            for i in 0..self.len(side) {
+            for i in self.engaged(side) {
                 if can_shell(self.core(side, i), &self.st[side][i], false) {
                     l.push(i);
                 }
@@ -221,7 +221,8 @@ impl<'a> Battle<'a> {
         if !can_as(c, &self.st[side][a]) {
             return 0.0;
         }
-        let base = self.fleet_los[side];
+        // Each fleet of a combined fleet spots with its own fleet LoS.
+        let base = if side == 0 && a >= self.fleets[0].escort_start { self.fleet_los_escort } else { self.fleet_los[side] };
         let fleet_los = (base.max(0.0).sqrt() + base * 0.1).floor();
         let luck_los = (c.luck.max(0.0).sqrt() + 10.0).floor();
         let mut chance = if air == 2 {

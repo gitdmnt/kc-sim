@@ -2,7 +2,7 @@
  * プラグイン側の橋渡し (プロトコルは shared/embed/protocol.ts)。DOM に依存しない部分だけをここに置く
  * (iframe・postMessage・オリジン確認は WebFrame.tsx)。
  */
-import { EMBED_SOURCE, EMBED_VERSION, parseWebMessage, projectConst, projectInfo } from "@shared/embed/protocol";
+import { EMBED_SOURCE, EMBED_VERSION, parseWebMessage, projectCombinedFlag, projectConst, projectInfo } from "@shared/embed/protocol";
 import type { PluginMessage, PoiState } from "@shared/embed/protocol";
 
 export interface BridgeDeps {
@@ -21,14 +21,16 @@ const field = (v: unknown, key: string): unknown =>
   typeof v === "object" && v !== null ? (v as Record<string, unknown>)[key] : undefined;
 
 /**
- * poi の info のうち Web UI に送る部分の参照 (projectInfo の元)。redux はスライスを不変に更新するので、
- * どれかの参照が変わったときだけ射影して送り直す (資源や任務の更新では送らない)。
+ * poi の state のうち Web UI に送る部分の参照 (projectInfo の元) と連合艦隊のフラグ。redux はスライスを不変に更新するので、
+ * どれかが変わったときだけ射影して送り直す (資源や任務の更新では送らない)。
  */
-const infoParts = (info: unknown): unknown[] => [
-  field(info, "fleets"),
-  field(info, "ships"),
-  field(info, "equips"),
-  field(field(info, "basic"), "api_level"),
+const infoParts = (state: PoiState): unknown[] => [
+  field(state.info, "fleets"),
+  field(state.info, "ships"),
+  field(state.info, "equips"),
+  field(state.info, "airbase"),
+  field(field(state.info, "basic"), "api_level"),
+  state.combinedFlag,
 ];
 
 export class EmbedBridge {
@@ -66,13 +68,15 @@ export class EmbedBridge {
 
   private flush() {
     if (!this.latest) return;
-    const parts = infoParts(this.latest.info);
+    const parts = infoParts(this.latest);
     const prev = this.sentInfo;
     const infoChanged = !prev || parts.some((p, i) => p !== prev[i]);
     const constChanged = !this.constSent || this.sentConst !== this.latest.const;
     if (!constChanged && !infoChanged) return;
     const msg: PluginMessage = { src: EMBED_SOURCE, v: EMBED_VERSION, type: "state", info: projectInfo(this.latest.info) };
     if (constChanged) msg.const = projectConst(this.latest.const);
+    const combinedFlag = projectCombinedFlag(this.latest.combinedFlag);
+    if (combinedFlag !== undefined) msg.combinedFlag = combinedFlag;
     this.deps.post(msg);
     this.sentConst = this.latest.const;
     this.constSent = true;

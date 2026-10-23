@@ -6,7 +6,7 @@ use super::day::can_asw_night;
 use super::{side_air, Battle};
 use crate::equipment::f;
 use crate::formulas::{self, Roll};
-use crate::model::{AttackKind, SpecialAttack};
+use crate::model::{AttackKind, Phase, SpecialAttack};
 use crate::ship::{NightCi, ShipCore, ShipState, MAX_SLOTS};
 
 pub fn can_night(c: &ShipCore, st: &ShipState) -> bool {
@@ -73,21 +73,22 @@ struct SideNight {
 impl<'a> Battle<'a> {
     fn night_setup(&mut self, side: usize, night_only: bool) -> SideNight {
         let mut s = SideNight::default();
-        for i in 0..self.len(side) {
+        for i in self.engaged(side) {
             let (c, st) = (self.core(side, i), &self.st[side][i]);
             if st.hp > 0 && c.has_starshell && st.hp > 4 && self.rng().chance(0.7) {
                 s.starshell = true;
                 break;
             }
         }
-        for i in 0..self.len(side) {
+        for i in self.engaged(side) {
             if self.alive(side, i) {
                 s.searchlight = s.searchlight.max(self.core(side, i).searchlight);
             }
         }
         let air = if self.air_combat { side_air(self.air, side) } else { 0 };
         if self.any_alive(side) && air != -2 && (night_only || air != 0) {
-            for i in 0..self.len(side) {
+            // kcsim `getNightEquipsScout(fleet.ships)`: the night fleet's own ships.
+            for i in self.engaged(side) {
                 let c = self.core(side, i);
                 for slot in 0..MAX_SLOTS {
                     let Some(e) = c.slots[slot].as_ref() else { continue };
@@ -107,12 +108,17 @@ impl<'a> Battle<'a> {
         s
     }
 
+    /// Night battle; a combined friend fleet fights with its escort (kcsimcombined `simCombined`).
     pub(super) fn night_phase(&mut self, night_only: bool) {
+        self.phase = Phase::Night;
+        self.engaged[0] = self.night_range();
         let sides = [self.night_setup(0, night_only), self.night_setup(1, night_only)];
-        let n = self.len(0).max(self.len(1));
-        for k in 0..n {
+        let ranges = [self.engaged(0), self.engaged(1)];
+        let n = ranges[0].len().max(ranges[1].len());
+        'rounds: for k in 0..n {
             for side in 0..2 {
-                if k < self.len(side) && can_night(self.core(side, k), &self.st[side][k]) {
+                let a = ranges[side].start + k;
+                if a < ranges[side].end && can_night(self.core(side, a), &self.st[side][a]) {
                     let env = NightEnv {
                         own_starshell: sides[side].starshell,
                         enemy_starshell: sides[1 - side].starshell,
@@ -120,13 +126,14 @@ impl<'a> Battle<'a> {
                         enemy_searchlight: sides[1 - side].searchlight > 0,
                         contact_acc: sides[side].contact,
                     };
-                    self.night_turn(side, k, &env, sides[1 - side].searchlight, night_only);
+                    self.night_turn(side, a, &env, sides[1 - side].searchlight, night_only);
                 }
                 if !self.any_alive(1 - side) {
-                    return;
+                    break 'rounds;
                 }
             }
         }
+        self.engaged[0] = (0, self.len(0));
     }
 
     fn night_turn(&mut self, side: usize, a: usize, env: &NightEnv, sl_rerolls: u8, night_only: bool) {
@@ -150,7 +157,7 @@ impl<'a> Battle<'a> {
     fn roll_night_ci(&mut self, side: usize, a: usize, d: usize, env: &NightEnv) -> NightAttack {
         let c = self.core(side, a);
         let st = &self.st[side][a];
-        let mut chance = c.nb_chance_base + if a == 0 { 15.0 } else { 0.0 };
+        let mut chance = c.nb_chance_base + if self.is_flagship(side, a) { 15.0 } else { 0.0 };
         if env.own_starshell {
             chance += 4.0;
         }

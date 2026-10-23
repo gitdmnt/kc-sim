@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 use serde_json::{Map, Value};
 
+use crate::model::CombinedType;
 use crate::rng::Rng;
 
 // ------------------------------------------------------------- ship types ----
@@ -91,8 +92,18 @@ pub struct RouteConfig {
     pub selects: HashMap<String, String>,
 }
 
-/// LoS formula 33 (ROUTING_DSL §5), floored to 2 decimals.
+/// LoS formula 33 (ROUTING_DSL §5) of a single fleet, floored to 2 decimals.
 pub fn los33(ships: &[&RouteShip], cn: f64, hq: f64) -> f64 {
+    los33_sized(ships, cn, hq, 6.0)
+}
+
+/// LoS formula 33 over both fleets of a combined fleet: the last term uses 12 instead of 6
+/// (ROUTING_DSL §5 [unverified]).
+pub fn los33_combined(ships: &[&RouteShip], cn: f64, hq: f64) -> f64 {
+    los33_sized(ships, cn, hq, 12.0)
+}
+
+fn los33_sized(ships: &[&RouteShip], cn: f64, hq: f64, full: f64) -> f64 {
     let mut v = 0.0;
     for s in ships {
         v += s.naked_los.max(0.0).sqrt();
@@ -113,7 +124,7 @@ pub fn los33(ships: &[&RouteShip], cn: f64, hq: f64) -> f64 {
         }
     }
     v -= (0.4 * hq).ceil();
-    v += 2.0 * (6.0 - ships.len() as f64);
+    v += 2.0 * (full - ships.len() as f64);
     // Floor to 2 decimals (compass sim / KC3); the epsilon absorbs float noise of the sum order.
     (v * 100.0 + 1e-7).floor() / 100.0
 }
@@ -233,10 +244,24 @@ impl Rule {
 
 /// Context of one routing decision.
 pub struct RouteCtx<'a> {
-    /// Ships currently counted (afloat, not retreated), in fleet order.
+    /// Ships currently counted (afloat, not retreated), in fleet order: main fleet, then escort.
     pub ships: &'a [&'a RouteShip],
+    /// Number of main-fleet ships at the front of `ships` (`ships.len()` for a single fleet).
+    pub main: usize,
+    /// Friend combined fleet type (`None` = single fleet).
+    pub combined: Option<CombinedType>,
     /// Nodes passed so far, including the current node.
     pub visited: &'a [usize],
+}
+
+impl RouteCtx<'_> {
+    fn los(&self, cn: f64, hq: f64) -> f64 {
+        if self.combined.is_some() {
+            los33_combined(self.ships, cn, hq)
+        } else {
+            los33(self.ships, cn, hq)
+        }
+    }
 }
 
 /// A compiled routing document.
@@ -825,7 +850,7 @@ impl Router {
                     list.last().unwrap().0
                 }
                 Action::Los { cn, thresholds, below, interpolate } => {
-                    let v = los33(ctx.ships, *cn, self.hq);
+                    let v = ctx.los(*cn, self.hq);
                     if v >= thresholds[0].0 {
                         return thresholds[0].1;
                     }
@@ -849,10 +874,10 @@ impl Router {
     }
 
     fn fleet<'s>(ctx: &'s RouteCtx, f: FleetSel) -> &'s [&'s RouteShip] {
-        if f == FleetSel::Escort {
-            &[]
-        } else {
-            ctx.ships
+        match f {
+            FleetSel::Main => &ctx.ships[..ctx.main],
+            FleetSel::Escort => &ctx.ships[ctx.main..],
+            FleetSel::All => ctx.ships,
         }
     }
 
@@ -879,8 +904,16 @@ impl Router {
                         c.num(Self::fleet(ctx, *fleet).iter().map(|s| s.equips.iter().filter(|e| sel.matches(e)).count()).sum::<usize>() as f64)
                     }
                     Metric::Speed => c.num(ctx.ships.iter().map(|s| s.speed).fold(f64::INFINITY, f64::min).min(20.0)),
-                    Metric::Los(cn) => c.num(los33(ctx.ships, *cn, self.hq)),
-                    Metric::FleetType(list) => list.iter().any(|t| t == "single"),
+                    Metric::Los(cn) => c.num(ctx.los(*cn, self.hq)),
+                    Metric::FleetType(list) => {
+                        let t = match ctx.combined {
+                            None => "single",
+                            Some(CombinedType::Carrier) => "ctf",
+                            Some(CombinedType::Surface) => "stf",
+                            Some(CombinedType::Transport) => "tcf",
+                        };
+                        list.iter().any(|x| x == t)
+                    }
                     Metric::Flagship { mask, fleet } => Self::fleet(ctx, *fleet).first().is_some_and(|s| in_mask(*mask, s)),
                     Metric::Difficulty => c.num(self.difficulty),
                     Metric::Phase => c.num(self.phase),

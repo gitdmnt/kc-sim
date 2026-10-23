@@ -5,14 +5,22 @@
 // `typescript_custom_section`) and documented in `docs/SIM_INTERFACE.md`.
 // Keep it in sync with `src/model.rs` (serde, camelCase).
 
-/** Fleet formation. */
+/** Fleet formation. The `combined*` ones are the cruising formations (第一〜第四警戒航行序列) of a
+ *  friend combined fleet and only valid there; single fleets use the first six. */
 export type Formation =
   | "lineAhead"
   | "doubleLine"
   | "diamond"
   | "echelon"
   | "lineAbreast"
-  | "vanguard";
+  | "vanguard"
+  | "combinedAntiSub"
+  | "combinedForward"
+  | "combinedDiamond"
+  | "combinedBattle";
+
+/** Combined fleet type: 空母機動部隊 / 水上打撃部隊 / 輸送護衛部隊. */
+export type CombinedType = "carrier" | "surface" | "transport";
 
 /** Engagement form. Random unless forced via `BattleOptions.engagement`. */
 export type Engagement = "sameCourse" | "headOn" | "tAdvantage" | "tDisadvantage";
@@ -53,11 +61,16 @@ export type BattleKind = "day" | "dayNight" | "nightOnly" | "airBattle" | "airRa
 export type Detection = "success" | "successLost" | "failureLost" | "failure" | "found" | "notFound";
 
 export type Phase =
+  /** Land-based air squadron waves (before the air phase). */
+  | "landBase"
   | "airStrike"
   | "openingAsw"
   | "openingTorpedo"
+  /** Combined friend fleet: rounds follow kcsim api_hougeki1..3 — carrier/transport: escort,
+   *  main (by range), main (by position); surface: main (by range), main (by position), escort. */
   | "shelling1"
   | "shelling2"
+  | "shelling3"
   | "closingTorpedo"
   | "night";
 
@@ -208,10 +221,16 @@ export interface ShipInput {
 }
 
 export interface FleetInput {
-  /** 1..7 ships in order (index 0 = flagship). */
+  /** 1..7 ships in order (index 0 = flagship). Combined fleet: the main fleet (主力). */
   ships: ShipInput[];
-  /** Default "lineAhead". */
+  /** Default "lineAhead"; combined friend fleet: one of the `combined*` formations, default
+   *  "combinedBattle". */
   formation?: Formation;
+  /** Friend combined fleet only: escort fleet (随伴), 1..6 ships. Requires `combined`. An enemy
+   *  escort is a validation error (enemy combined fleets are not supported). */
+  escort?: ShipInput[];
+  /** Friend combined fleet type. Requires `escort`. */
+  combined?: CombinedType;
 }
 
 export interface BattleOptions {
@@ -224,10 +243,20 @@ export interface BattleOptions {
   log?: boolean;
 }
 
+/** One land-base wave: one base's squadrons (1..4). Each squadron is an EquipmentInput whose
+ *  `planes` is the squadron size (default 18; recon categories 9/10/41/49/94: 4; large land-based
+ *  bombers (category 53): 9). Proficiency/improvement apply. */
+export interface LandBaseWave {
+  squadrons: EquipmentInput[];
+}
+
 export interface BattleInput {
   friend: FleetInput;
   enemy: FleetInput;
   options?: BattleOptions;
+  /** Land-base waves in order (max 6), resolved before the friend's air phase (not in night-only
+   *  battles). Each wave starts from its own squadron sizes. */
+  lbas?: LandBaseWave[];
 }
 
 // --------------------------------------------------------------- output ----
@@ -249,13 +278,14 @@ export interface AttackEvent {
   kind: AttackKind;
   special: SpecialAttack;
   attackerSide: Side;
-  /** Index in the attacker's fleet. */
+  /** Index in the attacker's fleet. Friend combined fleets: main ships first, then the escort.
+   *  `landBase` events: index of the wave in the battle's wave list. */
   attacker: number;
   /** Index in the defender's fleet (the other side). */
   defender: number;
   /** True if the original target was the flagship and another ship covered it (かばう). */
   covered: boolean;
-  /** Air attacks: slot index of the attacking aircraft. */
+  /** Air attacks: slot index of the attacking aircraft (`landBase`: squadron index). */
   slot?: number;
   hit: HitResult;
   /** HP removed from the defender (after sinking protection; may exceed remaining HP). */
@@ -270,8 +300,10 @@ export interface AttackEvent {
 
 export interface BattleResult {
   rank: Rank;
-  /** Friend index of the MVP (most damage dealt; flagship on ties at 0). */
+  /** Friend index of the (main-fleet) MVP (most damage dealt; flagship on ties at 0). */
   mvp: number;
+  /** Friend combined fleet: index (into `friend`) of the escort fleet's MVP. */
+  mvpEscort?: number;
   engagement: Engagement;
   airState: AirState;
   detection: Detection;
@@ -280,15 +312,17 @@ export interface BattleResult {
   /** Damage gauges (戦果ゲージ) in integer percent: damage dealt to the enemy / taken by the friend. */
   enemyGauge: number;
   friendGauge: number;
+  /** Per friend ship: main ships, then escort ships. */
   friend: ShipResult[];
   enemy: ShipResult[];
   /** Present when `options.log` is true. */
   events?: AttackEvent[];
 }
 
-/** Fleets after the battle: same shape as the input, with hp, fuel, ammo, morale, plane counts,
- *  proficiency (reset to 0 for wiped slots) and consumed damage-control items updated.
- *  Feed `state.friend` into the next node's `BattleInput.friend`. */
+/** Fleets after the battle: same shape as the input (a combined friend fleet keeps `escort` /
+ *  `combined`), with hp, fuel, ammo, morale, plane counts, proficiency (reset to 0 for wiped
+ *  slots) and consumed damage-control items updated. Feed `state.friend` into the next node's
+ *  `BattleInput.friend`. */
 export interface BattleState {
   friend: FleetInput;
   enemy: FleetInput;
@@ -311,7 +345,7 @@ export interface ShipSummary {
   lightRate: number;
   healthyRate: number;
   damageDealtMean: number;
-  /** Friend ships only (0 for enemies). */
+  /** Friend ships only (0 for enemies). A combined fleet has two MVPs per battle (rates sum to 2). */
   mvpRate: number;
 }
 
@@ -325,6 +359,7 @@ export interface SimulationSummary {
   /** Battles that ended with at least one friend ship heavily damaged (not sunk). */
   friendHeavyAnyRate: number;
   friendSunkAnyRate: number;
+  /** Main ships, then escort ships. */
   friend: ShipSummary[];
   enemy: ShipSummary[];
 }
@@ -487,6 +522,11 @@ export interface SortieConfig {
   phase?: number;
   /** Current gauge number. Default `routing.defaults.gauge`, else 1. */
   gauge?: number;
+  /** Node letter to evaluate instead of the boss: the sortie ends right after this node, and every
+   *  boss output (`SortieSummary.boss.*`) and the gauge (kill / HP logic, default final comps) use
+   *  this node's battle. Unknown letter → Error. Default: the map's boss node. Night policy
+   *  `bossOnly` still refers to the real boss. */
+  target?: string;
 }
 
 /** Night pursuit at day-battle nodes. `ifNotSRank` / `ifNotARank`: pursue only when the day result
@@ -494,8 +534,9 @@ export interface SortieConfig {
 export type NightPolicy = "never" | "bossOnly" | "always" | "ifNotSRank" | "ifNotARank";
 
 export interface RetreatPolicy {
-  /** Retreat when a ship is heavily damaged (大破撤退). Default true. A heavily damaged flagship
-   *  always ends the sortie. */
+  /** Retreat when a ship is heavily damaged (大破撤退). Default true. A heavily damaged (main)
+   *  flagship always ends the sortie; a combined fleet's escort flagship is ignored (it cannot
+   *  sink). 護衛退避 is not modelled. */
   onHeavy?: boolean;
   /** A heavily damaged non-flagship that still carries a damage-control item does not force a
    *  retreat. Default true. */
@@ -506,7 +547,8 @@ export interface RetreatPolicy {
 
 export interface SortiePolicy {
   /** Per-node friend formation. Default: `lineAbreast` if every comp of the node is submarines
-   *  only, else `lineAhead`. */
+   *  only, else `lineAhead`; combined fleets `combinedAntiSub` / `combinedBattle`. A combined
+   *  fleet needs `combined*` formations, a single fleet the others. */
   formations?: Record<string, Formation>;
   /** Default "bossOnly". */
   night?: NightPolicy;
@@ -530,11 +572,20 @@ export interface GaugeInput {
   maxSorties?: number;
 }
 
+/** A sortie land base: squadrons (as in `LandBaseWave`) and the node letters of its two waves
+ *  (same letter twice = both waves at that node; empty = not sortied, e.g. 防空/待機). Squadron
+ *  sizes reset every sortie; losses carry from node to node (two waves at one node both start
+ *  from the sizes before that battle, kcsim). */
+export interface LandBase {
+  squadrons: EquipmentInput[];
+  targets: string[];
+}
+
 export interface SortieInput {
-  /** Friend fleet in its current state (as `RunBattleOutput.state.friend`). `formation` is ignored
-   *  (see `policy.formations`). Routing uses `shipType`, `id`, `speed` (api_soku after boosts;
-   *  missing → 10 with a warning), naked LoS (`stats.los + equipBonus.los`), equipment `id`,
-   *  `types[2]`, `stats.los`, `improvement`. */
+  /** Friend fleet in its current state (as `RunBattleOutput.state.friend`), single or combined.
+   *  `formation` is ignored (see `policy.formations`). Routing uses `shipType`, `id`, `speed`
+   *  (api_soku after boosts; missing → 10 with a warning), naked LoS (`stats.los +
+   *  equipBonus.los`), equipment `id`, `types[2]`, `stats.los`, `improvement`. */
   friend: FleetInput;
   /** Admiral (HQ) level for the LoS formula and the `hq` predicate. */
   hqLevel: number;
@@ -546,6 +597,9 @@ export interface SortieInput {
   maxNodes?: number;
   /** Number of most frequent paths to report. Default 20. */
   topPaths?: number;
+  /** Land bases (max 3; max 4 squadrons, max 2 targets each). At a node, waves run in base
+   *  order, then each base's targets in order. Unknown target letters are warned about. */
+  lbas?: LandBase[];
 }
 
 export interface PathRate {
@@ -600,6 +654,7 @@ export interface SortieSummary {
   paths: PathRate[];
   otherPathsRate: number;
   nodes: Record<string, NodeSummary>;
+  /** The boss node, or `config.target` when set. */
   boss: {
     reachRate: number;
     /** Rank distribution conditional on a boss battle. */
@@ -619,6 +674,7 @@ export interface SortieSummary {
   nodesMean: number;
   fuelUsedMean: number;
   ammoUsedMean: number;
+  /** Main ships, then escort ships. */
   friend: SortieShipSummary[];
   gauge?: GaugeSummary;
   /** Deduplicated input/data problems met during the simulation (unknown node kinds, …). */

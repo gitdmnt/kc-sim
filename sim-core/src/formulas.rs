@@ -143,6 +143,20 @@ pub fn accuracy_and_crit(hit: f64, ev: &Evasion, crit_mod: f64, plane: Option<Pl
 /// [`accuracy_and_crit`] from the [`hit_term`] and the [`evade`] value; `ev.ev` / `ev.luck` are not read.
 /// Both inputs are integers, so the estimator grid evaluates this once per distinct value.
 pub fn hit_crit(hit_term: f64, evade: f64, ev: &Evasion, crit_mod: f64, plane: Option<PlaneBonus>, crit_bonus_flat: f64) -> HitCrit {
+    hit_crit_post(hit_term, evade, ev, crit_mod, plane, crit_bonus_flat, 1.0)
+}
+
+/// [`hit_crit`] with kcsim's `evModPost`, a multiplier on the dodge fraction after the fuel and
+/// flat terms (land-based air attacks).
+pub fn hit_crit_post(
+    hit_term: f64,
+    evade: f64,
+    ev: &Evasion,
+    crit_mod: f64,
+    plane: Option<PlaneBonus>,
+    crit_bonus_flat: f64,
+    ev_post: f64,
+) -> HitCrit {
     let mut dodge = if evade > 65.0 {
         (55.0 + 2.0 * (evade - 65.0).sqrt()).floor()
     } else if evade > 40.0 {
@@ -155,6 +169,7 @@ pub fn hit_crit(hit_term: f64, evade: f64, ev: &Evasion, crit_mod: f64, plane: O
         dodge -= (75 - ev.fuel_pct) as f64 / 100.0;
     }
     dodge += ev.ev_flat * 0.01;
+    dodge *= ev_post;
 
     let dodge_term = (js_round(dodge * 1_000_000.0) / 10_000.0).floor();
     let mut acc = (hit_term - dodge_term).max(10.0);

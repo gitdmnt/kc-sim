@@ -32,6 +32,7 @@ pub fn run_battle(input: &BattleInput, seed: u64) -> Result<RunBattleOutput, Str
     let result = BattleResult {
         rank: o.rank,
         mvp: o.mvp,
+        mvp_escort: o.mvp_escort,
         engagement: o.engagement,
         air_state: o.air_state,
         detection: o.detection,
@@ -136,6 +137,9 @@ pub fn simulate(input: &BattleInput, count: u32, seed: u64) -> Result<Simulation
             }
         }
         acc[0][o.mvp].mvp += 1;
+        if let Some(e) = o.mvp_escort {
+            acc[0][e].mvp += 1;
+        }
         heavy_any += heavy as u32;
         sunk_any += sunk as u32;
     }

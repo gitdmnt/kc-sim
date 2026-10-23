@@ -2,13 +2,16 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Play, SlidersHorizontal, Square } from "lucide-react";
 import type { FitEntry } from "@shared/sim/fit";
 import { STORAGE_PREFIX } from "../../fleet";
+import type { Preset, PresetFleetType } from "../../fleet";
 import { abyssalName } from "../../data/names";
 import { useMapData, useMapList } from "../../data/useMapData";
 import { pickSet } from "../../sim/sortieAdapter";
 import type { SortieSettings } from "../../sim/sortieAdapter";
 import { Button, EmptyState, Popover, Select, Tabs, S, cx } from "../../ui";
+import type { TabItem } from "../../ui";
 import { useApp } from "../context";
 import { DataError } from "../DataState";
+import { AirBasePanel } from "../fleet/AirBasePanel";
 import { FleetPanel } from "../fleet/FleetPanel";
 import { PresetMenu } from "../fleet/PresetMenu";
 import { usePresets } from "../fleet/presets";
@@ -29,6 +32,18 @@ const AUTO_COUNT = 10_000;
 const AUTO_DELAY_MS = 300;
 const BATTLE_TYPES = ["battle", "boss", "night_battle", "air_battle", "air_raid"];
 const SELECTED_KEY = `${STORAGE_PREFIX}selectedPreset`;
+const FLEET_TYPES = Object.keys(S.fleetTypes) as PresetFleetType[];
+
+/** 左の列で開いている艦隊 (連合艦隊の主力 / 随伴、基地航空隊) */
+type FleetTab = "main" | "escort" | "lbas";
+
+/** 艦隊の種別を変える。通常 ⇄ 連合で陣形の系統が変わるので、その系統の既定に戻す */
+const withFleetType = (p: Preset, fleetType: PresetFleetType): Preset => {
+  const wasCombined = p.fleetType !== "single";
+  const combined = fleetType !== "single";
+  if (wasCombined === combined) return { ...p, fleetType };
+  return { ...p, fleetType, formation: combined ? "combined_battle" : "line_ahead", ...(combined && !p.escort ? { escort: [] } : {}) };
+};
 
 const readSelected = (): string | null => {
   try {
@@ -47,6 +62,7 @@ export const Workspace = () => {
   const settings = useSettings();
   const [prefs, setPrefs] = usePrefs();
   const mode = prefs.mode;
+  const [fleetTab, setFleetTab] = useState<FleetTab>("main");
 
   // 海域タブからの遷移
   const intent = useIntentFor("sortie");
@@ -132,8 +148,10 @@ export const Workspace = () => {
   }, []);
 
   // 名前・メモの変更では計算し直さない
-  const presetKey = preset ? JSON.stringify([preset.ships, preset.formation, preset.hqLevel]) : "";
-  const condKey = JSON.stringify([mode, diff, cfg, node, compId, prefs.night, prefs.onHeavy, prefs.allowDamecon, prefs.onModerate, prefs.applyFit, prefs.battleKind, prefs.seed, settings.useEstimates]);
+  const presetKey = preset ? JSON.stringify([preset.fleetType, preset.ships, preset.escort, preset.lbas, preset.formation, preset.hqLevel]) : "";
+  // 出撃の目標マス (海域ごとに保存)。この海域に無いマスならボス
+  const target = nodes.some((n) => n.letter === prefs.targets[prefs.map] && !n.isBoss) ? prefs.targets[prefs.map] : undefined;
+  const condKey = JSON.stringify([mode, diff, cfg, node, compId, target, prefs.night, prefs.onHeavy, prefs.allowDamecon, prefs.onModerate, prefs.applyFit, prefs.battleKind, prefs.seed, settings.useEstimates]);
   const built = useMemo(() => {
     if (!preset || preset.ships.length === 0 || !data || (prefs.applyFit && fit === undefined)) return { req: null, error: null };
     const common = { fit: fit ?? null, useServerEstimates: settings.useEstimates, seed: prefs.seed };
@@ -143,6 +161,7 @@ export const Workspace = () => {
         const finalSet = cfg.gaugeKind === "hp" && cfg.finalSetKey ? bossSets.find((s) => `${s.difficulty}:${s.retrievedAt}` === cfg.finalSetKey) : undefined;
         const st: SortieSettings = {
           start: cfg.start || undefined,
+          target,
           selects: cfg.selects,
           flags: cfg.flags,
           difficulty: diff,
@@ -157,8 +176,8 @@ export const Workspace = () => {
         };
         return { req: sortieRequest(preset, catalog.master, data, st, common), error: null };
       }
-      if (!nodeSet) return { req: null, error: null };
-      return { req: battleRequest(preset, catalog.master, data, nodeSet, compId, { ...common, applyFit: prefs.applyFit, kind: prefs.battleKind }), error: null };
+      if (!nodeSet || !node) return { req: null, error: null };
+      return { req: battleRequest(preset, catalog.master, data, nodeSet, compId, { ...common, applyFit: prefs.applyFit, kind: prefs.battleKind, node }), error: null };
     } catch (e) {
       return { req: null, error: (e as Error).message };
     }
@@ -211,6 +230,24 @@ export const Workspace = () => {
                   {DIFF[d] ?? d}
                 </option>
               ))}
+            </Select>
+          )}
+          {mode === "sortie" && (
+            <Select
+              className="h-7! w-20"
+              aria-label="目標マス"
+              title="目標マス: ここで出撃を終え、到達・突破・S勝利をこのマスで数える (海域ごとに保存)"
+              value={target ?? ""}
+              onChange={(e) => setPrefs({ targets: { ...prefs.targets, [prefs.map]: e.target.value } })}
+            >
+              <option value="">ボス</option>
+              {nodes
+                .filter((n) => !n.isBoss && n.type !== "start")
+                .map((n) => (
+                  <option key={n.letter} value={n.letter}>
+                    {n.letter}
+                  </option>
+                ))}
             </Select>
           )}
         </div>
@@ -273,6 +310,7 @@ export const Workspace = () => {
               bossSets={bossSets}
               formation={preset?.formation ?? null}
               setFormation={(formation) => preset && store.save({ ...preset, formation })}
+              combined={!!preset && preset.fleetType !== "single"}
             />
           </Popover>
         </div>
@@ -299,11 +337,37 @@ export const Workspace = () => {
     </div>
   );
 
+  const combined = !!preset && preset.fleetType !== "single";
+  const shownTab: FleetTab = fleetTab === "escort" && !combined ? "main" : fleetTab;
+  // 隻数・出撃する隊の数を添える
+  const fleetTabs: TabItem<FleetTab>[] = [
+    { id: "main", label: S.fleet.main, hint: preset ? String(preset.ships.length) : undefined },
+    ...(combined ? [{ id: "escort" as const, label: S.fleet.escort, hint: String(preset.escort?.length ?? 0) }] : []),
+    { id: "lbas", label: S.fleet.airBases, hint: String(preset?.lbas?.filter((b) => b.mode === "sortie").length ?? 0) },
+  ];
+
   // lg: 2 列 × (操作の行, 本体)。操作の行は列ごとに高さが違っても本体の上端が揃う。狭い画面は 編成 → 艦隊 → 操作 → 結果 の 1 列
   return (
     <div className="grid grid-cols-1 gap-2 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,11fr)_minmax(0,10fr)] lg:grid-rows-[auto_minmax(0,1fr)]">
-      <div className="flex min-w-0 items-start lg:col-start-1 lg:row-start-1">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 lg:col-start-1 lg:row-start-1">
         <PresetMenu store={store} preset={preset} select={select} />
+        {preset && (
+          <>
+            <Select
+              className="h-7! w-32 shrink-0"
+              aria-label={S.fleet.fleetType}
+              value={preset.fleetType}
+              onChange={(e) => store.save(withFleetType(preset, e.target.value as PresetFleetType))}
+            >
+              {FLEET_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {S.fleetTypes[t]}
+                </option>
+              ))}
+            </Select>
+            <Tabs<FleetTab> className="shrink-0" variant="pill" size="sm" value={shownTab} onChange={setFleetTab} tabs={fleetTabs} />
+          </>
+        )}
       </div>
       <div className="grid min-w-0 lg:col-start-1 lg:row-start-2 lg:min-h-0 lg:grid-rows-[minmax(0,1fr)]">
         {noMaster ? (
@@ -319,8 +383,10 @@ export const Workspace = () => {
               }
             />
           )
+        ) : shownTab === "lbas" && preset ? (
+          <AirBasePanel store={store} preset={preset} nodes={battleNodes.map((n) => n.letter)} areaId={Number.parseInt(prefs.map, 10) || undefined} />
         ) : (
-          <FleetPanel store={store} preset={preset} select={select} losCns={losCns} />
+          <FleetPanel key={shownTab} store={store} preset={preset} select={select} losCns={losCns} fleet={shownTab === "escort" ? "escort" : "main"} />
         )}
       </div>
 

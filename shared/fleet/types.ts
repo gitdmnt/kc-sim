@@ -13,12 +13,24 @@ export type PresetFormation =
   | "combined_diamond"
   | "combined_battle";
 
-/** 今は "single" のみ UI から作るが、連合艦隊に備えて型は先に用意する。 */
+/** 通常艦隊、または連合艦隊 (機動部隊 / 水上部隊 / 輸送護衛部隊)。連合艦隊は ships が主力、escort が随伴。 */
 export type PresetFleetType =
   | "single"
   | "carrier_task_force"
   | "surface_task_force"
   | "transport_escort";
+
+/** 基地航空隊の行動 (poi: api_action_kind 1 出撃, 2 防空, 0 待機・その他)。シミュレーションで飛ぶのは出撃だけ */
+export type AirBaseMode = "sortie" | "defense" | "standby";
+
+/** 基地航空隊 1 隊。 */
+export interface PresetAirBase {
+  mode: AirBaseMode;
+  /** 4 中隊。空きは null。搭載数は slotSize (既定 18、偵察機 4) */
+  squadrons: (PresetEquip | null)[];
+  /** 2 波の目標マス (同じマス 2 つ = 集中)。"" は未指定。海域ごとに選び直す */
+  targets: [string, string];
+}
 
 export type PresetSource = "manual" | "poi" | "deckbuilder" | "import";
 
@@ -76,8 +88,10 @@ export interface Preset {
   fleetType: PresetFleetType;
   formation: PresetFormation;
   ships: PresetShip[];
-  /** 連合艦隊の随伴艦隊 */
+  /** 連合艦隊の随伴艦隊 (fleetType が single 以外のとき) */
   escort?: PresetShip[];
+  /** 基地航空隊 (最大 3 隊) */
+  lbas?: PresetAirBase[];
   hqLevel?: number;
   source?: PresetSource;
   note?: string;

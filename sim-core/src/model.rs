@@ -12,6 +12,35 @@ pub enum Formation {
     Echelon,
     LineAbreast,
     Vanguard,
+    /// 第一警戒航行序列 (combined friend fleets only).
+    CombinedAntiSub,
+    /// 第二警戒航行序列.
+    CombinedForward,
+    /// 第三警戒航行序列.
+    CombinedDiamond,
+    /// 第四警戒航行序列.
+    CombinedBattle,
+    /// Internal: the pre-rework echelon table kcsim applies to an enemy echelon fleet facing a
+    /// combined friend fleet (`SIMCONSTS.echelonOld`). Never part of the JSON contract.
+    #[doc(hidden)]
+    #[serde(skip)]
+    EchelonOld,
+}
+
+impl Formation {
+    /// One of the four cruising formations (警戒航行序列) of a combined fleet.
+    pub fn is_combined(self) -> bool {
+        matches!(self, Formation::CombinedAntiSub | Formation::CombinedForward | Formation::CombinedDiamond | Formation::CombinedBattle)
+    }
+}
+
+/// Combined fleet type: 空母機動部隊 / 水上打撃部隊 / 輸送護衛部隊.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CombinedType {
+    Carrier,
+    Surface,
+    Transport,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -87,11 +116,15 @@ pub enum Detection {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Phase {
+    /// Land-based air squadron waves (before the air phase).
+    LandBase,
     AirStrike,
     OpeningAsw,
     OpeningTorpedo,
     Shelling1,
     Shelling2,
+    /// Third shelling round of a combined friend fleet.
+    Shelling3,
     ClosingTorpedo,
     Night,
 }
@@ -260,9 +293,23 @@ pub struct ShipInput {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FleetInput {
+    /// Main fleet (主力). Combined fleets: per-ship outputs list these first, then the escort.
     pub ships: Vec<ShipInput>,
+    /// Combined friend: one of the `combined*` formations (default `combinedBattle`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub formation: Option<Formation>,
+    /// Friend combined fleet only: escort fleet (随伴), 1..6 ships. Requires `combined`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub escort: Option<Vec<ShipInput>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub combined: Option<CombinedType>,
+}
+
+impl FleetInput {
+    /// Escort ships (empty for a single fleet).
+    pub fn escort_ships(&self) -> &[ShipInput] {
+        self.escort.as_deref().unwrap_or(&[])
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -281,6 +328,17 @@ pub struct BattleInput {
     pub enemy: FleetInput,
     #[serde(default)]
     pub options: BattleOptions,
+    /// Land-base waves in order, resolved before the air phase. Each wave is independent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lbas: Option<Vec<LandBaseWave>>,
+}
+
+/// One land-base wave: one base's squadrons (1..4). `planes` is the squadron size (default 18,
+/// recon categories 4, large land-based bombers 9).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LandBaseWave {
+    pub squadrons: Vec<EquipmentInput>,
 }
 
 // ---------------------------------------------------------------- output ----
@@ -322,7 +380,11 @@ pub struct AttackEvent {
 #[serde(rename_all = "camelCase")]
 pub struct BattleResult {
     pub rank: Rank,
+    /// Main-fleet MVP (index into `friend`).
     pub mvp: usize,
+    /// Combined friend fleet: escort-fleet MVP (index into `friend`, main ships first).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mvp_escort: Option<usize>,
     pub engagement: Engagement,
     pub air_state: AirState,
     pub detection: Detection,

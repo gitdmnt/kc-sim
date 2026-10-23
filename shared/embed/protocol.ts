@@ -1,7 +1,7 @@
 // postMessage protocol between the poi plugin (parent, file://) and the web UI it embeds in an iframe.
 //
 //   web → plugin   ready        { v }                             once the web UI listens
-//   plugin → web   state        { info, const? }                  after every ready (const included), then on change
+//   plugin → web   state        { info, const?, combinedFlag? }   after every ready (const included), then on change
 //   plugin → web   presets      { json }                          the plugin's old presets, once per origin until acked
 //   web → plugin   presets-ack  { imported, skipped, persisted }  persisted = saved to storage that survives a reload
 //
@@ -21,22 +21,25 @@ export const EMBED_MIN_VERSION = 1;
 /** Upper bound for the presets JSON (the plugin's localStorage holds a few MB at most). */
 export const MAX_PRESETS_JSON = 8 * 1024 * 1024;
 
-/** The poi redux slices the web UI reads (`info` = 母港, `const` = master data). */
+/** The poi redux slices the web UI reads (`info` = 母港, `const` = master data, `state.sortie.combinedFlag`). */
 export interface PoiState {
   info: unknown;
   const: unknown;
+  /** poi's `state.sortie.combinedFlag` (api_combined_flag: 0 none, 1 機動, 2 水上, 3 輸送) */
+  combinedFlag?: unknown;
 }
 
 /**
- * What the web UI reads from `state.info` (shared/fleet/poiImport.ts): HQ level, fleets (id, name, ship ids), and per
- * ship / equipment instance only the fields below. Fleet `api_member_id` (the admiral's id), missions, resources,
- * quests, the admiral's name, … are dropped.
+ * What the web UI reads from `state.info` (shared/fleet/poiImport.ts): HQ level, fleets (id, name, ship ids), land
+ * bases (area, number, name, action, squadrons), and per ship / equipment instance only the fields below. Fleet
+ * `api_member_id` (the admiral's id), base distances, missions, resources, quests, the admiral's name, … are dropped.
  */
 export interface PoiInfo {
   basic: { api_level?: unknown };
   fleets: unknown;
   ships: unknown;
   equips: unknown;
+  airbase: unknown;
 }
 
 const FLEET_KEYS = ["api_id", "api_name", "api_ship"];
@@ -46,6 +49,8 @@ const SHIP_KEYS = [
   "api_lucky", "api_leng", "api_soku", "api_cond",
 ];
 const EQUIP_KEYS = ["api_id", "api_slotitem_id", "api_level", "api_alv"];
+const AIRBASE_KEYS = ["api_area_id", "api_rid", "api_name", "api_action_kind"];
+const SQUADRON_KEYS = ["api_squadron_id", "api_state", "api_slotid", "api_count", "api_max_count"];
 
 /** What the web UI reads from `state.const`: catalog (ships, equips, type names) and map area names. */
 export interface PoiConst {
@@ -61,7 +66,7 @@ export type WebMessage =
   | { src: typeof EMBED_SOURCE; v: number; type: "presets-ack"; imported: number; skipped: number; persisted: boolean };
 
 export type PluginMessage =
-  | { src: typeof EMBED_SOURCE; v: number; type: "state"; info: PoiInfo; const?: PoiConst }
+  | { src: typeof EMBED_SOURCE; v: number; type: "state"; info: PoiInfo; const?: PoiConst; combinedFlag?: number }
   | { src: typeof EMBED_SOURCE; v: number; type: "presets"; json: string };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -87,12 +92,25 @@ const pickEach = (v: unknown, keys: readonly string[]): unknown => {
 };
 
 /** Projects poi's `info` to the keys the web UI reads (see PoiInfo). Also applied on receipt. */
-export const projectInfo = (info: unknown): PoiInfo => ({
-  basic: { api_level: at(at(info, "basic"), "api_level") },
-  fleets: pickEach(at(info, "fleets"), FLEET_KEYS),
-  ships: pickEach(at(info, "ships"), SHIP_KEYS),
-  equips: pickEach(at(info, "equips"), EQUIP_KEYS),
-});
+export const projectInfo = (info: unknown): PoiInfo => {
+  const bases = at(info, "airbase");
+  return {
+    basic: { api_level: at(at(info, "basic"), "api_level") },
+    fleets: pickEach(at(info, "fleets"), FLEET_KEYS),
+    ships: pickEach(at(info, "ships"), SHIP_KEYS),
+    equips: pickEach(at(info, "equips"), EQUIP_KEYS),
+    airbase: Array.isArray(bases)
+      ? bases.map((b) => {
+          const base = pick(b, AIRBASE_KEYS);
+          return base ? { ...base, api_plane_info: pickEach(at(b, "api_plane_info"), SQUADRON_KEYS) } : null;
+        })
+      : undefined,
+  };
+};
+
+/** poi's combined flag (0..3), else undefined. */
+export const projectCombinedFlag = (v: unknown): number | undefined =>
+  typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 3 ? v : undefined;
 
 export const projectConst = (c: unknown): PoiConst => ({
   $ships: at(c, "$ships"),
@@ -130,6 +148,8 @@ export const parsePluginMessage = (data: unknown): PluginMessage | null => {
     // Keep only the projected keys even if the sender added more.
     const msg: PluginMessage = { src: EMBED_SOURCE, v: m.v, type: "state", info: projectInfo(m.info) };
     if (m.const !== undefined) msg.const = projectConst(m.const);
+    const combinedFlag = projectCombinedFlag(m.combinedFlag);
+    if (combinedFlag !== undefined) msg.combinedFlag = combinedFlag;
     return msg;
   }
   if (m.type === "presets" && typeof m.json === "string" && m.json.length <= MAX_PRESETS_JSON) {

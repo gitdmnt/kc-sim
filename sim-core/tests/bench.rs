@@ -19,7 +19,7 @@ fn bench_battles_per_second() {
     let count = if release { 200_000 } else { 5_000 };
     let day = battle(friend_fleet(), enemy_fleet(), BattleKind::Day);
     let day_rate = rate(&day, count);
-    let carriers = FleetInput { ships: vec![friend_cv(), friend_cv(), friend_bb(), friend_ca(), friend_dd(), friend_dd()], formation: None };
+    let carriers = FleetInput { ships: vec![friend_cv(), friend_cv(), friend_bb(), friend_ca(), friend_dd(), friend_dd()], formation: None, ..Default::default() };
     let night = battle(carriers, enemy_fleet(), BattleKind::DayNight);
     let night_rate = rate(&night, count);
     // Worst case: nobody sinks, every phase runs to the end (6 tough battleships on both sides).
@@ -30,8 +30,8 @@ fn bench_battles_per_second() {
         s
     };
     let long = battle(
-        FleetInput { ships: (0..6).map(|_| tough(true)).collect(), formation: None },
-        FleetInput { ships: (0..6).map(|_| tough(false)).collect(), formation: None },
+        FleetInput { ships: (0..6).map(|_| tough(true)).collect(), formation: None, ..Default::default() },
+        FleetInput { ships: (0..6).map(|_| tough(false)).collect(), formation: None, ..Default::default() },
         BattleKind::DayNight,
     );
     let long_rate = rate(&long, count);

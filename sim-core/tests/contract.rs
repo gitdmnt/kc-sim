@@ -72,3 +72,31 @@ fn json_roundtrip_and_keys() {
     let d = serde_json::to_value(damage_distribution(&q).unwrap()).unwrap();
     assert!(d["hit"][0].get("damage").is_some() && d["hit"][0].get("p").is_some() && d.get("meanCritical").is_some());
 }
+
+#[test]
+fn combined_and_land_base_json() {
+    let base: serde_json::Value = serde_json::from_str(INPUT).unwrap();
+    let nagato = base["friend"]["ships"][0].clone();
+    let mut dd = base["enemy"]["ships"][0].clone();
+    dd["maxHp"] = 300.into();
+    let bomber = serde_json::json!({ "id": 169, "types": [3, 17, 47, 37, 0], "stats": { "torpedo": 12, "bombing": 10, "antiAir": 2 }, "proficiency": 7 });
+    let input: BattleInput = serde_json::from_value(serde_json::json!({
+        "friend": { "formation": "combinedBattle", "combined": "carrier", "ships": [nagato, nagato], "escort": [nagato] },
+        "enemy": { "ships": [dd, dd] },
+        "options": { "kind": "dayNight", "log": true },
+        "lbas": [{ "squadrons": [bomber, bomber] }]
+    }))
+    .unwrap();
+    assert_eq!(input.friend.combined, Some(CombinedType::Carrier));
+    assert_eq!(input.friend.formation, Some(Formation::CombinedBattle));
+    let v = serde_json::to_value(run_battle(&input, 2).unwrap()).unwrap();
+    assert_eq!(v["result"]["friend"].as_array().unwrap().len(), 3);
+    assert_eq!(v["result"]["mvpEscort"], 2);
+    assert_eq!(v["state"]["friend"]["combined"], "carrier");
+    assert_eq!(v["state"]["friend"]["escort"].as_array().unwrap().len(), 1);
+    let phases: Vec<&str> = v["result"]["events"].as_array().unwrap().iter().map(|e| e["phase"].as_str().unwrap()).collect();
+    assert!(phases.contains(&"landBase") && phases.contains(&"shelling3"), "{phases:?}");
+    // Single fleets do not emit the combined-only key.
+    let single: BattleInput = serde_json::from_str(INPUT).unwrap();
+    assert!(serde_json::to_value(run_battle(&single, 1).unwrap()).unwrap()["result"].get("mvpEscort").is_none());
+}

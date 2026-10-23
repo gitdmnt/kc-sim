@@ -17,6 +17,8 @@ interface Props {
   noSlotSize?: boolean;
   /** 装備できる種別に絞るための艦のマスターID。省略時は全装備 */
   shipMasterId?: number;
+  /** 選択肢をさらに絞る条件 (基地航空隊の中隊は航空機だけ) */
+  only?: (equipMasterId: number) => boolean;
   onChange: (next: PresetEquip | null) => void;
 }
 
@@ -118,15 +120,15 @@ const EquipPickerModal = ({ picker, selectedKey, initialQuery, title, onPick, on
   );
 };
 
-export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, shipMasterId, onChange }: Props) => {
+export const EquipSlot = ({ equip, label, defaultSlotSize, noSlotSize, shipMasterId, only, onChange }: Props) => {
   const { catalog, state } = useApp();
   const master = equip ? catalog.master.equips[equip.masterId] : undefined;
   const aircraft = isAircraft(master);
 
   // 補強増設は装備種別の規則が別なので絞り込まない
   const picker = useMemo(
-    () => buildEquipPicker(catalog, state, noSlotSize ? undefined : shipMasterId),
-    [catalog, state, noSlotSize, shipMasterId]
+    () => buildEquipPicker(catalog, state, noSlotSize ? undefined : shipMasterId, only),
+    [catalog, state, noSlotSize, shipMasterId, only]
   );
 
   /** 選択ダイアログを開いているとき、検索欄の初期入力 (文字キーで開いたときはその文字) */

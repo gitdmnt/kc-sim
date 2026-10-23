@@ -8,8 +8,8 @@ import type { PoiState } from "@shared/embed/protocol";
 import styles from "../../assets/styles.css?inline";
 import { PluginPanel } from "../panel/PluginPanel";
 
-const PoiApp = ({ info, const: master }: PoiState) => {
-  const poiState = React.useMemo(() => ({ info, const: master }), [info, master]);
+const PoiApp = ({ info, const: master, combinedFlag }: PoiState) => {
+  const poiState = React.useMemo(() => ({ info, const: master, combinedFlag }), [info, master, combinedFlag]);
   return (
     // <style> はこのコンポーネントがマウントされている間だけ存在する (アンマウントで poi 本体に残らない)
     <>
@@ -19,11 +19,12 @@ const PoiApp = ({ info, const: master }: PoiState) => {
   );
 };
 
-// poi の state 全体ではなく info / const だけ購読して再描画を減らす
+// poi の state 全体ではなく info / const と連合艦隊のフラグだけ購読して再描画を減らす
 // (mapState の戻り値は浅く比較されるので、スライスを props にする)
-const Connected = connect((state: Partial<PoiState> | undefined): PoiState => ({
+const Connected = connect((state: (Partial<PoiState> & { sortie?: { combinedFlag?: unknown } }) | undefined): PoiState => ({
   info: state?.info,
   const: state?.const,
+  combinedFlag: state?.sortie?.combinedFlag,
 }))(PoiApp);
 
 // poi はこのコンポーネントをプラグインパネルに描画する

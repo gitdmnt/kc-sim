@@ -2,6 +2,9 @@ import { describe, expect, test } from "bun:test";
 import {
   MemoryStorage,
   PresetStore,
+  airBasesFromPoi,
+  combinedTypeFromPoi,
+  importCombinedFromPoi,
   importFromPoi,
   masterFromPoi,
   parseDeckBuilder,
@@ -264,5 +267,56 @@ describe("resolveShipStats", () => {
     );
     expect(st.asw.source).toBe("unknown");
     expect(resolveShipStats(importFromPoi(poiState(), 0)!.ships[1]).firepower.value).toBe(0);
+  });
+});
+
+describe("combined fleets and land bases", () => {
+  const withEscort = () => {
+    const s = poiState();
+    s.info.fleets[1].api_ship = [12, -1, -1, -1, -1, -1];
+    return s;
+  };
+
+  test("importCombinedFromPoi: fleet 1 = main, fleet 2 = escort; type from poi's combined flag, else the fallback", () => {
+    const p = importCombinedFromPoi({ ...withEscort(), combinedFlag: 2 }, "carrier_task_force", { now: 1, id: "c" })!;
+    expect(p).toMatchObject({ id: "c", fleetType: "surface_task_force", formation: "combined_battle", hqLevel: 110, source: "poi" });
+    expect(p.ships.map((s) => s.masterId)).toEqual([131, 1]);
+    expect(p.escort!.map((s) => s.masterId)).toEqual([1]);
+    expect(importCombinedFromPoi(withEscort(), "transport_escort")!.fleetType).toBe("transport_escort");
+    expect(importCombinedFromPoi({ ...withEscort(), combinedFlag: 0 })!.fleetType).toBe("carrier_task_force");
+    expect(combinedTypeFromPoi({ combinedFlag: 1 })).toBe("carrier_task_force");
+    // fleet 2 empty → no combined fleet
+    expect(importCombinedFromPoi(poiState())).toBeNull();
+  });
+
+  test("airBasesFromPoi: the map's area (else the newest), squadrons from equipment instances, action → mode", () => {
+    const s = poiState() as ReturnType<typeof poiState> & { info: { airbase?: unknown } };
+    const base = (area: number, rid: number, action: number, planes: unknown[]) => ({ api_area_id: area, api_rid: rid, api_action_kind: action, api_plane_info: planes });
+    s.info.airbase = [
+      base(6, 2, 2, []),
+      base(6, 1, 1, [
+        { api_squadron_id: 1, api_state: 1, api_slotid: 101, api_count: 15 },
+        { api_squadron_id: 3, api_state: 2, api_slotid: 101, api_count: 18 },
+      ]),
+      base(7, 1, 0, []),
+    ];
+    const six = airBasesFromPoi(s, 6);
+    expect(six.map((b) => b.mode)).toEqual(["sortie", "defense"]);
+    expect(six[0].squadrons).toEqual([{ masterId: 3, improvement: 7, proficiency: 0, slotSize: 15 }, null, null, null]);
+    expect(six[0].targets).toEqual(["", ""]);
+    expect(airBasesFromPoi(s, 1).map((b) => b.mode)).toEqual(["standby"]); // area 1 has none → newest area (7)
+    expect(airBasesFromPoi(poiState(), 6)).toEqual([]);
+  });
+
+  test("presets keep escort and land bases through the store; bad land-base data is normalized", () => {
+    const store = new PresetStore({ storage: new MemoryStorage() });
+    const saved = store.save({
+      ...importCombinedFromPoi(withEscort())!,
+      lbas: [{ mode: "sortie", squadrons: [{ masterId: 2, improvement: 0, proficiency: 7, slotSize: 18 }, null, null, null], targets: ["J", "K"] }],
+    });
+    expect(store.get(saved.id)).toMatchObject({ fleetType: saved.fleetType, escort: [{ masterId: 1 }], lbas: saved.lbas });
+    const [imported] = store.importJSON(JSON.stringify({ ...saved, id: "n", lbas: [{ mode: "x", squadrons: [{ masterId: -1 }], targets: [3] }, {}, {}, {}] }));
+    expect(imported.lbas).toHaveLength(3);
+    expect(imported.lbas![0]).toEqual({ mode: "standby", squadrons: [null, null, null, null], targets: ["", ""] });
   });
 });

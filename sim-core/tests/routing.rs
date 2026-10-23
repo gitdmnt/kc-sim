@@ -49,7 +49,7 @@ fn equip(id: u32, cat: u32, los: f64, level: u32) -> Option<EquipmentInput> {
 
 fn input(routing: Value, ships: Vec<ShipInput>) -> SortieInput {
     SortieInput {
-        friend: FleetInput { ships, formation: None },
+        friend: FleetInput { ships, formation: None, ..Default::default() },
         hq_level: 120.0,
         map: SortieMap { routing, nodes: HashMap::new() },
         config: SortieConfig::default(),
@@ -57,6 +57,7 @@ fn input(routing: Value, ships: Vec<ShipInput>) -> SortieInput {
         gauge: None,
         max_nodes: None,
         top_paths: None,
+        lbas: None,
     }
 }
 
@@ -284,6 +285,41 @@ fn predicates_and_actions() {
                        "rules": [{ "when": { "m": "countIds", "ids": [1], "gte": 1 }, "to": "C" }, { "to": "A" }] }, { "to": "B" }])),
         "Start-A"
     );
+}
+
+#[test]
+fn combined_fleet_metrics() {
+    let main = || vec![ship(11, 10.0, 40.0, vec![]), ship(9, 5.0, 40.0, vec![])];
+    let escort = || vec![ship(3, 10.0, 40.0, vec![equip(75, 30, 0.0, 0)]), ship(2, 10.0, 40.0, vec![]), ship(2, 10.0, 40.0, vec![])];
+    let combined = |ct: CombinedType, rules: Value| {
+        let mut inp = input(tiny(rules), main());
+        inp.friend.escort = Some(escort());
+        inp.friend.combined = Some(ct);
+        path(&inp, 1)
+    };
+    let ft = |t: &str| json!([{ "when": { "m": "fleetType", "in": [t] }, "to": "A" }, { "to": "B" }]);
+    assert_eq!(combined(CombinedType::Carrier, ft("ctf")), "Start-A");
+    assert_eq!(combined(CombinedType::Surface, ft("stf")), "Start-A");
+    assert_eq!(combined(CombinedType::Transport, ft("tcf")), "Start-A");
+    assert_eq!(combined(CombinedType::Carrier, ft("single")), "Start-B");
+    assert_eq!(combined(CombinedType::Carrier, ft("stf")), "Start-B");
+    // fleet selectors: main / escort / all (default)
+    let r = |when: Value| json!([{ "when": when, "to": "A" }, { "to": "B" }]);
+    let ct = CombinedType::Carrier;
+    assert_eq!(combined(ct, r(json!({ "m": "ships", "fleet": "escort", "eq": 3 }))), "Start-A");
+    assert_eq!(combined(ct, r(json!({ "m": "ships", "fleet": "main", "eq": 2 }))), "Start-A");
+    assert_eq!(combined(ct, r(json!({ "m": "ships", "eq": 5 }))), "Start-A");
+    assert_eq!(combined(ct, r(json!({ "m": "count", "types": ["DD"], "fleet": "escort", "eq": 2 }))), "Start-A");
+    assert_eq!(combined(ct, r(json!({ "m": "count", "types": ["DD"], "fleet": "main", "eq": 0 }))), "Start-A");
+    assert_eq!(combined(ct, r(json!({ "m": "flagship", "in": ["CL"], "fleet": "escort" }))), "Start-A");
+    assert_eq!(combined(ct, r(json!({ "m": "flagship", "in": ["CV"] }))), "Start-A");
+    assert_eq!(combined(ct, r(json!({ "m": "equipShips", "equip": { "group": "DRUM" }, "fleet": "escort", "eq": 1 }))), "Start-A");
+    assert_eq!(combined(ct, r(json!({ "m": "equipShips", "equip": { "group": "DRUM" }, "fleet": "main", "eq": 0 }))), "Start-A");
+    assert_eq!(combined(ct, r(json!({ "m": "speed", "eq": "slow" }))), "Start-A");
+    // LoS over both fleets with 12 as the fleet size: 5 × √40 − 48 + 2 × (12 − 5) = −2.38.
+    let los = |min: f64| json!([{ "los": { "cn": 1, "thresholds": [{ "min": min, "to": "A" }], "below": "B" } }]);
+    assert_eq!(combined(ct, los(-2.38)), "Start-A");
+    assert_eq!(combined(ct, los(-2.37)), "Start-B");
 }
 
 #[test]

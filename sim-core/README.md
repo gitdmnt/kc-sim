@@ -1,6 +1,8 @@
 # sim-core
 
-KanColle battle and sortie engine (Rust → wasm) for Monte-Carlo win/rank rates, routing and gauges.
+KanColle battle and sortie engine (Rust → wasm) for Monte-Carlo win/rank rates, routing and gauges:
+single or combined (機動 / 水上 / 輸送護衛) friend fleets vs a single enemy fleet, with land-based air
+squadron waves.
 The JSON/TypeScript contract is `../docs/SIM_INTERFACE.md` (machine-readable copy:
 `sim_core_types.d.ts`, embedded into `pkg/sim_core.d.ts`).
 
@@ -32,13 +34,13 @@ KCR_DIR=<kancolle-replay checkout> bun validation/battle-vs-kcsim.ts  # realisti
 | `src/formation.rs` | formation / vanguard / engagement tables |
 | `src/formulas.rs` | accuracy, critical, soft cap, armor, scratch, protection |
 | `src/fit.rs` | main-gun fit (accuracy / CL firepower) by equipment id and ship class |
-| `src/battle/` | phases (`air`, `day` = OASW + shelling, `torpedo`, `night`), `calc` (per-attack modifiers shared with the forward model), rank, supply, morale |
+| `src/battle/` | phases (`air`, `day` = OASW + shelling, `torpedo`, `night`, `lbas` = land-base waves), combined-fleet phase order, `calc` (per-attack modifiers shared with the forward model), rank, supply, morale |
 | `src/sim.rs` | `run_battle`, Monte-Carlo aggregation |
 | `src/query.rs` | `hit_probability`, `damage_distribution` |
 | `src/routing.rs` | ROUTING_DSL parser / validator / evaluator, LoS formula 33 |
 | `src/sortie/` | sortie loop (node handling, retreat, state carry-over), aggregation, gauge estimates; `model.rs` = sortie JSON types |
 | `src/lib.rs` | wasm-bindgen exports |
-| `tests/` | engine behaviour, rank rules, JSON contract, published-number realism checks, routing (all seed docs, start rules, golden routes), sortie (1-5 end-to-end from `fixtures/1-5.api.json`, a one-time capture of the local server API), bench |
+| `tests/` | engine behaviour, rank rules, JSON contract, published-number realism checks, combined fleets + LBAS (`combined.rs`), routing (all seed docs, start rules, golden routes, combined-fleet metrics), sortie (1-5 end-to-end from `fixtures/1-5.api.json`, a one-time capture of the local server API), bench |
 | `validation/` | KCNav routing comparison harness + its data snapshot (`docs/VALIDATION.md`) |
 
 Mechanics and the list of known simplifications are documented in `../docs/SIM_INTERFACE.md`.
@@ -46,8 +48,8 @@ Mechanics and the list of known simplifications are documented in `../docs/SIM_I
 ## Attribution
 
 Combat formulas, constants and phase logic are ported from
-[KC3Kai/kancolle-replay](https://github.com/KC3Kai/kancolle-replay) (`js/kcsim.js`, `js/kcships.js`,
-`js/kcEQDATA.js`) and cross-checked with [en.kancollewiki.net](https://en.kancollewiki.net/).
+[KC3Kai/kancolle-replay](https://github.com/KC3Kai/kancolle-replay) (`js/kcsim.js`, `js/kcsimcombined.js`,
+`js/kcships.js`, `js/kcEQDATA.js`) and cross-checked with [en.kancollewiki.net](https://en.kancollewiki.net/).
 Battle-rank rules follow KC3Kai's `BattlePrediction` / ElectronicObserver `kcmemo.md`.
 
 kancolle-replay is distributed under the MIT License:

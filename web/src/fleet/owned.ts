@@ -75,11 +75,16 @@ const ownedSub = (g: OwnedEquip) =>
 
 /**
  * 所持装備 (★/熟練ごと) を先頭に、所持していないマスター装備を後ろ (dim) に並べた選択肢を作る。
- * 所持データが無ければマスター全件をそのまま返す。shipMasterId があれば装備できる種別だけに絞る。
+ * 所持データが無ければマスター全件をそのまま返す。shipMasterId があれば装備できる種別だけに絞る。`only` はさらに絞る条件 (基地の中隊 = 航空機)。
  */
-export const buildEquipPicker = (catalog: Catalog, state: PoiEquipState | null | undefined, shipMasterId?: number): EquipPicker => {
+export const buildEquipPicker = (
+  catalog: Catalog,
+  state: PoiEquipState | null | undefined,
+  shipMasterId?: number,
+  only?: (equipMasterId: number) => boolean
+): EquipPicker => {
   const choices = new Map<string, EquipChoice>();
-  const allowed = (id: number) => canEquip(state, catalog, shipMasterId, id);
+  const allowed = (id: number) => canEquip(state, catalog, shipMasterId, id) && (!only || only(id));
   const owned = ownedEquipGroups(state).filter((g) => catalog.master.equips[g.masterId] && allowed(g.masterId));
 
   const sortKey = (id: number) => {

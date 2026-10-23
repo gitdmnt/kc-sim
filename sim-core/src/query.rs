@@ -45,6 +45,7 @@ impl Ctx {
             form: q.attacker_formation.unwrap_or_default(),
             idx: q.attacker_index.unwrap_or(0),
             len: q.attacker_fleet_size.unwrap_or(6).max(1),
+            cf: calc::CF_NONE,
         };
         let d = Unit {
             core: &self.def,
@@ -52,6 +53,7 @@ impl Ctx {
             form: q.defender_formation.unwrap_or_default(),
             idx: q.defender_index.unwrap_or(0),
             len: q.defender_fleet_size.unwrap_or(6).max(1),
+            cf: calc::CF_NONE,
         };
         (a, d)
     }
@@ -123,7 +125,7 @@ impl Ctx {
                 let (_, dive) = calc::air_plane_base(&self.att, slot, &self.def);
                 let contact = self.q.contact_modifier.unwrap_or(1.0);
                 let planes = self.ast.planes[slot];
-                let p = |m: f64| calc::air_power(&self.att, slot, planes, &self.def, m, contact);
+                let p = |m: f64| calc::air_power(&self.att, slot, planes, &self.def, m, contact, calc::AIR_BASE);
                 let branches = if dive { vec![(p(1.0), 1.0)] } else { vec![(p(0.8), 0.5), (p(1.5), 0.5)] };
                 (branches, armor)
             }

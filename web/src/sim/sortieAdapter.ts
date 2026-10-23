@@ -3,6 +3,7 @@ import type {
   EnemyComp as SimComp,
   Formation,
   GaugeInput,
+  LandBase,
   NightPolicy,
   RetreatPolicy,
   RoutingDocument,
@@ -13,7 +14,7 @@ import type {
 import type { MapData } from "../data/mapData";
 import type { EnemyCompSet, RoutingDoc, Rule, Predicate } from "@shared/data/types";
 import type { MasterData, Preset } from "@shared/fleet/types";
-import { buildEnemyShips, buildFriendShips, enemyFormationOf } from "@shared/sim/adapter";
+import { buildEnemyShips, buildFriendShips, buildSquadrons, enemyFormationOf, friendFleet, isCombinedFormation } from "@shared/sim/adapter";
 import type { BuildEnemyOptions, EnemyBuild, EnemyLookup, FriendBuild } from "@shared/sim/adapter";
 import type { FitEntry } from "@shared/sim/fit";
 
@@ -113,6 +114,8 @@ export const uncertainNodes = (doc: RoutingDoc | null): Set<string> => {
 export interface SortieSettings {
   /** 出撃地点。省略時は sim-core が決める (`start.rules` があれば艦隊から、無ければ "Start")。 */
   start?: string;
+  /** 目標マス: そこで出撃を終え、主要率 (boss.*) をそのマスで数える。省略はボス */
+  target?: string;
   selects: Record<string, string>;
   flags: Record<string, boolean>;
   difficulty: number;
@@ -120,7 +123,7 @@ export interface SortieSettings {
   gauge?: number;
   night: NightPolicy;
   retreat: RetreatPolicy;
-  /** ノード → 陣形。未指定は自動 */
+  /** ノード → 陣形。未指定は自動。艦隊の種類 (通常 / 連合) に合わない陣形は自動に戻す */
   formations: Record<string, Formation>;
   gaugeInput?: { kind: "kill" | "hp"; remaining: number; finalSet?: EnemyCompSet; finalThreshold?: number };
   hqLevel: number;
@@ -150,6 +153,7 @@ export const buildSortieInput = (
 
   const friend = buildFriendShips(preset, master, { fitBonuses: opts.fitBonuses, applyFit: s.applyFit });
   if (friend.input.length === 0) throw new Error("味方艦がいません");
+  if (friend.combined && (friend.escort?.length ?? 0) === 0) throw new Error("随伴艦隊に艦がいません");
 
   const enemyBuilds: EnemyBuild[] = [];
   const compSets: Record<string, EnemyCompSet> = {};
@@ -181,22 +185,38 @@ export const buildSortieInput = (
     }
   }
 
+  // 基地航空隊: 出撃の隊のうち、この海域のマスを目標にした波だけ
+  const lbas: LandBase[] = (preset.lbas ?? []).flatMap((b, i) => {
+    if (b.mode !== "sortie") return [];
+    const targets = b.targets.filter((t) => Object.hasOwn(nodes, t));
+    const squadrons = buildSquadrons(b, master);
+    if (targets.length === 0 || squadrons.length === 0) {
+      warnings.push(`第${i + 1}基地航空隊: ${squadrons.length === 0 ? "中隊がありません" : "この海域の目標マスが未設定"} (出撃しません)`);
+      return [];
+    }
+    return [{ squadrons, targets }];
+  });
+  const combined = !!friend.combined;
+  const formations = Object.fromEntries(Object.entries(s.formations).filter(([, f]) => isCombinedFormation(f) === combined));
+
   const map: SortieMap = { routing: routing as unknown as RoutingDocument, nodes };
   const input: SortieInput = {
-    friend: { ships: friend.input },
+    friend: friendFleet(friend),
     hqLevel: s.hqLevel,
     map,
     config: {
       ...(s.start ? { start: s.start } : {}),
+      ...(s.target ? { target: s.target } : {}),
       selects: s.selects,
       flags: s.flags,
       difficulty: s.difficulty,
       ...(s.phase !== undefined ? { phase: s.phase } : {}),
       ...(s.gauge !== undefined ? { gauge: s.gauge } : {}),
     },
-    policy: { night: s.night, retreat: s.retreat, formations: s.formations },
+    policy: { night: s.night, retreat: s.retreat, formations },
     topPaths: opts.topPaths ?? 200,
     ...(gauge ? { gauge } : {}),
+    ...(lbas.length > 0 ? { lbas } : {}),
   };
   return { input, warnings: [...warnings, ...friend.warnings], friend, enemyBuilds, uncertain: uncertainNodes(routing), compSets };
 };

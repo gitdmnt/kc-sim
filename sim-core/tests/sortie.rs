@@ -63,7 +63,7 @@ fn retreat_policy() {
         s.speed = Some(10.0);
         s
     };
-    let fleet = FleetInput { ships: vec![weak(), weak(), weak(), weak()], formation: None };
+    let fleet = FleetInput { ships: vec![weak(), weak(), weak(), weak()], formation: None, ..Default::default() };
     let mut input = sortie_1_5(fleet);
     let s = simulate_sortie(&input, 3000, 2).unwrap();
     assert!(s.retreat_rate > 0.05, "{}", s.retreat_rate);
@@ -111,7 +111,7 @@ fn node_kinds_and_warnings() {
     });
     let mut cv = friend_cv();
     cv.max_hp = 90;
-    let enemy_cv = FleetInput { ships: vec![cv, enemy_dd()], formation: Some(Formation::LineAhead) };
+    let enemy_cv = FleetInput { ships: vec![cv, enemy_dd()], formation: Some(Formation::LineAhead), ..Default::default() };
     let comp = |f: FleetInput| json!([{ "weight": 1.0, "fleet": f }]);
     let input: SortieInput = serde_json::from_value(json!({
         "friend": friend_fleet(),
@@ -163,4 +163,43 @@ fn max_nodes_guard() {
     let s = simulate_sortie(&input, 10, 1).unwrap();
     assert_eq!(s.nodes_mean, 7.0);
     assert!(s.warnings.iter().any(|w| w.contains("maxNodes")));
+}
+
+#[test]
+fn target_node_replaces_the_boss() {
+    let routing = json!({
+        "map": "9-9", "sources": [{ "id": "t", "note": "test" }],
+        "nodes": { "Start": { "rules": [{ "to": "A" }] }, "A": { "rules": [{ "to": "B" }] }, "B": { "end": true } }
+    });
+    let mut weak = enemy_fleet();
+    weak.ships.truncate(2);
+    let input: SortieInput = serde_json::from_value(json!({
+        "friend": friend_fleet(), "hqLevel": 100,
+        "map": { "routing": routing, "nodes": {
+            "A": { "kind": "battle", "comps": [{ "weight": 1.0, "fleet": weak }] },
+            "B": { "kind": "boss", "comps": [{ "weight": 1.0, "fleet": enemy_fleet() }] }
+        } },
+        "config": { "target": "A" },
+        "gauge": { "kind": "hp", "remaining": 100, "runs": 20 }
+    }))
+    .unwrap();
+    let s = simulate_sortie(&input, 300, 3).unwrap();
+    assert_eq!(s.boss.reach_rate, s.nodes["A"].reach_rate);
+    assert_eq!(s.boss.reach_rate, 1.0);
+    assert_eq!(s.nodes["B"].reach_rate, 0.0);
+    assert_eq!(s.nodes_mean, 1.0);
+    let r = &s.boss.rank_rates;
+    assert!((r.ss + r.s + r.a + r.b + r.c + r.d + r.e - 1.0).abs() < 1e-9);
+    assert!((s.boss.kill_rate - s.nodes["A"].rank_rates.ss - s.nodes["A"].rank_rates.s - s.nodes["A"].rank_rates.a).abs() < 1e-9);
+    assert!(s.boss.flagship_damage_mean > 0.0);
+    // The HP gauge runs against the target node's flagship.
+    assert!(s.gauge.as_ref().unwrap().expected_sorties.is_some(), "{:?}", s.gauge);
+    // Without a target the real boss is used.
+    let mut boss = input.clone();
+    boss.config.target = None;
+    let s = simulate_sortie(&boss, 300, 3).unwrap();
+    assert_eq!(s.boss.reach_rate, s.nodes["B"].reach_rate);
+    let mut bad = input;
+    bad.config.target = Some("Z".into());
+    assert!(simulate_sortie(&bad, 1, 1).unwrap_err().contains("config.target"));
 }

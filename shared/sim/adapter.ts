@@ -5,27 +5,45 @@
 import type {
   BattleInput,
   BattleKind,
+  CombinedType,
   EquipmentInput,
   EquipmentStats,
+  FleetInput,
   Formation,
+  LandBaseWave,
   ShipInput,
 } from "../../sim-core/pkg/sim_core";
 import { SERVER_ESTIMATOR_SOURCE } from "../data/types";
 import type { ApiEquipment, ApiShip, CompShip, Confidence, EnemyComp, HiddenStat, ShipDetail } from "../data/types";
 import { isAircraft } from "../fleet/calc";
 import { resolveShipStats } from "../fleet/stats";
-import type { EquipMaster, MasterData, Preset, PresetEquip, PresetFormation, PresetShip } from "../fleet/types";
+import type { EquipMaster, MasterData, Preset, PresetAirBase, PresetEquip, PresetFleetType, PresetFormation, PresetShip } from "../fleet/types";
 import { computeFitBonus, fitToEquipmentStats } from "./fit";
 import type { FitEntry } from "./fit";
 
-export const FORMATION_MAP: Partial<Record<PresetFormation, Formation>> = {
+export const FORMATION_MAP: Record<PresetFormation, Formation> = {
   line_ahead: "lineAhead",
   double_line: "doubleLine",
   diamond: "diamond",
   echelon: "echelon",
   line_abreast: "lineAbreast",
   vanguard: "vanguard",
+  combined_anti_sub: "combinedAntiSub",
+  combined_forward: "combinedForward",
+  combined_diamond: "combinedDiamond",
+  combined_battle: "combinedBattle",
 };
+
+/** 連合艦隊の種別 (通常艦隊は undefined) */
+export const COMBINED_TYPE: Record<PresetFleetType, CombinedType | undefined> = {
+  single: undefined,
+  carrier_task_force: "carrier",
+  surface_task_force: "surface",
+  transport_escort: "transport",
+};
+
+/** 連合艦隊用の陣形 (sim-core の名前) */
+export const isCombinedFormation = (f: Formation): boolean => f.startsWith("combined");
 
 /** 敵編成の formation id (API) → sim-core。連合艦隊用 (11-14) は未対応なので単縦陣。 */
 export const ENEMY_FORMATION_BY_ID: Record<number, Formation> = {
@@ -64,7 +82,11 @@ export interface FriendOptions {
 }
 
 export interface FriendBuild {
+  /** 通常艦隊の艦、連合艦隊なら主力 */
   input: ShipInput[];
+  /** 連合艦隊の随伴 (通常艦隊は undefined) */
+  escort?: ShipInput[];
+  combined?: CombinedType;
   warnings: string[];
   /** 未対応条件で評価できなかった装備ボーナス定義の数 (全艦合計) */
   fitSkipped: number;
@@ -83,14 +105,15 @@ const toPresetEquipInput = (
   return input;
 };
 
+/** プリセットの艦隊 (連合艦隊なら主力と随伴) を sim-core の艦にする。随伴の警告は「随伴n番艦」。 */
 export const buildFriendShips = (preset: Preset, master: MasterData, opts: FriendOptions = {}): FriendBuild => {
   const warnings: string[] = [];
   let fitSkipped = 0;
   const apply = opts.applyFit !== false && !!opts.fitBonuses;
 
-  const input = preset.ships.map((ship, idx): ShipInput => {
+  const toInput = (prefix: string) => (ship: PresetShip, idx: number): ShipInput => {
     const m = master.ships[ship.masterId];
-    const label = `${idx + 1}番艦 (${m?.api_name ?? `#${ship.masterId}`})`;
+    const label = `${prefix}${idx + 1}番艦 (${m?.api_name ?? `#${ship.masterId}`})`;
     if (!m) warnings.push(`${label}: マスターデータが見つかりません`);
 
     const equipInputs: (EquipmentInput | null)[] = ship.equips.map((e, i) => (e ? toPresetEquipInput(e, master, i, m) : null));
@@ -165,10 +188,40 @@ export const buildFriendShips = (preset: Preset, master: MasterData, opts: Frien
     const speed = r.speed.value;
     if (speed !== null) out.speed = speed;
     return out;
+  };
+
+  const combined = COMBINED_TYPE[preset.fleetType];
+  const input = preset.ships.map(toInput(""));
+  if (!combined) return { input, warnings, fitSkipped };
+  return { input, escort: (preset.escort ?? []).map(toInput("随伴")), combined, warnings, fitSkipped };
+};
+
+/** 偵察機 (艦偵・水偵・大艇・陸偵・艦偵II) の api_type[2] */
+const RECON_TYPES = new Set([9, 10, 41, 49, 94]);
+/** 大型陸上機 (重爆) の api_type[2] */
+const LARGE_LAND_BOMBER = 53;
+
+/** 基地の中隊の満載の機数: 偵察機は 4、大型陸上機は 9、他は 18 (sim-core の既定と同じ) */
+export const squadronSize = (m: EquipMaster | undefined): number => {
+  const t = m?.api_type?.[2] ?? 0;
+  return RECON_TYPES.has(t) ? 4 : t === LARGE_LAND_BOMBER ? 9 : 18;
+};
+
+/** 出撃の基地航空隊の中隊 (空きは除く)。機数は slotSize、無ければ満載 */
+export const buildSquadrons = (base: PresetAirBase, master: MasterData): EquipmentInput[] =>
+  base.squadrons.flatMap((e) => {
+    const m = e && master.equips[e.masterId];
+    if (!e || !m) return [];
+    return [equipFromMaster(m, { improvement: e.improvement, proficiency: e.proficiency, planes: e.slotSize ?? squadronSize(m) })];
   });
 
-  return { input, warnings, fitSkipped };
-};
+/** 単一マス戦闘の基地航空隊の波: 出撃の隊のうち目標が `node` の波 (隊の順、1 波目 → 2 波目) */
+export const landBaseWaves = (bases: PresetAirBase[] | undefined, node: string, master: MasterData): LandBaseWave[] =>
+  (bases ?? []).flatMap((b) => {
+    if (b.mode !== "sortie") return [];
+    const squadrons = buildSquadrons(b, master);
+    return squadrons.length === 0 ? [] : b.targets.filter((t) => t === node).map(() => ({ squadrons }));
+  });
 
 // ---- enemy ----
 
@@ -303,20 +356,32 @@ export const buildEnemyShips = (ships: CompShip[], lookup: EnemyLookup, opts: Bu
 
 export interface BuildBattleOptions {
   kind: BattleKind;
-  friendFormation: Formation;
   enemyFormation: Formation;
+  lbas?: LandBaseWave[];
 }
 
-export const buildBattleInput = (friend: ShipInput[], enemy: ShipInput[], o: BuildBattleOptions): BattleInput => ({
-  friend: { ships: friend, formation: o.friendFormation },
+/** 味方の FleetInput (連合艦隊なら随伴と種別つき) */
+export const friendFleet = (build: Pick<FriendBuild, "input" | "escort" | "combined">, formation?: Formation): FleetInput => ({
+  ships: build.input,
+  ...(formation ? { formation } : {}),
+  ...(build.combined ? { escort: build.escort ?? [], combined: build.combined } : {}),
+});
+
+export const buildBattleInput = (friend: FleetInput, enemy: ShipInput[], o: BuildBattleOptions): BattleInput => ({
+  friend,
   enemy: { ships: enemy, formation: o.enemyFormation },
   options: { kind: o.kind },
+  ...(o.lbas?.length ? { lbas: o.lbas } : {}),
 });
 
 export const enemyFormationOf = (comp: Pick<EnemyComp, "formation">): Formation =>
   ENEMY_FORMATION_BY_ID[comp.formation ?? 1] ?? "lineAhead";
 
-export const friendFormationOf = (preset: Pick<Preset, "formation">): Formation =>
-  FORMATION_MAP[preset.formation] ?? "lineAhead";
+/** プリセットの陣形。艦隊の種類 (通常 / 連合) に合わない陣形なら、その種類の既定 (単縦陣 / 第四警戒航行序列) */
+export const friendFormationOf = (preset: Pick<Preset, "formation" | "fleetType">): Formation => {
+  const f = FORMATION_MAP[preset.formation] ?? "lineAhead";
+  const combined = preset.fleetType !== "single";
+  return isCombinedFormation(f) === combined ? f : combined ? "combinedBattle" : "lineAhead";
+};
 
 export type { PresetShip };

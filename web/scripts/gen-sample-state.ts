@@ -32,6 +32,8 @@ const EQUIP_NAMES = [
   "三式爆雷投射機", "25mm三連装機銃", "25mm連装機銃", "九一式徹甲弾", "三式弾", "応急修理要員",
   "ドラム缶(輸送用)", "大発動艇", "探照灯", "照明弾", "彗星一二型(三一号光電管爆弾搭載機)",
   "零式水上偵察機11型乙", "25mm三連装機銃 集中配備", "15.2cm三連装砲", "Ro.44水上戦闘機", "強風改", "甲標的 甲型",
+  // 基地航空隊
+  "九六式陸攻", "一式陸攻", "一式陸攻 二二型甲", "銀河", "雷電",
 ];
 
 const byName = (list: any[], name: string) => list.find((x) => x.api_name === name);
@@ -50,7 +52,7 @@ const keyed = (list: any[]) => Object.fromEntries(list.map((x) => [x.api_id, x])
 const usedTypes = new Set(equips.flatMap((e) => [e.api_type[2]]));
 const usedStypes = new Set([...ships, ...abyssals].map((s) => s.api_stype));
 
-// ---- 所持艦 (info) のサンプル: 第1艦隊 6隻 + 第2艦隊 6隻 ----
+// ---- 所持艦 (info) のサンプル: 第1〜第5艦隊、基地航空隊 3 隊 ----
 const equipIdByName = (n: string) => byName(start2.api_mst_slotitem, n)?.api_id;
 const loadouts: Record<string, [string, number, number][]> = {
   大和改二: [["46cm三連装砲", 10, 0], ["46cm三連装砲", 7, 0], ["三式弾", 0, 0], ["22号対水上電探改四(後期調整型)", 0, 0]],
@@ -185,8 +187,29 @@ for (let i = fleets.length; i < 4; i++) {
   fleets.push({ api_id: i + 1, api_name: `第${i + 1}艦隊`, api_ship: [-1, -1, -1, -1, -1, -1] });
 }
 
+// 基地航空隊 (poi の info.airbase と同じ形): 6 番海域に 3 隊。第1・第2 は出撃、第3 は防空
+const baseLoadouts: [number, string[]][] = [
+  [1, ["一式陸攻 二二型甲", "一式陸攻", "銀河", "九六式陸攻"]],
+  [1, ["零式艦戦52型", "一式陸攻", "一式陸攻", "九六式陸攻"]],
+  [2, ["雷電", "雷電", "烈風改", "零式艦戦52型"]],
+];
+const airbase = baseLoadouts.map(([action, names], bi) => ({
+  api_area_id: 6,
+  api_rid: bi + 1,
+  api_name: `第${bi + 1}基地航空隊`,
+  api_action_kind: action,
+  api_distance: { api_base: 7, api_bonus: 0 },
+  api_plane_info: names.map((eName, si) => {
+    const mid = equipIdByName(eName);
+    if (!mid) throw new Error(`基地: 装備 "${eName}" が start2 に無い`);
+    const iid = nextEquip++;
+    equipInst[iid] = { api_id: iid, api_slotitem_id: mid, api_level: 0, api_alv: 7, api_locked: 0 };
+    return { api_squadron_id: si + 1, api_state: 1, api_slotid: iid, api_count: 18, api_max_count: 18, api_cond: 1 };
+  }),
+}));
+
 const state = {
-  info: { basic: { api_level: 120, api_nickname: "sample" }, fleets, ships: shipInst, equips: equipInst },
+  info: { basic: { api_level: 120, api_nickname: "sample" }, fleets, ships: shipInst, equips: equipInst, airbase },
   const: {
     $ships: keyed([...ships, ...abyssals]),
     $equips: keyed(equips),

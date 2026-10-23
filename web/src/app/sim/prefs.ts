@@ -16,6 +16,8 @@ export interface WorkspacePrefs {
   mode: SimMode;
   /** 単一マス戦闘のノード (null はボス) */
   node: string | null;
+  /** 出撃の目標マス (海域 → マス)。無い海域はボス */
+  targets: Record<string, string>;
   auto: boolean;
   /** 手動実行の回数 */
   count: number;
@@ -37,6 +39,7 @@ export const DEFAULT_PREFS: WorkspacePrefs = {
   difficulty: null,
   mode: "sortie",
   node: null,
+  targets: {},
   auto: true,
   count: 10_000,
   seed: 12345,

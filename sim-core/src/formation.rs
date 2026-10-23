@@ -1,4 +1,5 @@
-//! Formation and engagement modifiers (kcsim LINEAHEAD..VANGUARD2, SIMCONSTS vanguard tables).
+//! Formation and engagement modifiers (kcsim LINEAHEAD..VANGUARD2, COMBINEDCF1..4,
+//! SIMCONSTS.echelonOld and vanguard tables).
 
 use crate::model::{Engagement, Formation};
 use crate::ship::ShipClass;
@@ -47,6 +48,13 @@ pub const LINE_ABREAST: FormMods = fm(0.6, 0.6, 1.3, 1.0, 1.2, 0.3, 0.8, None, 1
 pub const VANGUARD_FRONT: FormMods = fm(0.5, 1.0, 1.0, 1.1, 0.8, 0.7, 0.8, Some(1.0), 1.0, 1.0, 1.0, 1.0);
 /// Vanguard, second half of the fleet.
 pub const VANGUARD_BACK: FormMods = fm(1.0, 1.0, 0.6, 1.1, 1.2, 0.9, 1.2, Some(1.1), 1.0, 1.0, 1.0, 1.0);
+/// Combined fleet cruising formations 1–4 (kcsim COMBINEDCF1..4; main and escort use the same table).
+pub const COMBINED_ANTI_SUB: FormMods = fm(0.8, 0.7, 1.3, 1.1, 0.9, 0.75, 0.8, Some(1.25), 1.1, 1.0, 1.0, 1.0);
+pub const COMBINED_FORWARD: FormMods = fm(1.0, 0.9, 1.1, 1.0, 1.0, 1.0, 0.9, Some(1.0), 1.2, 1.0, 1.0, 1.0);
+pub const COMBINED_DIAMOND: FormMods = fm(0.7, 0.6, 1.0, 1.5, 0.8, 0.35, 0.7, Some(1.1), 1.1, 1.0, 1.1, 1.0);
+pub const COMBINED_BATTLE: FormMods = fm(1.1, 1.0, 0.7, 1.0, 1.1, 1.2, 1.0, Some(0.7), 1.0, 1.0, 1.0, 1.0);
+/// Echelon of an enemy single fleet against a combined friend fleet (kcsim `SIMCONSTS.echelonOld`).
+pub const ECHELON_OLD: FormMods = fm(0.6, 0.6, 1.0, 1.0, 1.2, 0.6, 0.8, None, 1.2, 1.3, 1.1, 1.3);
 
 /// Accuracy multipliers applied to attacks AGAINST a vanguard fleet, by target position (1-based
 /// index − 1). Shelling / night / ASW tables and torpedo tables; DD vs other ships (normal maps).
@@ -70,6 +78,11 @@ pub fn mods(form: Formation, idx: usize, len: usize) -> &'static FormMods {
                 &VANGUARD_BACK
             }
         }
+        Formation::CombinedAntiSub => &COMBINED_ANTI_SUB,
+        Formation::CombinedForward => &COMBINED_FORWARD,
+        Formation::CombinedDiamond => &COMBINED_DIAMOND,
+        Formation::CombinedBattle => &COMBINED_BATTLE,
+        Formation::EchelonOld => &ECHELON_OLD,
     }
 }
 
@@ -95,20 +108,18 @@ pub fn countered(att: Formation, def: Formation) -> bool {
     matches!(
         (att, def),
         (Formation::DoubleLine, Formation::LineAbreast)
-            | (Formation::Echelon, Formation::LineAhead)
-            | (Formation::LineAbreast, Formation::Echelon)
+            | (Formation::Echelon | Formation::EchelonOld, Formation::LineAhead)
+            | (Formation::LineAbreast, Formation::Echelon | Formation::EchelonOld)
     )
 }
 
-/// Flagship protection (かばう) activation rate of the defending fleet.
+/// Flagship protection (かばう) activation rate of the defending fleet (kcsim: 0.6 for formations
+/// outside its table, i.e. the combined ones).
 pub fn protection_rate(form: Formation) -> f64 {
     match form {
         Formation::LineAhead => 0.45,
-        Formation::DoubleLine => 0.6,
-        Formation::Diamond => 0.75,
-        Formation::Echelon => 0.6,
-        Formation::LineAbreast => 0.6,
-        Formation::Vanguard => 0.75,
+        Formation::Diamond | Formation::Vanguard => 0.75,
+        _ => 0.6,
     }
 }
 

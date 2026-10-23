@@ -56,6 +56,20 @@ describe("EmbedBridge", () => {
     expect("const" in sent[2]).toBe(true);
   });
 
+  test("land bases and the combined flag are sent, and a change in either resends the state", () => {
+    const { bridge, sent } = setup();
+    const base = { ...info([1]), airbase: [{ api_area_id: 6, api_rid: 1, api_distance: { api_base: 7 }, api_plane_info: [] }] };
+    bridge.update({ info: base, const: master, combinedFlag: 0 });
+    bridge.onMessage(ready);
+    expect(sent[0]).toMatchObject({ combinedFlag: 0, info: { airbase: [{ api_area_id: 6, api_rid: 1, api_plane_info: [] }] } });
+    expect(JSON.stringify(sent[0])).not.toContain("api_distance");
+    bridge.update({ info: base, const: master, combinedFlag: 1 });
+    expect(sent).toHaveLength(2);
+    expect(sent[1]).toMatchObject({ combinedFlag: 1 });
+    bridge.update({ info: { ...base, airbase: [] }, const: master, combinedFlag: 1 });
+    expect(sent).toHaveLength(3);
+  });
+
   test("a second ready (iframe reloaded) resends everything", () => {
     const { bridge, sent } = setup();
     bridge.update({ info: info([1]), const: master });

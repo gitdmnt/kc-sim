@@ -11,7 +11,9 @@ import {
   applyBest,
   bestEstimates,
   enemyFormationOf,
+  friendFleet,
   friendFormationOf,
+  landBaseWaves,
 } from "@shared/sim/adapter";
 
 const master: MasterData = {
@@ -185,7 +187,36 @@ describe("battle input", () => {
     expect(enemyFormationOf({ formation: 4 })).toBe("echelon");
     expect(enemyFormationOf({ formation: 11 })).toBe("lineAhead");
     expect(enemyFormationOf({ formation: null })).toBe("lineAhead");
-    const b = buildBattleInput([], [], { kind: "dayNight", friendFormation: "diamond", enemyFormation: "lineAhead" });
+    const b = buildBattleInput({ ships: [], formation: "diamond" }, [], { kind: "dayNight", enemyFormation: "lineAhead" });
     expect(b).toEqual({ friend: { ships: [], formation: "diamond" }, enemy: { ships: [], formation: "lineAhead" }, options: { kind: "dayNight" } });
+  });
+
+  test("combined fleet: escort and type in the friend fleet; formations follow the fleet kind", () => {
+    const combined: Preset = { ...preset, fleetType: "surface_task_force", formation: "combined_forward", escort: preset.ships };
+    const build = buildFriendShips(combined, master);
+    expect(build.combined).toBe("surface");
+    expect(build.escort).toHaveLength(1);
+    expect(friendFleet(build, friendFormationOf(combined))).toMatchObject({ formation: "combinedForward", combined: "surface", escort: [{ id: 1 }] });
+    // a single-fleet formation on a combined preset (or the reverse) falls back to the kind's default
+    expect(friendFormationOf({ fleetType: "carrier_task_force", formation: "echelon" })).toBe("combinedBattle");
+    expect(friendFormationOf({ fleetType: "single", formation: "combined_battle" })).toBe("lineAhead");
+    expect(friendFleet(buildFriendShips(preset, master))).toEqual({ ships: expect.any(Array) });
+    expect(buildFriendShips({ ...combined, escort: [{ ...preset.ships[0], masterId: 999 }] }, master).warnings[0]).toStartWith("随伴1番艦");
+  });
+
+  test("land-base waves: sortie bases whose targets are the node, one wave per matching target; recon squadrons default to 4", () => {
+    const lb = (mode: "sortie" | "defense", targets: [string, string]) => ({
+      mode,
+      squadrons: [{ masterId: 20, improvement: 0, proficiency: 7 }, null, { masterId: 10, improvement: 0, proficiency: 0, slotSize: 12 }, null],
+      targets,
+    });
+    const waves = landBaseWaves([lb("sortie", ["J", "J"]), lb("sortie", ["F", "J"]), lb("defense", ["J", "J"]), lb("sortie", ["F", ""])], "J", master);
+    expect(waves).toHaveLength(3);
+    expect(waves[0].squadrons).toEqual([
+      { id: 20, types: [5, 7, 10, 10, 0], stats: { los: 6, firepower: 1, bombing: 1 }, improvement: 0, proficiency: 7, planes: 4 },
+      { id: 10, types: [1, 1, 1, 1, 0], stats: { firepower: 3, accuracy: 2, range: 2 }, improvement: 0, proficiency: 0, planes: 12 },
+    ]);
+    expect(buildBattleInput({ ships: [] }, [], { kind: "day", enemyFormation: "lineAhead", lbas: waves }).lbas).toHaveLength(3);
+    expect("lbas" in buildBattleInput({ ships: [] }, [], { kind: "day", enemyFormation: "lineAhead", lbas: [] })).toBe(false);
   });
 });

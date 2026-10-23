@@ -3,7 +3,7 @@
 mod common;
 
 use common::*;
-use sim_core::battle::calc::{night_air_power, Unit};
+use sim_core::battle::calc::{night_air_power, Unit, CF_NONE};
 use sim_core::formulas::{accuracy_and_crit, protect, Evasion};
 use sim_core::model::*;
 use sim_core::rng::Rng;
@@ -88,8 +88,8 @@ fn enemy_subs_without_opening_torpedo() {
         s.level = Some(50.0);
         s
     };
-    let enemy = FleetInput { ships: vec![sub(1530), sub(1532)], formation: None };
-    let mut input = battle(FleetInput { ships: vec![friend_dd(), friend_dd()], formation: None }, enemy, BattleKind::Day);
+    let enemy = FleetInput { ships: vec![sub(1530), sub(1532)], formation: None, ..Default::default() };
+    let mut input = battle(FleetInput { ships: vec![friend_dd(), friend_dd()], formation: None, ..Default::default() }, enemy, BattleKind::Day);
     input.options.log = true;
     let mut fired = [0, 0];
     for seed in 0..50 {
@@ -134,12 +134,12 @@ fn carrier_night_air_attack() {
     let st = core.initial_state(&cv);
     assert!(core.night_air_gear && core.can_night_air(&st));
     assert_eq!(core.night_cv_ci(&st), vec![NightCi::CvFa]);
-    let unit = Unit { core: &core, st: &st, form: Formation::LineAhead, idx: 0, len: 1 };
+    let unit = Unit { core: &core, st: &st, form: Formation::LineAhead, idx: 0, len: 1, cf: CF_NONE };
     let dd = ShipCore::new(&enemy_dd(), false);
     let p = night_air_power(&unit, &dd);
     assert!((p - (50.0 + 60.0 + 9.0 + 54.0 + 0.45 * 16.0 * 18f64.sqrt())).abs() < 1e-9, "{p}");
     // In a night battle the carrier attacks and sometimes cuts in; without the personnel it cannot.
-    let mut input = battle(FleetInput { ships: vec![cv.clone()], formation: None }, enemy_fleet(), BattleKind::NightOnly);
+    let mut input = battle(FleetInput { ships: vec![cv.clone()], formation: None, ..Default::default() }, enemy_fleet(), BattleKind::NightOnly);
     input.options.log = true;
     let (mut attacks, mut cutins) = (0, 0);
     for seed in 0..200 {
@@ -164,8 +164,8 @@ fn carrier_night_air_attack() {
 fn enemy_carrier_shelling() {
     let mut wo = friend_cv();
     wo.id = Some(1510);
-    let enemy = FleetInput { ships: vec![wo.clone()], formation: None };
-    let friend = FleetInput { ships: vec![friend_dd(), friend_dd()], formation: None };
+    let enemy = FleetInput { ships: vec![wo.clone()], formation: None, ..Default::default() };
+    let friend = FleetInput { ships: vec![friend_dd(), friend_dd()], formation: None, ..Default::default() };
     let mut input = battle(friend.clone(), enemy, BattleKind::Day);
     input.options.log = true;
     let mut shelled = 0;
@@ -228,8 +228,8 @@ fn air_capable_oiler_shells_like_a_carrier() {
     // Bombers shot down: no shelling turn.
     let mut empty = hayasui.clone();
     empty.slots = vec![eqp(52, 8, 8, EquipmentStats { torpedo: Some(13.0), ..Default::default() }, 0)];
-    let enemy = FleetInput { ships: vec![ship(2, 1.0, 999, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, vec![])], formation: None };
-    let mut input = battle(FleetInput { ships: vec![empty], formation: None }, enemy, BattleKind::Day);
+    let enemy = FleetInput { ships: vec![ship(2, 1.0, 999, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, vec![])], formation: None, ..Default::default() };
+    let mut input = battle(FleetInput { ships: vec![empty], formation: None, ..Default::default() }, enemy, BattleKind::Day);
     input.options.log = true;
     let events = run_battle(&input, 3).unwrap().result.events.unwrap();
     assert!(events.iter().all(|e| !(e.attacker_side == Side::Friend && e.kind == AttackKind::Shelling)));

@@ -44,9 +44,11 @@ export const orderNodeRows = (nodes: Record<string, NodeSummary>, bosses: string
 /**
  * 出撃あたりの主要率 (ボス到達 → 突破 → S 勝利、大破撤退) を同じ尺度の棒で上から並べる。
  * ボス到達の棒はボス戦の勝敗で塗り分け、突破・S 勝利はその一部分。大破撤退はノードごとの和 (1 出撃で撤退は 1 回)。
+ * `target` (目標マス) を指定したとき、boss.* はそのマスの値なので見出しもそのマスにする。
  */
-export const SortieRates = ({ s }: { s?: SortieSummary }) => {
+export const SortieRates = ({ s, target }: { s?: SortieSummary; target?: string }) => {
   const v = (x: number | undefined) => (x === undefined ? "—" : pct(x));
+  const at = target ? `${target} マス` : "ボス";
   const reach = s?.boss.reachRate ?? 0;
   const ranks = s ? rankBar(s.boss.rankRates, reach) : [];
   const heavy = s ? Object.values(s.nodes).reduce((t, n) => t + n.retreatHeavyRate, 0) : undefined;
@@ -54,9 +56,9 @@ export const SortieRates = ({ s }: { s?: SortieSummary }) => {
   const sWin = ranks.slice(0, 2);
   return (
     <RateList>
-      <RateRow label="ボス到達" parts={ranks} value={v(s?.boss.reachRate)} />
-      <RateRow label="突破" title="ボスで A 勝利以上 (出撃あたり)" parts={ranks.slice(0, 3)} value={v(s?.boss.killRate)} />
-      <RateRow label="S勝利" title="ボスで S 勝利以上 (出撃あたり)" parts={sWin} value={v(s && sWin.reduce((t, p) => t + p.value, 0))} />
+      <RateRow label={target ? `${target} 到達` : "ボス到達"} parts={ranks} value={v(s?.boss.reachRate)} />
+      <RateRow label="突破" title={`${at}で A 勝利以上 (出撃あたり)`} parts={ranks.slice(0, 3)} value={v(s?.boss.killRate)} />
+      <RateRow label="S勝利" title={`${at}で S 勝利以上 (出撃あたり)`} parts={sWin} value={v(s && sWin.reduce((t, p) => t + p.value, 0))} />
       <RateRow
         label="大破撤退"
         title={moderate > 0.0005 ? `中破撤退 ${pct(moderate)}` : undefined}
@@ -77,7 +79,7 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
   const { summary: s, data } = out;
   const [detail, setDetail] = useState<Detail>("nodes");
   const nodeInfo = useMemo(() => new Map(data.detail.nodes.map((n) => [n.letter, n])), [data]);
-  const bossLetters = data.detail.nodes.filter((n) => n.isBoss).map((n) => n.letter);
+  const bossLetters = out.target ? [out.target] : data.detail.nodes.filter((n) => n.isBoss).map((n) => n.letter);
   const edgeRates = useMemo(() => edgeRatesFromPaths(s.paths), [s]);
   const badges = useMemo(() => {
     const m = new Map<string, string>();
@@ -103,7 +105,7 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
 
   return (
     <>
-      <SortieRates s={s} />
+      <SortieRates s={s} target={out.target} />
 
       <div className="grid grid-cols-2 gap-x-6 gap-y-1">
         <Fact
@@ -111,7 +113,7 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
           value={num(sorties?.mean, 1)}
           title={[`平均 ${num(sorties?.mean, 1)} 回`, sorties && `中央値 ${sorties.p50} 回 · 90% 点 ${sorties.p90} 回`, clear ? `${clear.runs} 回試行` : "1 / 突破率 (幾何分布)"].filter(Boolean).join("\n")}
         />
-        <Fact label="ボス旗艦撃沈" value={pct(s.boss.flagshipSunkRate)} title={`平均旗艦ダメージ ${num(s.boss.flagshipDamageMean)}`} />
+        <Fact label={`${out.target ? `${out.target} マス` : "ボス"}旗艦撃沈`} value={pct(s.boss.flagshipSunkRate)} title={`平均旗艦ダメージ ${num(s.boss.flagshipDamageMean)}`} />
         <Fact label="戦闘" value={num(s.battlesMean, 2)} title={`平均 ${num(s.nodesMean, 2)} マス`} />
         <Fact label="燃料 / 弾薬" value={`${num(s.fuelUsedMean, 0)} / ${num(s.ammoUsedMean, 0)}`} title="艦隊合計の平均 (出撃あたり)" />
         {s.sunkRate >= 0.0005 && <Fact label="味方撃沈" value={pct(s.sunkRate)} tone="danger" />}

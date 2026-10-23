@@ -9,7 +9,29 @@ use crate::formulas::*;
 use crate::model::Formation;
 use crate::ship::{DayCi, NightCi, ShipClass, ShipCore, ShipState};
 
-/// A ship in its battle context.
+/// Combined-fleet terms of one ship's attacks (kcsim `basepowshell` / `baseaccshell`,
+/// `torpedoPhase` escort rule, `airstrike` combined-target terms). [`CF_NONE`] outside combined battles.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Cf {
+    /// Added to the +5 of basic shelling power (kcsim `COMBINEDCONSTS.shellDmg*`).
+    pub shell_pow: f64,
+    /// Shelling accuracy base (kcsim `COMBINEDCONSTS.shellAcc*`, 90 otherwise).
+    pub shell_acc: f64,
+    /// Torpedo basic power bonus: 5, or 0 when the attacker or its target is an escort ship.
+    pub torp_pow: f64,
+    /// As an airstrike target in a friend combined fleet: accuracy (fraction) and power-base bonus
+    /// (kcsim `SIMCONSTS.airstrikeAcc*F` / `airstrikeDmg*F`).
+    pub air_acc: f64,
+    pub air_pow: f64,
+}
+
+pub const CF_NONE: Cf = Cf { shell_pow: 0.0, shell_acc: 90.0, torp_pow: 5.0, air_acc: 0.0, air_pow: 0.0 };
+
+/// Airstrike power base (kcsim `airstrike`: 25).
+pub const AIR_BASE: f64 = 25.0;
+
+/// A ship in its battle context. `idx` / `len` are its position and the size of its own fleet
+/// (main or escort).
 #[derive(Clone, Copy)]
 pub struct Unit<'a> {
     pub core: &'a ShipCore,
@@ -17,6 +39,7 @@ pub struct Unit<'a> {
     pub form: Formation,
     pub idx: usize,
     pub len: usize,
+    pub cf: Cf,
 }
 
 impl<'a> Unit<'a> {
@@ -30,7 +53,7 @@ impl<'a> Unit<'a> {
         self.st.hp_ratio(self.core.max_hp)
     }
 
-    fn evasion(&self, ev_mod: f64, ev_flat: f64) -> Evasion {
+    pub(crate) fn evasion(&self, ev_mod: f64, ev_flat: f64) -> Evasion {
         Evasion {
             ev: self.core.ev,
             luck: self.core.luck,
@@ -256,7 +279,7 @@ pub fn shelling_terms(att: &Unit, def: &Unit, ci: Option<DayCi>) -> AccTerms {
         acc_mod2 *= ci.data().acc;
     }
     let tail = HitTail::Shell { fit: a.fit_acc * 0.01, mod2: acc_mod2, de: a.class == ShipClass::DE };
-    let hit = HitFn::new(90.0, a.level, a.acc + a.bonus.acc, &[a.imp.acc_shell], acc_mod, tail);
+    let hit = HitFn::new(att.cf.shell_acc, a.level, a.acc + a.bonus.acc, &[a.imp.acc_shell], acc_mod, tail);
     let ev = def.evasion(def.fm().shell_ev, def.core.imp.ev_shell);
     let planes = carrier_shelling(a);
     let (crit_rate, mut crit_dmg, acc_plane) = a.proficiency(att.st);
@@ -317,8 +340,8 @@ fn cvci_crit(a: &ShipCore, st: &ShipState, ci: DayCi, prof_crit_rate: f64) -> (f
     (rate, dmg)
 }
 
-/// Basic shelling power (kcsim `shellPower`, single fleet: +5).
-pub fn shell_basic_power(att: &ShipCore, def: &ShipCore) -> f64 {
+/// Basic shelling power (kcsim `shellPower`): `base` is added to the usual +5 (0 for single fleets).
+pub fn shell_basic_power(att: &ShipCore, def: &ShipCore, base: f64) -> f64 {
     if carrier_shelling(att) {
         let mut dp = 0.0;
         let mut tp = att.bonus.tp;
@@ -329,18 +352,18 @@ pub fn shell_basic_power(att: &ShipCore, def: &ShipCore) -> f64 {
         if def.is_installation {
             tp = 0.0;
         }
-        let fp = att.fp + 5.0 + att.imp.p_shell;
+        let fp = att.fp + (5.0 + base) + att.imp.p_shell;
         25.0 + (1.5 * (15.0 + fp + tp + (1.3 * dp).floor())).floor()
     } else {
         let sub_bonus = if att.class.is_sub() && def.is_installation { 30.0 } else { 0.0 };
-        att.fp + sub_bonus + 5.0 + att.imp.p_shell
+        att.fp + sub_bonus + (5.0 + base) + att.imp.p_shell
     }
 }
 
 /// Post-cap shelling power before the critical multiplier.
 pub fn shelling_power(att: &Unit, def: &Unit, engagement: f64, ci: Option<DayCi>) -> f64 {
     let pre = att.fm().shell_pow * engagement * damage_state_mod(att.hp_ratio());
-    let mut pow = soft_cap((shell_basic_power(att.core, def.core) + att.core.fit_fp) * pre, CAP_DAY).floor();
+    let mut pow = soft_cap((shell_basic_power(att.core, def.core, att.cf.shell_pow) + att.core.fit_fp) * pre, CAP_DAY).floor();
     if let Some(ci) = ci {
         pow *= ci.data().dmg;
     }
@@ -401,7 +424,7 @@ pub fn effective_armor(att: &ShipCore, def: &ShipCore) -> f64 {
 /// Post-cap torpedo power (`damage_ratio` = attacker HP ratio at the start of the phase).
 pub fn torpedo_power(att: &Unit, engagement: f64, damage_ratio: f64) -> f64 {
     let a = att.core;
-    let base = a.tp + 5.0 + a.imp.p_torp;
+    let base = a.tp + att.cf.torp_pow + a.imp.p_torp;
     soft_cap(base * att.fm().torp_pow * engagement * torpedo_state_mod(damage_ratio), CAP_TORPEDO).floor()
 }
 
@@ -598,7 +621,7 @@ pub fn air_terms(att: &Unit, def: &Unit) -> AccTerms {
     let a = att.core;
     let (crit_rate, crit_dmg, acc_plane) = a.proficiency(att.st);
     let ev = def.evasion(1.0, 0.0);
-    let hit = HitFn::new(0.0, 0.0, 0.0, &[], 0.0, HitTail::Fixed(0.95));
+    let hit = HitFn::new(0.0, 0.0, 0.0, &[], 0.0, HitTail::Fixed(0.95 + def.cf.air_acc));
     AccTerms {
         hit, luck: a.luck, hidden_acc: a.hidden_acc, ev, crit_mod: 0.0, plane: Some(PlaneBonus { acc: acc_plane, crit_rate }), crit_flat: 0.0,
         crit_dmg,
@@ -620,10 +643,11 @@ pub fn air_plane_base(att: &ShipCore, slot: usize, def: &ShipCore) -> (f64, bool
     (base, dive)
 }
 
-/// Post-cap airstrike power (before crit), given the torpedo-bomber multiplier (1 for dive bombers).
-pub fn air_power(att: &ShipCore, slot: usize, planes: i32, def: &ShipCore, mult: f64, contact: f64) -> f64 {
+/// Post-cap airstrike power (before crit), given the torpedo-bomber multiplier (1 for dive bombers)
+/// and the power base ([`AIR_BASE`], lower against combined fleets).
+pub fn air_power(att: &ShipCore, slot: usize, planes: i32, def: &ShipCore, mult: f64, contact: f64, base_pow: f64) -> f64 {
     let (base, _) = air_plane_base(att, slot, def);
-    let mut pow = (25.0 + (planes.max(0) as f64).sqrt() * base) * mult;
+    let mut pow = (base_pow + (planes.max(0) as f64).sqrt() * base) * mult;
     if att.slots[slot].as_ref().is_some_and(|e| e.has(f::JET)) {
         pow = pow * 0.7 + 0.5;
     }

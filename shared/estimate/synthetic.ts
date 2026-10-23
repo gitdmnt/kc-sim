@@ -15,11 +15,14 @@ import { DAY_SPECIAL, ENGAGEMENT_BY_ID, NIGHT_SPECIAL } from "./observe";
 import type { BattleRecord } from "./types";
 
 const PHASE: Record<SimEvent["phase"], AttackPhase> = {
-  airStrike: "air", openingAsw: "opening_asw", openingTorpedo: "opening_torpedo",
-  shelling1: "shelling1", shelling2: "shelling2", closingTorpedo: "closing_torpedo", night: "night",
+  airStrike: "air", landBase: "air", openingAsw: "opening_asw", openingTorpedo: "opening_torpedo",
+  shelling1: "shelling1", shelling2: "shelling2", shelling3: "shelling3", closingTorpedo: "closing_torpedo", night: "night",
 };
 
-const FORMATION_ID: Record<Formation, number> = { lineAhead: 1, doubleLine: 2, diamond: 3, echelon: 4, lineAbreast: 5, vanguard: 6 };
+const FORMATION_ID: Record<Formation, number> = {
+  lineAhead: 1, doubleLine: 2, diamond: 3, echelon: 4, lineAbreast: 5, vanguard: 6,
+  combinedAntiSub: 11, combinedForward: 12, combinedDiamond: 13, combinedBattle: 14,
+};
 
 const invert = <K extends string>(m: Record<number, K>): Partial<Record<K, number>> => {
   const out: Partial<Record<K, number>> = {};

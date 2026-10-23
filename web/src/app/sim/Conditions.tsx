@@ -17,10 +17,13 @@ const NIGHT_LABEL: Record<NightPolicy, string> = {
 };
 const KIND_LABEL: Record<OfferedKind, string> = { day: "昼戦のみ", dayNight: "昼戦 → 夜戦", nightOnly: "夜戦マス" };
 const FORMATIONS: Formation[] = ["lineAhead", "doubleLine", "diamond", "echelon", "lineAbreast", "vanguard"];
+/** 連合艦隊の陣形 (第一〜第四警戒航行序列 = FORMATION_NAME 11〜14) */
+const COMBINED_FORMATIONS: Formation[] = ["combinedAntiSub", "combinedForward", "combinedDiamond", "combinedBattle"];
 const COUNTS = [10_000, 50_000, 100_000, 500_000];
 export const DIFF = ["通常", "丁", "丙", "乙", "甲"];
-/** 通常艦隊の陣形 (連合艦隊は未対応) */
-const PRESET_FORMATIONS = Object.keys(S.formations) as (keyof typeof S.formations)[];
+const PRESET_FORMATIONS: Record<PresetFormation, string> = { ...S.formations, ...S.combinedFormations };
+const SINGLE_KEYS = Object.keys(S.formations) as PresetFormation[];
+const COMBINED_KEYS = Object.keys(S.combinedFormations) as PresetFormation[];
 
 /** 海域ごとの出撃条件 (保存しない)。 */
 export interface MapConfig {
@@ -75,13 +78,18 @@ interface Props {
   bossSets: EnemyCompSet[];
   formation: PresetFormation | null;
   setFormation: (f: PresetFormation) => void;
+  /** 連合艦隊 (陣形の選択肢が警戒航行序列になる) */
+  combined: boolean;
 }
 
 /** 条件パネル (ツールバーの「条件」)。 */
-export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, battleNodes, bossSets, formation, setFormation }: Props) => {
+export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, battleNodes, bossSets, formation, setFormation, combined }: Props) => {
   const starts = startNodes(routing);
   const selNodes = selectNodes(routing);
   const flags = flagNames(routing);
+  const presetKeys = combined ? COMBINED_KEYS : SINGLE_KEYS;
+  const nodeFormations = combined ? COMBINED_FORMATIONS : FORMATIONS;
+  const nodeFormationBase = combined ? 11 : 1;
 
   const common = (
     <>
@@ -112,10 +120,10 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, battle
     return (
       <div className="grid grid-cols-3 gap-3">
         <Field label={S.fleet.formation}>
-          <Select value={formation ?? "line_ahead"} disabled={!formation} onChange={(e) => setFormation(e.target.value as PresetFormation)}>
-            {PRESET_FORMATIONS.map((f) => (
+          <Select value={formation ?? presetKeys[0]} disabled={!formation} onChange={(e) => setFormation(e.target.value as PresetFormation)}>
+            {presetKeys.map((f) => (
               <option key={f} value={f}>
-                {S.formations[f]}
+                {PRESET_FORMATIONS[f]}
               </option>
             ))}
           </Select>
@@ -226,16 +234,16 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, battle
           {battleNodes.map((n) => (
             <Field key={n.letter} label={`陣形 ${n.letter}`}>
               <Select
-                value={cfg.formations[n.letter] ?? ""}
+                value={nodeFormations.find((f) => f === cfg.formations[n.letter]) ?? ""}
                 onChange={(e) => {
                   const { [n.letter]: _drop, ...rest } = cfg.formations;
                   setCfg({ formations: e.target.value ? { ...rest, [n.letter]: e.target.value as Formation } : rest });
                 }}
               >
                 <option value="">自動</option>
-                {FORMATIONS.map((f, i) => (
+                {nodeFormations.map((f, i) => (
                   <option key={f} value={f}>
-                    {FORMATION_NAME[i + 1]}
+                    {FORMATION_NAME[nodeFormationBase + i]}
                   </option>
                 ))}
               </Select>

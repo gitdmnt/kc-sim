@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::model::{FleetInput, Formation, RankRates};
+use crate::model::{EquipmentInput, FleetInput, Formation, RankRates};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -68,6 +68,9 @@ pub struct SortieConfig {
     pub difficulty: Option<f64>,
     pub phase: Option<f64>,
     pub gauge: Option<f64>,
+    /// Node letter whose battle replaces the boss node in every boss output (and the gauge); the
+    /// sortie ends right after it. Default: the map's boss node.
+    pub target: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -125,9 +128,20 @@ pub struct GaugeInput {
     pub max_sorties: Option<u32>,
 }
 
+/// A sortie land base: squadrons and the node letters of its two waves (same letter twice = both
+/// waves at that node; empty = not sortied). Plane counts reset every sortie; losses carry from
+/// node to node.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct LandBase {
+    pub squadrons: Vec<EquipmentInput>,
+    pub targets: Vec<String>,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SortieInput {
+    /// Single or combined friend fleet.
     pub friend: FleetInput,
     pub hq_level: f64,
     pub map: SortieMap,
@@ -141,6 +155,9 @@ pub struct SortieInput {
     pub max_nodes: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub top_paths: Option<u32>,
+    /// Land bases (up to 3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lbas: Option<Vec<LandBase>>,
 }
 
 // ---------------------------------------------------------------- output ----

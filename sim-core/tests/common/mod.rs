@@ -115,7 +115,7 @@ pub fn friend_cv() -> ShipInput {
 }
 
 pub fn friend_fleet() -> FleetInput {
-    FleetInput { ships: vec![friend_bb(), friend_ca(), friend_ca(), friend_cl(), friend_dd(), friend_dd()], formation: Some(Formation::LineAhead) }
+    FleetInput { ships: vec![friend_bb(), friend_ca(), friend_ca(), friend_cl(), friend_dd(), friend_dd()], formation: Some(Formation::LineAhead), ..Default::default() }
 }
 
 pub fn enemy_bb() -> ShipInput {
@@ -137,14 +137,11 @@ pub fn enemy_ss() -> ShipInput {
 }
 
 pub fn enemy_fleet() -> FleetInput {
-    FleetInput {
-        ships: vec![enemy_bb(), enemy_ca(), enemy_cl(), enemy_dd(), enemy_dd(), enemy_dd()],
-        formation: Some(Formation::LineAhead),
-    }
+    FleetInput { ships: vec![enemy_bb(), enemy_ca(), enemy_cl(), enemy_dd(), enemy_dd(), enemy_dd()], formation: Some(Formation::LineAhead), ..Default::default() }
 }
 
 pub fn battle(friend: FleetInput, enemy: FleetInput, kind: BattleKind) -> BattleInput {
-    BattleInput { friend, enemy, options: BattleOptions { kind, engagement: None, log: false } }
+    BattleInput { friend, enemy, options: BattleOptions { kind, engagement: None, log: false }, lbas: None }
 }
 
 // --- 1-5 sortie from the saved server API responses -------------------------------------
@@ -232,7 +229,7 @@ pub fn fleet_1_5() -> FleetInput {
         s.fuel_max = Some(15);
         s.ammo_max = Some(20);
     }
-    FleetInput { ships, formation: None }
+    FleetInput { ships, formation: None, ..Default::default() }
 }
 
 pub fn sortie_1_5(friend: FleetInput) -> sim_core::sortie::model::SortieInput {

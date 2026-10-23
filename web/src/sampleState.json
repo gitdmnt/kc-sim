@@ -2476,8 +2476,226 @@
     "api_level": 0,
     "api_alv": 0,
     "api_locked": 0
+   },
+   "5088": {
+    "api_id": 5088,
+    "api_slotitem_id": 180,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5089": {
+    "api_id": 5089,
+    "api_slotitem_id": 169,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5090": {
+    "api_id": 5090,
+    "api_slotitem_id": 187,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5091": {
+    "api_id": 5091,
+    "api_slotitem_id": 168,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5092": {
+    "api_id": 5092,
+    "api_slotitem_id": 21,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5093": {
+    "api_id": 5093,
+    "api_slotitem_id": 169,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5094": {
+    "api_id": 5094,
+    "api_slotitem_id": 169,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5095": {
+    "api_id": 5095,
+    "api_slotitem_id": 168,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5096": {
+    "api_id": 5096,
+    "api_slotitem_id": 175,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5097": {
+    "api_id": 5097,
+    "api_slotitem_id": 175,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5098": {
+    "api_id": 5098,
+    "api_slotitem_id": 333,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
+   },
+   "5099": {
+    "api_id": 5099,
+    "api_slotitem_id": 21,
+    "api_level": 0,
+    "api_alv": 7,
+    "api_locked": 0
    }
-  }
+  },
+  "airbase": [
+   {
+    "api_area_id": 6,
+    "api_rid": 1,
+    "api_name": "第1基地航空隊",
+    "api_action_kind": 1,
+    "api_distance": {
+     "api_base": 7,
+     "api_bonus": 0
+    },
+    "api_plane_info": [
+     {
+      "api_squadron_id": 1,
+      "api_state": 1,
+      "api_slotid": 5088,
+      "api_count": 18,
+      "api_max_count": 18,
+      "api_cond": 1
+     },
+     {
+      "api_squadron_id": 2,
+      "api_state": 1,
+      "api_slotid": 5089,
+      "api_count": 18,
+      "api_max_count": 18,
+      "api_cond": 1
+     },
+     {
+      "api_squadron_id": 3,
+      "api_state": 1,
+      "api_slotid": 5090,
+      "api_count": 18,
+      "api_max_count": 18,
+      "api_cond": 1
+     },
+     {
+      "api_squadron_id": 4,
+      "api_state": 1,
+      "api_slotid": 5091,
+      "api_count": 18,
+      "api_max_count": 18,
+      "api_cond": 1
+     }
+    ]
+   },
+   {
+    "api_area_id": 6,
+    "api_rid": 2,
+    "api_name": "第2基地航空隊",
+    "api_action_kind": 1,
+    "api_distance": {
+     "api_base": 7,
+     "api_bonus": 0
+    },
+    "api_plane_info": [
+     {
+      "api_squadron_id": 1,
+      "api_state": 1,
+      "api_slotid": 5092,
+      "api_count": 18,
+      "api_max_count": 18,
+      "api_cond": 1
+     },
+     {
+      "api_squadron_id": 2,
+      "api_state": 1,
+      "api_slotid": 5093,
+      "api_count": 18,
+      "api_max_count": 18,
+      "api_cond": 1
+     },
+     {
+      "api_squadron_id": 3,
+      "api_state": 1,
+      "api_slotid": 5094,
+      "api_count": 18,
+      "api_max_count": 18,
+      "api_cond": 1
+     },
+     {
+      "api_squadron_id": 4,
+      "api_state": 1,
+      "api_slotid": 5095,
+      "api_count": 18,
+      "api_max_count": 18,
+      "api_cond": 1
+     }
+    ]
+   },
+   {
+    "api_area_id": 6,
+    "api_rid": 3,
+    "api_name": "第3基地航空隊",
+    "api_action_kind": 2,
+    "api_distance": {
+     "api_base": 7,
+     "api_bonus": 0
+    },
+    "api_plane_info": [
+     {
+      "api_squadron_id": 1,
+      "api_state": 1,
+      "api_slotid": 5096,
+      "api_count": 18,
+      "api_max_count": 18,
+      "api_cond": 1
+     },
+     {
+      "api_squadron_id": 2,
+      "api_state": 1,
+      "api_slotid": 5097,
+      "api_count": 18,
+      "api_max_count": 18,
+      "api_cond": 1
+     },
+     {
+      "api_squadron_id": 3,
+      "api_state": 1,
+      "api_slotid": 5098,
+      "api_count": 18,
+      "api_max_count": 18,
+      "api_cond": 1
+     },
+     {
+      "api_squadron_id": 4,
+      "api_state": 1,
+      "api_slotid": 5099,
+      "api_count": 18,
+      "api_max_count": 18,
+      "api_cond": 1
+     }
+    ]
+   }
+  ]
  },
  "const": {
   "$ships": {
@@ -8895,6 +9113,207 @@
     "api_usebull": "0",
     "api_version": 2
    },
+   "168": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 10,
+    "api_broken": [
+     7,
+     4,
+     0,
+     12
+    ],
+    "api_cost": 10,
+    "api_distance": 8,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 168,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "九六式陸攻",
+    "api_raig": 8,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 1,
+    "api_sakb": 0,
+    "api_saku": 2,
+    "api_soku": 0,
+    "api_sortno": 168,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 2,
+    "api_tyku": 1,
+    "api_type": [
+     21,
+     38,
+     47,
+     37,
+     4
+    ],
+    "api_usebull": "0"
+   },
+   "169": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 12,
+    "api_broken": [
+     8,
+     5,
+     0,
+     13
+    ],
+    "api_cost": 12,
+    "api_distance": 9,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 169,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "一式陸攻",
+    "api_raig": 10,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 2,
+    "api_sakb": 0,
+    "api_saku": 3,
+    "api_soku": 0,
+    "api_sortno": 169,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 2,
+    "api_tyku": 2,
+    "api_type": [
+     21,
+     38,
+     47,
+     37,
+     4
+    ],
+    "api_usebull": "0"
+   },
+   "175": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 0,
+    "api_broken": [
+     3,
+     2,
+     0,
+     7
+    ],
+    "api_cost": 6,
+    "api_distance": 2,
+    "api_houg": 0,
+    "api_houk": 2,
+    "api_houm": 5,
+    "api_id": 175,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "雷電",
+    "api_raig": 0,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 4,
+    "api_sakb": 0,
+    "api_saku": 0,
+    "api_soku": 0,
+    "api_sortno": 175,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 0,
+    "api_tyku": 6,
+    "api_type": [
+     22,
+     39,
+     48,
+     38,
+     18
+    ],
+    "api_usebull": "0"
+   },
+   "180": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 12,
+    "api_broken": [
+     8,
+     5,
+     0,
+     14
+    ],
+    "api_cost": 12,
+    "api_distance": 10,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 0,
+    "api_id": 180,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "一式陸攻 二二型甲",
+    "api_raig": 11,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 3,
+    "api_sakb": 0,
+    "api_saku": 4,
+    "api_soku": 0,
+    "api_sortno": 180,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 2,
+    "api_tyku": 3,
+    "api_type": [
+     21,
+     38,
+     47,
+     37,
+     4
+    ],
+    "api_usebull": "0",
+    "api_version": 2
+   },
+   "187": {
+    "api_atap": 0,
+    "api_bakk": 0,
+    "api_baku": 14,
+    "api_broken": [
+     9,
+     6,
+     0,
+     17
+    ],
+    "api_cost": 13,
+    "api_distance": 9,
+    "api_houg": 0,
+    "api_houk": 0,
+    "api_houm": 1,
+    "api_id": 187,
+    "api_leng": 0,
+    "api_luck": 0,
+    "api_name": "銀河",
+    "api_raig": 14,
+    "api_raik": 0,
+    "api_raim": 0,
+    "api_rare": 4,
+    "api_sakb": 0,
+    "api_saku": 3,
+    "api_soku": 0,
+    "api_sortno": 187,
+    "api_souk": 0,
+    "api_taik": 0,
+    "api_tais": 3,
+    "api_tyku": 3,
+    "api_type": [
+     21,
+     38,
+     47,
+     37,
+     4
+    ],
+    "api_usebull": "0"
+   },
    "217": {
     "api_atap": 0,
     "api_bakk": 0,
@@ -10859,6 +11278,11 @@
    "45": {
     "api_id": 45,
     "api_name": "水上戦闘機",
+    "api_show_flg": 0
+   },
+   "47": {
+    "api_id": 47,
+    "api_name": "陸上攻撃機",
     "api_show_flg": 0
    },
    "48": {
