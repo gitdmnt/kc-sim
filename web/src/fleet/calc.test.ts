@@ -7,7 +7,8 @@ import {
   slotFighterPower,
   summarizeFleet,
 } from "@shared/fleet/calc";
-import type { EquipMaster, MasterData, PresetShip } from "@shared/fleet/types";
+import { shipBoostedSpeed } from "@shared/fleet/speed";
+import type { EquipMaster, MasterData, PresetShip, ShipMaster } from "@shared/fleet/types";
 // Shared with sim-core routing::los33 (sim-core/tests/routing.rs los_formula_33_shared_vectors).
 import losVectors from "../../../sim-core/tests/fixtures/los33-vectors.json";
 
@@ -166,5 +167,46 @@ describe("summarizeFleet", () => {
     const s = summarizeFleet([ship(1, undefined, [])], master);
     expect(s.los).toBeNull();
     expect(s.speed).toBeNull();
+  });
+});
+
+describe("speed boost from turbine and boilers (wikiwiki 速力 table)", () => {
+  const mk = (api_name: string, api_soku: number, api_stype = 2): ShipMaster => ({ api_id: 1, api_name, api_soku, api_stype });
+  const eqs = (...list: [number, number?][]) => list.map(([masterId, improvement = 0]) => ({ masterId, improvement, proficiency: 0 }));
+  const speed = (m: ReturnType<typeof mk>, equips: ReturnType<typeof eqs>) => shipBoostedSpeed(m, equips);
+  const T = [33] as [number];
+  const E = [34] as [number];
+  const B = [87] as [number];
+
+  test("slow battleship (low B): 2 boiler slots → fast, 3 → fast+, never fastest", () => {
+    const bb = mk("扶桑", 5, 9);
+    expect(speed(bb, eqs(T, E)).value).toBe(10);
+    expect(speed(bb, eqs(T, B, E)).value).toBe(10);
+    expect(speed(bb, eqs(T, B, B)).value).toBe(15);
+    expect(speed(bb, eqs(T, E, E, E)).value).toBe(15);
+    expect(speed(bb, eqs(T, B, B, B)).value).toBe(15);
+    expect(speed(bb, eqs(E, E)).value).toBe(5);
+  });
+
+  test("fast ship groups: A reaches fastest with one new boiler, B2 needs two", () => {
+    expect(speed(mk("島風", 10), eqs(T, B)).value).toBe(20);
+    expect(speed(mk("島風", 10), eqs(B, B)).value).toBe(10);
+    expect(speed(mk("島風", 10), eqs([87, 7], [87, 7])).value).toBe(20);
+    expect(speed(mk("吹雪", 10), eqs(T, B)).value).toBe(15);
+    expect(speed(mk("吹雪", 10), eqs(T, B, B)).value).toBe(20);
+    expect(speed(mk("金剛", 10, 8), eqs(T, B, E)).value).toBe(20);
+    expect(speed(mk("加賀", 10, 11), eqs(T, B, B, B)).value).toBe(15);
+  });
+
+  test("star-7 new boiler counts for turbine-less and low A ships", () => {
+    expect(speed(mk("大和", 5, 9), eqs(T, B)).value).toBe(10);
+    expect(speed(mk("大和", 5, 9), eqs(T, [87, 7])).value).toBe(15);
+    expect(speed(mk("Samuel B.Roberts", 5), eqs(T)).value).toBe(10);
+  });
+
+  test("no equipment keeps the base speed; unlisted ships are flagged as guessed", () => {
+    expect(speed(mk("吹雪", 10), eqs())).toEqual({ value: 10, guessed: false });
+    expect(speed(mk("吹雪", 10), eqs(T, B))).toEqual({ value: 15, guessed: true });
+    expect(speed(mk("島風", 10), eqs(T, B)).guessed).toBe(false);
   });
 });

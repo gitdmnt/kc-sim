@@ -771,6 +771,19 @@ export interface SortieNode {
   boss?: boolean;
   /** Enemy comps of battle-type nodes. A battle-type node without comps is treated as empty. */
   comps?: EnemyComp[];
+  /** `resource` / `landing` nodes: expected gain per visit (not applied to the ships). */
+  resource?: ResourceAmounts;
+  /** `maelstrom` nodes: loss definition. Without `rate` the node causes no loss (warned). */
+  maelstrom?: Maelstrom;
+  /** Fuel / ammo the node's battle consumes, as fractions of each ship's capacity (floored, at
+   *  least 1 fuel; ammo +50 % rounded up after night pursuit). Default by node: 20 % / 20 %; night
+   *  battle 10 % / 10 %; air raid 6 % / 4 %; submarines only 8 % / 0 % (a submarine boss 20 % / 20 %);
+   *  PT imps only 4 % / 8 %. Set it for other node types, e.g. radar ambush `{ fuel: 0.04, ammo: 0 }`,
+   *  anti-sub air raid `{ fuel: 0.12, ammo: 0.06 }`, 6-4 / 6-5 air raids `{ fuel: 0.04, ammo: 0.08 }`. */
+  supply?: { fuel: number; ammo: number };
+  /** Battle kind of the node, replacing the one from `kind` and the night policy (a battle-type
+   *  node with comps still decides whether there is a battle). */
+  battleKind?: BattleKind;
   /** Event bonuses of the friend ships at this node (`friend.ships` order; `null` = none). */
   bonuses?: (ShipBonusSet | null)[];
   /** Event bonuses of the friend escort ships at this node (`friend.escort` order). */
@@ -782,6 +795,30 @@ export interface SortieNode {
   /** Land-base distance of the node (api_distance). Waves to a node beyond a base's radius are
    *  dropped (warning). */
   lbasDistance?: number;
+  /** Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect. Default false. */
+  balloons?: boolean;
+}
+
+export interface ResourceAmounts {
+  fuel?: number;
+  ammo?: number;
+  steel?: number;
+  bauxite?: number;
+}
+
+/** Per-ship loss `min(max, floor(have × rate × (1 − radar reduction)))`; the radar reduction by the
+ *  number of afloat ships carrying a small/large radar (`types[2]` 12/13) is
+ *  0 / 25 / 40 / 50 / 55 / 58 / 60 % for 0…6+ ships. */
+export interface Maelstrom {
+  resource: "fuel" | "ammo";
+  rate?: number;
+  /** Per-ship cap. */
+  max?: number;
+  /** Strong maelstrom: with probability `highChance` (default 0) `rateHigh` is used instead. */
+  rateHigh?: number;
+  highChance?: number;
+  /** Default true. */
+  radarReducible?: boolean;
 }
 
 export interface SortieMap {
@@ -818,14 +855,25 @@ export type NightPolicy = "never" | "bossOnly" | "always" | "ifNotSRank" | "ifNo
 export interface RetreatPolicy {
   /** Retreat when a ship is heavily damaged (大破撤退). Default true. A heavily damaged (main)
    *  flagship always ends the sortie; a combined fleet's escort flagship is ignored (it cannot
-   *  sink). 護衛退避 is not modelled. */
+   *  sink). */
   onHeavy?: boolean;
   /** A heavily damaged non-flagship that still carries a damage-control item does not force a
    *  retreat. Default true. */
   allowDamecon?: boolean;
   /** Retreat when a ship is moderately damaged (中破撤退). Default false. */
   onModerate?: boolean;
+  /** Evacuate (護衛退避) the one ship that would force a retreat, with the main flagship's
+   *  command facility: 艦隊司令部施設 (id 107, combined fleets: the ship leaves with the first
+   *  escort destroyer above 75 % HP), 遊撃部隊 艦隊司令部施設 (272, striking forces) or 精鋭水雷戦隊
+   *  司令部 (413, torpedo squadrons): the ship leaves alone and loses 20 % of its max HP. Evacuated
+   *  ships leave with empty fuel (and ammo with 413) and morale 49, and take no further part in
+   *  battles, routing, TP or node effects. Two or more such ships still end the sortie. Default true. */
+  useFcf?: boolean;
 }
+
+/** Choice after a node: `retreat` always returns there; `push` advances even with damaged ships
+ *  (a heavily damaged main flagship still ends the sortie). */
+export type Advance = "retreat" | "push";
 
 export interface SortiePolicy {
   /** Per-node friend formation. Default: `lineAbreast` if every comp of the node is submarines
@@ -835,12 +883,26 @@ export interface SortiePolicy {
   /** Default "bossOnly". */
   night?: NightPolicy;
   retreat?: RetreatPolicy;
+  /** Node letter → advance choice (unknown letter → Error). Other nodes follow `retreat`. */
+  advance?: Record<string, Advance>;
+  /** Underway replenishment (洋上補給, `types[2]` 44) before the boss / target battle: the items on
+   *  ships still in the fleet (max 3 used) refill every ship by 25 / 36 / 47 % (combined fleets
+   *  15 / 27.5 / 40 %) of its capacity. Default true. */
+  underway?: boolean;
+  /** Combat rations (`types[2]` 43) are eaten before the boss / target battle: ration +10 morale and
+   *  +2 to the neighbours, canned saury (id 150) +12 / +9 [unverified]. Default true. */
+  rations?: boolean;
+  /** Node letters where the friend fleet tries a smoke screen (煙幕; once per sortie, see
+   *  `BattleOptions.smoke`; `friend.smokeUsed` = already spent). Unknown letter → Error. */
+  smoke?: string[];
 }
 
 export interface GaugeInput {
-  /** `kill`: a kill = boss battle with rank ≥ A. `hp`: boss flagship damage depletes the gauge. */
-  kind: "kill" | "hp";
-  /** Kills or HP remaining. */
+  /** `kill`: a kill = the boss flagship sunk (any rank). `hp`: boss flagship damage depletes the gauge.
+   *  `tp`: transport gauge; each sortie gains the fleet's TP at the boss (S/SS full, A × 0.7
+   *  floored, else 0). Ignored when `phases` is given. */
+  kind: "kill" | "hp" | "tp";
+  /** Kills, HP or TP remaining. Ignored when `phases` is given. */
   remaining: number;
   /** HP gauge: boss comps of the final form (last dance). Default: the boss node's comps. */
   finalComps?: EnemyComp[];
@@ -852,6 +914,45 @@ export interface GaugeInput {
   runs?: number;
   /** Sorties cap per run. Default 500. */
   maxSorties?: number;
+  /** Carry morale from sortie to sortie (full sortie simulation per run, also for `kill`; default
+   *  `runs` becomes 200). Absent: every sortie starts from the input morale. */
+  morale?: GaugeMorale;
+  /** `tp`: tank-force table of the event (KC3Kai `tpMultipliers.tankforce`): ship type and equipment
+   *  TP × 0.75 / 0.8 plus the tank equipment's own TP. Default: no tank force. */
+  tank?: TankType;
+  /** `tp`: TP of a full-rank sortie, replacing the table lookup (the A-rank scaling still applies). */
+  tpPerSortie?: number;
+  /** Several gauges of one map, cleared one after another within each run (full sortie simulation;
+   *  default `runs` 200). Sorties are counted over the whole run and `maxSorties` caps the run. When
+   *  present it replaces `kind` / `remaining` / `finalComps` / `finalThreshold` / `tank` / `tpPerSortie`. */
+  phases?: GaugePhase[];
+}
+
+export type TankType = "type1" | "type2" | "typeUnk";
+
+export interface GaugePhase {
+  kind: "kill" | "hp" | "tp";
+  remaining: number;
+  /** Boss comps of this gauge. Default: the boss node's comps. */
+  comps?: EnemyComp[];
+  finalComps?: EnemyComp[];
+  finalThreshold?: number;
+  /** Routing `phase` during this gauge. Default: the map's starting phase (`config.phase`, else
+   *  `routing.defaults.phase`, else 1) + the gauge's index. */
+  phase?: number;
+  /** Routing `gauge` number during this gauge. Default: the starting gauge (`config.gauge`, else
+   *  `routing.defaults.gauge`, else 1) + the gauge's index. */
+  gauge?: number;
+  tank?: TankType;
+  tpPerSortie?: number;
+}
+
+/** Wait between two sorties: at least `waitMinutes`, and until every ship reaches `untilMorale`
+ *  (capped at 49). Natural recovery is +3 per 3 minutes up to 49 (none at ≥ 49). Sunk ships are
+ *  replaced by ships with the input morale. */
+export interface GaugeMorale {
+  waitMinutes?: number;
+  untilMorale?: number;
 }
 
 /** A sortie land base: squadrons (as in `LandBaseWave`) and the node letters of its two waves
@@ -888,6 +989,10 @@ export interface SortieInput {
   config?: SortieConfig;
   policy?: SortiePolicy;
   gauge?: GaugeInput;
+  /** Run the `count` sorties back to back (連続出撃): morale carries from one sortie to the next,
+   *  recovering during the wait in between (same rules as `GaugeInput.morale`). The web worker
+   *  splits runs into chunks, each starting from the input morale. Absent: independent sorties. */
+  consecutive?: GaugeMorale;
   /** Guard against routing loops: maximum nodes per sortie (Start excluded). Default 20. */
   maxNodes?: number;
   /** Number of most frequent paths to report. Default 20. */
@@ -900,6 +1005,21 @@ export interface SortieInput {
   /** Friend fleet (友軍艦隊) at night battles of `friendFleet.nodes`. */
   friendFleet?: FriendFleetInput;
   baseRaids?: SortieBaseRaid[];
+  /** The single friend fleet is a striking force (遊撃部隊): routing fleet type `striking`, and the
+   *  272 command facility works. A 7-ship fleet always is one. A combined fleet cannot be. */
+  striking?: boolean;
+  repair?: RepairPolicy;
+  /** Costs the engine does not model (support expeditions, ...): added to every sortie in
+   *  `resourcesPerSortie` and `gauge.resources`. Not interpreted otherwise. */
+  extraPerSortie?: ResourceAmounts;
+}
+
+export interface RepairPolicy {
+  /** Ships whose docking time exceeds this many seconds take an instant repair item (bucket): no
+   *  docking time for them, one bucket each; docking fuel and steel are still paid. Only affects the
+   *  resource totals.
+   *  Default: never. */
+  bucketAboveSec?: number;
 }
 
 export interface PathRate {
@@ -925,6 +1045,8 @@ export interface NodeSummary {
   supportRate?: number;
   /** Present with `friendFleet`: fraction of the node's battles in which the friend fleet fought. */
   friendFleetRate?: number;
+  /** Fraction of sorties that evacuated a ship (command facility) after this node. */
+  fcfRate: number;
 }
 
 export interface SortieShipSummary {
@@ -937,16 +1059,80 @@ export interface SortieShipSummary {
   hpMissingMean: number;
   fuelUsedMean: number;
   ammoUsedMean: number;
+  /** Mean bauxite to refill lost aircraft per sortie (5 per plane, not reduced by marriage). */
+  bauxiteMean: number;
+  /** Mean number of aircraft slots wiped out (proficiency lost) per sortie. */
+  proficiencyLostMean: number;
+  /** Docking need at the end of the sortie (sunk ships: 0). */
+  repair: RepairSummary;
   damecon: { usedRate: number };
+  /** Fraction of sorties in which the ship was evacuated (retreating or escorting). */
+  evacuatedRate: number;
+}
+
+export interface Dist {
+  mean: number;
+  p50: number;
+  p90: number;
+}
+
+/** Docking cost per sortie: fuel / steel = floor(0.032 / 0.06 × fuelMax × HP lost); time in seconds =
+ *  (Lv ≤ 11: 10·Lv, else 5·Lv + 10·floor(√(Lv−11)) + 50) × ship-type factor × HP lost + 30. */
+export interface RepairSummary {
+  fuel: Dist;
+  steel: Dist;
+  timeSec: Dist;
+}
+
+/** Fleet docking need: fuel / steel summed over ships; `timeSec` = slowest ship (parallel docks),
+ *  `timeSecTotal` = sum (single dock). */
+export interface FleetRepairSummary extends RepairSummary {
+  timeSecTotal: Dist;
+}
+
+/** Net resources (costs minus gains from resource nodes; extras included). Per sortie: fuel / ammo =
+ *  resupply (+ underway refill) + docking fuel + land bases, steel = docking steel + anchorage
+ *  repair, bauxite = plane refill (ships and land bases), `timeSec` = slowest ship. Per gauge
+ *  clear: the sum over the run's sorties (docking time summed, one dock). */
+export interface ResourcesSummary {
+  fuel: Dist;
+  ammo: Dist;
+  steel: Dist;
+  bauxite: Dist;
+  /** Instant repair items (`repair.bucketAboveSec`). */
+  buckets: Dist;
+  timeSec: Dist;
+}
+
+/** Present only when a node of the map has an effect configured. */
+export interface NodeEffectsSummary {
+  gainedMean: Required<ResourceAmounts>;
+  /** Included in `fuelUsedMean` / `ammoUsedMean`. */
+  maelstromFuelMean: number;
+  maelstromAmmoMean: number;
+  /** Anchorage repair: HP restored and repair materials used per sortie. */
+  anchorageHpMean: number;
+  anchorageMaterialsMean: number;
+  /** Steel of the anchorage repairs (3 per HP restored, kancolle-replay). */
+  anchorageSteelMean: number;
 }
 
 export interface GaugeSummary {
-  kind: "kill" | "hp";
+  kind: "kill" | "hp" | "tp";
   remaining: number;
   /** Mean sorties to clear over the runs that cleared; null if no run cleared. */
   expectedSorties: number | null;
   p50Sorties: number | null;
   p90Sorties: number | null;
+  /** With `GaugeInput.morale`: minutes spent waiting between sorties per cleared run. */
+  expectedWaitMinutes?: number;
+  p50WaitMinutes?: number;
+  p90WaitMinutes?: number;
+  /** Resources spent per cleared run; absent when no run cleared. `kill` gauges are not simulated
+   *  sortie by sortie: mean sortie cost × the sorties drawn. */
+  resources?: ResourcesSummary;
+  /** With `phases`: sorties spent in each gauge, over the cleared runs. */
+  phases?: { kind: "kill" | "hp" | "tp"; expectedSorties: number | null; p90Sorties: number | null }[];
   /** Runs that hit `maxSorties` without clearing. */
   cappedRate: number;
   runs: number;
@@ -963,21 +1149,37 @@ export interface SortieSummary {
     reachRate: number;
     /** Rank distribution conditional on a boss battle. */
     rankRates: Record<Rank, number>;
-    /** Per sortie: boss battle with rank ≥ A (kill-gauge progress). */
+    /** Per sortie: boss flagship sunk (kill-gauge progress; same as `flagshipSunkRate`). */
     killRate: number;
     /** Per sortie: boss flagship sunk (HP-gauge final kill). */
     flagshipSunkRate: number;
     /** Mean damage dealt to the boss flagship per sortie (0 when the boss is not reached). */
     flagshipDamageMean: number;
   };
-  /** Fraction of sorties ending in a retreat (heavy/moderate damage policy). */
+  /** Fraction of sorties ending in a retreat (damage policy or `policy.advance`). */
   retreatRate: number;
+  /** Fraction of sorties with at least one command-facility evacuation. */
+  fcfRate: number;
+  /** Underway replenishment items / combat rations used per sortie. */
+  underwayUsedMean: number;
+  rationsUsedMean: number;
+  /** Land-base cost per sortie (inside `resourcesPerSortie`): sortie fuel / ammo of every base
+   *  with a target (land attackers ⌈1.5n⌉ / ⌊0.7n⌋, large bombers ⌈2n⌉ / ⌈2n⌉, others ⌈n⌉ /
+   *  ⌈0.6n⌉ for n planes), plus 3 fuel and 5 bauxite per plane lost. Present with land bases. */
+  lbasCostMean?: Required<ResourceAmounts>;
+  /** With `consecutive`: mean wait between two sorties (minutes). */
+  waitMinutesMean?: number;
   /** Fraction of sorties in which at least one friend ship sank. */
   sunkRate: number;
   battlesMean: number;
   nodesMean: number;
   fuelUsedMean: number;
   ammoUsedMean: number;
+  /** Fuel / ammo are resupply costs: ships of Lv ≥ 100 pay floor(0.85 × amount) (amount > 1). */
+  bauxiteMean: number;
+  repair: FleetRepairSummary;
+  resourcesPerSortie: ResourcesSummary;
+  effects?: NodeEffectsSummary;
   /** Main ships, then escort ships. */
   friend: SortieShipSummary[];
   gauge?: GaugeSummary;

@@ -1,13 +1,18 @@
 import { useCallback, useState } from "react";
 import type { NightPolicy } from "@sim-core";
 import { STORAGE_PREFIX } from "../../fleet";
+import { DEFAULT_SORTIE_GLOBAL } from "./sortieConfig";
+import type { SortieGlobalPrefs } from "./sortieConfig";
 
 export type SimMode = "sortie" | "battle";
 /** 単一マス戦闘で選べる戦闘種別 (エンジンは空襲なども持つ) */
 export type OfferedKind = "day" | "dayNight" | "nightOnly";
 
-/** 作業台の選択と条件 (localStorage)。目標マスと能動分岐は海域ごとに保存し、フラグ・ゲージなどほかの海域ごとの設定は保存しない。 */
-export interface WorkspacePrefs {
+/**
+ * 作業台の選択と条件 (localStorage)。目標マス・能動分岐・出撃の条件 (sortieMaps: ゲージ・進撃・マスの効果) は海域ごとに保存し、
+ * フラグ・陣形などほかの海域ごとの設定は保存しない。
+ */
+export interface WorkspacePrefs extends SortieGlobalPrefs {
   /** 保存形式の版。既定値を変えたときの移行の判別に使う */
   version: number;
   map: string;
@@ -58,6 +63,7 @@ export const DEFAULT_PREFS: WorkspacePrefs = {
   eventBonus: true,
   eventDebuff: false,
   battleKind: "day",
+  ...DEFAULT_SORTIE_GLOBAL,
 };
 
 const KEY = `${STORAGE_PREFIX}workspace`;

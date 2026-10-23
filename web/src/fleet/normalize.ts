@@ -7,6 +7,7 @@ import type {
   PresetFormation,
   PresetShip,
 } from "@shared/fleet/types";
+import { maxShipsOf } from "@shared/fleet/types";
 
 const FORMATIONS: PresetFormation[] = [
   "line_ahead",
@@ -25,6 +26,7 @@ const FLEET_TYPES: PresetFleetType[] = [
   "carrier_task_force",
   "surface_task_force",
   "transport_escort",
+  "striking_force",
 ];
 const AIR_BASE_MODES: readonly string[] = ["sortie", "defense", "standby"] satisfies AirBaseMode[];
 /** 1 隊の中隊数と、隊の数の上限 */
@@ -108,6 +110,9 @@ export const normalizePreset = (
       : "line_ahead",
     ships: raw.ships.map(normalizeShip),
   };
+  // 7 隻の通常艦隊 (遊撃部隊ができる前の保存) は遊撃部隊。遊撃部隊は 7 隻まで、ほかは 6 隻まで
+  if (preset.fleetType === "single" && preset.ships.length > 6) preset.fleetType = "striking_force";
+  preset.ships = preset.ships.slice(0, maxShipsOf(preset.fleetType));
   if (Array.isArray(raw.escort)) preset.escort = raw.escort.map(normalizeShip);
   if (Array.isArray(raw.lbas)) preset.lbas = raw.lbas.slice(0, MAX_AIR_BASES).map(normalizeAirBase);
   if (raw.hqLevel !== undefined) preset.hqLevel = num(raw.hqLevel, 120);

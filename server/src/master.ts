@@ -19,7 +19,7 @@ export interface EquipRow {
 }
 
 // The requested ships plus every ship of their remodel lines (same `base_id`), so shared/sim/fit.ts
-// `shipBaseId` / `shipNationality` resolve shipS / shipNationality fit entries (migration 0012).
+// `shipBaseId` / `shipCountry` resolve shipBase / shipCountry fit entries (migration 0012).
 const SHIP_SQL = `SELECT id, name, name_en, yomi, stype, ctype, speed, range, slot_num, is_abyssal, hp, fp, tp, aa, ar, luck, max_stats,
   slots, equips, flags, fuel_max, ammo_max, after_ship_id, sort_id FROM ships
   WHERE id IN (SELECT value FROM json_each(?1))

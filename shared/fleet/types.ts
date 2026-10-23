@@ -13,12 +13,22 @@ export type PresetFormation =
   | "combined_diamond"
   | "combined_battle";
 
-/** 通常艦隊、または連合艦隊 (機動部隊 / 水上部隊 / 輸送護衛部隊)。連合艦隊は ships が主力、escort が随伴。 */
+/**
+ * 通常艦隊、連合艦隊 (機動部隊 / 水上部隊 / 輸送護衛部隊)、または遊撃部隊 (7 隻までの単艦隊)。
+ * 連合艦隊は ships が主力、escort が随伴。
+ */
 export type PresetFleetType =
   | "single"
   | "carrier_task_force"
   | "surface_task_force"
-  | "transport_escort";
+  | "transport_escort"
+  | "striking_force";
+
+/** 第二艦隊 (`escort`) を持つ連合艦隊か (通常艦隊・遊撃部隊は単艦隊)。 */
+export const isCombinedFleetType = (t: PresetFleetType): boolean => t !== "single" && t !== "striking_force";
+
+/** 第一艦隊の最大隻数 (遊撃部隊は 7 隻)。 */
+export const maxShipsOf = (t: PresetFleetType): number => (t === "striking_force" ? 7 : 6);
 
 /** 基地航空隊の行動 (poi: api_action_kind 1 出撃, 2 防空, 0 待機・その他)。シミュレーションで飛ぶのは出撃だけ */
 export type AirBaseMode = "sortie" | "defense" | "standby";
@@ -88,7 +98,7 @@ export interface Preset {
   fleetType: PresetFleetType;
   formation: PresetFormation;
   ships: PresetShip[];
-  /** 連合艦隊の随伴艦隊 (fleetType が single 以外のとき) */
+  /** 連合艦隊の随伴艦隊 (isCombinedFleetType のとき) */
   escort?: PresetShip[];
   /** 基地航空隊 (最大 3 隊) */
   lbas?: PresetAirBase[];
@@ -123,7 +133,7 @@ export interface ShipMaster {
   api_slot_num?: number;
   api_yomi?: string;
   api_sort_id?: number;
-  /** 改装後の艦 ID (文字列、"0" はなし)。装備ボーナスの shipS (改装系列の初期艦) に使う。 */
+  /** 改装後の艦 ID (文字列、"0" はなし)。装備ボーナスの shipBase (改装系列の初期艦) に使う。 */
   api_aftershipid?: string | number;
 }
 

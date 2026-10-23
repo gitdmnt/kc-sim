@@ -114,6 +114,8 @@ pub struct BattleSetup {
     /// `dayNight` only: pursue at night only when the day rank is worse than this.
     pub night_unless: Option<Rank>,
     pub log: bool,
+    /// Fuel / ammo consumption fractions replacing the kind-based ones (sortie node types).
+    pub supply: Option<[f64; 2]>,
     /// The friend fleet tries to deploy a smoke screen (unless `smoke_used`).
     pub smoke: bool,
     /// A smoke screen was already deployed earlier in the sortie.
@@ -254,6 +256,7 @@ impl Prepared {
                 formations: [friend_formation(&input.friend), enemy_formation(&input.enemy)],
                 night_unless: None,
                 log: input.options.log,
+                supply: None,
                 smoke: input.options.smoke,
                 smoke_used: input.friend.smoke_used.unwrap_or(false),
                 balloons: input.options.balloons,
@@ -1329,7 +1332,9 @@ impl<'a> Battle<'a> {
     fn update_supply(&mut self, did_night: bool) {
         let kind = self.setup.kind;
         let night_only = kind == BattleKind::NightOnly;
-        let (cf, ca) = if kind == BattleKind::AirRaid {
+        let (cf, ca) = if let Some([f, a]) = self.setup.supply {
+            (f, a)
+        } else if kind == BattleKind::AirRaid {
             (0.06, 0.04)
         } else if self.sub_only_enemy {
             (0.08, 0.0)

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ArrowLeftRight, Copy, Download, Ellipsis, FilePlus, Trash } from "lucide-react";
-import { airBasesFromPoi, importCombinedFromPoi, importFromPoi } from "../../fleet";
+import { airBasesFromPoi, importCombinedFromPoi, importFromPoi, isCombinedFleetType } from "../../fleet";
 import type { Preset } from "../../fleet";
 import { Button, ConfirmDialog, Field, NumberInput, Popover, Select, TextInput, S, useToast } from "../../ui";
 import { useApp } from "../context";
@@ -22,7 +22,7 @@ export const usePoiFleets = (): unknown[] => {
 
 let lastFleet = 0;
 
-const isCombined = (p: Preset) => p.fleetType !== "single";
+const isCombined = (p: Preset) => isCombinedFleetType(p.fleetType);
 
 /**
  * poi の艦隊の取り込み。importPoi(i) は第 i+1 艦隊を新しいプリセットとして保存して選ぶ。importCombined は第1 + 第2 艦隊を
@@ -40,7 +40,7 @@ export const useImportPoi = (store: PresetsApi, select: (id: string | null) => v
     return p;
   };
   const loadCombined = (into?: Preset) => {
-    const p = importCombinedFromPoi(state, into && into.fleetType !== "single" ? into.fleetType : undefined);
+    const p = importCombinedFromPoi(state, into && isCombined(into) ? (into.fleetType as Parameters<typeof importCombinedFromPoi>[1]) : undefined);
     if (!p) toast.push("第1・第2艦隊を連合艦隊として取り込めませんでした", "danger");
     return p;
   };
@@ -71,7 +71,8 @@ export const useImportPoi = (store: PresetsApi, select: (id: string | null) => v
       }
       const p = load(lastFleet);
       if (!p) return;
-      if (into) store.save({ ...into, ships: p.ships, hqLevel: p.hqLevel ?? into.hqLevel, source: "poi" });
+      // 7 隻の艦隊を取り込んだら遊撃部隊にする
+      if (into) store.save({ ...into, ships: p.ships, fleetType: p.fleetType === "striking_force" ? p.fleetType : into.fleetType, hqLevel: p.hqLevel ?? into.hqLevel, source: "poi" });
       else select(store.save(p).id);
     },
     /** reimport のツールチップ */

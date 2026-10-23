@@ -34,7 +34,7 @@ it uses the static bundles; it fails if the 出撃 tab scrolls, page or tab cont
 Layout: no header inside poi (the plugin draws the one header: シミュレーション / 観測ログ / 送信設定); a title row when
 opened directly. The tabs 出撃 / 海域 / 敵艦 / 推定 / 設定 are a vertical bar (icon + name) on the left. Left column:
 編成 (preset selector + ⋯: name, HQ level, poi import of fleet 1–4 or 連合 = fleets 1 + 2, new / duplicate / IO / delete),
-艦隊 (通常艦隊 / 機動部隊 / 水上部隊 / 輸送護衛部隊) and the 主力 / 随伴 / 基地 tabs above the fleet. Right column: the
+艦隊 (通常艦隊 / 機動部隊 / 水上部隊 / 輸送護衛部隊 / 遊撃部隊) and the 主力 / 随伴 / 基地 tabs above the fleet. Right column: the
 simulator toolbar in the order of use, left to right: 海域 (+ 難易度 for event maps), 出撃 / 単一戦闘 (with node and enemy
 comp), 条件 (sliders icon), then 自動 (checkbox) and 実行 (play icon + count, fills with progress), above the results.
 出撃 mode also has 目標マス next to the map (default ボス, saved per map in `kcsim:workspace`): the sortie ends at that
@@ -47,8 +47,28 @@ Enemy combined fleets (e.g. 6-5 M) are not in sim-core: their escort is dropped 
 summary (icons: 制空, 速力, 索敵 Cn1–4, ドラム缶, 電探) and the six ships in a 2 × 3 grid like the game; each ship is a
 header (number, ship type, name, Lv) over one column of slots (equipment icon, name, ★, 熟練, 搭載); mods, morale and
 stats behind ⋯. Right: the key rates as bars on one 0–100% scale (ボス到達 colored by boss rank, 突破 = boss A+ per
-sortie, S勝利 = boss S+ per sortie, 大破撤退), secondary numbers, and detail tabs (マス: reach bar colored by rank and
-大破撤退 bar per node; 経路: route map with edge width = traversal rate; 損耗; 前提).
+sortie, S勝利 = boss S+ per sortie, 大破撤退), secondary numbers (周回, 旗艦撃沈, 資源/出撃, 入渠, 護衛退避, 出撃間の待ち),
+and detail tabs (マス: reach bar colored by rank, 退避 and 大破撤退 per node; 経路: route map with edge width = traversal
+rate; 損耗: per ship damage, docking time, bauxite, damage control, evacuation; 資源; ゲージ when a gauge is set; 前提).
+
+出撃 条件 has four tabs (`src/app/sim/conditions/`; 撤退・消費・ゲージ・マス・資源 are saved in `kcsim:workspace`, ゲージ / マス
+per map in `sortieMaps`; start, flags and formations are not saved):
+- 基本: night policy, 撤退 (大破撤退 `onHeavy`, ダメコン所持艦は進撃 `allowDamecon`, 中破撤退 `onModerate`, 護衛退避
+  `useFcf` with the flagship's command facility 107 / 272 / 413 shown), ボス前の消費 (洋上補給 `policy.underway`,
+  戦闘糧食 `policy.rations`), start, 能動分岐, flags, formations per node, phase / gauge number, count and seed.
+- マス: 進撃 / 撤退 / 強行 after each node (`policy.advance`: retreat / push), 煙幕 per battle node (`policy.smoke`;
+  barrage-balloon nodes from `shared/sim/nodeEffects.ts` are marked 気球 and sent as `SortieNode.balloons`), gains of
+  resource and landing nodes (`SortieNode.resource`) and losses of maelstroms (`SortieNode.maelstrom`).
+- ゲージ: kind 撃破 (ボス旗艦撃沈) / HP / 輸送 (TP) and remaining (`gauge`), HP final threshold and final comps, TP tank
+  force and TP per S win, additional gauges (`gauge.phases`: kind, remaining, phase), morale carried until the gauge
+  breaks (`gauge.morale`) and 連続出撃 (`consecutive`).
+- 資源: 高速修復材 above a docking time (`repair.bucketAboveSec`) and costs per sortie the engine does not model
+  (`extraPerSortie`, e.g. support fleets).
+
+The 資源 tab shows net fuel / ammo / steel / bauxite / buckets / docking time per sortie (mean, median, 90%) and per
+gauge clear, docking costs, land-base cost, underway replenishment / rations used and node effects; ゲージ shows sorties
+to clear (mean, median, 90%), capped runs, morale waits, sorties per gauge and resources per clear.
+遊撃部隊 is a single fleet of up to seven ships (sent as `striking: true`); a stored seven-ship 通常艦隊 loads as one.
 
 Combined fleets: 主力 and 随伴 are edited with the same panel; the formation lists switch to 第一〜第四警戒航行序列
 (a formation of the other kind falls back to 単縦陣 / 第四警戒). Results list the main fleet, then the escort (「随伴 …」).

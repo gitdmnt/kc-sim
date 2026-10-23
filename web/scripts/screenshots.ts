@@ -214,6 +214,36 @@ try {
   await page.waitForTimeout(300);
   await checkNoScroll("1024x600 six 5-slot ships");
   await shot("workspace-1024");
+  // 出撃の条件 (基本・マス・ゲージ・資源) と、HP ゲージ 2 本での結果の資源・ゲージ・損耗タブ (1024×600 で収まる)
+  prev = await meta(page);
+  await page.getByRole("button", { name: "条件" }).click();
+  await page.waitForTimeout(150);
+  await shot("conditions-basic-1024");
+  await page.getByRole("dialog").getByRole("tab", { name: /^マス/ }).click();
+  await page.waitForTimeout(150);
+  await shot("conditions-nodes-1024");
+  await page.getByRole("dialog").getByRole("tab", { name: /^ゲージ/ }).click();
+  await page.getByLabel("ゲージの種別").selectOption("hp");
+  await page.getByRole("button", { name: "ゲージを追加" }).click();
+  await page.waitForTimeout(150);
+  await shot("conditions-gauge-1024");
+  await page.getByRole("dialog").getByRole("tab", { name: /^資源/ }).click();
+  await page.getByRole("checkbox", { name: /高速修復材を使う/ }).check();
+  await page.waitForTimeout(150);
+  await shot("conditions-resources-1024");
+  await page.keyboard.press("Escape");
+  await waitResult(prev);
+  for (const [label, name] of [["資源", "resources"], ["ゲージ", "gauge"], ["損耗", "ships"]] as const) {
+    await page.locator("[data-results]").getByRole("tab", { name: new RegExp(`^${label}`) }).click();
+    await page.waitForTimeout(200);
+    await checkNoScroll(`1024x600 results ${name}`);
+    await shot(`workspace-1024-${name}`);
+  }
+  // 遊撃部隊: 7 番艦の枠が出る
+  await page.getByLabel("艦隊", { exact: true }).selectOption("striking_force");
+  await page.getByText("7番艦を追加").waitFor();
+  await checkNoScroll("1024x600 striking force");
+  await shot("workspace-1024-striking");
   // 連合艦隊 (随伴) と基地航空隊 (poi の基地を取り込み、1 波目の目標を最初の戦闘マスに)、目標マスも同じ高さで収まる
   await page.getByLabel("艦隊", { exact: true }).selectOption("carrier_task_force");
   await page.getByRole("tab", { name: /^随伴/ }).click();

@@ -56,12 +56,16 @@ fn input(routing: Value, ships: Vec<ShipInput>) -> SortieInput {
         config: SortieConfig::default(),
         policy: SortiePolicy::default(),
         gauge: None,
+        consecutive: None,
         max_nodes: None,
         top_paths: None,
         lbas: None,
         support: None,
         friend_fleet: None,
         base_raids: None,
+        striking: None,
+        repair: None,
+        extra_per_sortie: None,
     }
 }
 

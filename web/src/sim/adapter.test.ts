@@ -53,7 +53,7 @@ describe("buildFriendShips", () => {
   });
 
   test("fit bonus is subtracted from naked stats and reported in equipBonus", () => {
-    const fit = [{ id: 1, ids: [10], types: null, bonuses: [{ shipX: [1], num: 1, bonus: { houg: 2, kaih: 1 } }] }];
+    const fit = [{ id: 1, ids: [10], types: null, bonuses: [{ shipId: [1], num: 1, bonus: { houg: 2, kaih: 1 } }] }];
     const { input } = buildFriendShips(preset, master, { fitBonuses: fit });
     expect(input[0].stats.firepower).toBe(24);
     expect(input[0].stats.evasion).toBe(39);
@@ -65,7 +65,7 @@ describe("buildFriendShips", () => {
   });
 
   test("fit range bonus extends a computed range, an observed range already includes it", () => {
-    const fit = [{ id: 1, ids: [10], types: null, bonuses: [{ shipX: [1], bonus: { leng: 1 } }] }];
+    const fit = [{ id: 1, ids: [10], types: null, bonuses: [{ shipId: [1], bonus: { leng: 1 } }] }];
     const manual: Preset = { ...preset, ships: [{ ...preset.ships[0], observed: undefined }] };
     expect(buildFriendShips(manual, master, { fitBonuses: fit }).input[0].range).toBe(3);
     expect(buildFriendShips(preset, master, { fitBonuses: fit }).input[0].range).toBe(2);

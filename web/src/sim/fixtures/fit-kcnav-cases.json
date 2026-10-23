@@ -1,0 +1,6492 @@
+{
+ "note": "Real KCNav battles 2026-09-23..10-21: game bonus = displayed − equipment − api_fParam (FP/TP/AA/AR). Entries: kancolle-replay mst_slotitem_bonus.json (MIT, 2026-10-14) touching these items.",
+ "master": {
+  "ships": {
+   "9": {
+    "api_id": 9,
+    "api_name": "吹雪",
+    "api_stype": 2,
+    "api_ctype": 12,
+    "api_sort_id": 14011,
+    "api_aftershipid": "201"
+   },
+   "25": {
+    "api_id": 25,
+    "api_name": "北上",
+    "api_stype": 3,
+    "api_ctype": 4,
+    "api_sort_id": 10051,
+    "api_aftershipid": "58"
+   },
+   "43": {
+    "api_id": 43,
+    "api_name": "時雨",
+    "api_stype": 2,
+    "api_ctype": 23,
+    "api_sort_id": 15081,
+    "api_aftershipid": "243"
+   },
+   "58": {
+    "api_id": 58,
+    "api_name": "北上改",
+    "api_stype": 4,
+    "api_ctype": 4,
+    "api_sort_id": 10052,
+    "api_aftershipid": "119"
+   },
+   "70": {
+    "api_id": 70,
+    "api_name": "最上",
+    "api_stype": 5,
+    "api_ctype": 9,
+    "api_sort_id": 9011,
+    "api_aftershipid": "73"
+   },
+   "73": {
+    "api_id": 73,
+    "api_name": "最上改",
+    "api_stype": 6,
+    "api_ctype": 9,
+    "api_sort_id": 9012,
+    "api_aftershipid": "501"
+   },
+   "77": {
+    "api_id": 77,
+    "api_name": "伊勢",
+    "api_stype": 9,
+    "api_ctype": 2,
+    "api_sort_id": 1071,
+    "api_aftershipid": "82"
+   },
+   "82": {
+    "api_id": 82,
+    "api_name": "伊勢改",
+    "api_stype": 10,
+    "api_ctype": 2,
+    "api_sort_id": 1072,
+    "api_aftershipid": "553"
+   },
+   "87": {
+    "api_id": 87,
+    "api_name": "日向",
+    "api_stype": 9,
+    "api_ctype": 2,
+    "api_sort_id": 1081,
+    "api_aftershipid": "88"
+   },
+   "88": {
+    "api_id": 88,
+    "api_name": "日向改",
+    "api_stype": 10,
+    "api_ctype": 2,
+    "api_sort_id": 1082,
+    "api_aftershipid": "554"
+   },
+   "119": {
+    "api_id": 119,
+    "api_name": "北上改二",
+    "api_stype": 4,
+    "api_ctype": 4,
+    "api_sort_id": 10056,
+    "api_aftershipid": "1071"
+   },
+   "120": {
+    "api_id": 120,
+    "api_name": "三隈",
+    "api_stype": 5,
+    "api_ctype": 9,
+    "api_sort_id": 9021,
+    "api_aftershipid": "121"
+   },
+   "121": {
+    "api_id": 121,
+    "api_name": "三隈改",
+    "api_stype": 6,
+    "api_ctype": 9,
+    "api_sort_id": 9022,
+    "api_aftershipid": "502"
+   },
+   "145": {
+    "api_id": 145,
+    "api_name": "時雨改二",
+    "api_stype": 2,
+    "api_ctype": 23,
+    "api_sort_id": 15086,
+    "api_aftershipid": "961"
+   },
+   "201": {
+    "api_id": 201,
+    "api_name": "吹雪改",
+    "api_stype": 2,
+    "api_ctype": 12,
+    "api_sort_id": 14012,
+    "api_aftershipid": "426"
+   },
+   "243": {
+    "api_id": 243,
+    "api_name": "時雨改",
+    "api_stype": 2,
+    "api_ctype": 23,
+    "api_sort_id": 15082,
+    "api_aftershipid": "145"
+   },
+   "323": {
+    "api_id": 323,
+    "api_name": "春雨改",
+    "api_stype": 2,
+    "api_ctype": 23,
+    "api_sort_id": 15112,
+    "api_aftershipid": "975"
+   },
+   "330": {
+    "api_id": 330,
+    "api_name": "秋月改",
+    "api_stype": 2,
+    "api_ctype": 54,
+    "api_sort_id": 17012,
+    "api_aftershipid": "963"
+   },
+   "368": {
+    "api_id": 368,
+    "api_name": "浦波改",
+    "api_stype": 2,
+    "api_ctype": 12,
+    "api_sort_id": 14102,
+    "api_aftershipid": "647"
+   },
+   "405": {
+    "api_id": 405,
+    "api_name": "春雨",
+    "api_stype": 2,
+    "api_ctype": 23,
+    "api_sort_id": 15111,
+    "api_aftershipid": "323"
+   },
+   "421": {
+    "api_id": 421,
+    "api_name": "秋月",
+    "api_stype": 2,
+    "api_ctype": 54,
+    "api_sort_id": 17011,
+    "api_aftershipid": "330"
+   },
+   "426": {
+    "api_id": 426,
+    "api_name": "吹雪改二",
+    "api_stype": 2,
+    "api_ctype": 12,
+    "api_sort_id": 14016,
+    "api_aftershipid": "1035"
+   },
+   "486": {
+    "api_id": 486,
+    "api_name": "浦波",
+    "api_stype": 2,
+    "api_ctype": 12,
+    "api_sort_id": 14101,
+    "api_aftershipid": "368"
+   },
+   "501": {
+    "api_id": 501,
+    "api_name": "最上改二",
+    "api_stype": 6,
+    "api_ctype": 9,
+    "api_sort_id": 9016,
+    "api_aftershipid": "506"
+   },
+   "502": {
+    "api_id": 502,
+    "api_name": "三隈改二",
+    "api_stype": 6,
+    "api_ctype": 9,
+    "api_sort_id": 9026,
+    "api_aftershipid": "507"
+   },
+   "506": {
+    "api_id": 506,
+    "api_name": "最上改二特",
+    "api_stype": 6,
+    "api_ctype": 9,
+    "api_sort_id": 9017,
+    "api_aftershipid": "501"
+   },
+   "507": {
+    "api_id": 507,
+    "api_name": "三隈改二特",
+    "api_stype": 16,
+    "api_ctype": 9,
+    "api_sort_id": 9027,
+    "api_aftershipid": "502"
+   },
+   "553": {
+    "api_id": 553,
+    "api_name": "伊勢改二",
+    "api_stype": 10,
+    "api_ctype": 2,
+    "api_sort_id": 1076
+   },
+   "554": {
+    "api_id": 554,
+    "api_name": "日向改二",
+    "api_stype": 10,
+    "api_ctype": 2,
+    "api_sort_id": 1086
+   },
+   "647": {
+    "api_id": 647,
+    "api_name": "浦波改二",
+    "api_stype": 2,
+    "api_ctype": 12,
+    "api_sort_id": 14106
+   },
+   "671": {
+    "api_id": 671,
+    "api_name": "巻波",
+    "api_stype": 2,
+    "api_ctype": 38,
+    "api_sort_id": 16241,
+    "api_aftershipid": "709"
+   },
+   "709": {
+    "api_id": 709,
+    "api_name": "巻波改",
+    "api_stype": 2,
+    "api_ctype": 38,
+    "api_sort_id": 16242
+   },
+   "961": {
+    "api_id": 961,
+    "api_name": "時雨改三",
+    "api_stype": 2,
+    "api_ctype": 23,
+    "api_sort_id": 15088
+   },
+   "963": {
+    "api_id": 963,
+    "api_name": "秋月改二",
+    "api_stype": 2,
+    "api_ctype": 54,
+    "api_sort_id": 17016
+   },
+   "975": {
+    "api_id": 975,
+    "api_name": "春雨改二",
+    "api_stype": 2,
+    "api_ctype": 23,
+    "api_sort_id": 15116
+   },
+   "1035": {
+    "api_id": 1035,
+    "api_name": "吹雪改三",
+    "api_stype": 2,
+    "api_ctype": 12,
+    "api_sort_id": 14017,
+    "api_aftershipid": "1040"
+   },
+   "1040": {
+    "api_id": 1040,
+    "api_name": "吹雪改三護(六式)",
+    "api_stype": 2,
+    "api_ctype": 12,
+    "api_sort_id": 14018
+   },
+   "1071": {
+    "api_id": 1071,
+    "api_name": "北上改三",
+    "api_stype": 4,
+    "api_ctype": 4,
+    "api_sort_id": 10057
+   }
+  },
+  "equips": {
+   "33": {
+    "api_id": 33,
+    "api_name": "改良型艦本式タービン",
+    "api_type": [
+     6,
+     31,
+     17,
+     19,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 0
+   },
+   "36": {
+    "api_id": 36,
+    "api_name": "九一式徹甲弾",
+    "api_type": [
+     4,
+     25,
+     19,
+     13,
+     0
+    ],
+    "api_houg": 8,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 1
+   },
+   "41": {
+    "api_id": 41,
+    "api_name": "甲標的 甲型",
+    "api_type": [
+     2,
+     4,
+     22,
+     5,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 12,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 0
+   },
+   "45": {
+    "api_id": 45,
+    "api_name": "三式爆雷投射機",
+    "api_type": [
+     7,
+     32,
+     15,
+     17,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 0
+   },
+   "56": {
+    "api_id": 56,
+    "api_name": "震電改",
+    "api_type": [
+     3,
+     5,
+     6,
+     6,
+     20
+    ],
+    "api_houg": 0,
+    "api_raig": 0,
+    "api_tyku": 15,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 0
+   },
+   "66": {
+    "api_id": 66,
+    "api_name": "8cm高角砲",
+    "api_type": [
+     1,
+     2,
+     4,
+     16,
+     0
+    ],
+    "api_houg": 1,
+    "api_raig": 0,
+    "api_tyku": 6,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 2
+   },
+   "87": {
+    "api_id": 87,
+    "api_name": "新型高温高圧缶",
+    "api_type": [
+     6,
+     31,
+     17,
+     19,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 0
+   },
+   "88": {
+    "api_id": 88,
+    "api_name": "22号対水上電探改四",
+    "api_type": [
+     5,
+     8,
+     12,
+     11,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 5,
+    "api_houm": 8
+   },
+   "116": {
+    "api_id": 116,
+    "api_name": "一式徹甲弾",
+    "api_type": [
+     4,
+     25,
+     19,
+     13,
+     0
+    ],
+    "api_houg": 9,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 2
+   },
+   "122": {
+    "api_id": 122,
+    "api_name": "10cm連装高角砲+高射装置",
+    "api_type": [
+     1,
+     1,
+     1,
+     16,
+     0
+    ],
+    "api_houg": 3,
+    "api_raig": 0,
+    "api_tyku": 10,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 1
+   },
+   "149": {
+    "api_id": 149,
+    "api_name": "四式水中聴音機",
+    "api_type": [
+     7,
+     10,
+     14,
+     18,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 1,
+    "api_saku": 0,
+    "api_houm": 1
+   },
+   "179": {
+    "api_id": 179,
+    "api_name": "試製61cm六連装(酸素)魚雷",
+    "api_type": [
+     2,
+     3,
+     5,
+     5,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 14,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 2
+   },
+   "183": {
+    "api_id": 183,
+    "api_name": "16inch三連装砲 Mk.7+GFCS",
+    "api_type": [
+     1,
+     1,
+     3,
+     3,
+     0
+    ],
+    "api_houg": 24,
+    "api_raig": 0,
+    "api_tyku": 3,
+    "api_souk": 1,
+    "api_saku": 0,
+    "api_houm": 7
+   },
+   "217": {
+    "api_id": 217,
+    "api_name": "強風改",
+    "api_type": [
+     5,
+     36,
+     45,
+     43,
+     26
+    ],
+    "api_houg": 0,
+    "api_raig": 0,
+    "api_tyku": 5,
+    "api_souk": 0,
+    "api_saku": 1,
+    "api_houm": 0
+   },
+   "220": {
+    "api_id": 220,
+    "api_name": "8cm高角砲改+増設機銃",
+    "api_type": [
+     1,
+     2,
+     4,
+     16,
+     0
+    ],
+    "api_houg": 1,
+    "api_raig": 0,
+    "api_tyku": 7,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 2
+   },
+   "240": {
+    "api_id": 240,
+    "api_name": "22号対水上電探改四(後期調整型)",
+    "api_type": [
+     5,
+     8,
+     12,
+     11,
+     0
+    ],
+    "api_houg": 1,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 7,
+    "api_houm": 9
+   },
+   "246": {
+    "api_id": 246,
+    "api_name": "38cm四連装砲改",
+    "api_type": [
+     1,
+     1,
+     3,
+     3,
+     0
+    ],
+    "api_houg": 22,
+    "api_raig": 0,
+    "api_tyku": 2,
+    "api_souk": 1,
+    "api_saku": 0,
+    "api_houm": 3
+   },
+   "260": {
+    "api_id": 260,
+    "api_name": "Type124 ASDIC",
+    "api_type": [
+     7,
+     10,
+     14,
+     18,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 2
+   },
+   "262": {
+    "api_id": 262,
+    "api_name": "HF/DF + Type144/147 ASDIC",
+    "api_type": [
+     7,
+     10,
+     14,
+     18,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 2,
+    "api_houm": 3
+   },
+   "267": {
+    "api_id": 267,
+    "api_name": "12.7cm連装砲D型改二",
+    "api_type": [
+     1,
+     1,
+     1,
+     1,
+     0
+    ],
+    "api_houg": 3,
+    "api_raig": 0,
+    "api_tyku": 4,
+    "api_souk": 1,
+    "api_saku": 0,
+    "api_houm": 2
+   },
+   "286": {
+    "api_id": 286,
+    "api_name": "61cm四連装(酸素)魚雷後期型",
+    "api_type": [
+     2,
+     3,
+     5,
+     5,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 11,
+    "api_tyku": 0,
+    "api_souk": 1,
+    "api_saku": 0,
+    "api_houm": 2
+   },
+   "290": {
+    "api_id": 290,
+    "api_name": "41cm三連装砲改二",
+    "api_type": [
+     1,
+     1,
+     3,
+     3,
+     0
+    ],
+    "api_houg": 23,
+    "api_raig": 0,
+    "api_tyku": 6,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 5
+   },
+   "295": {
+    "api_id": 295,
+    "api_name": "12.7cm連装砲A型改三(戦時改修)+高射装置",
+    "api_type": [
+     1,
+     1,
+     1,
+     16,
+     0
+    ],
+    "api_houg": 2,
+    "api_raig": 0,
+    "api_tyku": 8,
+    "api_souk": 1,
+    "api_saku": 0,
+    "api_houm": 1
+   },
+   "309": {
+    "api_id": 309,
+    "api_name": "甲標的 丙型",
+    "api_type": [
+     2,
+     4,
+     22,
+     5,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 14,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 1
+   },
+   "317": {
+    "api_id": 317,
+    "api_name": "三式弾改",
+    "api_type": [
+     4,
+     28,
+     18,
+     12,
+     0
+    ],
+    "api_houg": 3,
+    "api_raig": 0,
+    "api_tyku": 6,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 1
+   },
+   "318": {
+    "api_id": 318,
+    "api_name": "41cm連装砲改二",
+    "api_type": [
+     1,
+     1,
+     3,
+     3,
+     0
+    ],
+    "api_houg": 21,
+    "api_raig": 0,
+    "api_tyku": 5,
+    "api_souk": 2,
+    "api_saku": 0,
+    "api_houm": 5
+   },
+   "323": {
+    "api_id": 323,
+    "api_name": "瑞雲改二(六三四空/熟練)",
+    "api_type": [
+     5,
+     43,
+     11,
+     10,
+     32
+    ],
+    "api_houg": 2,
+    "api_raig": 0,
+    "api_tyku": 5,
+    "api_souk": 0,
+    "api_saku": 8,
+    "api_houm": 3
+   },
+   "364": {
+    "api_id": 364,
+    "api_name": "甲標的 丁型改(蛟龍改)",
+    "api_type": [
+     2,
+     4,
+     22,
+     5,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 17,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 2,
+    "api_houm": 2
+   },
+   "366": {
+    "api_id": 366,
+    "api_name": "12.7cm連装砲D型改三",
+    "api_type": [
+     1,
+     1,
+     1,
+     1,
+     0
+    ],
+    "api_houg": 3,
+    "api_raig": 0,
+    "api_tyku": 4,
+    "api_souk": 1,
+    "api_saku": 0,
+    "api_houm": 2
+   },
+   "378": {
+    "api_id": 378,
+    "api_name": "対潜短魚雷(試作初期型)",
+    "api_type": [
+     7,
+     32,
+     15,
+     17,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 2,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 0
+   },
+   "379": {
+    "api_id": 379,
+    "api_name": "12.7cm単装高角砲改二",
+    "api_type": [
+     1,
+     1,
+     1,
+     16,
+     0
+    ],
+    "api_houg": 1,
+    "api_raig": 0,
+    "api_tyku": 5,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 1
+   },
+   "412": {
+    "api_id": 412,
+    "api_name": "水雷戦隊 熟練見張員",
+    "api_type": [
+     16,
+     27,
+     39,
+     32,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 3,
+    "api_tyku": 1,
+    "api_souk": 0,
+    "api_saku": 2,
+    "api_houm": 2
+   },
+   "449": {
+    "api_id": 449,
+    "api_name": "特大発動艇+一式砲戦車",
+    "api_type": [
+     8,
+     14,
+     24,
+     20,
+     0
+    ],
+    "api_houg": 2,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 0
+   },
+   "450": {
+    "api_id": 450,
+    "api_name": "13号対空電探改(後期型)",
+    "api_type": [
+     5,
+     8,
+     12,
+     11,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 0,
+    "api_tyku": 6,
+    "api_souk": 0,
+    "api_saku": 5,
+    "api_houm": 2
+   },
+   "455": {
+    "api_id": 455,
+    "api_name": "試製 長12.7cm連装砲A型改四",
+    "api_type": [
+     1,
+     1,
+     1,
+     1,
+     0
+    ],
+    "api_houg": 4,
+    "api_raig": 0,
+    "api_tyku": 3,
+    "api_souk": 1,
+    "api_saku": 0,
+    "api_houm": 2
+   },
+   "471": {
+    "api_id": 471,
+    "api_name": "Loire 130M",
+    "api_type": [
+     5,
+     7,
+     10,
+     50,
+     49
+    ],
+    "api_houg": 0,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 3,
+    "api_houm": 2
+   },
+   "490": {
+    "api_id": 490,
+    "api_name": "試製 夜間瑞雲(攻撃装備)",
+    "api_type": [
+     5,
+     43,
+     11,
+     51,
+     32
+    ],
+    "api_houg": 3,
+    "api_raig": 0,
+    "api_tyku": 4,
+    "api_souk": 0,
+    "api_saku": 7,
+    "api_houm": 2
+   },
+   "506": {
+    "api_id": 506,
+    "api_name": "電探装備マスト(13号改+22号電探改四)",
+    "api_type": [
+     5,
+     8,
+     12,
+     11,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 0,
+    "api_tyku": 4,
+    "api_souk": 0,
+    "api_saku": 5,
+    "api_houm": 6
+   },
+   "517": {
+    "api_id": 517,
+    "api_name": "逆探(E27)+22号対水上電探改四(後期調整型)",
+    "api_type": [
+     5,
+     8,
+     12,
+     11,
+     0
+    ],
+    "api_houg": 2,
+    "api_raig": 0,
+    "api_tyku": 0,
+    "api_souk": 0,
+    "api_saku": 8,
+    "api_houm": 9
+   },
+   "520": {
+    "api_id": 520,
+    "api_name": "試製20.3cm(4号)連装砲",
+    "api_type": [
+     1,
+     1,
+     2,
+     2,
+     0
+    ],
+    "api_houg": 11,
+    "api_raig": 0,
+    "api_tyku": 4,
+    "api_souk": 1,
+    "api_saku": 0,
+    "api_houm": 2
+   },
+   "526": {
+    "api_id": 526,
+    "api_name": "特四式内火艇改",
+    "api_type": [
+     20,
+     37,
+     46,
+     36,
+     0
+    ],
+    "api_houg": 0,
+    "api_raig": 3,
+    "api_tyku": 2,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 1
+   },
+   "529": {
+    "api_id": 529,
+    "api_name": "12.7cm連装砲C型改三H",
+    "api_type": [
+     1,
+     1,
+     1,
+     1,
+     0
+    ],
+    "api_houg": 3,
+    "api_raig": 0,
+    "api_tyku": 5,
+    "api_souk": 1,
+    "api_saku": 0,
+    "api_houm": 1
+   },
+   "572": {
+    "api_id": 572,
+    "api_name": "12.7cm単装高角砲改三",
+    "api_type": [
+     1,
+     1,
+     1,
+     16,
+     0
+    ],
+    "api_houg": 2,
+    "api_raig": 0,
+    "api_tyku": 6,
+    "api_souk": 0,
+    "api_saku": 0,
+    "api_houm": 2
+   },
+   "574": {
+    "api_id": 574,
+    "api_name": "SCレーダー改(後期調整型)",
+    "api_type": [
+     5,
+     8,
+     12,
+     11,
+     0
+    ],
+    "api_houg": 2,
+    "api_raig": 0,
+    "api_tyku": 8,
+    "api_souk": 0,
+    "api_saku": 10,
+    "api_houm": 3
+   }
+  }
+ },
+ "entries": [
+  {
+   "id": 1,
+   "ids": null,
+   "types": [
+    10
+   ],
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "tais": 3,
+      "kaih": 1
+     },
+     "shipId": [
+      662,
+      663,
+      668
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      501,
+      502,
+      506,
+      507
+     ],
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "ids": null,
+   "types": [
+    11
+   ],
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1,
+      "tais": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      662,
+      663,
+      668
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      501,
+      502,
+      506,
+      507
+     ],
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "ids": null,
+   "types": [
+    12,
+    13
+   ],
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2,
+      "kaih": 3
+     },
+     "shipId": [
+      569,
+      648,
+      656,
+      951,
+      961,
+      1035,
+      1040,
+      1071
+     ],
+     "requiresAR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 2,
+      "kaih": 1
+     },
+     "shipId": [
+      745,
+      955,
+      956,
+      960,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ],
+     "requiresAR": 1,
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "ids": [
+    3,
+    122,
+    533,
+    553
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2,
+      "kaih": 1
+     },
+     "shipClass": [
+      54
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      963,
+      968
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      745,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ]
+    }
+   ]
+  },
+  {
+   "id": 23,
+   "ids": [
+    44,
+    45,
+    287,
+    288,
+    569
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "tais": 3,
+      "kaih": 2
+     },
+     "shipClass": [
+      56
+     ]
+    }
+   ]
+  },
+  {
+   "id": 24,
+   "ids": [
+    46,
+    47,
+    132,
+    149,
+    438
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "tais": 2,
+      "kaih": 3
+     },
+     "shipClass": [
+      56
+     ],
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 33,
+   "ids": [
+    66,
+    220
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "tyku": 2,
+      "kaih": 1
+     },
+     "shipId": [
+      662,
+      663,
+      668
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2,
+      "kaih": 2
+     },
+     "shipId": [
+      501,
+      502,
+      506,
+      507
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 1,
+      "kaih": 2
+     },
+     "shipId": [
+      501,
+      502,
+      506,
+      507,
+      662,
+      663,
+      668
+     ],
+     "requiresAR": 1,
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 34,
+   "ids": [
+    220
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 3,
+      "kaih": 2
+     },
+     "shipId": [
+      501,
+      502,
+      506,
+      507,
+      662,
+      663,
+      668
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 3,
+      "kaih": 3
+     },
+     "shipId": [
+      501,
+      502,
+      506,
+      507,
+      662,
+      663,
+      668,
+      894,
+      899
+     ],
+     "requiresAR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 2,
+      "kaih": 2
+     },
+     "shipId": [
+      894,
+      899
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      894,
+      899
+     ],
+     "level": 10
+    }
+   ]
+  },
+  {
+   "id": 40,
+   "ids": [
+    87
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "raig": 1,
+      "kaih": 2
+     },
+     "shipId": [
+      591,
+      592,
+      593,
+      694,
+      954
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipId": [
+      591,
+      592,
+      593,
+      694,
+      954
+     ],
+     "num": 1,
+     "level": 6
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipId": [
+      591,
+      592,
+      593,
+      694,
+      954
+     ],
+     "num": 1,
+     "level": 8
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      591,
+      592,
+      593,
+      694,
+      954
+     ],
+     "num": 1,
+     "level": 10
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "raig": 1,
+      "houm": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      951
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 1
+     },
+     "shipId": [
+      951
+     ],
+     "level": 6
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipId": [
+      951
+     ],
+     "level": 7
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipId": [
+      951
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      951
+     ],
+     "level": 9
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      951
+     ],
+     "level": 10
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipId": [
+      50,
+      181,
+      229,
+      316,
+      961
+     ],
+     "level": 6
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipId": [
+      50,
+      181,
+      229,
+      316,
+      961
+     ],
+     "level": 7
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      50,
+      181,
+      229,
+      316,
+      961
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      50,
+      181,
+      229,
+      316,
+      961
+     ],
+     "level": 9
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipId": [
+      50,
+      181,
+      229,
+      316,
+      961
+     ],
+     "level": 10
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipClass": [
+      38,
+      54,
+      101
+     ],
+     "level": 7
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipClass": [
+      38,
+      54,
+      101
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipClass": [
+      38,
+      54,
+      101
+     ],
+     "level": 10
+    }
+   ]
+  },
+  {
+   "id": 47,
+   "ids": [
+    106,
+    450
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2,
+      "souk": 1,
+      "kaih": 3
+     },
+     "shipId": [
+      145,
+      151,
+      407,
+      419,
+      541,
+      593,
+      911,
+      916,
+      954,
+      961,
+      975
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 1,
+      "souk": 1,
+      "kaih": 3
+     },
+     "shipBase": [
+      35,
+      183,
+      465
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 2,
+      "souk": 1,
+      "kaih": 2
+     },
+     "shipBase": [
+      20,
+      49,
+      139,
+      167,
+      170,
+      425,
+      532
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 1,
+      "souk": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      663,
+      668
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      668
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 6,
+      "houm": 2,
+      "souk": 2,
+      "kaih": 4
+     },
+     "shipId": [
+      1071
+     ]
+    }
+   ]
+  },
+  {
+   "id": 48,
+   "ids": [
+    450
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2,
+      "souk": 1,
+      "kaih": 3
+     },
+     "shipClass": [
+      101
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 1,
+      "souk": 1,
+      "kaih": 2
+     },
+     "shipType": [
+      1
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 1,
+      "tyku": 1,
+      "kaih": 2
+     },
+     "shipId": [
+      745,
+      955,
+      956,
+      960,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ],
+     "level": 4,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2,
+      "kaih": 3
+     },
+     "shipId": [
+      651,
+      656,
+      961,
+      1035,
+      1040,
+      1071
+     ],
+     "level": 4,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 1
+     },
+     "shipId": [
+      651,
+      656,
+      961,
+      1035,
+      1040,
+      1071
+     ],
+     "level": 8,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      651,
+      656,
+      961,
+      1035,
+      1040,
+      1071
+     ],
+     "level": 10,
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 53,
+   "ids": [
+    122
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipClass": [
+      54
+     ],
+     "level": 6
+    },
+    {
+     "bonus": {
+      "tyku": 1
+     },
+     "shipClass": [
+      54
+     ],
+     "level": 7
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipClass": [
+      54
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipClass": [
+      54
+     ],
+     "level": 9
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipClass": [
+      54
+     ],
+     "level": 10
+    },
+    {
+     "bonus": {
+      "tyku": 1
+     },
+     "shipId": [
+      426,
+      745,
+      981,
+      982,
+      983,
+      986,
+      987,
+      1033,
+      1034,
+      1035,
+      1040
+     ],
+     "level": 7
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipId": [
+      426,
+      745,
+      981,
+      982,
+      983,
+      986,
+      987,
+      1033,
+      1034,
+      1035,
+      1040
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      426,
+      745,
+      981,
+      982,
+      983,
+      986,
+      987,
+      1033,
+      1034,
+      1035,
+      1040
+     ],
+     "level": 9
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      426,
+      745,
+      981,
+      982,
+      983,
+      986,
+      987,
+      1033,
+      1034,
+      1035,
+      1040
+     ],
+     "level": 10
+    }
+   ]
+  },
+  {
+   "id": 54,
+   "ids": [
+    122,
+    533
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 5,
+      "tyku": 3,
+      "kaih": 2
+     },
+     "shipId": [
+      656,
+      961,
+      1035,
+      1040
+     ],
+     "level": 4
+    },
+    {
+     "bonus": {
+      "houg": 4,
+      "kaih": 3
+     },
+     "shipId": [
+      656,
+      961,
+      1035,
+      1040
+     ],
+     "requiresSR": 1,
+     "num": 1,
+     "level": 4
+    },
+    {
+     "bonus": {
+      "tyku": 4,
+      "kaih": 3
+     },
+     "shipId": [
+      656,
+      961,
+      1035,
+      1040
+     ],
+     "requiresAR": 1,
+     "num": 1,
+     "level": 4
+    }
+   ]
+  },
+  {
+   "id": 60,
+   "ids": [
+    149
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "tais": 1,
+      "kaih": 3
+     },
+     "shipId": [
+      141,
+      160,
+      488,
+      622,
+      623,
+      656,
+      961
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tais": 3,
+      "kaih": 5
+     },
+     "shipId": [
+      624
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tais": 2,
+      "kaih": 4
+     },
+     "shipId": [
+      662,
+      1071
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tais": 1,
+      "kaih": 2
+     },
+     "shipClass": [
+      54
+     ],
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 64,
+   "ids": [
+    179
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipClass": [
+      54
+     ]
+    }
+   ]
+  },
+  {
+   "id": 70,
+   "ids": [
+    217
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 5,
+      "kaih": 3
+     },
+     "shipId": [
+      501,
+      506
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 4,
+      "kaih": 2
+     },
+     "shipId": [
+      502,
+      507
+     ]
+    }
+   ]
+  },
+  {
+   "id": 75,
+   "ids": [
+    237,
+    322,
+    323,
+    490
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 3,
+      "kaih": 1
+     },
+     "shipId": [
+      662
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "tyku": 1,
+      "kaih": 2
+     },
+     "shipId": [
+      501,
+      506,
+      553,
+      554,
+      663,
+      668
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 1,
+      "kaih": 2
+     },
+     "shipId": [
+      502,
+      507
+     ]
+    }
+   ]
+  },
+  {
+   "id": 81,
+   "ids": [
+    267
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "kaih": 1
+     },
+     "shipClass": [
+      22,
+      38
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "kaih": 1
+     },
+     "shipClass": [
+      30
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      566,
+      567,
+      568,
+      656,
+      670,
+      915,
+      951
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      542,
+      543,
+      563,
+      564,
+      569,
+      578,
+      743,
+      744,
+      745,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "raig": 3,
+      "kaih": 2
+     },
+     "shipId": [
+      229,
+      542,
+      543,
+      563,
+      564,
+      569,
+      578,
+      648,
+      649,
+      743,
+      744,
+      745,
+      955,
+      956,
+      960,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "raig": 3,
+      "kaih": 1
+     },
+     "shipClass": [
+      38
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "raig": -1
+     },
+     "shipId": [
+      955,
+      956
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "raig": -2
+     },
+     "shipId": [
+      960
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      648,
+      649,
+      955,
+      956,
+      960,
+      961
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "raig": 3,
+      "kaih": 1
+     },
+     "shipId": [
+      648
+     ],
+     "requiresSR": 1,
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 82,
+   "ids": [
+    366
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "kaih": 1
+     },
+     "shipClass": [
+      22,
+      38
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "kaih": 1
+     },
+     "shipClass": [
+      30
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2
+     },
+     "shipId": [
+      566,
+      567,
+      568,
+      656,
+      670,
+      915,
+      951
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2
+     },
+     "shipId": [
+      566,
+      567,
+      568,
+      656,
+      670,
+      915,
+      951
+     ],
+     "num": 2
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      542,
+      543,
+      563,
+      564,
+      569,
+      578,
+      743,
+      744,
+      745,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      648,
+      649,
+      955,
+      956,
+      960,
+      961
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 3,
+      "houg": 1,
+      "houm": 1
+     },
+     "shipId": [
+      229,
+      542,
+      543,
+      563,
+      564,
+      569,
+      578,
+      743,
+      744,
+      745,
+      648,
+      649,
+      955,
+      956,
+      960,
+      961,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "raig": 4,
+      "kaih": 2,
+      "houm": 2
+     },
+     "shipId": [
+      229,
+      542,
+      543,
+      563,
+      564,
+      569,
+      578,
+      743,
+      744,
+      745,
+      648,
+      649,
+      955,
+      956,
+      960,
+      961,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "raig": -1
+     },
+     "shipId": [
+      960
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 5,
+      "kaih": 3,
+      "houm": 1
+     },
+     "shipId": [
+      229,
+      542,
+      543,
+      563,
+      564,
+      569,
+      578,
+      743,
+      744,
+      745,
+      648,
+      649,
+      955,
+      956,
+      960,
+      961,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ],
+     "requiresAR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 2,
+      "houg": 2
+     },
+     "shipId": [
+      229,
+      542,
+      543,
+      563,
+      564,
+      569,
+      578,
+      743,
+      744,
+      745,
+      648,
+      649,
+      955,
+      956,
+      960,
+      961,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ],
+     "num": 2
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      955
+     ],
+     "num": 2
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      229,
+      542,
+      543,
+      563,
+      564,
+      569,
+      578,
+      743,
+      744,
+      745,
+      648,
+      649,
+      955,
+      956,
+      960,
+      961,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ],
+     "level": 5
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      229,
+      542,
+      543,
+      563,
+      564,
+      569,
+      578,
+      743,
+      744,
+      745,
+      648,
+      649,
+      955,
+      956,
+      960,
+      961,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      229,
+      542,
+      543,
+      563,
+      564,
+      569,
+      578,
+      743,
+      744,
+      745,
+      648,
+      649,
+      955,
+      956,
+      960,
+      961,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ],
+     "level": 10
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2
+     },
+     "shipId": [
+      569,
+      648
+     ],
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 83,
+   "ids": [
+    267,
+    366
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 2,
+      "kaih": 3
+     },
+     "shipId": [
+      648,
+      961
+     ],
+     "requiresId": [
+      129,
+      412
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "kaih": -3
+     },
+     "shipId": [
+      648,
+      961
+     ],
+     "requiresId": [
+      74
+     ],
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 90,
+   "ids": [
+    286,
+    577
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "raig": 2,
+      "kaih": 1
+     },
+     "shipId": [
+      144,
+      145,
+      198,
+      199,
+      463,
+      464,
+      468,
+      469,
+      470,
+      489,
+      490,
+      497,
+      498,
+      542,
+      543,
+      563,
+      564,
+      566,
+      567,
+      568,
+      569,
+      578,
+      587,
+      588,
+      648,
+      649,
+      651,
+      656,
+      667,
+      670,
+      743,
+      744,
+      745,
+      915,
+      951,
+      955,
+      956,
+      960,
+      961,
+      975,
+      981,
+      982,
+      983,
+      1033,
+      1034,
+      1040
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "raig": 2,
+      "kaih": 1
+     },
+     "shipId": [
+      144,
+      145,
+      198,
+      199,
+      463,
+      464,
+      468,
+      469,
+      470,
+      489,
+      490,
+      497,
+      498,
+      542,
+      543,
+      563,
+      564,
+      566,
+      567,
+      568,
+      569,
+      578,
+      587,
+      588,
+      648,
+      649,
+      651,
+      656,
+      667,
+      670,
+      743,
+      744,
+      745,
+      915,
+      951,
+      955,
+      956,
+      960,
+      961,
+      975,
+      981,
+      982,
+      983,
+      1033,
+      1034,
+      1040
+     ],
+     "num": 2
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      144,
+      145,
+      198,
+      199,
+      463,
+      464,
+      468,
+      469,
+      470,
+      489,
+      490,
+      497,
+      498,
+      542,
+      543,
+      563,
+      564,
+      566,
+      567,
+      568,
+      569,
+      578,
+      587,
+      588,
+      648,
+      649,
+      651,
+      656,
+      667,
+      670,
+      743,
+      744,
+      745,
+      915,
+      951,
+      955,
+      956,
+      960,
+      961,
+      975,
+      981,
+      982,
+      983,
+      1033,
+      1034,
+      1040
+     ],
+     "num": 1,
+     "level": 10
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      144,
+      145,
+      198,
+      199,
+      463,
+      464,
+      468,
+      469,
+      470,
+      489,
+      490,
+      497,
+      498,
+      542,
+      543,
+      563,
+      564,
+      566,
+      567,
+      568,
+      569,
+      578,
+      587,
+      588,
+      648,
+      649,
+      651,
+      656,
+      667,
+      670,
+      743,
+      744,
+      745,
+      915,
+      951,
+      955,
+      956,
+      960,
+      961,
+      975,
+      981,
+      982,
+      983,
+      1033,
+      1034,
+      1040
+     ],
+     "num": 2,
+     "level": 10
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipId": [
+      144,
+      145,
+      198,
+      199,
+      463,
+      464,
+      468,
+      469,
+      470,
+      489,
+      490,
+      497,
+      498,
+      542,
+      543,
+      563,
+      564,
+      566,
+      567,
+      568,
+      569,
+      578,
+      587,
+      588,
+      648,
+      649,
+      651,
+      656,
+      667,
+      670,
+      743,
+      744,
+      745,
+      915,
+      951,
+      955,
+      956,
+      960,
+      961,
+      975,
+      981,
+      982,
+      983,
+      1033,
+      1034,
+      1040
+     ],
+     "shipClass": [
+      30
+     ],
+     "num": 1,
+     "level": 5
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipId": [
+      144,
+      145,
+      198,
+      199,
+      463,
+      464,
+      468,
+      469,
+      470,
+      489,
+      490,
+      497,
+      498,
+      542,
+      543,
+      563,
+      564,
+      566,
+      567,
+      568,
+      569,
+      578,
+      587,
+      588,
+      648,
+      649,
+      651,
+      656,
+      667,
+      670,
+      743,
+      744,
+      745,
+      915,
+      951,
+      955,
+      956,
+      960,
+      961,
+      975,
+      981,
+      982,
+      983,
+      1033,
+      1034,
+      1040
+     ],
+     "shipClass": [
+      30
+     ],
+     "num": 2,
+     "level": 5
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipId": [
+      961
+     ],
+     "num": 1,
+     "level": 5
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipId": [
+      961
+     ],
+     "num": 2,
+     "level": 5
+    },
+    {
+     "bonus": {
+      "raig": 7,
+      "kaih": 2
+     },
+     "shipBase": [
+      642
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "raig": 2
+     },
+     "shipBase": [
+      642
+     ],
+     "num": 1,
+     "level": 7
+    },
+    {
+     "bonus": {
+      "raig": 2
+     },
+     "shipBase": [
+      642
+     ],
+     "num": 1,
+     "level": 10
+    },
+    {
+     "bonus": {
+      "raig": 2
+     },
+     "shipId": [
+      662,
+      663,
+      668
+     ]
+    },
+    {
+     "bonus": {
+      "raig": 3,
+      "kaih": 2
+     },
+     "shipId": [
+      662,
+      663,
+      668
+     ],
+     "requiresSR": 1,
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 94,
+   "ids": [
+    290
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 3,
+      "tyku": 2,
+      "houm": 3,
+      "kaih": 1
+     },
+     "shipId": [
+      553,
+      554
+     ]
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipId": [
+      554
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 2,
+      "kaih": 1
+     },
+     "shipId": [
+      82,
+      88
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 2,
+      "kaih": 3
+     },
+     "shipId": [
+      82,
+      88,
+      553,
+      554,
+      748,
+      749
+     ],
+     "requiresAR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      411,
+      412
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      748,
+      749
+     ]
+    }
+   ]
+  },
+  {
+   "id": 99,
+   "ids": [
+    295
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 2
+     },
+     "shipClass": [
+      1,
+      5,
+      12
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "raig": 1,
+      "kaih": 2
+     },
+     "shipClass": [
+      1,
+      5,
+      12
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 6
+     },
+     "shipClass": [
+      1,
+      5,
+      12
+     ],
+     "requiresAR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 1,
+      "tais": 1
+     },
+     "shipId": [
+      666
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "raig": 3
+     },
+     "shipClass": [
+      1,
+      5,
+      12
+     ],
+     "requiresId": [
+      13,
+      125,
+      285
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "raig": 2
+     },
+     "shipClass": [
+      1,
+      5,
+      12
+     ],
+     "requiresId": [
+      13,
+      125,
+      285
+     ],
+     "requiresIdNum": 2,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipClass": [
+      1,
+      5,
+      12
+     ],
+     "requiresId": [
+      285
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      959
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      959
+     ],
+     "num": 2
+    },
+    {
+     "bonus": {
+      "houg": 3
+     },
+     "shipId": [
+      959
+     ],
+     "num": 3
+    }
+   ]
+  },
+  {
+   "id": 116,
+   "ids": [
+    317
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 1
+     },
+     "shipClass": [
+      6
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipClass": [
+      6
+     ],
+     "level": 8,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 1,
+      "kaih": 1
+     },
+     "shipClass": [
+      2
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipClass": [
+      2
+     ],
+     "level": 10,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 2
+     },
+     "shipId": [
+      149,
+      591,
+      592
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 1
+     },
+     "shipId": [
+      150
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      151
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 3,
+      "kaih": 2
+     },
+     "shipId": [
+      593
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 2,
+      "kaih": 1
+     },
+     "shipId": [
+      954
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 1
+     },
+     "shipId": [
+      152,
+      694
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2
+     },
+     "shipId": [
+      541
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 2,
+      "kaih": 1
+     },
+     "shipId": [
+      573
+     ],
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 117,
+   "ids": [
+    318
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      411,
+      412,
+      748,
+      749
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 2,
+      "kaih": 2
+     },
+     "shipId": [
+      82,
+      88
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 2,
+      "houm": 3,
+      "kaih": 2
+     },
+     "shipId": [
+      553
+     ]
+    },
+    {
+     "bonus": {
+      "souk": 1,
+      "kaih": 2
+     },
+     "shipId": [
+      553
+     ],
+     "requiresId": [
+      290
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "tyku": 2,
+      "houm": 3,
+      "kaih": 2
+     },
+     "shipId": [
+      554
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "souk": 1,
+      "houm": 1,
+      "kaih": 2
+     },
+     "shipId": [
+      554
+     ],
+     "requiresId": [
+      290
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 2,
+      "houm": 1,
+      "kaih": 3
+     },
+     "shipId": [
+      82,
+      88,
+      553,
+      554
+     ],
+     "requiresAR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": -2,
+      "houm": -1,
+      "kaih": -3
+     },
+     "shipId": [
+      82,
+      88,
+      553,
+      554
+     ],
+     "requiresAR": 1,
+     "requiresId": [
+      290
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "tyku": 2,
+      "houm": 2,
+      "kaih": 1
+     },
+     "shipId": [
+      541,
+      573
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "souk": 1,
+      "houm": 1,
+      "kaih": 2
+     },
+     "shipId": [
+      541,
+      573
+     ],
+     "requiresId": [
+      290
+     ],
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 121,
+   "ids": [
+    323
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 6,
+      "tyku": 3,
+      "tais": 2,
+      "kaih": 3
+     },
+     "shipId": [
+      553,
+      554
+     ]
+    }
+   ]
+  },
+  {
+   "id": 146,
+   "ids": [
+    364
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1,
+      "raig": 1,
+      "kaih": 5
+     },
+     "shipId": [
+      118,
+      119,
+      506,
+      507,
+      586,
+      623,
+      657,
+      668,
+      1071
+     ]
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipId": [
+      119
+     ]
+    },
+    {
+     "bonus": {
+      "raig": 2
+     },
+     "shipId": [
+      507
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "raig": 3
+     },
+     "shipId": [
+      623,
+      1071
+     ]
+    },
+    {
+     "bonus": {
+      "houg": -1,
+      "kaih": -7
+     }
+    }
+   ]
+  },
+  {
+   "id": 159,
+   "ids": [
+    378
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "tais": 3,
+      "kaih": 1
+     },
+     "shipCountry": [
+      "US"
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tais": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      629,
+      651,
+      656,
+      1040
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tais": 2,
+      "kaih": 1
+     },
+     "shipCountry": [
+      "GB"
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tais": 1,
+      "kaih": 1
+     },
+     "shipClass": [
+      96
+     ],
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 160,
+   "ids": [
+    379,
+    572
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2
+     },
+     "shipType": [
+      1
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 1
+     },
+     "shipType": [
+      16,
+      21
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2
+     },
+     "shipClass": [
+      28,
+      66
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 2,
+      "kaih": 1
+     },
+     "shipClass": [
+      101
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 2,
+      "kaih": 2
+     },
+     "shipClass": [
+      101
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 1,
+      "tyku": 1
+     },
+     "shipClass": [
+      38
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipBase": [
+      22,
+      23,
+      56,
+      113
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 2
+     },
+     "shipBase": [
+      24,
+      25
+     ]
+    },
+    {
+     "bonus": {
+      "tais": 1
+     },
+     "shipBase": [
+      22,
+      23,
+      56,
+      113,
+      115
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipBase": [
+      51,
+      52,
+      115
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 4
+     },
+     "shipId": [
+      488
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 3
+     },
+     "shipId": [
+      141,
+      160,
+      220,
+      487
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 2
+     },
+     "shipId": [
+      22,
+      23,
+      56,
+      113,
+      219,
+      224,
+      289
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "tyku": 3
+     },
+     "shipId": [
+      651,
+      656,
+      961
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "tyku": 4
+     },
+     "shipId": [
+      1035,
+      1040,
+      1071
+     ]
+    },
+    {
+     "bonus": {
+      "tais": 2,
+      "kaih": 3
+     },
+     "shipId": [
+      651,
+      656,
+      961,
+      1035,
+      1040,
+      1071
+     ]
+    },
+    {
+     "bonus": {
+      "tais": 1
+     },
+     "shipId": [
+      141,
+      160,
+      487,
+      488,
+      745,
+      1034
+     ]
+    },
+    {
+     "bonus": {
+      "tais": 2
+     },
+     "shipId": [
+      477,
+      478,
+      624
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 2
+     },
+     "shipId": [
+      477,
+      478,
+      622,
+      624
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 2
+     },
+     "shipId": [
+      146,
+      547,
+      652,
+      657
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipId": [
+      118,
+      119,
+      160,
+      488,
+      981,
+      1033,
+      1071
+     ]
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipId": [
+      118,
+      119,
+      488,
+      1071
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tais": 1
+     },
+     "shipId": [
+      981,
+      1033
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "kaih": 2
+     },
+     "shipType": [
+      3,
+      4,
+      16,
+      21
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "kaih": 4
+     },
+     "shipType": [
+      1
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "kaih": 3
+     },
+     "shipClass": [
+      21,
+      28,
+      34,
+      66
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 4,
+      "kaih": 3,
+      "houm": 2
+     },
+     "shipClass": [
+      101
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "kaih": 2,
+      "houm": 2
+     },
+     "shipId": [
+      488,
+      651,
+      656,
+      961,
+      1035,
+      1040,
+      1071
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      118,
+      119,
+      141,
+      146,
+      160,
+      487,
+      547,
+      652,
+      657
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 3,
+      "kaih": 2
+     },
+     "shipId": [
+      651,
+      656,
+      961,
+      1035,
+      1040,
+      1071
+     ],
+     "requiresAR": 1,
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 161,
+   "ids": [
+    379
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "tyku": 1
+     },
+     "level": 7,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "level": 8,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "level": 9,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "level": 10,
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 162,
+   "ids": [
+    572
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 1,
+      "houm": 2,
+      "kaih": 1
+     },
+     "shipId": [
+      961,
+      1035,
+      1040,
+      1071
+     ]
+    },
+    {
+     "bonus": {
+      "tyku": 1
+     },
+     "level": 7
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "level": 8
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "level": 9
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "level": 10
+    }
+   ]
+  },
+  {
+   "id": 185,
+   "ids": [
+    412
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "raig": 4,
+      "tais": 2
+     },
+     "shipClass": [
+      1,
+      5,
+      10,
+      12,
+      18,
+      22,
+      23,
+      28,
+      30,
+      38,
+      54,
+      66,
+      101
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 3,
+      "saku": 1
+     },
+     "shipClass": [
+      1,
+      5,
+      10,
+      12,
+      18,
+      22,
+      23,
+      28,
+      30,
+      38,
+      54,
+      66,
+      101
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "raig": 3
+     },
+     "shipClass": [
+      4,
+      16,
+      20,
+      21,
+      34,
+      41,
+      52,
+      56
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 2,
+      "saku": 3
+     },
+     "shipClass": [
+      4,
+      16,
+      20,
+      21,
+      34,
+      41,
+      52,
+      56
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipClass": [
+      7,
+      8,
+      9,
+      13,
+      29,
+      31
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 1,
+      "saku": 1
+     },
+     "shipClass": [
+      7,
+      8,
+      9,
+      13,
+      29,
+      31
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipClass": [
+      1,
+      5,
+      10,
+      12,
+      18,
+      22,
+      23,
+      28,
+      30,
+      38,
+      54,
+      66,
+      101,
+      4,
+      16,
+      20,
+      21,
+      34,
+      41,
+      52,
+      56
+     ],
+     "num": 1,
+     "level": 4
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipClass": [
+      1,
+      5,
+      10,
+      12,
+      18,
+      22,
+      23,
+      28,
+      30,
+      38,
+      54,
+      66,
+      101,
+      4,
+      16,
+      20,
+      21,
+      34,
+      41,
+      52,
+      56
+     ],
+     "num": 1,
+     "level": 8
+    }
+   ]
+  },
+  {
+   "id": 218,
+   "ids": [
+    455
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 1
+     },
+     "shipClass": [
+      1,
+      5,
+      12
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "raig": 1,
+      "kaih": 2
+     },
+     "shipClass": [
+      1,
+      5,
+      12
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 4
+     },
+     "shipClass": [
+      1,
+      5,
+      12
+     ],
+     "requiresAR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipClass": [
+      12
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipBase": [
+      486
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "raig": 1,
+      "tais": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      647
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tais": 1
+     },
+     "shipId": [
+      666
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "raig": 3
+     },
+     "shipClass": [
+      1,
+      5,
+      12
+     ],
+     "requiresId": [
+      13,
+      125,
+      285
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "raig": 2
+     },
+     "shipClass": [
+      1,
+      5,
+      12
+     ],
+     "requiresId": [
+      13,
+      125,
+      285
+     ],
+     "requiresIdNum": 2,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipClass": [
+      1,
+      5,
+      12
+     ],
+     "requiresId": [
+      285
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      959
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      959
+     ],
+     "num": 2
+    },
+    {
+     "bonus": {
+      "houg": 3
+     },
+     "shipId": [
+      959
+     ],
+     "num": 3
+    }
+   ]
+  },
+  {
+   "id": 232,
+   "ids": [
+    245,
+    246
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "houm": 1
+     },
+     "shipClass": [
+      79
+     ]
+    }
+   ]
+  },
+  {
+   "id": 234,
+   "ids": [
+    470,
+    529
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipClass": [
+      18,
+      23
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "kaih": 1,
+      "raig": 3,
+      "houm": 1
+     },
+     "shipClass": [
+      18,
+      23
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipClass": [
+      30
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "kaih": 1,
+      "raig": 3,
+      "houm": 3
+     },
+     "shipClass": [
+      30
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 2
+     },
+     "shipBase": [
+      20,
+      43,
+      167
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "houm": 3,
+      "kaih": 2
+     },
+     "shipId": [
+      961
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 2
+     },
+     "shipId": [
+      145,
+      566,
+      567,
+      568,
+      651,
+      656,
+      670,
+      915,
+      951,
+      961
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      145,
+      566,
+      567,
+      568,
+      651,
+      656,
+      670,
+      915,
+      951,
+      961
+     ],
+     "num": 2
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      145,
+      566,
+      567,
+      568,
+      651,
+      656,
+      670,
+      915,
+      951,
+      961
+     ],
+     "level": 5
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      145,
+      566,
+      567,
+      568,
+      651,
+      656,
+      670,
+      915,
+      951,
+      961
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      145,
+      566,
+      567,
+      568,
+      651,
+      656,
+      670,
+      915,
+      951,
+      961
+     ],
+     "level": 10
+    }
+   ]
+  },
+  {
+   "id": 235,
+   "ids": [
+    529
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 1,
+      "houm": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      144,
+      145,
+      246,
+      405,
+      497
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      144,
+      145,
+      246,
+      405,
+      497
+     ],
+     "num": 2
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      144,
+      145,
+      246,
+      405,
+      497,
+      323,
+      498,
+      961
+     ],
+     "num": 3
+    },
+    {
+     "bonus": {
+      "tyku": 1
+     },
+     "shipId": [
+      144,
+      145,
+      246,
+      405,
+      497
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      144,
+      145,
+      246,
+      405,
+      497
+     ],
+     "level": 10
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 2,
+      "houm": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      323,
+      498,
+      961
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      323,
+      498,
+      961
+     ],
+     "num": 2
+    },
+    {
+     "bonus": {
+      "tyku": 1
+     },
+     "shipId": [
+      323,
+      498,
+      961
+     ],
+     "level": 6
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      323,
+      498,
+      961
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      323,
+      498,
+      961
+     ],
+     "level": 10
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "tyku": 3,
+      "houm": 2,
+      "kaih": 2
+     },
+     "shipId": [
+      975
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 3
+     },
+     "shipId": [
+      975
+     ],
+     "num": 2
+    },
+    {
+     "bonus": {
+      "houg": 3
+     },
+     "shipId": [
+      975
+     ],
+     "num": 3
+    },
+    {
+     "bonus": {
+      "tyku": 1
+     },
+     "shipId": [
+      975
+     ],
+     "level": 4
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      975
+     ],
+     "level": 6
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      975
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      975
+     ],
+     "level": 10
+    },
+    {
+     "bonus": {
+      "tyku": 2,
+      "kaih": 2
+     },
+     "requiresAR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 2
+     },
+     "requiresAR": 1,
+     "num": 2
+    },
+    {
+     "bonus": {
+      "tyku": 2
+     },
+     "requiresAR": 1,
+     "num": 3
+    }
+   ]
+  },
+  {
+   "id": 236,
+   "ids": [
+    471
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "kaih": 2,
+      "houm": 2
+     },
+     "shipCountry": [
+      "FR"
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "houm": 1
+     },
+     "shipClass": [
+      79
+     ]
+    },
+    {
+     "bonus": {
+      "kaih": 1,
+      "houm": 1
+     },
+     "shipCountry": [
+      "FR"
+     ],
+     "level": 6
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "kaih": 1,
+      "houm": 1
+     },
+     "shipCountry": [
+      "FR"
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 1
+     },
+     "shipCountry": [
+      "FR"
+     ],
+     "level": 10
+    },
+    {
+     "bonus": {
+      "houm": 2
+     },
+     "shipClass": [
+      79
+     ],
+     "requiresId": [
+      468
+     ],
+     "requiresIdLevel": 9
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipClass": [
+      79
+     ],
+     "requiresId": [
+      468
+     ],
+     "requiresIdLevel": 10
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipClass": [
+      79
+     ],
+     "level": 7,
+     "requiresId": [
+      468
+     ],
+     "requiresIdLevel": 10
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipClass": [
+      79
+     ],
+     "level": 9,
+     "requiresId": [
+      468
+     ],
+     "requiresIdLevel": 10
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipCountry": [
+      "FR"
+     ],
+     "requiresId": [
+      536,
+      537
+     ],
+     "requiresIdLevel": 1
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipId": [
+      970
+     ],
+     "requiresId": [
+      536,
+      537
+     ],
+     "requiresIdLevel": 1
+    }
+   ]
+  },
+  {
+   "id": 257,
+   "ids": [
+    506
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "houm": 3,
+      "tyku": 2,
+      "kaih": 4
+     },
+     "shipId": [
+      961
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 2,
+      "tyku": 1,
+      "kaih": 3
+     },
+     "shipId": [
+      145,
+      497,
+      557,
+      558,
+      656,
+      951,
+      975,
+      1071
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 1,
+      "tyku": 1,
+      "kaih": 2
+     },
+     "shipId": [
+      147,
+      235,
+      407,
+      419,
+      464,
+      470,
+      537,
+      538,
+      578,
+      744,
+      955,
+      960,
+      1046
+     ],
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 262,
+   "ids": [
+    517
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houm": 1,
+      "kaih": 1,
+      "saku": 1
+     },
+     "shipClass": [
+      1,
+      5,
+      10,
+      12,
+      18,
+      22,
+      23,
+      28,
+      30,
+      38,
+      54,
+      66,
+      101,
+      74,
+      77,
+      85,
+      104,
+      117
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 1
+     },
+     "shipClass": [
+      38
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "houm": 1,
+      "kaih": 3,
+      "saku": 2
+     },
+     "shipId": [
+      960
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 1,
+      "kaih": 2,
+      "saku": 1
+     },
+     "shipId": [
+      147,
+      235,
+      407,
+      419,
+      464,
+      470,
+      578,
+      656,
+      744,
+      955,
+      961,
+      975,
+      1035,
+      1040,
+      1071
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 1,
+      "kaih": 1
+     },
+     "shipId": [
+      745,
+      981,
+      982,
+      983,
+      1033,
+      1034
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 1
+     },
+     "requiresId": [
+      267,
+      366
+     ],
+     "requiresIdLevel": 3,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 1
+     },
+     "shipClass": [
+      38
+     ],
+     "requiresId": [
+      267,
+      366
+     ],
+     "requiresIdLevel": 3,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 1,
+      "tyku": 4,
+      "kaih": 3
+     },
+     "requiresEquipList": [
+      {
+       "requiresId": [
+        267,
+        366
+       ],
+       "requiresIdLevel": 3
+      },
+      {
+       "requiresId": [
+        450
+       ],
+       "requiresIdLevel": 4
+      }
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "level": 7,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "level": 8,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "level": 9,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "level": 10,
+     "num": 1
+    }
+   ]
+  },
+  {
+   "id": 265,
+   "ids": [
+    520
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipClass": [
+      7,
+      13
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "kaih": 1
+     },
+     "shipClass": [
+      8,
+      29
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "kaih": 1,
+      "houm": 1
+     },
+     "shipClass": [
+      9,
+      31
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipClass": [
+      9,
+      31
+     ],
+     "num": 2
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipClass": [
+      9,
+      31
+     ],
+     "num": 3
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "raig": 2,
+      "kaih": 1,
+      "houm": 1
+     },
+     "shipClass": [
+      7,
+      13
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 3,
+      "raig": 2,
+      "kaih": 2,
+      "houm": 1
+     },
+     "shipClass": [
+      8,
+      9,
+      29,
+      31
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 4,
+      "kaih": 4,
+      "houm": 1
+     },
+     "shipClass": [
+      7,
+      8,
+      9,
+      13,
+      29,
+      31
+     ],
+     "requiresId": [
+      10,
+      66,
+      71,
+      130,
+      220,
+      275,
+      464
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      265,
+      269,
+      319
+     ],
+     "num": 2
+    },
+    {
+     "bonus": {
+      "houg": 2
+     },
+     "shipId": [
+      265,
+      269,
+      319
+     ],
+     "num": 3
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      501,
+      502,
+      503,
+      504,
+      506,
+      507
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "kaih": 1,
+      "houm": 2
+     },
+     "shipId": [
+      501,
+      502,
+      503,
+      504,
+      506,
+      507
+     ],
+     "requiresSR": 1,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 3,
+      "kaih": 2,
+      "houm": 1
+     },
+     "shipId": [
+      501,
+      502,
+      503,
+      504,
+      506,
+      507
+     ],
+     "requiresId": [
+      30,
+      410
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 3,
+      "kaih": 2,
+      "houm": 1
+     },
+     "shipId": [
+      501,
+      502,
+      503,
+      504,
+      506,
+      507
+     ],
+     "requiresId": [
+      410
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 1
+     },
+     "shipId": [
+      265,
+      269,
+      319,
+      502
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "houm": 2,
+      "tyku": 1
+     },
+     "shipId": [
+      507
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      501,
+      502,
+      503,
+      504,
+      506,
+      507
+     ],
+     "level": 7
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      501,
+      502,
+      503,
+      504,
+      506,
+      507
+     ],
+     "level": 10
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      503,
+      504
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      503,
+      504
+     ],
+     "level": 9
+    }
+   ]
+  },
+  {
+   "id": 270,
+   "ids": [
+    525,
+    526
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1,
+      "raig": 2,
+      "kaih": -1
+     },
+     "shipType": [
+      13,
+      14
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "raig": 1,
+      "houm": 2
+     },
+     "shipBase": [
+      971,
+      972
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipType": [
+      13,
+      14
+     ],
+     "level": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipType": [
+      13,
+      14
+     ],
+     "level": 3
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipType": [
+      13,
+      14
+     ],
+     "level": 6
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipType": [
+      13,
+      14
+     ],
+     "level": 10
+    }
+   ]
+  },
+  {
+   "id": 271,
+   "ids": [
+    526
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 1,
+      "raig": 1,
+      "houm": 1
+     },
+     "shipType": [
+      13,
+      14
+     ]
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipType": [
+      13,
+      14
+     ],
+     "level": 2
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "shipType": [
+      13,
+      14
+     ],
+     "level": 4
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipType": [
+      13,
+      14
+     ],
+     "level": 8
+    }
+   ]
+  },
+  {
+   "id": 310,
+   "ids": [
+    309
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipId": [
+      118,
+      119,
+      506,
+      507,
+      586,
+      623,
+      657,
+      668,
+      690
+     ],
+     "level": 7
+    },
+    {
+     "bonus": {
+      "houm": 1,
+      "kaih": -1
+     },
+     "shipId": [
+      118,
+      119,
+      506,
+      507,
+      586,
+      623,
+      657,
+      668,
+      690
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "level": 8
+    },
+    {
+     "bonus": {
+      "raig": 1
+     },
+     "level": 9
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "level": 10
+    }
+   ]
+  },
+  {
+   "id": 312,
+   "ids": [
+    88,
+    240,
+    506,
+    517
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipBase": [
+      44,
+      583
+     ],
+     "level": 8
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipBase": [
+      44,
+      583
+     ],
+     "level": 9
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipBase": [
+      44,
+      583
+     ],
+     "level": 10
+    }
+   ]
+  },
+  {
+   "id": 324,
+   "ids": [
+    574
+   ],
+   "types": null,
+   "bonuses": [
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 4,
+      "houm": 3,
+      "kaih": 4
+     },
+     "shipId": [
+      651,
+      656,
+      961,
+      1035,
+      1040
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      651,
+      656,
+      961,
+      1035,
+      1040
+     ],
+     "level": 5,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      651,
+      656,
+      961,
+      1035,
+      1040
+     ],
+     "level": 6,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 1
+     },
+     "shipId": [
+      651,
+      656,
+      961,
+      1035,
+      1040
+     ],
+     "level": 7,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipId": [
+      651,
+      656,
+      961,
+      1035,
+      1040
+     ],
+     "level": 8,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipId": [
+      651,
+      656,
+      961,
+      1035,
+      1040
+     ],
+     "level": 9,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      651,
+      656,
+      961,
+      1035,
+      1040
+     ],
+     "level": 10,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 2,
+      "tyku": 4,
+      "houm": 3,
+      "kaih": 4
+     },
+     "shipBase": [
+      632,
+      633
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipBase": [
+      632,
+      633
+     ],
+     "level": 5,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipBase": [
+      632,
+      633
+     ],
+     "level": 6,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 1
+     },
+     "shipBase": [
+      632,
+      633
+     ],
+     "level": 7,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipBase": [
+      632,
+      633
+     ],
+     "level": 8,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipBase": [
+      632,
+      633
+     ],
+     "level": 9,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipBase": [
+      632,
+      633
+     ],
+     "level": 10,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1,
+      "tyku": 3,
+      "houm": 2,
+      "kaih": 3
+     },
+     "shipClass": [
+      87,
+      91
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipId": [
+      628
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipId": [
+      629
+     ],
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipClass": [
+      87,
+      91
+     ],
+     "level": 5,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipClass": [
+      87,
+      91
+     ],
+     "level": 6,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "tyku": 1
+     },
+     "shipClass": [
+      87,
+      91
+     ],
+     "level": 7,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houg": 1
+     },
+     "shipClass": [
+      87,
+      91
+     ],
+     "level": 8,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "kaih": 1
+     },
+     "shipClass": [
+      87,
+      91
+     ],
+     "level": 9,
+     "num": 1
+    },
+    {
+     "bonus": {
+      "houm": 1
+     },
+     "shipClass": [
+      87,
+      91
+     ],
+     "level": 10,
+     "num": 1
+    }
+   ]
+  }
+ ],
+ "cases": [
+  {
+   "ship": 553,
+   "name": "伊勢改二",
+   "equips": [
+    [
+     290,
+     6
+    ],
+    [
+     318,
+     6
+    ],
+    [
+     56,
+     0
+    ],
+    [
+     471,
+     0
+    ],
+    [
+     36,
+     10
+    ],
+    [
+     317,
+     3
+    ]
+   ],
+   "truth": {
+    "houg": 6,
+    "raig": 0,
+    "tyku": 5,
+    "souk": 1
+   }
+  },
+  {
+   "ship": 506,
+   "name": "最上改二特",
+   "equips": [
+    [
+     41,
+     0
+    ],
+    [
+     520,
+     10
+    ],
+    [
+     217,
+     8
+    ],
+    [
+     490,
+     0
+    ],
+    [
+     220,
+     2
+    ]
+   ],
+   "truth": {
+    "houg": 13,
+    "raig": 0,
+    "tyku": 15,
+    "souk": 0
+   }
+  },
+  {
+   "ship": 507,
+   "name": "三隈改二特",
+   "equips": [
+    [
+     309,
+     4
+    ],
+    [
+     520,
+     10
+    ],
+    [
+     217,
+     10
+    ],
+    [
+     471,
+     0
+    ],
+    [
+     66,
+     0
+    ]
+   ],
+   "truth": {
+    "houg": 11,
+    "raig": 0,
+    "tyku": 11,
+    "souk": 0
+   }
+  },
+  {
+   "ship": 961,
+   "name": "時雨改三",
+   "equips": [
+    [
+     366,
+     4
+    ],
+    [
+     529,
+     10
+    ],
+    [
+     286,
+     10
+    ],
+    [
+     517,
+     0
+    ],
+    [
+     412,
+     0
+    ]
+   ],
+   "truth": {
+    "houg": 22,
+    "raig": 14,
+    "tyku": 8,
+    "souk": 0
+   }
+  },
+  {
+   "ship": 1040,
+   "name": "吹雪改三護(六式)",
+   "equips": [
+    [
+     295,
+     0
+    ],
+    [
+     574,
+     3
+    ],
+    [
+     260,
+     0
+    ],
+    [
+     260,
+     0
+    ],
+    [
+     572,
+     0
+    ]
+   ],
+   "truth": {
+    "houg": 15,
+    "raig": 1,
+    "tyku": 22,
+    "souk": 0
+   }
+  },
+  {
+   "ship": 963,
+   "name": "秋月改二",
+   "equips": [
+    [
+     122,
+     3
+    ],
+    [
+     122,
+     3
+    ],
+    [
+     262,
+     0
+    ],
+    [
+     45,
+     0
+    ],
+    [
+     450,
+     2
+    ]
+   ],
+   "truth": {
+    "houg": 4,
+    "raig": 0,
+    "tyku": 4,
+    "souk": 0
+   }
+  },
+  {
+   "ship": 554,
+   "name": "日向改二",
+   "equips": [
+    [
+     183,
+     9
+    ],
+    [
+     246,
+     6
+    ],
+    [
+     323,
+     0
+    ],
+    [
+     87,
+     7
+    ],
+    [
+     116,
+     6
+    ],
+    [
+     33,
+     0
+    ]
+   ],
+   "truth": {
+    "houg": 9,
+    "raig": 0,
+    "tyku": 4,
+    "souk": 0
+   }
+  },
+  {
+   "ship": 1035,
+   "name": "吹雪改三",
+   "equips": [
+    [
+     455,
+     0
+    ],
+    [
+     378,
+     0
+    ],
+    [
+     262,
+     2
+    ],
+    [
+     449,
+     0
+    ],
+    [
+     379,
+     7
+    ]
+   ],
+   "truth": {
+    "houg": 6,
+    "raig": 0,
+    "tyku": 6,
+    "souk": 0
+   }
+  },
+  {
+   "ship": 975,
+   "name": "春雨改二",
+   "equips": [
+    [
+     529,
+     2
+    ],
+    [
+     529,
+     0
+    ],
+    [
+     449,
+     0
+    ],
+    [
+     506,
+     0
+    ]
+   ],
+   "truth": {
+    "houg": 13,
+    "raig": 3,
+    "tyku": 11,
+    "souk": 0
+   }
+  },
+  {
+   "ship": 1071,
+   "name": "北上改三",
+   "equips": [
+    [
+     572,
+     0
+    ],
+    [
+     572,
+     2
+    ],
+    [
+     149,
+     0
+    ],
+    [
+     526,
+     2
+    ],
+    [
+     364,
+     2
+    ],
+    [
+     412,
+     8
+    ]
+   ],
+   "truth": {
+    "houg": 19,
+    "raig": 8,
+    "tyku": 14,
+    "souk": 0
+   }
+  },
+  {
+   "ship": 368,
+   "name": "浦波改",
+   "equips": [
+    [
+     295,
+     0
+    ],
+    [
+     455,
+     10
+    ],
+    [
+     240,
+     4
+    ]
+   ],
+   "truth": {
+    "houg": 12,
+    "raig": 2,
+    "tyku": 3,
+    "souk": 0
+   }
+  },
+  {
+   "ship": 709,
+   "name": "巻波改",
+   "equips": [
+    [
+     267,
+     0
+    ],
+    [
+     267,
+     0
+    ],
+    [
+     88,
+     0
+    ]
+   ],
+   "truth": {
+    "houg": 6,
+    "raig": 3,
+    "tyku": 0,
+    "souk": 0
+   }
+  },
+  {
+   "ship": 501,
+   "name": "最上改二",
+   "equips": [
+    [
+     520,
+     10
+    ],
+    [
+     520,
+     10
+    ],
+    [
+     217,
+     10
+    ],
+    [
+     490,
+     0
+    ],
+    [
+     317,
+     0
+    ]
+   ],
+   "truth": {
+    "houg": 17,
+    "raig": 0,
+    "tyku": 6,
+    "souk": 0
+   }
+  },
+  {
+   "ship": 119,
+   "name": "北上改二",
+   "equips": [
+    [
+     179,
+     10
+    ],
+    [
+     179,
+     10
+    ],
+    [
+     364,
+     2
+    ],
+    [
+     412,
+     2
+    ]
+   ],
+   "truth": {
+    "houg": 3,
+    "raig": 5,
+    "tyku": 0,
+    "souk": 0
+   }
+  }
+ ]
+}

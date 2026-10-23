@@ -134,7 +134,8 @@ export const importFromPoi = (
   if (ships.length === 0) return null;
   const fleetName = view(state).info?.fleets?.[fleetIndex]?.api_name;
   return newPreset(state, typeof fleetName === "string" && fleetName ? fleetName : `Fleet ${fleetIndex + 1}`, opts, {
-    fleetType: "single",
+    // 7 隻の艦隊 (第3艦隊の遊撃部隊) は遊撃部隊
+    fleetType: ships.length > 6 ? "striking_force" : "single",
     formation: "line_ahead",
     ships,
   });
@@ -154,7 +155,7 @@ export const combinedTypeFromPoi = (state: unknown): PresetFleetType | null => {
  */
 export const importCombinedFromPoi = (
   state: unknown,
-  fallbackType: Exclude<PresetFleetType, "single"> = "carrier_task_force",
+  fallbackType: Exclude<PresetFleetType, "single" | "striking_force"> = "carrier_task_force",
   opts: ImportFromPoiOptions = {}
 ): Preset | null => {
   const ships = fleetShips(state, 0);

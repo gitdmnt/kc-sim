@@ -2,9 +2,12 @@
 import type {
   EnemyComp as SimComp,
   Formation,
-  GaugeInput,
+  GaugeMorale,
+  Advance,
   LandBase,
   NightPolicy,
+  RepairPolicy,
+  ResourceAmounts,
   RetreatPolicy,
   RoutingDocument,
   SortieInput,
@@ -20,6 +23,9 @@ import type { BuildEnemyOptions, EnemyBuild, EnemyLookup, FriendBuild } from "@s
 import { bonusAt, buildBonuses, debuffsAt } from "@shared/sim/bonuses";
 import type { AccEvaMode, EventBonusResponse } from "@shared/sim/bonuses";
 import type { FitEntry } from "@shared/sim/fit";
+import { isBalloonNode } from "@shared/sim/nodeEffects";
+import { applyNodeEffects, buildGauge } from "./sortieOptions";
+import type { GaugeSettings, NodeEffect } from "./sortieOptions";
 
 /** イベント特効の入力 (`GET /maps/{map}/bonuses` の応答と設定)。 */
 export interface EventBonusSettings {
@@ -173,7 +179,21 @@ export interface SortieSettings {
   retreat: RetreatPolicy;
   /** ノード → 陣形。未指定は自動。艦隊の種類 (通常 / 連合) に合わない陣形は自動に戻す */
   formations: Record<string, Formation>;
-  gaugeInput?: { kind: "kill" | "hp"; remaining: number; finalSet?: EnemyCompSet; finalThreshold?: number };
+  gaugeInput?: GaugeSettings;
+  /** マス → 撤退 / 強行 (無いマスは retreat に従う)。海域に無いマスは無視 */
+  advance?: Record<string, Advance>;
+  /** 洋上補給・戦闘糧食を使う (省略は使う) */
+  underway?: boolean;
+  rations?: boolean;
+  /** 煙幕を試みるマス (1 出撃 1 回)。海域に無いマスは無視 */
+  smoke?: string[];
+  /** マス → 資源・渦潮の効果 */
+  nodeEffects?: Record<string, NodeEffect>;
+  repair?: RepairPolicy;
+  /** 支援艦隊などエンジンが数えない費用 (1 出撃あたり) */
+  extraPerSortie?: ResourceAmounts;
+  /** 連続出撃 (士気を出撃間で持ち越す) */
+  consecutive?: GaugeMorale;
   hqLevel: number;
   applyFit: boolean;
 }
@@ -211,6 +231,7 @@ export const buildSortieInput = (
   const nodes: Record<string, SortieNode> = {};
   for (const n of data.detail.nodes) {
     nodes[n.letter] = { kind: (n.type ?? undefined) as SortieNode["kind"], boss: n.isBoss };
+    if (isBalloonNode(data.detail.map.world, data.detail.map.no, n.letter)) nodes[n.letter].balloons = true;
     const sets = data.comps[n.letter];
     if (!sets?.length) continue;
     const picked = pickSet(sets, s.difficulty);
@@ -228,14 +249,10 @@ export const buildSortieInput = (
   if (noComps.length) warnings.push(`敵編成データが無いため空きマス扱い: ${noComps.map((n) => n.letter).join(", ")}`);
   if (bossNode && !nodes[bossNode]?.comps) warnings.push("ボスマスの敵編成データがありません");
 
-  let gauge: GaugeInput | undefined;
-  if (s.gaugeInput) {
-    gauge = { kind: s.gaugeInput.kind, remaining: s.gaugeInput.remaining };
-    if (s.gaugeInput.kind === "hp") {
-      if (s.gaugeInput.finalSet) gauge.finalComps = toSimComps(s.gaugeInput.finalSet, data, opts).comps;
-      if (s.gaugeInput.finalThreshold) gauge.finalThreshold = s.gaugeInput.finalThreshold;
-    }
-  }
+  if (s.nodeEffects) applyNodeEffects(nodes, s.nodeEffects);
+  const gauge = s.gaugeInput && buildGauge(s.gaugeInput, (set) => toSimComps(set, data, opts).comps);
+  const advance = Object.fromEntries(Object.entries(s.advance ?? {}).filter(([l]) => Object.hasOwn(nodes, l)));
+  const smoke = (s.smoke ?? []).filter((l) => Object.hasOwn(nodes, l));
 
   // 基地航空隊: 出撃の隊のうち、この海域のマスを目標にした波だけ (`lbasBases` はエンジンの基地の順)
   const lbasBases: PresetAirBase[] = [];
@@ -285,10 +302,23 @@ export const buildSortieInput = (
       ...(s.phase !== undefined ? { phase: s.phase } : {}),
       ...(s.gauge !== undefined ? { gauge: s.gauge } : {}),
     },
-    policy: { night: s.night, retreat: s.retreat, formations },
+    policy: {
+      night: s.night,
+      retreat: s.retreat,
+      formations,
+      ...(Object.keys(advance).length > 0 ? { advance } : {}),
+      ...(smoke.length > 0 ? { smoke } : {}),
+      ...(s.underway !== undefined ? { underway: s.underway } : {}),
+      ...(s.rations !== undefined ? { rations: s.rations } : {}),
+    },
     topPaths: opts.topPaths ?? 200,
     ...(gauge ? { gauge } : {}),
     ...(lbas.length > 0 ? { lbas } : {}),
+    // 遊撃部隊 (7 隻の単艦隊はエンジンが自動で遊撃部隊にする)
+    ...(preset.fleetType === "striking_force" && !combined ? { striking: true } : {}),
+    ...(s.repair?.bucketAboveSec !== undefined ? { repair: s.repair } : {}),
+    ...(s.extraPerSortie && Object.values(s.extraPerSortie).some((v) => v) ? { extraPerSortie: s.extraPerSortie } : {}),
+    ...(s.consecutive ? { consecutive: s.consecutive } : {}),
   };
   if (enemyCombined.length > 0) warnings.push(enemyCombinedNote(enemyCombined));
   return { input, warnings: [...warnings, ...friend.warnings], friend, enemyBuilds, uncertain: uncertainNodes(routing), compSets, enemyCombined };

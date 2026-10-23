@@ -35,12 +35,13 @@ export const FORMATION_MAP: Record<PresetFormation, Formation> = {
   combined_battle: "combinedBattle",
 };
 
-/** 連合艦隊の種別 (通常艦隊は undefined) */
+/** 連合艦隊の種別 (通常艦隊・遊撃部隊は undefined) */
 export const COMBINED_TYPE: Record<PresetFleetType, CombinedType | undefined> = {
   single: undefined,
   carrier_task_force: "carrier",
   surface_task_force: "surface",
   transport_escort: "transport",
+  striking_force: undefined,
 };
 
 /** 連合艦隊用の陣形 (sim-core の名前) */
@@ -399,7 +400,7 @@ export const enemyFormationOf = (comp: Pick<EnemyComp, "formation">): Formation 
 /** プリセットの陣形。艦隊の種類 (通常 / 連合) に合わない陣形なら、その種類の既定 (単縦陣 / 第四警戒航行序列) */
 export const friendFormationOf = (preset: Pick<Preset, "formation" | "fleetType">): Formation => {
   const f = FORMATION_MAP[preset.formation] ?? "lineAhead";
-  const combined = preset.fleetType !== "single";
+  const combined = COMBINED_TYPE[preset.fleetType] !== undefined;
   return isCombinedFormation(f) === combined ? f : combined ? "combinedBattle" : "lineAhead";
 };
 

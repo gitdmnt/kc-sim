@@ -4,7 +4,7 @@ import { orderNodeRows } from "./SortieResults";
 
 const n = (reachRate: number): NodeSummary => ({
   reachRate, battleRate: reachRate, rankRates: { SS: 0, S: 0, A: 0, B: 0, C: 0, D: 0, E: 0 },
-  retreatRate: 0, retreatHeavyRate: 0, retreatModerateRate: 0, nightRate: 0,
+  retreatRate: 0, retreatHeavyRate: 0, retreatModerateRate: 0, nightRate: 0, fcfRate: 0,
 });
 
 test("Start first, then reach desc; zero-reach nodes dropped except bosses", () => {

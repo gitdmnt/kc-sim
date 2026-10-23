@@ -518,7 +518,7 @@ const out: string[] = [
   "",
   ...phaseLines(),
   "",
-  `Inputs: player FP/TP/AA/AR are naked from the packet's api_fParam, with the visible equipment bonus taken as displayed − equipment − api_fParam (the game's own). Our fit-bonus data (EO FitBonuses) gave that same bonus for ${pct(exact(0))} / ${pct(exact(1))} / ${pct(exact(2))} / ${pct(exact(3))} of ${nd} ships (FP / TP / AA / AR); the web UI, which has only displayed stats, would mis-split the rest. EV / ASW / LoS use our fit data for the split (totals are the displayed ones). ${warnings} adapter warnings. Simulation took ${simSeconds.toFixed(0)} s.`,
+  `Inputs: player FP/TP/AA/AR are naked from the packet's api_fParam, with the visible equipment bonus taken as displayed − equipment − api_fParam (the game's own). Our fit-bonus data (kancolle-replay mst_slotitem_bonus.json, shared/sim/fit.ts) gave that same bonus for ${pct(exact(0))} / ${pct(exact(1))} / ${pct(exact(2))} / ${pct(exact(3))} of ${nd} ships (FP / TP / AA / AR); the web UI, which has only displayed stats, would mis-split the rest. EV / ASW / LoS use our fit data for the split (totals are the displayed ones). ${warnings} adapter warnings. Simulation took ${simSeconds.toFixed(0)} s.`,
 ];
 
 // ---------------------------------------------------------------- outputs ----

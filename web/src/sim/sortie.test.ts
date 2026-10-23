@@ -10,6 +10,7 @@ import {
 } from "./sortieAdapter";
 import { geometricSorties, mergeSortieSummaries, runSortieJob } from "./runner";
 
+const ZD = { mean: 0, p50: 0, p90: 0 };
 const routing: RoutingDoc = {
   map: "9-9",
   defaults: { select: { F: "D" }, flags: ["open"] },
@@ -165,6 +166,66 @@ describe("buildSortieInput", () => {
     expect(() => buildSortieInput(preset, master, { ...data, detail: { ...data.detail, routing: null } }, settings)).toThrow("ルーティング");
   });
 
+  test("striking force, retreat / advance / consumables policy, node effects, repair, extra cost, consecutive", () => {
+    const striking = { ...preset, fleetType: "striking_force" as const };
+    const b = buildSortieInput(striking, master, data, {
+      ...settings,
+      retreat: { onHeavy: true, allowDamecon: false, onModerate: true, useFcf: false },
+      advance: { A: "push", Z: "retreat" },
+      underway: false,
+      rations: true,
+      nodeEffects: { A: { resource: { fuel: 20 } }, B: { maelstrom: { resource: "ammo" } }, Z: { resource: { steel: 1 } } },
+      repair: { bucketAboveSec: 3600 },
+      extraPerSortie: { fuel: 0, ammo: 0 },
+      consecutive: { waitMinutes: 15, untilMorale: 40 },
+      smoke: ["A", "Z"],
+    });
+    const inp = b.input;
+    expect(inp.striking).toBe(true);
+    expect(inp.policy).toMatchObject({ retreat: { onModerate: true, useFcf: false }, advance: { A: "push" }, underway: false, rations: true });
+    // unknown letters are dropped (the engine rejects them)
+    expect(inp.policy!.advance).not.toHaveProperty("Z");
+    expect(inp.map.nodes.A.resource).toEqual({ fuel: 20 });
+    // a maelstrom without a rate has no effect
+    expect(inp.map.nodes.B.maelstrom).toBeUndefined();
+    expect(inp.repair).toEqual({ bucketAboveSec: 3600 });
+    expect(inp).not.toHaveProperty("extraPerSortie");
+    expect(inp.consecutive).toEqual({ waitMinutes: 15, untilMorale: 40 });
+    expect(inp.policy!.smoke).toEqual(["A"]);
+    // a normal fleet is not sent as a striking force; empty advance is omitted
+    const n = buildSortieInput(preset, master, data, { ...settings, extraPerSortie: { steel: 30 } }).input;
+    expect(n).not.toHaveProperty("striking");
+    expect(n.policy).not.toHaveProperty("advance");
+    expect(n.extraPerSortie).toEqual({ steel: 30 });
+    expect(n.policy).not.toHaveProperty("smoke");
+  });
+
+  test("barrage-balloon nodes are marked from the map (3-5 H)", () => {
+    const h = { ...bundle.nodes[1], letter: "H" };
+    const at35 = { ...data, detail: { ...data.detail, map: { ...bundle.map, world: 3, no: 5 }, nodes: [...bundle.nodes, h] } };
+    const nodes = buildSortieInput(preset, master, at35, settings).input.map.nodes;
+    expect(nodes.H.balloons).toBe(true);
+    expect(nodes.A).not.toHaveProperty("balloons");
+  });
+
+  test("gauges: tp with tank, hp threshold, several gauges with phases, morale", () => {
+    const tp = buildSortieInput(preset, master, data, { ...settings, gaugeInput: { kind: "tp", remaining: 600, tank: "type1", tpPerSortie: 80, finalThreshold: 9 } });
+    expect(tp.input.gauge).toEqual({ kind: "tp", remaining: 600, tank: "type1", tpPerSortie: 80 });
+    const multi = buildSortieInput(preset, master, data, {
+      ...settings,
+      gaugeInput: {
+        kind: "kill", remaining: 2,
+        phases: [{ kind: "kill", remaining: 2 }, { kind: "hp", remaining: 1200, finalThreshold: 300, phase: 3 }, { kind: "tp", remaining: 500 }],
+        morale: { waitMinutes: 0, untilMorale: 40 },
+      },
+    });
+    expect(multi.input.gauge).toEqual({
+      kind: "kill", remaining: 2,
+      phases: [{ kind: "kill", remaining: 2 }, { kind: "hp", remaining: 1200, finalThreshold: 300, phase: 3 }, { kind: "tp", remaining: 500 }],
+      morale: { waitMinutes: 0, untilMorale: 40 },
+    });
+  });
+
   test("start omitted → sim-core picks it (start rules or Start)", () => {
     const { start: _, ...auto } = settings;
     const b = buildSortieInput(preset, master, data, auto);
@@ -178,10 +239,12 @@ const sum = (count: number, o: Partial<SortieSummary> = {}): SortieSummary => ({
   count,
   paths: [{ path: ["Start", "A"], rate: 0.5 }, { path: ["Start", "B"], rate: 0.5 }],
   otherPathsRate: 0,
-  nodes: { A: { reachRate: 0.5, battleRate: 0.5, rankRates: { SS: 0, S: 1, A: 0, B: 0, C: 0, D: 0, E: 0 }, retreatRate: 0, retreatHeavyRate: 0, retreatModerateRate: 0, nightRate: 0 } },
+  nodes: { A: { reachRate: 0.5, battleRate: 0.5, rankRates: { SS: 0, S: 1, A: 0, B: 0, C: 0, D: 0, E: 0 }, retreatRate: 0, retreatHeavyRate: 0, retreatModerateRate: 0, nightRate: 0, fcfRate: 0 } },
   boss: { reachRate: 0.5, rankRates: { SS: 0, S: 1, A: 0, B: 0, C: 0, D: 0, E: 0 }, killRate: 0.5, flagshipSunkRate: 0.5, flagshipDamageMean: 10 },
-  retreatRate: 0.1, sunkRate: 0, battlesMean: 2, nodesMean: 3, fuelUsedMean: 5, ammoUsedMean: 6,
-  friend: [{ sunkRate: 0, heavyRate: 0.1, moderateRate: 0.2, damageTakenMean: 10, hpMissingMean: 5, fuelUsedMean: 1, ammoUsedMean: 1, damecon: { usedRate: 0 } }],
+  retreatRate: 0.1, fcfRate: 0, underwayUsedMean: 0, rationsUsedMean: 0, sunkRate: 0, battlesMean: 2, nodesMean: 3, fuelUsedMean: 5, ammoUsedMean: 6,
+  bauxiteMean: 0, repair: { fuel: ZD, steel: ZD, timeSec: ZD, timeSecTotal: ZD },
+  resourcesPerSortie: { fuel: ZD, ammo: ZD, steel: ZD, bauxite: ZD, buckets: ZD, timeSec: ZD },
+  friend: [{ sunkRate: 0, heavyRate: 0.1, moderateRate: 0.2, damageTakenMean: 10, hpMissingMean: 5, fuelUsedMean: 1, ammoUsedMean: 1, bauxiteMean: 0, proficiencyLostMean: 0, repair: { fuel: ZD, steel: ZD, timeSec: ZD }, damecon: { usedRate: 0 }, evacuatedRate: 0 }],
   warnings: ["w1"], ...o,
 });
 
@@ -204,6 +267,29 @@ describe("mergeSortieSummaries", () => {
     expect(m.boss.reachRate).toBeCloseTo(0.125);
     expect(m.warnings.sort()).toEqual(["w1", "w2"]);
     expect(m.friend[0].damageTakenMean).toBeCloseTo(10);
+  });
+  test("merges the command-facility, consumable, land-base, wait and effect fields by sortie count", () => {
+    const fx = { gainedMean: { fuel: 0, ammo: 0, steel: 0, bauxite: 0 }, maelstromFuelMean: 0, maelstromAmmoMean: 0, anchorageHpMean: 0, anchorageMaterialsMean: 0 };
+    const lb = { fuel: 10, ammo: 4, steel: 0, bauxite: 5 };
+    const a = sum(100, { fcfRate: 0.2, underwayUsedMean: 1, rationsUsedMean: 0, lbasCostMean: lb, waitMinutesMean: 30, effects: { ...fx, anchorageSteelMean: 4 } });
+    const b = sum(300, {
+      fcfRate: 0, underwayUsedMean: 3, rationsUsedMean: 1, lbasCostMean: { ...lb, fuel: 30 }, waitMinutesMean: 10, effects: { ...fx, anchorageSteelMean: 0 },
+      nodes: { A: { ...sum(1).nodes.A, fcfRate: 0.1 } },
+      friend: [{ ...sum(1).friend[0], evacuatedRate: 0.4 }],
+    });
+    const m = mergeSortieSummaries([a, b]);
+    expect(m.fcfRate).toBeCloseTo(0.05);
+    expect(m.underwayUsedMean).toBeCloseTo(2.5);
+    expect(m.rationsUsedMean).toBeCloseTo(0.75);
+    expect(m.lbasCostMean).toEqual({ fuel: 25, ammo: 4, steel: 0, bauxite: 5 });
+    expect(m.waitMinutesMean).toBeCloseTo(15);
+    expect(m.effects!.anchorageSteelMean).toBeCloseTo(1);
+    expect(m.nodes.A.fcfRate).toBeCloseTo(0.075);
+    expect(m.friend[0].evacuatedRate).toBeCloseTo(0.3);
+    // land bases / consecutive sorties absent → fields stay absent
+    const keys = Object.keys(mergeSortieSummaries([sum(1), sum(1)]));
+    expect(keys).not.toContain("lbasCostMean");
+    expect(keys).not.toContain("waitMinutesMean");
   });
 });
 

@@ -1,6 +1,6 @@
 /** simulateBattle を分割実行して結果を合成する (Worker と単体テストの両方から使う)。 */
 import type {
-  BattleInput, NodeSummary, PathRate, Rank, ShipSummary, SimulationSummary, SortieInput, SortieShipSummary, SortieSummary,
+  BattleInput, Dist, NodeSummary, PathRate, Rank, ShipSummary, SimulationSummary, SortieInput, SortieShipSummary, SortieSummary,
 } from "@sim-core";
 
 export type Engine = (input: BattleInput, count: number, seed: number) => SimulationSummary;
@@ -142,6 +142,12 @@ const wrec = <K extends string>(parts: { n: number; rec: Record<K, number> }[], 
   for (const k of keys) out[k] = wavg(parts.map((p) => ({ n: p.n, v: p.rec[k] })));
   return out;
 };
+/** 平均は厳密、p50/p90 は塊ごとの値の重み付き平均 (近似)。 */
+const mergeDist = (parts: { n: number; v: Dist }[]): Dist => ({
+  mean: wavg(parts.map((p) => ({ n: p.n, v: p.v.mean }))),
+  p50: wavg(parts.map((p) => ({ n: p.n, v: p.v.p50 }))),
+  p90: wavg(parts.map((p) => ({ n: p.n, v: p.v.p90 }))),
+});
 const RANK_KEYS: Rank[] = ["SS", "S", "A", "B", "C", "D", "E"];
 
 /** 出撃サマリを出撃数で重み付けして合成する。経路は上位リスト同士の合算 (落ちた分は other へ)。 */
@@ -171,14 +177,17 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
   for (const l of letters) {
     const ns = parts.map((p) => ({ count: p.count, s: p.nodes[l] })).filter((x): x is { count: number; s: NodeSummary } => !!x.s);
     const battles = ns.map((x) => ({ n: x.count * x.s.battleRate, rec: x.s.rankRates as Record<Rank, number> }));
+    // 出撃あたりの率: その節点を持たない塊は 0 として全出撃で平均する
+    const perSortie = (f: (n: NodeSummary) => number) => ns.reduce((s, x) => s + f(x.s) * x.count, 0) / total;
     nodes[l] = {
-      reachRate: wavg(ns.map((x) => ({ n: x.count, v: x.s.reachRate }))) * (ns.reduce((s, x) => s + x.count, 0) / total),
-      battleRate: wavg(ns.map((x) => ({ n: x.count, v: x.s.battleRate }))) * (ns.reduce((s, x) => s + x.count, 0) / total),
+      reachRate: perSortie((n) => n.reachRate),
+      battleRate: perSortie((n) => n.battleRate),
       rankRates: wrec(battles, RANK_KEYS),
-      retreatRate: wavg(ns.map((x) => ({ n: x.count, v: x.s.retreatRate }))) * (ns.reduce((s, x) => s + x.count, 0) / total),
-      retreatHeavyRate: wavg(ns.map((x) => ({ n: x.count, v: x.s.retreatHeavyRate }))) * (ns.reduce((s, x) => s + x.count, 0) / total),
-      retreatModerateRate: wavg(ns.map((x) => ({ n: x.count, v: x.s.retreatModerateRate }))) * (ns.reduce((s, x) => s + x.count, 0) / total),
+      retreatRate: perSortie((n) => n.retreatRate),
+      retreatHeavyRate: perSortie((n) => n.retreatHeavyRate),
+      retreatModerateRate: perSortie((n) => n.retreatModerateRate),
       nightRate: wavg(ns.map((x) => ({ n: x.count * x.s.battleRate, v: x.s.nightRate }))),
+      fcfRate: perSortie((n) => n.fcfRate),
     };
   }
 
@@ -191,7 +200,15 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
     hpMissingMean: wavg(by((s) => s.friend[i].hpMissingMean)),
     fuelUsedMean: wavg(by((s) => s.friend[i].fuelUsedMean)),
     ammoUsedMean: wavg(by((s) => s.friend[i].ammoUsedMean)),
+    bauxiteMean: wavg(by((s) => s.friend[i].bauxiteMean)),
+    proficiencyLostMean: wavg(by((s) => s.friend[i].proficiencyLostMean)),
+    repair: {
+      fuel: mergeDist(by((s) => s.friend[i].repair.fuel)),
+      steel: mergeDist(by((s) => s.friend[i].repair.steel)),
+      timeSec: mergeDist(by((s) => s.friend[i].repair.timeSec)),
+    },
     damecon: { usedRate: wavg(by((s) => s.friend[i].damecon.usedRate)) },
+    evacuatedRate: wavg(by((s) => s.friend[i].evacuatedRate)),
   }));
 
   return {
@@ -207,11 +224,51 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
       flagshipDamageMean: wavg(by((s) => s.boss.flagshipDamageMean)),
     },
     retreatRate: wavg(by((s) => s.retreatRate)),
+    fcfRate: wavg(by((s) => s.fcfRate)),
+    underwayUsedMean: wavg(by((s) => s.underwayUsedMean)),
+    rationsUsedMean: wavg(by((s) => s.rationsUsedMean)),
+    ...(parts[0].lbasCostMean && {
+      lbasCostMean: {
+        fuel: wavg(by((s) => s.lbasCostMean?.fuel ?? 0)),
+        ammo: wavg(by((s) => s.lbasCostMean?.ammo ?? 0)),
+        steel: wavg(by((s) => s.lbasCostMean?.steel ?? 0)),
+        bauxite: wavg(by((s) => s.lbasCostMean?.bauxite ?? 0)),
+      },
+    }),
+    ...(parts[0].waitMinutesMean !== undefined && { waitMinutesMean: wavg(by((s) => s.waitMinutesMean ?? 0)) }),
     sunkRate: wavg(by((s) => s.sunkRate)),
     battlesMean: wavg(by((s) => s.battlesMean)),
     nodesMean: wavg(by((s) => s.nodesMean)),
     fuelUsedMean: wavg(by((s) => s.fuelUsedMean)),
     ammoUsedMean: wavg(by((s) => s.ammoUsedMean)),
+    bauxiteMean: wavg(by((s) => s.bauxiteMean)),
+    repair: {
+      fuel: mergeDist(by((s) => s.repair.fuel)),
+      steel: mergeDist(by((s) => s.repair.steel)),
+      timeSec: mergeDist(by((s) => s.repair.timeSec)),
+      timeSecTotal: mergeDist(by((s) => s.repair.timeSecTotal)),
+    },
+    resourcesPerSortie: {
+      fuel: mergeDist(by((s) => s.resourcesPerSortie.fuel)),
+      ammo: mergeDist(by((s) => s.resourcesPerSortie.ammo)),
+      steel: mergeDist(by((s) => s.resourcesPerSortie.steel)),
+      bauxite: mergeDist(by((s) => s.resourcesPerSortie.bauxite)),
+      buckets: mergeDist(by((s) => s.resourcesPerSortie.buckets)),
+      timeSec: mergeDist(by((s) => s.resourcesPerSortie.timeSec)),
+    },
+    effects: parts[0].effects && {
+      gainedMean: {
+        fuel: wavg(by((s) => s.effects!.gainedMean.fuel)),
+        ammo: wavg(by((s) => s.effects!.gainedMean.ammo)),
+        steel: wavg(by((s) => s.effects!.gainedMean.steel)),
+        bauxite: wavg(by((s) => s.effects!.gainedMean.bauxite)),
+      },
+      maelstromFuelMean: wavg(by((s) => s.effects!.maelstromFuelMean)),
+      maelstromAmmoMean: wavg(by((s) => s.effects!.maelstromAmmoMean)),
+      anchorageHpMean: wavg(by((s) => s.effects!.anchorageHpMean)),
+      anchorageMaterialsMean: wavg(by((s) => s.effects!.anchorageMaterialsMean)),
+      anchorageSteelMean: wavg(by((s) => s.effects!.anchorageSteelMean)),
+    },
     friend,
     gauge: parts.find((p) => p.gauge)?.gauge,
     warnings: [...new Set(parts.flatMap((p) => p.warnings))],
