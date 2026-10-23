@@ -89,8 +89,9 @@ async function loadOnline(): Promise<Input> {
   const master = await loadMaster(db, shipIds, equipIds);
   const details: Record<number, ShipDetail> = {};
   const eventBonuses: Record<number, EventBonusResponse> = {};
-  for (const mapId of new Set(rows.map((r) => r.map_id).filter((m) => m > 100))) {
-    // Our own data API; the web UI reads the same JSON as EventBonusResponse (web/src/data/api.ts). 404: no bonuses.
+  for (const mapId of new Set(rows.map((r) => r.map_id))) {
+    // Our own data API; the web UI reads the same JSON as EventBonusResponse (web/src/data/api.ts) and applies it on any
+    // map that has data (7-4 and 7-5 too, with kancolle-replay's measured acc/eva). 404: no bonuses.
     const bonus = await apiGet<EventBonusResponse>(`/api/v1/maps/${Math.floor(mapId / 10)}-${mapId % 10}/bonuses`, true);
     if (bonus) eventBonuses[mapId] = bonus;
   }
