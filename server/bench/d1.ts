@@ -84,7 +84,7 @@ export class ReplayD1 {
 /** A recorded handler invocation: how to call it and the D1 traffic it caused. */
 export interface Recording {
   name: string;
-  /** "http": app.request(path); "scheduled": the cron handler; "estimator": runEstimator directly */
+  /** "http": app.request(path); "scheduled": one jobs run (src/jobs.ts runJobs) */
   kind: "http" | "scheduled";
   method?: string;
   path?: string;

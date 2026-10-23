@@ -88,7 +88,7 @@ export type SortieRecord = z.infer<typeof sortieRecord>;
 
 // ---- POST /api/v1/observations (docs/API.md §3) ----
 // The request only stages the body's items (SQLite checks the envelope: ingest/upload.ts stageUpload). The
-// cron checks each staged observation on its own with `observationInput`, so one malformed observation is
+// jobs run checks each staged observation on its own with `observationInput`, so one malformed observation is
 // rejected (rule "schema") without failing the others. Other envelope keys (a legacy `clientId`) are ignored.
 
 const presetEquip = z.object({

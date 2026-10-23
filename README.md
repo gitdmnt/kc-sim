@@ -48,12 +48,11 @@ flowchart LR
     ASSETS["/ (静的アセット: web/dist)"]
     API["/api/v1<br/>read / write"]
     ADM["/admin<br/>KCNav キュー・ルーティング"]
-    EST["estimator (cron)"]
     D1[("D1")]
     API --- D1
     ADM --- D1
-    EST --- D1
   end
+  GHA["GitHub Actions (毎時・毎日)<br/>取り込み・集計・推定器・KCNav キュー・ルート推定"] --> D1
   ASSETS -->|"index.html, JS, wasm"| browser
   UI -->|"同一オリジンの /api (落ちていれば静的バンドル /maps)"| API
   CAP -.->|"観測のアップロード (任意)"| API

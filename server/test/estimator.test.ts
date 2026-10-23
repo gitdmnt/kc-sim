@@ -11,7 +11,8 @@ import { buildObservations } from "../../shared/estimate/observe";
 import { captureFromRun, syntheticWorld, type SyntheticRecord } from "../../shared/estimate/synthetic";
 import type { EstimateResult } from "../../shared/estimate/types";
 import { compactDensity } from "../src/estimator/job";
-import { harness, LAYOUT_15, seedEdges15, seedMaster, seedSynthetic, T0, testGrid, uploadAndProcess, type Harness } from "./helpers";
+import { bunGrid } from "../scripts/lib/sim-core";
+import { harness, LAYOUT_15, seedEdges15, seedMaster, seedSynthetic, T0, uploadAndProcess, type Harness } from "./helpers";
 
 const gun = (id: number, fp: number, acc: number): EquipmentInput => ({ id, types: [1, 1, 2, 2, 0], stats: { firepower: fp, accuracy: acc, range: 2 } });
 const smallGun = (id: number): EquipmentInput => ({ id, types: [1, 1, 1, 1, 0], stats: { firepower: 2, accuracy: 1, range: 1 } });
@@ -93,7 +94,7 @@ const runAll = async (budgetMs: number) => {
 };
 
 beforeAll(async () => {
-  testGrid();
+  bunGrid();
   h = harness();
   await seedSynthetic(h.db, FRIEND, [TARGET]);
   await seedMaster(h.db, { maps: [{ id: 15 }] });
@@ -140,7 +141,7 @@ describe("server estimator", () => {
     const reparsed = first.map((r) => ({ battle: { ...r.battle, id: r.battle.id }, events: extractAttackEvents(r.battle.raw, r.battle.path) }));
     const world = syntheticWorld(FRIEND, [TARGET]);
     const oneShot = estimateFromObservations(buildObservations(reparsed, world).observations,
-      { 1700: { luck: { value: TRUE.luck, confidence: "datamined", source: "kancolle-replay-shipdata" } } }, { gridFn: testGrid() });
+      { 1700: { luck: { value: TRUE.luck, confidence: "datamined", source: "kancolle-replay-shipdata" } } }, { gridFn: bunGrid() });
     for (const stat of ["ev", "acc", "luck"] as const) {
       const a = oneShot.find((x) => x.stat === stat)!;
       const b = row(stat);

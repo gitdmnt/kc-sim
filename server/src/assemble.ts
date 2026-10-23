@@ -59,6 +59,21 @@ export function routingDocJson(head: Row, rules: Row[]) {
   };
 }
 
+export const ROUTING_INFERRED_COLS = "map_id, sorties, generated_at, doc";
+/** Where a map's routing document comes from (docs/API.md §2): hand-authored rules, or inferred from observations. */
+export interface RoutingMeta { provenance: "hand" | "inferred"; generatedAt: string | null; sortieCount: number | null }
+/**
+ * The routing document of a map and its provenance: hand-authored rules (routing_maps + routing_rules) win, else
+ * the inferred document (routing_inferred, scripts/infer-routing.ts), else null.
+ */
+export function routingJson(head: Row | null, rules: Row[], inferred: Row | null): { doc: unknown; meta: RoutingMeta } | null {
+  if (head) return { doc: routingDocJson(head, rules), meta: { provenance: "hand", generatedAt: null, sortieCount: null } };
+  if (inferred) {
+    return { doc: parseJson(inferred.doc), meta: { provenance: "inferred", generatedAt: inferred.generated_at as string, sortieCount: inferred.sorties as number } };
+  }
+  return null;
+}
+
 export const COMP_SET_COLS = "s.id, s.map_id, s.node_letter, s.difficulty, s.period_start, s.period_end, s.total_count, s.retrieved_at, src.key AS source, s.layout, s.cell_nos";
 export const COMP_COLS = "id, set_id, kcnav_master_id, formation, count, weight, airpower, lbas_airpower, first_seen, last_seen";
 export const COMP_SHIP_COLS = "comp_id, fleet, position, ship_id, level, hp, fp, tp, aa, ar, equips";

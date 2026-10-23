@@ -3,7 +3,7 @@
 import type { GridFn } from "../../shared/estimate/forward";
 import { createApp } from "../src/app";
 import type { Env } from "../src/env";
-import { runScheduled } from "../src/jobs";
+import { runJobs } from "../src/jobs";
 import { clearFitBonusCache } from "../src/estimator/job";
 import { ReplayD1, type Recording } from "./d1";
 
@@ -42,7 +42,7 @@ export function replayer(gridFn: () => GridFn) {
         await res.arrayBuffer();
         status = res.status;
       } else {
-        await runScheduled(env, { gridFn, now: () => clock });
+        await runJobs(env.DB, { gridFn, now: () => clock });
       }
       if (!db.done) throw new Error(`${rec.name}: replay ended before the recording`);
       return status;

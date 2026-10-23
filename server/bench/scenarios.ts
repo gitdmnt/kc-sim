@@ -3,10 +3,11 @@
 // database seeded like test/estimator.test.ts. Recording mutates the databases in order (uploads, then the jobs
 // that consume them), so the list is one consistent story.
 import { readFileSync } from "node:fs";
+import { bunGrid } from "../scripts/lib/sim-core";
 import { createApp } from "../src/app";
 import { clearFitBonusCache } from "../src/estimator/job";
-import { runScheduled } from "../src/jobs";
-import { seedEdges15, seedMaster, seedSynthetic, T0, testGrid } from "../test/helpers";
+import { runJobs } from "../src/jobs";
+import { seedEdges15, seedMaster, seedSynthetic, T0 } from "../test/helpers";
 import type { Recording } from "./d1";
 import { ENEMIES, FRIEND, simulate, uploadItem } from "./fixtures";
 import { RecordingD1 } from "./record";
@@ -19,7 +20,7 @@ interface Request { method: string; path: string; body?: string; headers?: Recor
 class Recorder {
   clock = T0;
   readonly out: Recording[] = [];
-  private readonly app = createApp({ gridFn: testGrid, now: () => this.clock, cache: MISS_CACHE });
+  private readonly app = createApp({ gridFn: bunGrid, now: () => this.clock, cache: MISS_CACHE });
 
   constructor(readonly filter: RegExp) {}
 
@@ -54,7 +55,7 @@ class Recorder {
     d1.recording = [];
     clearFitBonusCache();
     try {
-      const r = await runScheduled(benchEnv(d1 as unknown as D1Database), { gridFn: testGrid, now: () => this.clock });
+      const r = await runJobs(d1 as unknown as D1Database, { gridFn: bunGrid, now: () => this.clock });
       const note = JSON.stringify(r);
       this.out.push({ name, kind: "scheduled", clock: this.clock, log: d1.recording, note });
       return r;
@@ -74,7 +75,7 @@ function seedPosteriors(d1: RecordingD1, ships: number[]) {
 
 export async function recordScenarios(opts: { localDb: string; filter?: RegExp }): Promise<Recording[]> {
   const rec = new Recorder(opts.filter ?? /./);
-  testGrid();
+  bunGrid();
 
   // ---- real data: GETs, KCNav, routing ----
   const real = RecordingD1.open(opts.localDb);
@@ -145,7 +146,7 @@ export async function recordScenarios(opts: { localDb: string; filter?: RegExp }
   // what the deferred stages still have to do (all of it in the old synchronous design)
   for (let i = 0; i < 3; i++) {
     rec.clock += 60_000;
-    if (!(await rec.scheduled(`cron #${i + 1}`, syn))) break;
+    if (!(await rec.scheduled(`jobs run #${i + 1}`, syn))) break;
   }
   syn.sqlite.run("UPDATE observations SET aggregated_at = NULL WHERE id IN (SELECT id FROM observations ORDER BY id LIMIT 100)");
   await rec.http("POST /admin/aggregate/run (100 obs pending)", syn, { method: "POST", path: "/admin/aggregate/run?limit=100" });
@@ -164,10 +165,10 @@ export async function recordScenarios(opts: { localDb: string; filter?: RegExp }
   await rec.http(`POST /admin/aggregate/run (re-materialise 1-5, ${compRows} comp rows)`, syn, { method: "POST", path: "/admin/aggregate/run" });
   await drain("/admin/estimate/run", JSON.stringify({ budgetMs: 5 }), (j) => !(j.remaining as { observations: number }).observations);
   rec.clock += 60_000;
-  await rec.scheduled("cron (fold backlog)", syn);
+  await rec.scheduled("jobs run (fold backlog)", syn);
   await drain("/admin/jobs/run?budgetMs=10000", undefined, () => true);
   await drain("/admin/estimate/run", JSON.stringify({ budgetMs: 10_000 }));
   rec.clock += 60_000;
-  await rec.scheduled("cron (idle)", syn);
+  await rec.scheduled("jobs run (idle)", syn);
   return rec.out;
 }

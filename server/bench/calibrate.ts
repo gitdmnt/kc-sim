@@ -5,7 +5,7 @@
 //   bun bench/calibrate.ts [--no-workerd]
 import { readFileSync } from "node:fs";
 import { axisValues, DEFAULT_GRID } from "../../shared/estimate/posterior";
-import { testGrid } from "../test/helpers";
+import { bunGrid } from "../scripts/lib/sim-core";
 import { microOps, sampleBattle } from "./micro";
 import { BENCH_PORT, startBenchWorker } from "./workerd";
 
@@ -15,7 +15,7 @@ const cpuMs = () => {
 };
 
 const wasm = new WebAssembly.Module(readFileSync(new URL("../../sim-core/pkg/sim_core_bg.wasm", import.meta.url)));
-const ops = microOps(testGrid(), wasm);
+const ops = microOps(bunGrid(), wasm);
 const bun = new Map<string, number>();
 for (const [name, op] of Object.entries(ops)) {
   for (let i = 0; i < 5; i++) op();

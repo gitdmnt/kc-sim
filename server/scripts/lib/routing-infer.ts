@@ -28,6 +28,8 @@ export interface SortieSample {
   hq: number;
   /** 0 normal maps, 1 丁 … 4 甲. */
   difficulty?: number;
+  /** Current gauge number (api_gauge_num) at the sortie start; the DSL `gauge` metric. */
+  gauge?: number;
   /** Node letters from the start node (Start, Start1, …) to the last node reached. */
   path: string[];
   /** Nodes where the game offered a player choice (api_select_route): node → offered letters. */
@@ -193,6 +195,7 @@ function catalog(sorties: SortieSample[], opts: Required<Pick<InferOptions, "min
     out.push({ key: `fleetType.${t}`, complexity: 1, bool: true, value: (s) => ((s.fleetType ?? "single") === t ? 1 : 0), leaf: boolLeaf({ m: "fleetType", in: [t] }, "not") });
   }
   out.push({ key: "difficulty", complexity: 1, bool: false, value: (s) => s.difficulty ?? 0, leaf: num({ m: "difficulty" }) });
+  out.push({ key: "gauge", complexity: 1, bool: false, value: (s) => s.gauge ?? 1, leaf: num({ m: "gauge" }) });
   for (const fam of opts.families ?? []) {
     const ids = new Set(fam);
     const support = sorties.reduce((n, s) => n + (ships(s).some((x) => ids.has(x.id)) ? 1 : 0), 0);
@@ -600,7 +603,7 @@ export function nextDistribution(doc: RoutingDoc, node: string, s: SortieSample,
       case "flagship": { const f = ships(s, p.fleet ?? "main")[0]; return !!f && inMask(typeMask(p.in), f); }
       case "difficulty": return cmp(p, s.difficulty ?? 0);
       case "phase": return cmp(p, cfg.phase ?? doc.defaults?.phase ?? 1);
-      case "gauge": return cmp(p, cfg.gauge ?? doc.defaults?.gauge ?? 1);
+      case "gauge": return cmp(p, cfg.gauge ?? s.gauge ?? doc.defaults?.gauge ?? 1);
       case "onlyTypes": { const mask = typeMask(p.types); return bool(p, fl.every((x) => inMask(mask, x))); }
       case "hq": return cmp(p, s.hq);
       case "visited": return bool(p, visited.has(p.node));
@@ -754,7 +757,14 @@ export const observedSortieRow = z.object({
   fleet: z.object({ ships: z.array(shipJson), escort: z.array(shipJson).optional() }).loose().nullable(),
   sortie: z.object({
     combined: z.number().nullish(),
-    cells: z.array(z.object({ no: z.number(), selectCells: z.array(z.number()).nullish() }).loose()),
+    /** server-derived (ingest/validate.ts sortieFleetType); older records lack it */
+    fleetType: z.enum(["single", "ctf", "stf", "tcf", "striking"]).nullish(),
+    gauge: z.object({ gaugeNum: z.number().nullable() }).loose().nullish(),
+    cells: z.array(z.object({
+      no: z.number(),
+      selectCells: z.array(z.number()).nullish(),
+      result: z.object({ escape: z.object({ retreated: z.boolean() }).loose().nullish() }).loose().nullish(),
+    }).loose()),
     features: z.object({ hqLevel: z.number().nullish() }).loose().nullish(),
   }).loose().nullable(),
 });
@@ -764,12 +774,16 @@ export interface MasterLookup {
   equip: (id: number) => { cat: number; los: number } | undefined;
 }
 
-const FLEET_TYPES: Record<number, FleetType> = { 1: "ctf", 2: "stf", 3: "tcf" };
+/** Combined-fleet type by the stored `fleetType`, else by api_combined_flag (older records). */
+const FLEET_TYPES: Record<string, FleetType> = { ctf: "ctf", stf: "stf", tcf: "tcf" };
+const COMBINED_FLAG: Record<number, FleetType> = { 1: "ctf", 2: "stf", 3: "tcf" };
 
 /**
  * Converts a stored sortie observation into a sample. Cells become letters through the map's edges
  * (edge id = destination cell number): path = [from of the first cell's edge, to of every cell's edge].
- * Returns the reason when the observation cannot be used.
+ * The path ends at a cell after which ships retreated (FCF, `result.escape.retreated`): later decisions were
+ * made by a smaller fleet than the snapshot. A striking force (遊撃部隊) counts as `single`, as in the sim-core
+ * evaluator, which has no `striking` fleet type yet. Returns the reason when the observation cannot be used.
  */
 export function observedSortie(row: ObservedSortieRow, edgesById: Map<number, Edge>, master: MasterLookup): SortieSample | { reason: string } {
   if (!row.fleet?.ships.length || !row.sortie?.cells.length) return { reason: "no fleet or cells" };
@@ -805,9 +819,12 @@ export function observedSortie(row: ObservedSortieRow, edgesById: Map<number, Ed
     if (!e) return { reason: `cell ${c.no} is not an edge of the map` };
     path.push(e.to);
     if (c.selectCells?.length) selects[e.to] = c.selectCells.map((n) => edgesById.get(n)?.to ?? String(n));
+    if (c.result?.escape?.retreated) break;
   }
+  const fleetType = FLEET_TYPES[row.sortie.fleetType ?? ""] ?? COMBINED_FLAG[row.sortie.combined ?? 0] ?? "single";
   return {
-    main, ...(escort ? { escort, fleetType: FLEET_TYPES[row.sortie.combined ?? 0] ?? "single" } : {}),
-    hq: row.sortie.features?.hqLevel ?? 120, difficulty: row.difficulty ?? 0, path, selects,
+    main, ...(escort ? { escort, fleetType } : {}),
+    hq: row.sortie.features?.hqLevel ?? 120, difficulty: row.difficulty ?? 0,
+    ...(row.sortie.gauge?.gaugeNum ? { gauge: row.sortie.gauge.gaugeNum } : {}), path, selects,
   };
 }

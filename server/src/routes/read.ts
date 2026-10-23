@@ -4,8 +4,8 @@ import type { Env } from "../env";
 import { mapName, parseMapKey } from "../maps";
 import {
   COMP_COLS, COMP_SET_COLS, COMP_SHIP_COLS, EDGE_COLS, EQUIP_COLS, EQUIP_FIELDS, ESTIMATE_COLS, MAP_COLS, NODE_COLS, ROUTING_HEAD_COLS,
-  ROUTING_RULE_COLS, SHIP_COLS, SHIP_FIELDS, bestEstimates, compSetSummaryJson, compSetsJson, edgeJson, equipJson, estimateJson, jsonArraySql,
-  mapJson, nodeJson, parseJson, posteriorFields, routingDocJson, shipJson,
+  ROUTING_INFERRED_COLS, ROUTING_RULE_COLS, SHIP_COLS, SHIP_FIELDS, bestEstimates, compSetSummaryJson, compSetsJson, edgeJson, equipJson,
+  estimateJson, jsonArraySql, mapJson, nodeJson, parseJson, posteriorFields, routingJson, shipJson,
 } from "../assemble";
 import {
   MISMATCH_COLS, OBSERVED_CELL_COLS, OBSERVED_EDGE_GROUP, OBSERVED_EDGE_SQL, OBSERVED_LAYOUT_COLS, observedGraphJson,
@@ -22,28 +22,32 @@ read.get("/sources", async (c) => {
 });
 
 read.get("/maps", async (c) => {
+  // Rule counts: hand-authored rules, else the inferred document (provenance says which).
   const { results } = await c.env.DB.prepare(
     `SELECT m.id, m.world, m.no, m.name, m.is_event,
        (SELECT COUNT(*) FROM nodes n WHERE n.map_id = m.id) AS node_count,
        (SELECT COUNT(*) FROM edges e WHERE e.map_id = m.id) AS edge_count,
-       r.rule_count, r.uncertain_count,
+       COALESCE(r.rule_count, i.rule_count) AS rule_count, COALESCE(r.uncertain_count, i.uncertain_count) AS uncertain_count,
+       CASE WHEN r.map_id IS NOT NULL THEN 'hand' WHEN i.map_id IS NOT NULL THEN 'inferred' END AS provenance,
        (SELECT COUNT(*) FROM enemy_comp_sets s WHERE s.map_id = m.id) AS comp_set_count
-     FROM maps m LEFT JOIN routing_maps r ON r.map_id = m.id ORDER BY m.id`,
+     FROM maps m LEFT JOIN routing_maps r ON r.map_id = m.id LEFT JOIN routing_inferred i ON i.map_id = m.id ORDER BY m.id`,
   ).all();
   return c.json({
     maps: results.map((m) => ({
       id: m.id, key: mapName(m.id as number), world: m.world, no: m.no, name: m.name, isEvent: !!m.is_event,
       nodeCount: m.node_count, edgeCount: m.edge_count, compSetCount: m.comp_set_count,
-      routing: m.rule_count === null ? null : { ruleCount: m.rule_count, uncertainCount: m.uncertain_count },
+      routing: m.provenance === null ? null : { ruleCount: m.rule_count, uncertainCount: m.uncertain_count, provenance: m.provenance },
     })),
   });
 });
 
-async function routingDoc(db: D1Database, mapId: number) {
-  const head = await db.prepare(`SELECT ${ROUTING_HEAD_COLS} FROM routing_maps WHERE map_id = ?1`).bind(mapId).first();
-  if (!head) return null;
-  const { results } = await db.prepare(`SELECT ${ROUTING_RULE_COLS} FROM routing_rules WHERE map_id = ?1`).bind(mapId).all();
-  return routingDocJson(head, results);
+async function routingOf(db: D1Database, mapId: number) {
+  const [head, rules, inferred] = await Promise.all([
+    db.prepare(`SELECT ${ROUTING_HEAD_COLS} FROM routing_maps WHERE map_id = ?1`).bind(mapId).first(),
+    db.prepare(`SELECT ${ROUTING_RULE_COLS} FROM routing_rules WHERE map_id = ?1`).bind(mapId).all(),
+    db.prepare(`SELECT ${ROUTING_INFERRED_COLS} FROM routing_inferred WHERE map_id = ?1`).bind(mapId).first(),
+  ]);
+  return routingJson(head, rules.results, inferred);
 }
 
 read.get("/maps/:map", async (c) => {
@@ -62,22 +66,29 @@ read.get("/maps/:map", async (c) => {
     db.prepare(`${OBSERVED_EDGE_SQL} WHERE map_id = ?1 ${OBSERVED_EDGE_GROUP}`).bind(key.id).all(),
     db.prepare(`SELECT ${MISMATCH_COLS} FROM poi_graph_mismatches WHERE map_id = ?1 ORDER BY kind, to_cell, from_cell`).bind(key.id).all(),
   ]);
+  const routing = await routingOf(db, key.id);
   return c.json({
     map: mapJson(map),
     nodes: nodes.results.map(nodeJson),
     edges: edges.results.map(edgeJson),
-    routing: await routingDoc(db, key.id),
+    routing: routing?.doc ?? null,
+    routingMeta: routing?.meta ?? null,
     enemyCompNodes: [...new Set(compSets.results.map((r) => r.node_letter as string))].sort(),
     compSets: compSets.results.map(compSetSummaryJson),
     observed: observedGraphJson({ layouts: layouts.results, cells: cells.results, edgeCounts: edgeCounts.results, mismatches: mismatches.results, edges: edges.results }),
   });
 });
 
+// The body stays the bare ROUTING_DSL document (the evaluator rejects unknown keys); provenance goes in headers.
 read.get("/maps/:map/routing", async (c) => {
   const key = parseMapKey(c.req.param("map"));
   if (!key) return c.json({ error: "bad map key" }, 400);
-  const doc = await routingDoc(c.env.DB, key.id);
-  return doc ? c.json(doc) : c.json({ error: "no routing rules for this map" }, 404);
+  const routing = await routingOf(c.env.DB, key.id);
+  if (!routing) return c.json({ error: "no routing rules for this map" }, 404);
+  c.header("X-Routing-Provenance", routing.meta.provenance);
+  if (routing.meta.generatedAt) c.header("X-Routing-Generated-At", routing.meta.generatedAt);
+  if (routing.meta.sortieCount !== null) c.header("X-Routing-Sortie-Count", String(routing.meta.sortieCount));
+  return c.json(routing.doc);
 });
 
 read.get("/maps/:map/nodes/:node/enemy-comps", async (c) => {

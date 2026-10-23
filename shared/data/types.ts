@@ -15,7 +15,8 @@ export interface MapSummary {
   nodeCount: number;
   edgeCount: number;
   compSetCount: number;
-  routing: { ruleCount: number; uncertainCount: number } | null;
+  /** provenance: hand-authored rules, or inferred from poi sortie observations (older APIs / bundle indexes omit it) */
+  routing: { ruleCount: number; uncertainCount: number; provenance?: RoutingProvenance } | null;
   /** 静的バンドルの索引から作った概算 (名前・ルール数が不明) */
   approx?: boolean;
 }
@@ -37,6 +38,15 @@ export interface MapEdge {
   to: string;
 }
 
+export type RoutingProvenance = "hand" | "inferred";
+
+/** Where `MapDetail.routing` comes from (docs/API.md §2). generatedAt / sortieCount only for inferred documents. */
+export interface RoutingMeta {
+  provenance: RoutingProvenance;
+  generatedAt: string | null;
+  sortieCount: number | null;
+}
+
 export interface MapDetail {
   map: {
     id: number;
@@ -52,6 +62,8 @@ export interface MapDetail {
   nodes: MapNode[];
   edges: MapEdge[];
   routing: RoutingDoc | null;
+  /** null without routing; absent in static bundles and older APIs */
+  routingMeta?: RoutingMeta | null;
   enemyCompNodes: string[];
 }
 

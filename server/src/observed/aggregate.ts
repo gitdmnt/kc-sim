@@ -250,7 +250,7 @@ export async function aggregatePending(db: D1Database, budget: Budget, now: () =
 
 /**
  * Clears the poi-observed aggregates (all maps, or `mapIds`) and marks their observations as not yet
- * aggregated, in one batch. The cron (aggregatePending) then refolds them in budgeted steps.
+ * aggregated, in one batch. The jobs run (foldPending) then refolds them in budgeted steps.
  */
 export function resetStatements(db: D1Database, mapIds?: number[]): D1PreparedStatement[] {
   const ids = mapIds ? JSON.stringify(mapIds) : null;
@@ -268,7 +268,7 @@ export function resetStatements(db: D1Database, mapIds?: number[]): D1PreparedSt
 }
 
 /**
- * Deletes every observation of `clientId` and resets the aggregates of the maps they touched; the cron refolds
+ * Deletes every observation of `clientId` and resets the aggregates of the maps they touched; the next jobs run refolds
  * the remaining observations of those maps.
  */
 export async function deleteClientObservations(db: D1Database, clientId: string): Promise<{ deleted: number; maps: number[] }> {

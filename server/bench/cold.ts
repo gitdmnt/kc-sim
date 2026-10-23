@@ -1,4 +1,4 @@
-// CPU of a fresh isolate's first invocation (docs/DEPLOY.md "CPU budget"): GET, upload, cron.
+// CPU of a fresh isolate's first invocation (docs/DEPLOY.md "CPU budget"): GET, upload, jobs run.
 //
 //   bun bench/cold.ts [--runs 3] [--db <wrangler D1 sqlite>] [--worker <bench/worker.ts of another checkout>]
 //
@@ -25,7 +25,7 @@ const localDb = argAt("--db") < 0
   ? join(WRANGLER_STATE, readdirSync(WRANGLER_STATE).find((f) => /^[0-9a-f]{64}\.sqlite$/.test(f))!)
   : process.argv[argAt("--db") + 1]!;
 
-const SCENARIOS = /^(GET \/health|GET \/maps\/\d-\d \(heaviest detail\)|GET \/ships\/1501|POST \/observations \(1 obs|cron \(idle\)|cron \(fold backlog\))/;
+const SCENARIOS = /^(GET \/health|GET \/maps\/\d-\d \(heaviest detail\)|GET \/ships\/1501|POST \/observations \(1 obs|jobs run \(idle\)|jobs run \(fold backlog\))/;
 const recs = await recordScenarios({ localDb, filter: SCENARIOS });
 
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;

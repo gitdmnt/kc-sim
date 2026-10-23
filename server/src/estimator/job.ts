@@ -463,7 +463,7 @@ export const clearFitBonusCache = () => {
   fitCache = null;
 };
 
-/** One budgeted estimator run (cron stage and POST /admin/estimate/run): count, fold, summarize. */
+/** One budgeted estimator run (jobs stage and POST /admin/estimate/run): count, fold, summarize. */
 export async function runEstimator(db: D1Database, opts: EstimatorOptions): Promise<EstimatorResult> {
   const now = new Date(opts.now).toISOString();
   const result: EstimatorResult = { observations: 0, rolls: 0, gridCalls: 0, ships: [], summarized: 0, skipped: {} };

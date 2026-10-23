@@ -1,23 +1,12 @@
 // Test harness: D1 double, env with fake bindings, the app with an injected clock, client tokens, master data
 // and battle responses that pass server validation.
-import { readFileSync } from "node:fs";
-import { hitProbabilityGrid, initSync } from "../../sim-core/pkg/sim_core";
+import { bunGrid } from "../scripts/lib/sim-core";
 import type { ShipInput } from "../../sim-core/pkg/sim_core";
 import { battlePacket } from "../../shared/estimate/synthetic";
 import { createApp } from "../src/app";
 import type { VerifyDeps } from "../src/auth/access";
 import type { Env } from "../src/env";
 import { createTestD1 } from "./d1-sqlite";
-
-let wasmReady = false;
-/** sim-core in-process (bun): the same forward model the worker loads as a wasm module. */
-export function testGrid() {
-  if (!wasmReady) {
-    initSync({ module: readFileSync(new URL("../../sim-core/pkg/sim_core_bg.wasm", import.meta.url)) });
-    wasmReady = true;
-  }
-  return hitProbabilityGrid;
-}
 
 /** Workers Rate Limiting binding double: allows everything unless `block` is set; records keys. */
 export class FakeLimiter implements RateLimit {
@@ -53,7 +42,7 @@ export function harness(o: { env?: Partial<Env>; access?: VerifyDeps; cache?: Ca
     ...o.env,
   };
   const clock = { t: T0 };
-  const app = createApp({ gridFn: testGrid, now: () => clock.t, access: o.access, cache: o.cache });
+  const app = createApp({ gridFn: bunGrid, now: () => clock.t, access: o.access, cache: o.cache });
   const call: Harness["call"] = async (method, path, opt = {}) => {
     const headers: Record<string, string> = { "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.7", ...opt.headers };
     if (opt.token) headers.Authorization = `Bearer ${opt.token}`;

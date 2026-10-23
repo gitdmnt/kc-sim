@@ -85,3 +85,18 @@ test("observedSortie maps cells to letters and the fleet snapshot to routing shi
   });
   expect(observedSortie({ ...row, sortie: { cells: [{ no: 9 }] } }, edges, master)).toEqual({ reason: "cell 9 is not an edge of the map" });
 });
+
+test("observedSortie: gauge number, stored fleet type (striking counts as single), path cut after an FCF retreat", () => {
+  const edges = new Map<number, Edge>([[1, { from: "Start", to: "A" }], [2, { from: "A", to: "B" }], [4, { from: "B", to: "D" }]]);
+  const ship = { masterId: 10, equips: [], observed: { los: 50, speed: 10 } };
+  const master = { ship: () => ({ stype: 2, speed: 10 }), equip: () => undefined };
+  const row = observedSortieRow.parse({
+    difficulty: 4,
+    fleet: { ships: [ship], escort: [ship] },
+    sortie: { combined: 2, fleetType: "stf", gauge: { gaugeNum: 2 }, cells: [{ no: 1 }, { no: 2, result: { escape: { retreated: true } } }, { no: 4 }] },
+  });
+  expect(observedSortie(row, edges, master)).toMatchObject({ fleetType: "stf", gauge: 2, difficulty: 4, path: ["Start", "A", "B"] });
+  const striking = observedSortieRow.parse({ ...row, fleet: { ships: Array.from({ length: 7 }, () => ship) }, sortie: { fleetType: "striking", cells: [{ no: 1 }] } });
+  const s = observedSortie(striking, edges, master);
+  expect("fleetType" in s ? s.fleetType : undefined).toBeUndefined();
+});

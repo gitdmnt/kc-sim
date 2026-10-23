@@ -1,13 +1,13 @@
-// Background work (docs/DEPLOY.md §5 "Cron", "CPU budget"). The hourly cron runs the stages below in passes
-// under one cost-model budget per run (RUN_MS, RUN_D1_CALLS; src/budget.ts) and one lease. A pass gives each
-// stage a share of PASS_MS; each stage stops when its next unit would not fit:
+// Background work (docs/DEPLOY.md §5 "Jobs", "CPU budget"). scripts/run-jobs.ts runs the stages below in GitHub
+// Actions (hourly, against production D1 over the D1 HTTP API) in passes under one cost-model budget per run
+// (RUN_MS, RUN_D1_CALLS; src/budget.ts) and one lease. A pass gives each stage a share of PASS_MS; each stage
+// stops when its next unit would not fit:
 //   ingest (staged uploads → observations, ≤ 40 %), aggregation (≤ 30 %), estimator (the rest).
 // Passes repeat until no queue has work, a pass gets nothing done, or the run's budget is spent; the queues keep
 // the rest for the next run. Upload requests only stage (routes/write.ts); stored observations appear with the
-// next cron run, within about an hour.
+// next jobs run, within about an hour.
 import type { GridFn } from "../../shared/estimate/forward";
 import { Budget, COST, PASS_MS, RUN_MS } from "./budget";
-import type { Env } from "./env";
 import { runEstimator, type EstimatorResult } from "./estimator/job";
 import { ingestPending, type IngestResult } from "./ingest/upload";
 import { aggregationBacklog, foldPending, materializeDirty, type AggregateResult } from "./observed/aggregate";
@@ -19,10 +19,10 @@ export interface JobDeps {
 }
 
 /**
- * Longer than any run: a cron invocation ends after 15 min of wall time at most, and a run's ≤ RUN_D1_CALLS D1
- * calls and ≤ ~10 s of CPU take far less. A crashed holder blocks the jobs at most this long.
+ * Longer than any run: ≤ RUN_D1_CALLS D1 calls, each a D1 HTTP API request (≥ 250 ms apart) from GitHub Actions,
+ * or a worker invocation (admin endpoints). A crashed holder blocks the jobs at most this long.
  */
-const LEASE_MS = 15 * 60_000;
+const LEASE_MS = 30 * 60_000;
 
 /** Runs `fn` while holding kv_state.jobs_lock_until; null when another invocation holds it. */
 export async function withJobsLease<T>(db: D1Database, now: number, budget: Budget, fn: () => Promise<T>): Promise<T | null> {
@@ -74,7 +74,7 @@ async function storeStages(db: D1Database, budget: Budget, now: number, ingestSh
   return { ingest, aggregation };
 }
 
-/** Whether any queue has work (one read; an idle cron then writes nothing, not even its lease). */
+/** Whether any queue has work (one read; an idle jobs run then writes nothing, not even its lease). */
 async function hasWork(db: D1Database, budget: Budget): Promise<boolean> {
   const r = await db.prepare(
     `SELECT EXISTS (SELECT 1 FROM upload_items) OR EXISTS (SELECT 1 FROM observations WHERE aggregated_at IS NULL AND quarantine IS NULL)
@@ -103,14 +103,13 @@ const done = (budget: Budget, passes: number, r: Partial<JobsResult> & { busy: b
   ({ ...r, passes, spentMs: Number(budget.spent.toFixed(2)), d1Calls: budget.d1Calls });
 
 /**
- * One jobs run (the cron, POST /admin/jobs/run; without the estimator POST /admin/ingest/run): passes over the
- * stages under the jobs lease until the queues are empty, a pass gets nothing done, or `budgetMs` (default
- * RUN_MS) or RUN_D1_CALLS is spent.
+ * One jobs run (scripts/run-jobs.ts in GitHub Actions, POST /admin/jobs/run; without the estimator POST
+ * /admin/ingest/run): passes over the stages under the jobs lease until the queues are empty, a pass gets
+ * nothing done, or `budgetMs` (default RUN_MS) or RUN_D1_CALLS is spent.
  */
-export async function runScheduled(
-  env: Env, deps: JobDeps, { budgetMs = RUN_MS, estimator = true }: { budgetMs?: number; estimator?: boolean } = {},
+export async function runJobs(
+  db: D1Database, deps: JobDeps, { budgetMs = RUN_MS, estimator = true }: { budgetMs?: number; estimator?: boolean } = {},
 ): Promise<JobsResult> {
-  const db = env.DB;
   const budget = new Budget(budgetMs);
   budget.charge(COST.invocation);
   if (!(await hasWork(db, budget))) return done(budget, 0, { busy: false, idle: true });

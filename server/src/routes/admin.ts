@@ -1,8 +1,9 @@
 // Admin API (docs/API.md §4): KCNav queue control, routing uploads, poi-observed aggregation, the server
-// estimator, the scheduled jobs, clients and validation records. Behind Cloudflare Access (auth/access.ts).
-// Job endpoints are budgeted (src/budget.ts): /jobs/run, /ingest/run and /estimate/run run like the cron until
-// their queues are empty or the budget is spent; /aggregate/run and /kcnav/reparse run one step (repeat until the
-// response reports nothing remaining). Rebuilds and deletions only reset and leave the work to the cron.
+// estimator, the background jobs, clients and validation records. Behind Cloudflare Access (auth/access.ts).
+// The jobs run in GitHub Actions (scripts/run-jobs.ts); the job endpoints here run the same code in the worker on
+// demand, budgeted (src/budget.ts): /jobs/run, /ingest/run and /estimate/run until their queues are empty or the
+// budget is spent; /aggregate/run and /kcnav/reparse one step (repeat until the response reports nothing
+// remaining). Rebuilds and deletions only reset and leave the work to the next jobs run.
 import { Hono } from "hono";
 import { requireAccess, type VerifyDeps } from "../auth/access";
 import { banClient } from "../auth/clients";
@@ -10,7 +11,7 @@ import { Budget, PASS_MS, RUN_MS } from "../budget";
 import { bumpDataVersion } from "../cache";
 import type { Env } from "../env";
 import { estimatorBacklog, forgetClientObservations, resetShipsStatements, runEstimator } from "../estimator/job";
-import { runScheduled, withJobsLease, type JobDeps } from "../jobs";
+import { runJobs, withJobsLease, type JobDeps } from "../jobs";
 import { mapName, parseMapKey } from "../maps";
 import { enqueue } from "../kcnav/enqueue";
 import { reparseCached, tick } from "../kcnav/tick";
@@ -34,19 +35,19 @@ export function adminRoutes(deps: AdminDeps) {
   const app = new Hono<{ Bindings: Env }>();
   app.use("*", requireAccess(deps.access));
 
-  // One cron run on demand (src/jobs.ts): ingest, aggregation and the estimator in passes until the queues are
+  // One jobs run on demand (src/jobs.ts): ingest, aggregation and the estimator in passes until the queues are
   // empty or the run's budget (default RUN_MS) is spent.
   app.post("/jobs/run", async (c) => {
     const budgetMs = budgetParam(c.req.query("budgetMs"), RUN_MS);
     if (budgetMs === null) return c.json({ error: "budgetMs must be a number in (0, 60000]" }, 400);
-    return c.json(await runScheduled(c.env, deps, { budgetMs }));
+    return c.json(await runJobs(c.env.DB, deps, { budgetMs }));
   });
 
   // The same run without the estimator: staged uploads and aggregation only.
   app.post("/ingest/run", async (c) => {
     const budgetMs = budgetParam(c.req.query("budgetMs"), RUN_MS);
     if (budgetMs === null) return c.json({ error: "budgetMs must be a number in (0, 60000]" }, 400);
-    return c.json(await runScheduled(c.env, deps, { budgetMs, estimator: false }));
+    return c.json(await runJobs(c.env.DB, deps, { budgetMs, estimator: false }));
   });
 
   // Server estimator (docs/ESTIMATOR.md "Server job"). Body (all optional): {rebuild, shipIds, budgetMs}.
@@ -81,7 +82,7 @@ export function adminRoutes(deps: AdminDeps) {
   });
 
   // Deletes a client entirely: staged items, observations (resetting the aggregates of their maps and the ships
-  // they fed; the cron refolds what remains), validation records and the client row (its token stops working).
+  // they fed; the next jobs run refolds what remains), validation records and the client row (its token stops working).
   app.delete("/clients/:id", async (c) => {
     const db = c.env.DB;
     const clientId = c.req.param("id");
@@ -171,7 +172,7 @@ admin.get("/kcnav/queue", async (c) => {
   return c.json({ nextAllowedAt: Number(gate?.value ?? 0), now: Date.now(), jobs: results });
 });
 
-// Clears the aggregates (all maps or `maps`) and marks their observations pending; the cron refolds them.
+// Clears the aggregates (all maps or `maps`) and marks their observations pending; the next jobs run refolds them.
 admin.post("/aggregate/rebuild", async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as { maps?: unknown };
   let mapIds: number[] | undefined;

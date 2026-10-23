@@ -7,14 +7,13 @@ import { read } from "./routes/read";
 import { writeRoutes } from "./routes/write";
 import { adminRoutes, type AdminDeps } from "./routes/admin";
 
-/** wrangler.toml [triggers] crons: the jobs (src/jobs.ts) run on this schedule; any other cron runs one KCNav step. */
-export const JOBS_CRON = "0 * * * *";
-
 /** `cache` replaces caches.default (tests). */
 export function createApp(deps: AdminDeps & { cache?: Cache }) {
   const app = new Hono<{ Bindings: Env }>();
   // CORS is open: GETs are public, and writes are gated by bearer tokens, not by origin (docs/API.md).
-  app.use("/api/*", cors({ origin: "*", exposeHeaders: ["Retry-After", "ETag", "X-Cache"], maxAge: 86400 }));
+  app.use("/api/*", cors({
+    origin: "*", exposeHeaders: ["Retry-After", "ETag", "X-Cache", "X-Routing-Provenance", "X-Routing-Generated-At", "X-Routing-Sortie-Count"], maxAge: 86400,
+  }));
   app.use("/api/v1/*", cacheGets(deps.cache));
   app.route("/api/v1", read);
   app.route("/api/v1", writeRoutes(deps));

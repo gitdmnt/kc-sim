@@ -6,8 +6,8 @@
 
 /**
  * Milliseconds of workerd CPU per unit: local workerd on an Apple M-series machine (bench/calibrate.ts unit costs,
- * bench/run.ts whole invocations), rounded up to about 1.5× the measurement. Production cron runs measure 10–15×
- * the model (docs/DEPLOY.md "Fresh isolates"); RUN_MS allows for that.
+ * bench/run.ts whole invocations), rounded up to about 1.5× the measurement. Production worker invocations measure
+ * 10–15× the model (docs/DEPLOY.md "Fresh isolates"); RUN_MS allows for that.
  */
 export const COST = {
   /** fixed part of a scheduled invocation (lease, queue probes, isolate overhead) */
@@ -52,8 +52,9 @@ export const COST = {
 } as const;
 
 /**
- * Cost-model CPU of one jobs run (the hourly cron, POST /admin/jobs/run). Production measures 10–15× the model,
- * so a full run is 6–9 s of real CPU, well under the 30 s `cpu_ms` limit (wrangler.toml).
+ * Cost-model CPU of one jobs run (scripts/run-jobs.ts in GitHub Actions, POST /admin/jobs/run). Production workerd
+ * measures 10–15× the model, so a full run in the worker is 6–9 s of real CPU, well under the 30 s `cpu_ms` limit
+ * (wrangler.toml); under bun in GitHub Actions the run's D1 calls (HTTP API requests) take longer than its CPU.
  */
 export const RUN_MS = 600;
 

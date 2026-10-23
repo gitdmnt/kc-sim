@@ -1,7 +1,7 @@
 // POST /api/v1/observations (docs/API.md §3) in two halves, so that the request does bounded work:
 // - stageUpload (the request): one D1 batch in which SQLite checks the body's JSON and splits it into
 //   upload_items rows. The worker never parses the body.
-// - ingestPending (the cron, budgeted): per staged item size and schema checks, re-derivation and validation
+// - ingestPending (the jobs run, budgeted): per staged item size and schema checks, re-derivation and validation
 //   (validate.ts), then one multi-row INSERT per table through json_each; the batch also deletes the items.
 import { BACKLOG_COUNT_CAP, COST, type Budget } from "../budget";
 import { layoutKey } from "../observed/aggregate";
@@ -204,7 +204,7 @@ async function ingestItems(db: D1Database, clientId: string, staged: StagedRow[]
 }
 
 /**
- * Cron step: validates and stores staged upload items, oldest first, one client at a time, while the budget
+ * Jobs step: validates and stores staged upload items, oldest first, one client at a time, while the budget
  * lasts. SQLite picks the items whose cumulative cost (COST.ingestItem + COST.ingestKb per KB) fits.
  */
 export async function ingestPending(db: D1Database, budget: Budget, now: number): Promise<IngestResult> {

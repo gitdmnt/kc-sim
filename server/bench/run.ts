@@ -9,7 +9,7 @@
 // 3. --workerd: the same replays inside a local workerd (bench/workerd.ts), timed in batches from the client.
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { testGrid } from "../test/helpers";
+import { bunGrid } from "../scripts/lib/sim-core";
 import type { Recording } from "./d1";
 import { replayer } from "./replay";
 import { recordScenarios } from "./scenarios";
@@ -29,7 +29,7 @@ const cpuMs = () => {
 };
 
 async function benchBun(recs: Recording[]) {
-  const replay = replayer(testGrid);
+  const replay = replayer(bunGrid);
   const out = new Map<string, number>();
   for (const r of recs) {
     for (let i = 0; i < 3; i++) await replay(r); // warm-up (JIT, lazy wasm compilation)

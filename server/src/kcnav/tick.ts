@@ -1,5 +1,6 @@
-// One step of the single-worker KCNav fetch loop: at most one request per call, gated globally by
-// kv_state.kcnav_next_allowed_at (persisted, so restarts and parallel callers respect the interval).
+// One step of the single-fetcher KCNav loop (scripts/run-jobs.ts kcnav in GitHub Actions, POST /admin/kcnav/tick):
+// at most one request per call, gated globally by kv_state.kcnav_next_allowed_at (persisted, so restarts and
+// parallel callers respect the interval).
 import { COST, type Budget } from "../budget";
 import { bumpDataVersion } from "../cache";
 import type { Env } from "../env";
@@ -21,11 +22,13 @@ export type TickResult =
   | { action: "requested"; jobId: number; url: string; status: number; jobStatus: string; summary: string; waitMs: number };
 
 export interface TickDeps { now: () => number; fetch: (url: string, init: RequestInit) => Promise<Response> }
+/** What a tick needs from the environment (the worker's Env, or the jobs runner's). */
+export type KcnavEnv = Pick<Env, "DB" | "KCNAV_BASE" | "KCNAV_MIN_INTERVAL_MS">;
 
 // Wrap the globals: workerd throws "Illegal invocation" when `fetch` is called as a method of `deps`.
 const DEFAULT_DEPS: TickDeps = { now: () => Date.now(), fetch: (input, init) => fetch(input, init) };
 
-export async function tick(env: Env, deps: TickDeps = DEFAULT_DEPS): Promise<TickResult> {
+export async function tick(env: KcnavEnv, deps: TickDeps = DEFAULT_DEPS): Promise<TickResult> {
   const db = env.DB;
   const minInterval = Number(env.KCNAV_MIN_INTERVAL_MS);
   const now = deps.now();

@@ -1,6 +1,6 @@
 // Write API (docs/API.md §3): client registration and observation uploads. Every write passes the per-IP
 // limit; uploads need a client bearer token, are admitted at most once per 60 s per client and are only staged
-// here (the cron validates and stores them: src/jobs.ts).
+// here (the jobs run validates and stores them: src/jobs.ts, scripts/run-jobs.ts).
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { claimPostSlot, issueClient, limitWritesPerIp, requestIpHash, requireClient, type ClientVars } from "../auth/clients";
@@ -65,10 +65,10 @@ export function writeRoutes(deps: WriteDeps) {
       const message = `expected an array of 1–${MAX_OBSERVATIONS_PER_REQUEST} observations, got ${r.observations ?? "none"}`;
       return c.json({ error: "validation failed", issues: [{ path: "observations", message }] }, 400);
     }
-    // Validation, storage and aggregation run in the cron (src/jobs.ts); rejections land in observation_rejections.
+    // Validation, storage and aggregation run in the jobs (src/jobs.ts); rejections land in observation_rejections.
     // The request does not ingest itself: uploads mostly land on fresh isolates, where the first ingest also pays
     // V8's compilation of the whole validation path (cold uploads measured 30 ms with it, 9 ms without, docs/DEPLOY.md
-    // §10), while a cron run pays it once for every upload it ingests.
+    // §10), while a jobs run pays it once for every upload it ingests.
     return c.json({ queued: r.queued, duplicates: r.duplicates, pending: r.pending }, 202);
   });
 

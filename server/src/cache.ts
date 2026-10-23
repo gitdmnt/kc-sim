@@ -9,7 +9,7 @@ export const CLIENT_CACHE_CONTROL = "public, max-age=300";
 /** How long the edge keeps a versioned entry; versioning, not expiry, keeps it fresh. */
 const EDGE_TTL_S = 24 * 60 * 60;
 /**
- * The cron publishes derived data (re-materialised comp sets, estimator summaries; each bumps data_version) once
+ * The jobs run (src/jobs.ts) publishes derived data (re-materialised comp sets, estimator summaries; each bumps data_version) once
  * its queues are caught up, or after this long under a steady stream of uploads. Every bump makes the next GET
  * of each URL a cache miss that re-reads its rows (D1 Free: 5 M rows read a day).
  */

@@ -3,7 +3,7 @@
 //   bun scripts/aggregate.ts run [--budget-ms 5] [--all] fold pending observations (one budgeted step, or until none left)
 //   bun scripts/aggregate.ts status                     observation counts, layouts, mismatch counts
 //   bun scripts/aggregate.ts delete --client <clientId> delete a client's observations and reset their maps
-// Rebuilds and deletions only reset; the cron (or `run --all`) refolds in budgeted steps.
+// Rebuilds and deletions only reset; the next jobs run (or `run --all`) refolds in budgeted steps.
 import { parseArgs } from "node:util";
 import { call } from "./lib/admin";
 

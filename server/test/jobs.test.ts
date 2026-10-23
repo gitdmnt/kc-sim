@@ -1,14 +1,14 @@
-// The jobs run (src/jobs.ts): one hourly cron run drains every queue in passes, stops at its budget and resumes
-// with the next run; an idle run makes one read.
+// The jobs run (src/jobs.ts, run by scripts/run-jobs.ts in GitHub Actions): one run drains every queue in passes,
+// stops at its budget and resumes with the next run; an idle run makes one read.
 import { beforeEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { JOBS_CRON } from "../src/app";
+import { bunGrid } from "../scripts/lib/sim-core";
 import { RUN_D1_CALLS, RUN_MS } from "../src/budget";
-import { runScheduled } from "../src/jobs";
-import { battleResponse, fleet, harness, LAYOUT_15, seedBasic, testGrid, type Harness } from "./helpers";
+import { runJobs } from "../src/jobs";
+import { battleResponse, fleet, harness, LAYOUT_15, seedBasic, type Harness } from "./helpers";
 
 let h: Harness;
-const deps = { gridFn: testGrid, now: () => h.clock.t };
+const deps = { gridFn: bunGrid, now: () => h.clock.t };
 const count = async (sql: string) => (await h.db.prepare(sql).first<{ n: number }>())!.n;
 const lock = async () => (await h.db.prepare("SELECT value FROM kv_state WHERE key = 'jobs_lock_until'").first<{ value: string }>())!.value;
 
@@ -38,20 +38,21 @@ beforeEach(async () => {
 });
 
 describe("jobs run", () => {
-  test("the cron dispatches the hourly expression to the jobs", () => {
-    expect(JOBS_CRON).toBe("0 * * * *");
-    expect(readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8")).toContain(`crons = ["${JOBS_CRON}"]`);
+  test("the worker has no cron and no scheduled handler; GitHub Actions runs the jobs", async () => {
+    expect(readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8")).toContain("crons = []");
+    expect(readFileSync(new URL("../../.github/workflows/jobs.yml", import.meta.url), "utf8")).toContain("scripts/run-jobs.ts run");
+    expect(readFileSync(new URL("../src/index.ts", import.meta.url), "utf8")).not.toContain("scheduled");
   });
 
   test("an idle run makes one read and takes no lease", async () => {
-    const r = await runScheduled(h.env, deps);
+    const r = await runJobs(h.db, deps);
     expect(r).toMatchObject({ busy: false, idle: true, passes: 0, d1Calls: 1 });
     expect(await lock()).toBe("0");
   });
 
   test("one run drains staged uploads, aggregation and the estimator in several passes", async () => {
     const n = await stage(6);
-    const r = await runScheduled(h.env, deps);
+    const r = await runJobs(h.db, deps);
     expect(r.busy).toBe(false);
     expect(r.passes).toBeGreaterThan(1); // aggregation folds ≤ 200 observations per pass
     expect(r.ingest).toMatchObject({ ingested: n, rejected: 0, remaining: 0 });
@@ -62,12 +63,12 @@ describe("jobs run", () => {
     expect(await count("SELECT COUNT(*) AS n FROM observations WHERE aggregated_at IS NULL")).toBe(0);
     expect(await count("SELECT COUNT(*) AS n FROM observation_ships WHERE est_at IS NULL")).toBe(0);
     expect(await lock()).toBe("0");
-    expect((await runScheduled(h.env, deps)).idle).toBe(true);
+    expect((await runJobs(h.db, deps)).idle).toBe(true);
   });
 
   test("a run stops at its budget and the next run resumes", async () => {
     const n = await stage(6);
-    const first = await runScheduled(h.env, deps, { budgetMs: 8 });
+    const first = await runJobs(h.db, deps, { budgetMs: 8 });
     expect(first.busy).toBe(false);
     expect(first.passes).toBeGreaterThanOrEqual(1);
     expect(first.spentMs).toBeLessThanOrEqual(8 + 0.05); // the last queue probe may follow the last pass
@@ -76,16 +77,16 @@ describe("jobs run", () => {
     expect(await lock()).toBe("0");
 
     h.clock.t += 3_600_000;
-    const second = await runScheduled(h.env, deps);
+    const second = await runJobs(h.db, deps);
     expect(first.ingest!.ingested + second.ingest!.ingested).toBe(n);
     expect(second.aggregation).toMatchObject({ remaining: 0, dirtyMaps: 0 });
-    expect((await runScheduled(h.env, deps)).idle).toBe(true);
+    expect((await runJobs(h.db, deps)).idle).toBe(true);
   });
 
   test("a run while another holds the lease reports busy and does nothing", async () => {
     await stage(1);
     await h.db.prepare("UPDATE kv_state SET value = ?1 WHERE key = 'jobs_lock_until'").bind(String(h.clock.t + 60_000)).run();
-    expect(await runScheduled(h.env, deps)).toMatchObject({ busy: true, passes: 0 });
+    expect(await runJobs(h.db, deps)).toMatchObject({ busy: true, passes: 0 });
     expect(await count("SELECT COUNT(*) AS n FROM upload_items")).toBe(50);
   });
 });
