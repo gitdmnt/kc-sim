@@ -1,5 +1,6 @@
 import React from "react";
 import { Plus, RefreshCw } from "lucide-react";
+import { maxShipsOf } from "../../fleet";
 import type { Preset, PresetShip } from "../../fleet";
 import { Button, S } from "../../ui";
 import { FleetStats } from "./FleetStats";
@@ -8,8 +9,6 @@ import { blankPreset } from "./presets";
 import type { PresetsApi } from "./presets";
 import { HEAD_COLS, ShipRow } from "./ShipRow";
 import { ShipPicker } from "./ShipPicker";
-
-const MAX_SHIPS = 6;
 
 interface Props {
   store: PresetsApi;
@@ -59,7 +58,8 @@ export const FleetPanel = ({ store, preset, select, losCns, fleet = "main" }: Pr
             onRemove={() => setShips(ships.filter((_, j) => j !== i))}
           />
         ))}
-        {ships.length < MAX_SHIPS && (
+        {/* 遊撃部隊の主力は 7 隻、それ以外は 6 隻 */}
+        {ships.length < (escort || !preset ? 6 : maxShipsOf(preset.fleetType)) && (
           <div className="flex min-w-0 flex-col gap-2">
             <div className={HEAD_COLS}>
               <Plus size={14} className="text-ink-500" aria-hidden />

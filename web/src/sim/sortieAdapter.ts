@@ -2,9 +2,12 @@
 import type {
   EnemyComp as SimComp,
   Formation,
-  GaugeInput,
+  GaugeMorale,
+  Advance,
   LandBase,
   NightPolicy,
+  RepairPolicy,
+  ResourceAmounts,
   RetreatPolicy,
   RoutingDocument,
   SortieInput,
@@ -18,6 +21,8 @@ import type { MasterData, Preset } from "@shared/fleet/types";
 import { buildEnemyShips, buildFriendShips, buildSquadrons, enemyFormationOf, friendFleet, isCombinedFormation } from "@shared/sim/adapter";
 import type { BuildEnemyOptions, EnemyBuild, EnemyLookup, FriendBuild } from "@shared/sim/adapter";
 import type { FitEntry } from "@shared/sim/fit";
+import { applyNodeEffects, buildGauge } from "./sortieOptions";
+import type { GaugeSettings, NodeEffect } from "./sortieOptions";
 
 /** 指定難易度の最新セットを選ぶ。無ければ最も高い難易度に代替 (fallback=true)。 */
 export const pickSet = (sets: EnemyCompSet[], difficulty: number): { set: EnemyCompSet; fallback: boolean } | undefined => {
@@ -161,7 +166,19 @@ export interface SortieSettings {
   retreat: RetreatPolicy;
   /** ノード → 陣形。未指定は自動。艦隊の種類 (通常 / 連合) に合わない陣形は自動に戻す */
   formations: Record<string, Formation>;
-  gaugeInput?: { kind: "kill" | "hp"; remaining: number; finalSet?: EnemyCompSet; finalThreshold?: number };
+  gaugeInput?: GaugeSettings;
+  /** マス → 撤退 / 強行 (無いマスは retreat に従う)。海域に無いマスは無視 */
+  advance?: Record<string, Advance>;
+  /** 洋上補給・戦闘糧食を使う (省略は使う) */
+  underway?: boolean;
+  rations?: boolean;
+  /** マス → 資源・渦潮の効果 */
+  nodeEffects?: Record<string, NodeEffect>;
+  repair?: RepairPolicy;
+  /** 支援艦隊などエンジンが数えない費用 (1 出撃あたり) */
+  extraPerSortie?: ResourceAmounts;
+  /** 連続出撃 (士気を出撃間で持ち越す) */
+  consecutive?: GaugeMorale;
   hqLevel: number;
   applyFit: boolean;
 }
@@ -216,14 +233,9 @@ export const buildSortieInput = (
   if (noComps.length) warnings.push(`敵編成データが無いため空きマス扱い: ${noComps.map((n) => n.letter).join(", ")}`);
   if (bossNode && !nodes[bossNode]?.comps) warnings.push("ボスマスの敵編成データがありません");
 
-  let gauge: GaugeInput | undefined;
-  if (s.gaugeInput) {
-    gauge = { kind: s.gaugeInput.kind, remaining: s.gaugeInput.remaining };
-    if (s.gaugeInput.kind === "hp") {
-      if (s.gaugeInput.finalSet) gauge.finalComps = toSimComps(s.gaugeInput.finalSet, data, opts).comps;
-      if (s.gaugeInput.finalThreshold) gauge.finalThreshold = s.gaugeInput.finalThreshold;
-    }
-  }
+  if (s.nodeEffects) applyNodeEffects(nodes, s.nodeEffects);
+  const gauge = s.gaugeInput && buildGauge(s.gaugeInput, (set) => toSimComps(set, data, opts).comps);
+  const advance = Object.fromEntries(Object.entries(s.advance ?? {}).filter(([l]) => Object.hasOwn(nodes, l)));
 
   // 基地航空隊: 出撃の隊のうち、この海域のマスを目標にした波だけ
   const lbas: LandBase[] = (preset.lbas ?? []).flatMap((b, i) => {
@@ -253,10 +265,22 @@ export const buildSortieInput = (
       ...(s.phase !== undefined ? { phase: s.phase } : {}),
       ...(s.gauge !== undefined ? { gauge: s.gauge } : {}),
     },
-    policy: { night: s.night, retreat: s.retreat, formations },
+    policy: {
+      night: s.night,
+      retreat: s.retreat,
+      formations,
+      ...(Object.keys(advance).length > 0 ? { advance } : {}),
+      ...(s.underway !== undefined ? { underway: s.underway } : {}),
+      ...(s.rations !== undefined ? { rations: s.rations } : {}),
+    },
     topPaths: opts.topPaths ?? 200,
     ...(gauge ? { gauge } : {}),
     ...(lbas.length > 0 ? { lbas } : {}),
+    // 遊撃部隊 (7 隻の単艦隊はエンジンが自動で遊撃部隊にする)
+    ...(preset.fleetType === "striking_force" && !combined ? { striking: true } : {}),
+    ...(s.repair?.bucketAboveSec !== undefined ? { repair: s.repair } : {}),
+    ...(s.extraPerSortie && Object.values(s.extraPerSortie).some((v) => v) ? { extraPerSortie: s.extraPerSortie } : {}),
+    ...(s.consecutive ? { consecutive: s.consecutive } : {}),
   };
   if (enemyCombined.length > 0) warnings.push(enemyCombinedNote(enemyCombined));
   return { input, warnings: [...warnings, ...friend.warnings], friend, enemyBuilds, uncertain: uncertainNodes(routing), compSets, enemyCombined };

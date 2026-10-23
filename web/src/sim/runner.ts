@@ -177,14 +177,17 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
   for (const l of letters) {
     const ns = parts.map((p) => ({ count: p.count, s: p.nodes[l] })).filter((x): x is { count: number; s: NodeSummary } => !!x.s);
     const battles = ns.map((x) => ({ n: x.count * x.s.battleRate, rec: x.s.rankRates as Record<Rank, number> }));
+    // 出撃あたりの率: その節点を持たない塊は 0 として全出撃で平均する
+    const perSortie = (f: (n: NodeSummary) => number) => ns.reduce((s, x) => s + f(x.s) * x.count, 0) / total;
     nodes[l] = {
-      reachRate: wavg(ns.map((x) => ({ n: x.count, v: x.s.reachRate }))) * (ns.reduce((s, x) => s + x.count, 0) / total),
-      battleRate: wavg(ns.map((x) => ({ n: x.count, v: x.s.battleRate }))) * (ns.reduce((s, x) => s + x.count, 0) / total),
+      reachRate: perSortie((n) => n.reachRate),
+      battleRate: perSortie((n) => n.battleRate),
       rankRates: wrec(battles, RANK_KEYS),
-      retreatRate: wavg(ns.map((x) => ({ n: x.count, v: x.s.retreatRate }))) * (ns.reduce((s, x) => s + x.count, 0) / total),
-      retreatHeavyRate: wavg(ns.map((x) => ({ n: x.count, v: x.s.retreatHeavyRate }))) * (ns.reduce((s, x) => s + x.count, 0) / total),
-      retreatModerateRate: wavg(ns.map((x) => ({ n: x.count, v: x.s.retreatModerateRate }))) * (ns.reduce((s, x) => s + x.count, 0) / total),
+      retreatRate: perSortie((n) => n.retreatRate),
+      retreatHeavyRate: perSortie((n) => n.retreatHeavyRate),
+      retreatModerateRate: perSortie((n) => n.retreatModerateRate),
       nightRate: wavg(ns.map((x) => ({ n: x.count * x.s.battleRate, v: x.s.nightRate }))),
+      fcfRate: perSortie((n) => n.fcfRate),
     };
   }
 
@@ -205,6 +208,7 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
       timeSec: mergeDist(by((s) => s.friend[i].repair.timeSec)),
     },
     damecon: { usedRate: wavg(by((s) => s.friend[i].damecon.usedRate)) },
+    evacuatedRate: wavg(by((s) => s.friend[i].evacuatedRate)),
   }));
 
   return {
@@ -220,6 +224,18 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
       flagshipDamageMean: wavg(by((s) => s.boss.flagshipDamageMean)),
     },
     retreatRate: wavg(by((s) => s.retreatRate)),
+    fcfRate: wavg(by((s) => s.fcfRate)),
+    underwayUsedMean: wavg(by((s) => s.underwayUsedMean)),
+    rationsUsedMean: wavg(by((s) => s.rationsUsedMean)),
+    ...(parts[0].lbasCostMean && {
+      lbasCostMean: {
+        fuel: wavg(by((s) => s.lbasCostMean?.fuel ?? 0)),
+        ammo: wavg(by((s) => s.lbasCostMean?.ammo ?? 0)),
+        steel: wavg(by((s) => s.lbasCostMean?.steel ?? 0)),
+        bauxite: wavg(by((s) => s.lbasCostMean?.bauxite ?? 0)),
+      },
+    }),
+    ...(parts[0].waitMinutesMean !== undefined && { waitMinutesMean: wavg(by((s) => s.waitMinutesMean ?? 0)) }),
     sunkRate: wavg(by((s) => s.sunkRate)),
     battlesMean: wavg(by((s) => s.battlesMean)),
     nodesMean: wavg(by((s) => s.nodesMean)),
@@ -251,6 +267,7 @@ export const mergeSortieSummaries = (list: SortieSummary[], topPaths = 200): Sor
       maelstromAmmoMean: wavg(by((s) => s.effects!.maelstromAmmoMean)),
       anchorageHpMean: wavg(by((s) => s.effects!.anchorageHpMean)),
       anchorageMaterialsMean: wavg(by((s) => s.effects!.anchorageMaterialsMean)),
+      anchorageSteelMean: wavg(by((s) => s.effects!.anchorageSteelMean)),
     },
     friend,
     gauge: parts.find((p) => p.gauge)?.gauge,

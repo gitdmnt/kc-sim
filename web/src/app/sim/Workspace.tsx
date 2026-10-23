@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Check, Play, SlidersHorizontal, Square } from "lucide-react";
 import type { FitEntry } from "@shared/sim/fit";
-import { STORAGE_PREFIX } from "../../fleet";
+import { STORAGE_PREFIX, isCombinedFleetType, maxShipsOf } from "../../fleet";
 import type { Preset, PresetFleetType } from "../../fleet";
 import { abyssalName } from "../../data/names";
 import { useMapData, useMapList } from "../../data/useMapData";
@@ -21,6 +21,7 @@ import { BattleRates, BattleResults } from "./BattleResults";
 import { Conditions, DIFF, defaultMapConfig, fmtCount } from "./Conditions";
 import type { MapConfig } from "./Conditions";
 import { usePrefs } from "./prefs";
+import { mapPrefsOf, sortieOptionsOf } from "./sortieConfig";
 import type { SimMode } from "./prefs";
 import { battleRequest, loadFitBonuses, sortieRequest } from "./requests";
 import type { SimOutcome } from "./requests";
@@ -38,12 +39,13 @@ const FLEET_TYPES = Object.keys(S.fleetTypes) as PresetFleetType[];
 /** 左の列で開いている艦隊 (連合艦隊の主力 / 随伴、基地航空隊) */
 type FleetTab = "main" | "escort" | "lbas";
 
-/** 艦隊の種別を変える。通常 ⇄ 連合で陣形の系統が変わるので、その系統の既定に戻す */
+/** 艦隊の種別を変える。通常 ⇄ 連合で陣形の系統が変わるので、その系統の既定に戻す。主力は新しい種別の上限で切る (遊撃部隊から戻すと 7 番艦が外れる) */
 const withFleetType = (p: Preset, fleetType: PresetFleetType): Preset => {
-  const wasCombined = p.fleetType !== "single";
-  const combined = fleetType !== "single";
-  if (wasCombined === combined) return { ...p, fleetType };
-  return { ...p, fleetType, formation: combined ? "combined_battle" : "line_ahead", ...(combined && !p.escort ? { escort: [] } : {}) };
+  const wasCombined = isCombinedFleetType(p.fleetType);
+  const combined = isCombinedFleetType(fleetType);
+  const ships = p.ships.slice(0, maxShipsOf(fleetType));
+  if (wasCombined === combined) return { ...p, fleetType, ships };
+  return { ...p, fleetType, ships, formation: combined ? "combined_battle" : "line_ahead", ...(combined && !p.escort ? { escort: [] } : {}) };
 };
 
 const readSelected = (): string | null => {
@@ -154,7 +156,9 @@ export const Workspace = () => {
   const target = nodes.some((n) => n.letter === prefs.targets[prefs.map] && !n.isBoss) ? prefs.targets[prefs.map] : undefined;
   // 能動分岐: 保存した選択、無ければ目標マスへ届く既定
   const selects = useMemo(() => resolveSelects(routing, prefs.selects[prefs.map] ?? {}, target), [routing, prefs.selects, prefs.map, target]);
-  const condKey = JSON.stringify([mode, diff, cfg, selects, node, compId, target, prefs.night, prefs.onHeavy, prefs.allowDamecon, prefs.onModerate, prefs.applyFit, prefs.battleKind, prefs.seed, settings.useEstimates]);
+  const sortieMap = mapPrefsOf(prefs.sortieMaps, prefs.map);
+  const sortieExtra = [sortieMap, prefs.useFcf, prefs.underway, prefs.rations, prefs.bucketAboveMin, prefs.extraPerSortie, prefs.consecutive];
+  const condKey = JSON.stringify([mode, diff, cfg, selects, node, compId, target, prefs.night, prefs.onHeavy, prefs.allowDamecon, prefs.onModerate, prefs.applyFit, prefs.battleKind, prefs.seed, settings.useEstimates, sortieExtra]);
   // req が null のときは why (実行ボタンの title と結果の欄に出す理由)。入力の誤りは error
   const built = useMemo((): { req: SimRequest<SimOutcome> | null; error: string | null; why?: string } => {
     if (!preset || preset.ships.length === 0) return { req: null, error: null, why: "艦隊に艦を入れると実行できます" };
@@ -164,7 +168,6 @@ export const Workspace = () => {
     try {
       if (mode === "sortie") {
         if (!routing) return { req: null, error: null, why: "この海域には分岐のデータがありません (単一戦闘は実行できます)" };
-        const finalSet = cfg.gaugeKind === "hp" && cfg.finalSetKey ? bossSets.find((s) => `${s.difficulty}:${s.retrievedAt}` === cfg.finalSetKey) : undefined;
         const st: SortieSettings = {
           start: cfg.start || undefined,
           target,
@@ -174,9 +177,8 @@ export const Workspace = () => {
           phase: cfg.phase,
           gauge: cfg.gaugeNo,
           night: prefs.night,
-          retreat: { onHeavy: prefs.onHeavy, allowDamecon: prefs.allowDamecon, onModerate: prefs.onModerate },
+          ...sortieOptionsOf(prefs, sortieMap, bossSets),
           formations: cfg.formations,
-          gaugeInput: cfg.gaugeKind === "none" ? undefined : { kind: cfg.gaugeKind, remaining: cfg.remaining, finalSet },
           hqLevel: preset.hqLevel ?? 120,
           applyFit: prefs.applyFit,
         };
@@ -326,7 +328,9 @@ export const Workspace = () => {
               bossSets={bossSets}
               formation={preset?.formation ?? null}
               setFormation={(formation) => preset && store.save({ ...preset, formation })}
-              combined={!!preset && preset.fleetType !== "single"}
+              combined={!!preset && isCombinedFleetType(preset.fleetType)}
+              nodes={nodes}
+              preset={preset}
             />
           </Popover>
         </div>
@@ -363,7 +367,7 @@ export const Workspace = () => {
     </div>
   );
 
-  const combined = !!preset && preset.fleetType !== "single";
+  const combined = !!preset && isCombinedFleetType(preset.fleetType);
   const shownTab: FleetTab = fleetTab === "escort" && !combined ? "main" : fleetTab;
   // 隻数・出撃する隊の数を添える
   const fleetTabs: TabItem<FleetTab>[] = [

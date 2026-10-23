@@ -60,6 +60,7 @@ export const S = {
     carrier_task_force: "機動部隊",
     surface_task_force: "水上部隊",
     transport_escort: "輸送護衛部隊",
+    striking_force: "遊撃部隊",
   },
   airBase: {
     title: (n: number) => `第${n}基地`,

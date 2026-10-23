@@ -8,6 +8,9 @@ import { MapGraph, NODE_COLOR, NODE_TYPE_LABEL, typeKey } from "../map/MapGraph"
 import { Assumptions } from "./Assumptions";
 import { DTable, DTr, Fact, Num, RankKey, RateList, RateRow, Td, Th, pct, rankBar } from "./bars";
 import type { SortieOutcome } from "./requests";
+import { GAUGE_LABEL, GaugeResult } from "./GaugeResult";
+import { ResourceTable, dockingFact, fmtDuration } from "./ResourceTable";
+import { ShipLossTable } from "./ShipLossTable";
 
 const num = (v: number | null | undefined, d = 1) => (v === null || v === undefined ? "—" : v.toFixed(d));
 
@@ -31,6 +34,7 @@ const NO_VISIT: NodeSummary = {
   retreatHeavyRate: 0,
   retreatModerateRate: 0,
   nightRate: 0,
+  fcfRate: 0,
 };
 
 /** ノード表の行: 出撃地点 (Start*) を先頭に、以降は到達率の高い順。到達 0% はボスだけ残す。 */
@@ -57,7 +61,7 @@ export const SortieRates = ({ s, target }: { s?: SortieSummary; target?: string 
   return (
     <RateList>
       <RateRow label={target ? `${target} 到達` : "ボス到達"} parts={ranks} value={v(s?.boss.reachRate)} />
-      <RateRow label="突破" title={`${at}で A 勝利以上 (出撃あたり)`} parts={ranks.slice(0, 3)} value={v(s?.boss.killRate)} />
+      <RateRow label="突破" title={`${at}で A 勝利以上 (出撃あたり)`} parts={ranks.slice(0, 3)} value={v(s && ranks.slice(0, 3).reduce((t, p) => t + p.value, 0))} />
       <RateRow label="S勝利" title={`${at}で S 勝利以上 (出撃あたり)`} parts={sWin} value={v(s && sWin.reduce((t, p) => t + p.value, 0))} />
       <RateRow
         label="大破撤退"
@@ -73,7 +77,7 @@ export const SortieRates = ({ s, target }: { s?: SortieSummary; target?: string 
   );
 };
 
-type Detail = "nodes" | "graph" | "ships" | "notes";
+type Detail = "nodes" | "graph" | "ships" | "resources" | "gauge" | "notes";
 
 export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.ReactNode }) => {
   const { summary: s, data } = out;
@@ -100,7 +104,9 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
   const nodeRows = orderNodeRows(s.nodes, bossLetters);
   const anyNight = nodeRows.some(([, n]) => n.nightRate >= 0.0005);
   const maxRetreat = Math.max(0.0001, ...nodeRows.map(([, n]) => n.retreatHeavyRate));
-  const anyDamecon = s.friend.some((f) => f.damecon.usedRate >= 0.0005);
+  const anyFcf = nodeRows.some(([, n]) => n.fcfRate >= 0.0005);
+  const r = s.resourcesPerSortie;
+  const view: Detail = detail === "gauge" && !clear ? "nodes" : detail;
   const notes = out.assumptions.warnings.length;
 
   return (
@@ -109,13 +115,22 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
 
       <div className="grid grid-cols-2 gap-x-6 gap-y-1">
         <Fact
-          label={clear ? `周回 (${clear.kind === "hp" ? "HP" : "撃破"}ゲージ)` : "周回"}
+          label={!clear ? "周回" : clear.phases ? `周回 (${clear.phases.length} 本)` : clear.kind === "kill" ? "周回 (ボス旗艦撃沈)" : `周回 (${GAUGE_LABEL[clear.kind]}ゲージ)`}
           value={num(sorties?.mean, 1)}
-          title={[`平均 ${num(sorties?.mean, 1)} 回`, sorties && `中央値 ${sorties.p50} 回 · 90% 点 ${sorties.p90} 回`, clear ? `${clear.runs} 回試行` : "1 / 突破率 (幾何分布)"].filter(Boolean).join("\n")}
+          title={[`平均 ${num(sorties?.mean, 1)} 回`, sorties && `中央値 ${sorties.p50 ?? "—"} 回 · 90% 点 ${sorties.p90 ?? "—"} 回`, clear ? `${clear.runs} 回試行 (詳細は「ゲージ」)` : "1 / ボス旗艦撃沈率 (幾何分布)"].filter(Boolean).join("\n")}
         />
         <Fact label={`${out.target ? `${out.target} マス` : "ボス"}旗艦撃沈`} value={pct(s.boss.flagshipSunkRate)} title={`平均旗艦ダメージ ${num(s.boss.flagshipDamageMean)}`} />
         <Fact label="戦闘" value={num(s.battlesMean, 2)} title={`平均 ${num(s.nodesMean, 2)} マス`} />
-        <Fact label="燃料 / 弾薬" value={`${num(s.fuelUsedMean, 0)} / ${num(s.ammoUsedMean, 0)}`} title="艦隊合計の平均 (出撃あたり)" />
+        <Fact {...dockingFact(s)} />
+        <div className="col-span-2">
+          <Fact
+            label="資源/出撃 (燃料 / 弾薬 / 鋼材 / ボーキ)"
+            value={[r.fuel.mean, r.ammo.mean, r.steel.mean, r.bauxite.mean].map((x) => num(x, 0)).join(" / ")}
+            title={`平均の純コスト (艦隊の補給は燃料 ${num(s.fuelUsedMean, 0)} · 弾薬 ${num(s.ammoUsedMean, 0)})\n詳細は「資源」`}
+          />
+        </div>
+        {s.fcfRate >= 0.0005 && <Fact label="護衛退避" value={pct(s.fcfRate)} title="司令部施設で艦を退避させた出撃の割合" />}
+        {s.waitMinutesMean !== undefined && <Fact label="出撃間の待ち" value={fmtDuration(s.waitMinutesMean * 60)} title="連続出撃: 士気の回復を待つ時間の平均 (1 出撃あたり)" />}
         {s.sunkRate >= 0.0005 && <Fact label="味方撃沈" value={pct(s.sunkRate)} tone="danger" />}
         {uncertain.length > 0 && (
           <Fact
@@ -133,12 +148,14 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
         <Tabs
           variant="pill"
           size="sm"
-          value={detail}
+          value={view}
           onChange={setDetail}
           tabs={[
             { id: "nodes", label: "マス" },
             { id: "graph", label: "経路" },
             { id: "ships", label: "損耗" },
+            { id: "resources", label: "資源" },
+            ...(clear ? [{ id: "gauge" as const, label: "ゲージ", hint: clear.cappedRate > 0 ? "!" : undefined }] : []),
             { id: "notes", label: "前提", hint: notes ? String(notes) : undefined },
           ]}
         />
@@ -146,7 +163,7 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
       </div>
 
       <div className="-mx-2 min-h-0 flex-1 overflow-auto px-2">
-        {detail === "nodes" && (
+        {view === "nodes" && (
           <DTable
             head={
               <>
@@ -159,6 +176,11 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
                 </Th>
                 <Th className="w-16">到達</Th>
                 {anyNight && <Th className="w-14">夜戦</Th>}
+                {anyFcf && (
+                  <Th className="w-14" title="そのマスのあとに護衛退避した割合 (出撃あたり)">
+                    退避
+                  </Th>
+                )}
                 <Th className="w-28" title="そのマスで大破撤退する割合 (出撃あたり)">
                   大破撤退
                 </Th>
@@ -189,6 +211,7 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
                   </Td>
                   <Num>{pct(n.reachRate)}</Num>
                   {anyNight && <Num>{n.battleRate > 0 ? pct(n.nightRate) : "—"}</Num>}
+                  {anyFcf && <Num>{pct(n.fcfRate)}</Num>}
                   <Td>
                     <span className="flex items-center gap-2">
                       <span className="h-1.5 flex-1 overflow-hidden rounded-full">
@@ -203,7 +226,7 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
           </DTable>
         )}
 
-        {detail === "graph" && (
+        {view === "graph" && (
           <div className="flex flex-col gap-3">
             <MapGraph
               nodes={data.detail.nodes}
@@ -244,47 +267,11 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
           </div>
         )}
 
-        {detail === "ships" && (
-          <DTable
-            head={
-              <>
-                <Th className="text-left">艦</Th>
-                <Th className="w-32 text-left" title="帰投時の状態 (撃沈・大破・中破)">
-                  損傷
-                </Th>
-                <Th className="w-14">大破</Th>
-                <Th className="w-14">撃沈</Th>
-                <Th className="w-16" title="帰投時に減っている HP の平均">
-                  修理HP
-                </Th>
-                {anyDamecon && <Th className="w-16">ダメコン</Th>}
-              </>
-            }
-          >
-            {s.friend.map((f, i) => (
-              <DTr key={i}>
-                <Td className="max-w-28 truncate text-ink-200" title={out.friendNames[i]}>
-                  {out.friendNames[i]}
-                </Td>
-                <Td>
-                  <StackedBar
-                    parts={[
-                      { label: "撃沈", value: f.sunkRate, color: "var(--color-hp-sunk)" },
-                      { label: "大破", value: f.heavyRate, color: "var(--color-hp-heavy)" },
-                      { label: "中破", value: f.moderateRate, color: "var(--color-hp-moderate)" },
-                    ]}
-                  />
-                </Td>
-                <Num>{pct(f.heavyRate)}</Num>
-                <Num alert={f.sunkRate > 0.005}>{pct(f.sunkRate)}</Num>
-                <Num>{f.hpMissingMean.toFixed(1)}</Num>
-                {anyDamecon && <Num>{pct(f.damecon.usedRate)}</Num>}
-              </DTr>
-            ))}
-          </DTable>
-        )}
+        {view === "ships" && <ShipLossTable ships={s.friend} names={out.friendNames} />}
+        {view === "resources" && <ResourceTable s={s} />}
+        {view === "gauge" && clear && <GaugeResult g={clear} />}
 
-        {detail === "notes" && <Assumptions data={out.assumptions} />}
+        {view === "notes" && <Assumptions data={out.assumptions} />}
       </div>
     </>
   );

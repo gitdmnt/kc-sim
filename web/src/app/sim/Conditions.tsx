@@ -2,11 +2,16 @@ import React from "react";
 import { Dices } from "lucide-react";
 import type { Formation, NightPolicy } from "@sim-core";
 import type { EnemyCompSet, MapNode, RoutingDoc } from "@shared/data/types";
-import type { PresetFormation } from "@shared/fleet/types";
+import type { Preset, PresetFormation } from "@shared/fleet/types";
 import { FORMATION_NAME } from "../../data/routing";
 import { flagNames, hasStartRules, selectNodes, startNodes } from "../../sim/sortieAdapter";
 import { Button, Checkbox, Field, NumberInput, Select, S } from "../../ui";
 import type { OfferedKind, SimMode, WorkspacePrefs } from "./prefs";
+import { mapPrefsOf } from "./sortieConfig";
+import type { SortieMapPrefs } from "./sortieConfig";
+import { Group } from "./conditions/parts";
+import { RetreatSettings } from "./conditions/RetreatSettings";
+import { SortieTabs } from "./conditions/SortieTabs";
 
 const NIGHT_LABEL: Record<NightPolicy, string> = {
   never: "夜戦しない",
@@ -20,7 +25,7 @@ const FORMATIONS: Formation[] = ["lineAhead", "doubleLine", "diamond", "echelon"
 /** 連合艦隊の陣形 (第一〜第四警戒航行序列 = FORMATION_NAME 11〜14) */
 const COMBINED_FORMATIONS: Formation[] = ["combinedAntiSub", "combinedForward", "combinedDiamond", "combinedBattle"];
 const COUNTS = [10_000, 50_000, 100_000, 500_000];
-export const DIFF = ["通常", "丁", "丙", "乙", "甲"];
+export { DIFF } from "./conditions/parts";
 const PRESET_FORMATIONS: Record<PresetFormation, string> = { ...S.formations, ...S.combinedFormations };
 const SINGLE_KEYS = Object.keys(S.formations) as PresetFormation[];
 const COMBINED_KEYS = Object.keys(S.combinedFormations) as PresetFormation[];
@@ -34,10 +39,6 @@ export interface MapConfig {
   formations: Record<string, Formation>;
   phase?: number;
   gaugeNo?: number;
-  gaugeKind: "none" | "kill" | "hp";
-  remaining: number;
-  /** HP ゲージ最終形態の編成セット (`難易度:取得日時`)。"" はボスマスと同じ */
-  finalSetKey: string;
   /** 単一マス戦闘の敵編成 ("all" は出現率で重み付け)。compNode と違うノードでは "all" */
   compId: string;
   compNode: string;
@@ -48,21 +49,11 @@ export const defaultMapConfig = (routing: RoutingDoc | null): MapConfig => ({
   flags: {},
   formations: {},
   phase: (routing?.defaults as { phase?: number } | undefined)?.phase,
-  gaugeKind: "none",
-  remaining: 4,
-  finalSetKey: "",
   compId: "all",
   compNode: "",
 });
 
 export const fmtCount = (n: number) => (n >= 1_000_000 ? `${n / 1_000_000}M` : n >= 1000 ? `${n / 1000}k` : String(n));
-
-const Group = ({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) => (
-  <div className={className}>
-    <div className="mb-1 text-xs text-ink-400">{title}</div>
-    <div className="flex flex-col gap-1">{children}</div>
-  </div>
-);
 
 interface Props {
   mode: SimMode;
@@ -80,10 +71,14 @@ interface Props {
   setFormation: (f: PresetFormation) => void;
   /** 連合艦隊 (陣形の選択肢が警戒航行序列になる) */
   combined: boolean;
+  /** 海域の全マス (マスごとの進撃・効果) */
+  nodes: MapNode[];
+  /** 護衛退避の司令部施設の表示用 */
+  preset: Preset | null;
 }
 
 /** 条件パネル (ツールバーの「条件」)。 */
-export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, selects, battleNodes, bossSets, formation, setFormation, combined }: Props) => {
+export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, selects, battleNodes, bossSets, formation, setFormation, combined, nodes, preset }: Props) => {
   const starts = startNodes(routing);
   const selNodes = selectNodes(routing);
   const flags = flagNames(routing);
@@ -143,7 +138,10 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, select
     );
   }
 
+  const mapPrefs = mapPrefsOf(prefs.sortieMaps, prefs.map);
+  const setMapPrefs = (p: Partial<SortieMapPrefs>) => setPrefs({ sortieMaps: { ...prefs.sortieMaps, [prefs.map]: { ...mapPrefs, ...p } } });
   return (
+    <SortieTabs prefs={prefs} setPrefs={setPrefs} mapPrefs={mapPrefs} setMapPrefs={setMapPrefs} nodes={nodes} bossSets={bossSets} basic={
     <div className="grid grid-cols-3 gap-3">
       <Field label="夜戦">
         <Select value={prefs.night} onChange={(e) => setPrefs({ night: e.target.value as NightPolicy })}>
@@ -154,13 +152,7 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, select
           ))}
         </Select>
       </Field>
-      <Group title="撤退" className="col-span-2">
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          <Checkbox label="大破撤退" title="旗艦大破は常に撤退" checked={prefs.onHeavy} onChange={(e) => setPrefs({ onHeavy: e.target.checked })} />
-          <Checkbox label="ダメコン持ちは継続" checked={prefs.allowDamecon} disabled={!prefs.onHeavy} onChange={(e) => setPrefs({ allowDamecon: e.target.checked })} />
-          <Checkbox label="中破撤退" checked={prefs.onModerate} onChange={(e) => setPrefs({ onModerate: e.target.checked })} />
-        </div>
-      </Group>
+      <RetreatSettings prefs={prefs} setPrefs={setPrefs} preset={preset} />
 
       {starts.length > 1 && (
         <Field label="出撃地点">
@@ -203,31 +195,6 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, select
         </Group>
       )}
 
-      <Field label="ゲージ">
-        <Select value={cfg.gaugeKind} onChange={(e) => setCfg({ gaugeKind: e.target.value as MapConfig["gaugeKind"] })}>
-          <option value="none">指定なし</option>
-          <option value="kill">撃破数ゲージ</option>
-          <option value="hp">HPゲージ</option>
-        </Select>
-      </Field>
-      {cfg.gaugeKind !== "none" && (
-        <Field label={cfg.gaugeKind === "kill" ? "残り撃破数" : "残りHP"}>
-          <NumberInput min={1} max={99999} value={cfg.remaining} onChange={(remaining) => setCfg({ remaining })} />
-        </Field>
-      )}
-      {cfg.gaugeKind === "hp" && bossSets.length > 1 && (
-        <Field label="最終形態の編成">
-          <Select value={cfg.finalSetKey} onChange={(e) => setCfg({ finalSetKey: e.target.value })}>
-            <option value="">ボスマスと同じ</option>
-            {bossSets.map((s) => (
-              <option key={`${s.difficulty}:${s.retrievedAt}`} value={`${s.difficulty}:${s.retrievedAt}`}>
-                {DIFF[s.difficulty]} / {s.periodStart ?? "?"}〜 ({s.totalCount.toLocaleString()}回)
-              </option>
-            ))}
-          </Select>
-        </Field>
-      )}
-
       {battleNodes.length > 0 && (
         <>
           <div className="col-span-3 h-px bg-ink-800" />
@@ -261,5 +228,6 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, select
       <div className="col-span-3 h-px bg-ink-800" />
       {common}
     </div>
+    } />
   );
 };
