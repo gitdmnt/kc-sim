@@ -73,8 +73,12 @@ const setupPacket = z.object({
   api_ship_ke: nums, api_ship_lv: nums, api_eParam: nums2, api_eSlot: nums2,
   api_e_maxhps: nums, api_e_nowhps: nums, api_f_maxhps: nums, api_f_nowhps: nums, api_fParam: nums2,
   api_f_maxhps_combined: nums.nullish(), api_f_nowhps_combined: nums.nullish(), api_fParam_combined: nums2.nullish(),
-  /** `api_base_id` is 1-based into `fleet.lbas`. */
-  api_air_base_attack: z.array(z.object({ api_base_id: z.number().int() }).loose()).nullish(),
+  /** `api_base_id` is the game's base number (KCNav's `fleet.lbas` lists only the sortied bases); `api_squadron_plane`
+   *  holds each squadron's plane id and count at launch. */
+  api_air_base_attack: z.array(z.object({
+    api_base_id: z.number().int(),
+    api_squadron_plane: z.array(z.object({ api_mst_id: z.number().int(), api_count: z.number().int() }).loose().nullable()).nullish(),
+  }).loose()).nullish(),
 });
 const setupSchema = z.object({
   battle: z.object({

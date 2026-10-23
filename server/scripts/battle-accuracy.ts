@@ -174,15 +174,24 @@ function build(r: Row): Built | string {
   const enemy = buildEnemyShips(comp, lookup);
   enemy.input.forEach((sh, i) => (sh.hp = p.api_e_nowhps[i] ?? sh.maxHp));
 
+  // Land-base waves as they flew. KCNav lists only the sortied bases, so a wave's base is found by its planes; the
+  // squadron sizes are the counts its base launched in its first wave of this battle (KCNav's slots can be older).
   const lbas = [];
+  const firstWave = new Map<number, { id: number; count: number }[]>();
   for (const w of p.api_air_base_attack ?? []) {
-    const base = s.fleet.lbas?.[w.api_base_id - 1];
+    const planes = (w.api_squadron_plane ?? []).flatMap((q) => (q && q.api_mst_id > 0 ? [{ id: q.api_mst_id, count: q.api_count }] : []));
+    if (!firstWave.has(w.api_base_id)) firstWave.set(w.api_base_id, planes);
+    const launched = firstWave.get(w.api_base_id)!;
+    const key = launched.map((q) => q.id).join(",");
+    const base = s.fleet.lbas?.find((b) => b.planes.filter((id) => id > 0).join(",") === key);
     if (!base) return "land base missing from KCNav's fleet";
+    const slotOf = base.planes.flatMap((id, j) => (id > 0 ? [j] : []));
     const squadrons = buildSquadrons({
       mode: "sortie", targets: ["", ""],
-      squadrons: base.planes.map((id, j) => id > 0
-        ? { masterId: id, improvement: Math.max(0, base.improvements[j] ?? 0), proficiency: Math.max(0, base.proficiency[j] ?? 0), slotSize: base.slots[j] }
-        : null),
+      squadrons: launched.map((q, k) => {
+        const j = slotOf[k]!;
+        return { masterId: q.id, improvement: Math.max(0, base.improvements[j] ?? 0), proficiency: Math.max(0, base.proficiency[j] ?? 0), slotSize: q.count };
+      }),
     }, master.data);
     if (squadrons.length) lbas.push({ squadrons });
   }
