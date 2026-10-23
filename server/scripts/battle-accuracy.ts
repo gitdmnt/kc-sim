@@ -81,21 +81,22 @@ async function loadOnline(): Promise<Input> {
       sh.equips.forEach((e) => equipIds.add(e));
     }
     s.fleet.lbas?.forEach((b) => b.planes.forEach((p) => equipIds.add(p)));
-    s.rawapi.api_ship_ke.forEach((id) => (shipIds.add(id), enemyIds.add(id)));
-    s.rawapi.api_eSlot.flat().forEach((e) => equipIds.add(e));
+    const ke = [...s.rawapi.api_ship_ke, ...(s.rawapi.api_ship_ke_combined ?? [])];
+    ke.forEach((id) => (shipIds.add(id), enemyIds.add(id)));
+    [...s.rawapi.api_eSlot, ...(s.rawapi.api_eSlot_combined ?? [])].flat().forEach((e) => equipIds.add(e));
   }
   const master = await loadMaster(db, shipIds, equipIds);
   const details: Record<number, ShipDetail> = {};
   const eventBonuses: Record<number, EventBonusResponse> = {};
   for (const mapId of new Set(rows.map((r) => r.map_id).filter((m) => m > 100))) {
-    const res = await fetch(`${API}/api/v1/maps/${Math.floor(mapId / 10)}-${mapId % 10}/bonuses`);
-    // Our own data API; the web UI reads the same JSON as EventBonusResponse (web/src/data/api.ts).
-    if (res.ok) eventBonuses[mapId] = (await res.json()) as EventBonusResponse;
+    // Our own data API; the web UI reads the same JSON as EventBonusResponse (web/src/data/api.ts). 404: no bonuses.
+    const bonus = await apiGet<EventBonusResponse>(`/api/v1/maps/${Math.floor(mapId / 10)}-${mapId % 10}/bonuses`, true);
+    if (bonus) eventBonuses[mapId] = bonus;
   }
   for (const id of [...enemyIds].filter((x) => x > 0).sort((a, b) => a - b)) {
-    const res = await fetch(`${API}/api/v1/ships/${id}`);
-    // Our own data API; the web UI reads the same JSON as ShipDetail (web/src/data/api.ts).
-    if (res.ok) details[id] = (await res.json()) as ShipDetail;
+    // Our own data API; the web UI reads the same JSON as ShipDetail (web/src/data/api.ts). A missing detail would
+    // silently put the enemy on hiddenFallback's ship-type medians, so every one is required.
+    details[id] = (await apiGet<ShipDetail>(`/api/v1/ships/${id}`, false))!;
   }
   const input: Input = {
     savedAt: new Date().toISOString(), rows, ships: [...master.ships.values()], equips: [...master.equips.values()],
@@ -104,6 +105,24 @@ async function loadOnline(): Promise<Input> {
   mkdirSync(new URL("../.tmp/", import.meta.url).pathname, { recursive: true });
   writeFileSync(INPUT, JSON.stringify(input));
   return input;
+}
+
+/**
+ * GET on the data API, one request at a time: 429 / 5xx / network errors are retried with backoff (Retry-After when
+ * given), anything else that is not ok throws. `allow404`: a 404 returns null.
+ */
+async function apiGet<T>(path: string, allow404: boolean): Promise<T | null> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${API}${path}`).catch((e: unknown) => e);
+    if (res instanceof Response) {
+      if (res.ok) return (await res.json()) as T;
+      if (res.status === 404 && allow404) return null;
+      if (res.status !== 429 && res.status < 500) throw new Error(`GET ${path}: HTTP ${res.status}`);
+    }
+    if (attempt === 6) throw new Error(`GET ${path}: ${res instanceof Response ? `HTTP ${res.status}` : String(res)} after ${attempt + 1} attempts`);
+    const after = res instanceof Response ? Number(res.headers.get("retry-after")) : NaN;
+    await Bun.sleep(Number.isFinite(after) && after > 0 ? after * 1000 : 1000 * 2 ** attempt);
+  }
 }
 
 /** kcSHIPDATA entries of the ships that appear in event friend fleets (the packet has no EV / ASW / LoS / luck). */
