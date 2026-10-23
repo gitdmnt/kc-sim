@@ -3,6 +3,8 @@ import { execStatements } from "./lib/d1";
 import { fetchGithub } from "./lib/fetch";
 import { sourceRef, sourceUpsert, upsert } from "./lib/sql";
 import { SHIP_TYPES } from "../src/routing/schema";
+import { shipBaseId } from "../../shared/sim/fit";
+import type { ShipMaster } from "../../shared/fleet/types";
 
 const FILE = { owner: "Tibowl", repo: "api_start2", ref: "master", path: "start2.json" };
 const KEY = "tibowl-start2";
@@ -12,6 +14,7 @@ interface MstShip {
   api_soku: number; api_slot_num: number; api_leng?: number; api_maxeq?: number[];
   api_taik?: number[]; api_houg?: number[]; api_raig?: number[]; api_tyku?: number[];
   api_souk?: number[]; api_luck?: number[]; api_fuel_max?: number; api_bull_max?: number;
+  api_sort_id?: number; api_aftershipid?: string;
 }
 interface MstSlotitem {
   api_id: number; api_name: string; api_type: number[]; api_houg: number; api_raig: number;
@@ -36,8 +39,16 @@ export async function ingestStart2(): Promise<void> {
     id: s.api_id, code: codeById[s.api_id] ?? null, name: s.api_name,
   }));
 
+  // Remodel lineage for fit bonuses (shipS = first form of the line, shipNationality from api_sort_id).
+  const lineage: Record<number, ShipMaster> = {};
+  for (const s of d.api_mst_ship as MstShip[]) {
+    if (s.api_id <= 1500) lineage[s.api_id] = { api_id: s.api_id, api_aftershipid: s.api_aftershipid, api_sort_id: s.api_sort_id };
+  }
+  const lineageMaster = { ships: lineage };
+
   const ships = (d.api_mst_ship as MstShip[]).map((s) => {
     const abyssal = s.api_id > 1500;
+    const after = Number(s.api_aftershipid ?? 0);
     return {
       id: s.api_id, name: s.api_name, yomi: s.api_yomi ?? null, stype: s.api_stype, ctype: s.api_ctype ?? null,
       speed: s.api_soku, range: s.api_leng ?? null, slot_num: s.api_slot_num, is_abyssal: abyssal,
@@ -46,7 +57,10 @@ export async function ingestStart2(): Promise<void> {
       max_stats: abyssal || !s.api_taik ? null : {
         hp: s.api_taik[1], fp: s.api_houg?.[1], tp: s.api_raig?.[1], aa: s.api_tyku?.[1], ar: s.api_souk?.[1], luck: s.api_luck?.[1],
       },
-      slots: s.api_maxeq ?? null, fuel_max: s.api_fuel_max ?? null, ammo_max: s.api_bull_max ?? null, source_id: src, updated_at: now,
+      slots: s.api_maxeq ?? null, fuel_max: s.api_fuel_max ?? null, ammo_max: s.api_bull_max ?? null,
+      after_ship_id: !abyssal && after > 0 ? after : null, sort_id: abyssal ? null : (s.api_sort_id ?? null),
+      base_id: abyssal ? null : (shipBaseId(s.api_id, lineageMaster) ?? null),
+      source_id: src, updated_at: now,
     };
   });
   // Abyssal visible stats come from ingest-abyssal; do not clobber them with start2's nulls.
