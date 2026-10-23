@@ -5,12 +5,18 @@ import { COST, type Budget } from "../budget";
 import { bumpDataVersion } from "../cache";
 import type { Env } from "../env";
 import { COMBAT_NODE_TYPES, parseEnemyComps, parseMap, parseNodeSummary } from "./parse";
+import { storeBattles } from "./battles";
 import { decideTick, planAfterResponse, type TickDecision } from "./throttle";
 import { OBSERVED_SOURCE, materializeMap } from "../observed/aggregate";
 
 const GATE_KEY = "kcnav_next_allowed_at";
 const STALE_RUNNING_MS = 10 * 60 * 1000;
 export const KCNAV_USER_AGENT = "kc-sim-server (single worker, max 1 request per 65 s)";
+/**
+ * Largest response body kept in kcnav_cache (D1 caps a string or row at 2 000 000 bytes). A larger body fails
+ * the job permanently (prefix cached for inspection): retrying would fetch the same answer again.
+ */
+export const MAX_CACHE_BODY_BYTES = 1_800_000;
 
 export interface QueueRow {
   id: number; kind: string; path: string; map_id: number; node_letter: string | null; difficulty: number;
@@ -24,11 +30,13 @@ export type TickResult =
 export interface TickDeps { now: () => number; fetch: (url: string, init: RequestInit) => Promise<Response> }
 /** What a tick needs from the environment (the worker's Env, or the jobs runner's). */
 export type KcnavEnv = Pick<Env, "DB" | "KCNAV_BASE" | "KCNAV_MIN_INTERVAL_MS">;
+/** Restricts which job kinds a tick may run (e.g. the daily jobs step leaves `battles` to the crawl workflow). */
+export interface KindFilter { only?: string[]; skip?: string[] }
 
 // Wrap the globals: workerd throws "Illegal invocation" when `fetch` is called as a method of `deps`.
 const DEFAULT_DEPS: TickDeps = { now: () => Date.now(), fetch: (input, init) => fetch(input, init) };
 
-export async function tick(env: KcnavEnv, deps: TickDeps = DEFAULT_DEPS): Promise<TickResult> {
+export async function tick(env: KcnavEnv, deps: TickDeps = DEFAULT_DEPS, filter: KindFilter = {}): Promise<TickResult> {
   const db = env.DB;
   const minInterval = Number(env.KCNAV_MIN_INTERVAL_MS);
   const now = deps.now();
@@ -39,9 +47,11 @@ export async function tick(env: KcnavEnv, deps: TickDeps = DEFAULT_DEPS): Promis
     db.prepare(
       `SELECT id, kind, path, map_id, node_letter, difficulty, attempts, next_run_at FROM kcnav_queue
        WHERE status = 'pending'
+         AND (?2 IS NULL OR kind IN (SELECT value FROM json_each(?2)))
+         AND (?3 IS NULL OR kind NOT IN (SELECT value FROM json_each(?3)))
        ORDER BY CASE WHEN next_run_at <= ?1 THEN 0 ELSE 1 END, CASE WHEN next_run_at <= ?1 THEN priority ELSE next_run_at END, id
        LIMIT 1`,
-    ).bind(now),
+    ).bind(now, filter.only?.length ? JSON.stringify(filter.only) : null, filter.skip?.length ? JSON.stringify(filter.skip) : null),
   ]);
   const gate = Number((gateRow!.results[0] as { value: string } | undefined)?.value ?? 0);
   const job = (jobRow!.results[0] as QueueRow | undefined) ?? null;
@@ -66,13 +76,19 @@ export async function tick(env: KcnavEnv, deps: TickDeps = DEFAULT_DEPS): Promis
     body = String(e);
   }
   const fetchedAt = new Date(now).toISOString();
+  const bytes = new TextEncoder().encode(body).length;
+  const oversize = bytes > MAX_CACHE_BODY_BYTES;
   const cache = await db.prepare("INSERT INTO kcnav_cache (url, status, body, fetched_at) VALUES (?1, ?2, ?3, ?4) RETURNING id")
-    .bind(url, status, body, fetchedAt).first<{ id: number }>();
+    .bind(url, status, oversize ? body.slice(0, 100_000) : body, fetchedAt).first<{ id: number }>();
 
   let plan = planAfterResponse({ status, attempts: job.attempts, requestedAt: now, minIntervalMs: minInterval });
   let summary = `HTTP ${status}`;
   let error: string | null = plan.jobStatus === "done" ? null : body.slice(0, 500);
-  if (plan.jobStatus === "done") {
+  if (plan.jobStatus === "done" && oversize) {
+    plan = { ...plan, jobStatus: "failed" };
+    error = `body too large: ${bytes} bytes > ${MAX_CACHE_BODY_BYTES} (first 100 000 characters cached)`;
+    summary = error;
+  } else if (plan.jobStatus === "done") {
     try {
       summary = await store(db, job, JSON.parse(body), cache!.id, fetchedAt);
     } catch (e) {
@@ -215,6 +231,7 @@ export async function store(db: D1Database, job: QueueRow, json: unknown, cacheI
     return `enemycomps: ${sets.length} set(s) [${sets.map((s) => `${s.node}/d${s.difficulty}: ${s.comps.length} comps, n=${s.totalCount}`).join("; ")}]`
       + (skipped.length ? `; skipped non-combat ${skipped.join(", ")}` : "");
   }
+  if (job.kind === "battles") return storeBattles(db, job, json, cacheId, fetchedAt);
   if (job.kind === "nodesummary") {
     const counts = parseNodeSummary(json);
     const query = new URL(job.path, "https://x").search.replace(/^\?/, "");

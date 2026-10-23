@@ -3,7 +3,7 @@
 # Once a day (18:07 UTC = 03:07 JST), job `jobs` and then job `routing`:
 #   jobs:    staged uploads → observations, aggregation, estimator (scripts/run-jobs.ts run), then the KCNav queue
 #            (scripts/run-jobs.ts kcnav: one request per ≥ 65 s gate, persisted in D1, until the queue is empty or
-#            its time is up)
+#            its time is up; `battles` jobs are left to the kcnav-crawl workflow)
 #   routing: routing inferred from poi sortie observations for maps without hand-authored rules, and the check of
 #            observations against the hand-authored rules (scripts/infer-routing.ts --write). It runs after `jobs`
 #            even when `jobs` failed (its input is the stored observations), and alone for a dispatch with task=routing.
@@ -75,7 +75,7 @@ jobs:
 
       - name: KCNav queue
         working-directory: server
-        run: bun scripts/run-jobs.ts kcnav --minutes 25
+        run: bun scripts/run-jobs.ts kcnav --skip battles --minutes 25
 
   routing:
     needs: jobs
