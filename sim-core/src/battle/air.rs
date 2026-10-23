@@ -6,8 +6,11 @@
 //!
 //! Friend combined fleet vs a single enemy (kcsimcombined `simCombined` → `compareAP(F1,F2)`,
 //! `airPhase(alive1.concat(alive1C), …)` without `includeEscort`): only the main fleet's planes
-//! count for fighter power and launch; enemy planes target and are shot at by both fleets, with
-//! the combined-fleet AA multipliers (escort ×0.48, main ×0.8 / ×0.72 in air raids).
+//! count for fighter power and launch (en wiki Combined Fleet / wikiwiki 連合艦隊: escort planes
+//! neither fight nor are shot down); enemy planes target and are shot at by both fleets.
+//! Against an enemy combined fleet (`sim6vs12` / `sim12vs12`, `includeEscort`) every fleet of both
+//! sides launches. AA of a combined fleet's ships (or of any friend ship against an enemy combined
+//! fleet's planes, kcsim `forceCF`): escort ×0.48, main ×0.8 / ×0.72 in air raids.
 
 use super::calc;
 use super::{side_air, Battle, List};
@@ -67,10 +70,14 @@ where
 }
 
 impl<'a> Battle<'a> {
-    /// Ships `0..n` of `side` whose planes fight in the air phase: a combined friend fleet's main
-    /// fleet only.
-    fn air_fleet_end(&self, side: usize) -> usize {
-        self.fleets[side].escort_start
+    /// Ships `0..n` of `side` whose planes fight in the air phase: against an enemy combined fleet
+    /// every ship, otherwise a combined fleet's main fleet only.
+    pub(super) fn air_fleet_end(&self, side: usize) -> usize {
+        if self.ecombined {
+            self.len(side)
+        } else {
+            self.fleets[side].escort_start
+        }
     }
 
     fn air_power(&self, side: usize) -> f64 {
@@ -240,14 +247,16 @@ impl<'a> Battle<'a> {
         contact_roll(self.rng, air, items).unwrap_or(1.0)
     }
 
-    /// kcsim `getAAShotProp` / `getAAShotFlat` multiplier of a defender in a friend combined fleet
-    /// (`isRaid` lowers the main fleet's from 0.8 to 0.72).
+    /// kcsim `getAAShotProp` / `getAAShotFlat` multiplier (`forceCF`: the defender is in a
+    /// combined fleet, or a friend ship shoots at an enemy combined fleet's planes; `isRaid` lowers
+    /// the main fleet's from 0.8 to 0.72).
     fn combined_aa_mod(&self, def_side: usize, d: usize) -> f64 {
-        if def_side != 0 || self.combined.is_none() {
+        let def_combined = self.has_escort(def_side);
+        if !def_combined && !(def_side == 0 && self.has_escort(1)) {
             1.0
-        } else if d >= self.fleets[0].escort_start {
+        } else if def_combined && d >= self.fleets[def_side].escort_start {
             0.48
-        } else if self.setup.kind == BattleKind::AirRaid {
+        } else if def_side == 0 && self.setup.kind == BattleKind::AirRaid {
             0.72
         } else {
             0.8
@@ -288,7 +297,7 @@ impl<'a> Battle<'a> {
             }
         }
         let mut defenders = List::default();
-        for i in 0..self.len(def_side) {
+        for i in self.engaged(def_side) {
             if self.alive(def_side, i) {
                 defenders.push(i);
             }

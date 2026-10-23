@@ -1,14 +1,15 @@
 //! Sortie (海域周回) simulator: routing evaluator + chained battles with state carry-over,
 //! retreat policy, land-base waves, aggregation and gauge estimation. Contract:
 //! docs/SIM_INTERFACE.md "Sortie". A combined friend fleet is carried node to node as one side
-//! (main ships then escort ships); 護衛退避 (escort retreat) is not modelled.
+//! (main ships then escort ships); 護衛退避 (escort retreat) is not modelled. Enemy comps with an
+//! `escort` are fought as enemy combined fleets.
 
 pub mod model;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use crate::battle::lbas::{initial_planes, LandBaseCore, LbPlanes, MAX_SQUADRONS};
-use crate::battle::{validate_fleet, validate_friend, Battle, BattleSetup, FleetCarry, FleetCore};
+use crate::battle::{enemy_formation, validate_fleet, validate_friend, Battle, BattleSetup, FleetCarry, FleetCore, NIGHT_TO_DAY_COMBINED};
 use crate::bonus::{self, BaseBonus, Bonus};
 use crate::model::{ArmorDebuff, BattleKind, CombinedType, Formation, Rank, RankRates};
 use crate::rng::Rng;
@@ -25,6 +26,7 @@ enum NodeBattle {
     Night,
     Air,
     Raid,
+    NightToDay,
 }
 
 struct Comp {
@@ -55,7 +57,7 @@ impl CompSet {
             let flagship_max_hp = core.ships[0].max_hp;
             total += c.weight;
             cum.push(total);
-            out.push(Comp { core, init, formation: c.fleet.formation.unwrap_or_default(), flagship_max_hp });
+            out.push(Comp { core, init, formation: enemy_formation(&c.fleet), flagship_max_hp });
         }
         if out.is_empty() || total <= 0.0 {
             return Err(format!("{what}: comps need a positive total weight"));
@@ -245,6 +247,8 @@ impl Sortie {
                         Some(NodeKind::NightBattle) => Some(NodeBattle::Night),
                         Some(NodeKind::AirBattle) => Some(NodeBattle::Air),
                         Some(NodeKind::AirRaid) => Some(NodeBattle::Raid),
+                        Some(NodeKind::NightToDay) if combined.is_some() => return Err(format!("node {letter}: {NIGHT_TO_DAY_COMBINED}")),
+                        Some(NodeKind::NightToDay) => Some(NodeBattle::NightToDay),
                         Some(NodeKind::Unknown) => {
                             warning = Some(format!("node {letter}: unknown kind; treated as empty"));
                             None
@@ -354,6 +358,7 @@ impl Sortie {
             NodeBattle::Night => (BattleKind::NightOnly, None),
             NodeBattle::Air => (BattleKind::AirBattle, None),
             NodeBattle::Raid => (BattleKind::AirRaid, None),
+            NodeBattle::NightToDay => (BattleKind::NightToDay, None),
             NodeBattle::Day => match self.night {
                 NightPolicy::Never => (BattleKind::Day, None),
                 NightPolicy::BossOnly if boss => (BattleKind::DayNight, None),

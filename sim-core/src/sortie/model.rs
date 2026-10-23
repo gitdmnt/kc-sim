@@ -31,6 +31,9 @@ pub enum NodeKind {
     AirRecon,
     #[serde(alias = "anchorage_repair")]
     AnchorageRepair,
+    /// 夜昼戦: night battle first, then (optionally) the day battle (`BattleKind::NightToDay`).
+    #[serde(alias = "night_to_day")]
+    NightToDay,
     /// Any other string (treated as empty, reported in `warnings`).
     #[serde(other)]
     Unknown,
@@ -40,6 +43,7 @@ pub enum NodeKind {
 #[serde(rename_all = "camelCase")]
 pub struct EnemyComp {
     pub weight: f64,
+    /// A single fleet, or an enemy combined fleet (`escort`, default formation `combinedBattle`).
     pub fleet: FleetInput,
 }
 

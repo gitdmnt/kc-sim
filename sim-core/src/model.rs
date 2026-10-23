@@ -12,7 +12,7 @@ pub enum Formation {
     Echelon,
     LineAbreast,
     Vanguard,
-    /// 第一警戒航行序列 (combined friend fleets only).
+    /// 第一警戒航行序列 (combined fleets only).
     CombinedAntiSub,
     /// 第二警戒航行序列.
     CombinedForward,
@@ -100,6 +100,9 @@ pub enum BattleKind {
     NightOnly,
     AirBattle,
     AirRaid,
+    /// Night battle first, then the day battle when the enemy is still afloat (払暁戦; kcsim
+    /// `simNightFirstCombined` against an enemy combined fleet). Single friend fleets only.
+    NightToDay,
 }
 
 /// Installation (陸上型) kind, kcSHIPDATA `installtype` 1..6: soft-skinned (飛行場姫, 港湾棲姫, …),
@@ -365,10 +368,12 @@ pub struct ShipInput {
 pub struct FleetInput {
     /// Main fleet (主力). Combined fleets: per-ship outputs list these first, then the escort.
     pub ships: Vec<ShipInput>,
-    /// Combined friend: one of the `combined*` formations (default `combinedBattle`).
+    /// Combined friend: one of the `combined*` formations (default `combinedBattle`); an enemy
+    /// combined fleet likewise.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub formation: Option<Formation>,
-    /// Friend combined fleet only: escort fleet (随伴), 1..6 ships. Requires `combined`.
+    /// Escort fleet (随伴), 1..6 ships. Friend: requires `combined`. Enemy: an enemy combined
+    /// fleet (6 vs 12 / 12 vs 12).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub escort: Option<Vec<ShipInput>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

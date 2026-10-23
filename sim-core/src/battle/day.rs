@@ -1,6 +1,6 @@
-//! Opening ASW and day shelling (rounds 1 and 2). Ported from kcsim `shellPhase`,
-//! `shellPhaseTarget`, `shell`, `ASW`, `orderByRange` and kcships `canASW`, `canOASW`, `canShell`,
-//! `canAS`, `ASchance` (KC3Kai/kancolle-replay, MIT © fourinone41).
+//! Opening ASW and day shelling (rounds 1 and 2). Ported from kcsim `shellPhase`, `shellPhaseC`,
+//! `doShellC`, `shellPhaseTarget`, `shell`, `ASW`, `orderByRange` and kcships `canASW`, `canOASW`,
+//! `canShell`, `canAS`, `ASchance` (KC3Kai/kancolle-replay, MIT © fourinone41).
 
 use super::calc::{self, Special, Unit};
 use super::special::Fsa;
@@ -159,7 +159,7 @@ impl<'a> Battle<'a> {
         let mut orders = [List::default(), List::default()];
         for side in 0..2 {
             let mut l = List::default();
-            for i in self.engaged(side) {
+            for i in self.attackers(side) {
                 let c = self.core(side, i);
                 if self.alive(side, i) && !c.class.is_sub() && can_oasw(c, &self.st[side][i]) {
                     l.push(i);
@@ -177,7 +177,7 @@ impl<'a> Battle<'a> {
         for side in 0..2 {
             let vs_install = self.has_installation(1 - side);
             let mut l = List::default();
-            for i in self.engaged(side) {
+            for i in self.attackers(side) {
                 if can_shell(self.core(side, i), &self.st[side][i], false, vs_install) {
                     l.push(i);
                 }
@@ -231,18 +231,41 @@ impl<'a> Battle<'a> {
         }
     }
 
-    /// kcsim `shellPhaseTarget` + attack.
+    /// kcsim `shellPhaseTarget` + attack. In a round against both fleets of a combined side
+    /// (`pools`), the shot first picks the escort with 39%, else the main fleet, and falls back to
+    /// the other fleet without a target (kcsim `doShellC`; en wiki: shelling 61% / 39%).
     fn shell_turn(&mut self, side: usize, a: usize, opening: bool) {
+        let def = 1 - side;
+        if !self.pools || opening || !self.has_escort(def) {
+            self.shell_target(side, a, opening);
+            return;
+        }
+        let full = self.engaged[def];
+        let es = self.fleets[def].escort_start;
+        let (main, escort) = ((full.0, es), (es, full.1));
+        let order = if self.rng().chance(0.39) { [escort, main] } else { [main, escort] };
+        for pool in order {
+            self.engaged[def] = pool;
+            let done = self.shell_target(side, a, opening);
+            self.engaged[def] = full;
+            if done {
+                return;
+            }
+        }
+    }
+
+    /// Attack a target of `side`'s `a` among the engaged defenders; false without a target.
+    fn shell_target(&mut self, side: usize, a: usize, opening: bool) -> bool {
         let def = 1 - side;
         let subs = self.subs(def);
         let c = self.core(side, a);
         if !subs.is_empty() && can_asw(c, &self.st[side][a], opening) {
             let (t, covered) = self.choose_target(def, subs.as_slice(), 0);
             self.asw_attack(side, a, t, covered, opening, false);
-            return;
+            return true;
         }
         if opening {
-            return;
+            return false;
         }
         let surface = self.surface(def);
         let mut targets = List::default();
@@ -267,10 +290,11 @@ impl<'a> Battle<'a> {
             }
         }
         if targets.is_empty() {
-            return;
+            return false;
         }
         let (t, covered) = self.choose_preferred(side, a, targets.as_slice(), true, 0);
         self.shell_attack(side, a, t, covered, None);
+        true
     }
 
     /// Artillery spotting chance (kcsim `ASchance`), 0 when not possible.
@@ -283,8 +307,16 @@ impl<'a> Battle<'a> {
         if !can_as(c, &self.st[side][a]) {
             return 0.0;
         }
-        // Each fleet of a combined fleet spots with its own fleet LoS.
-        let base = if side == 0 && a >= self.fleets[0].escort_start { self.fleet_los_escort } else { self.fleet_los[side] };
+        // Each fleet of a combined fleet spots with its own fleet LoS; in a round against both
+        // fleets with both of its fleets' LoS (kcships `ASchance(…, combinedAll)`).
+        let fl = self.fleet_los[side];
+        let base = if self.pools {
+            fl[0] + fl[1]
+        } else if a >= self.fleets[side].escort_start {
+            fl[1]
+        } else {
+            fl[0]
+        };
         let fleet_los = (base.max(0.0).sqrt() + base * 0.1).floor();
         let luck_los = (c.luck.max(0.0).sqrt() + 10.0).floor();
         let mut chance = if air == 2 {

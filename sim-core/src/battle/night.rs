@@ -3,7 +3,7 @@
 //! MIT © fourinone41.
 
 use super::calc::{self, NightAttack, NightEnv, Special};
-use super::day::can_asw_night;
+use super::day::{can_asw_night, can_shell};
 use super::special::Fsa;
 use super::{side_air, Battle, List};
 use crate::equipment::f;
@@ -121,10 +121,11 @@ impl<'a> Battle<'a> {
         s
     }
 
-    /// Night battle; a combined friend fleet fights with its escort (kcsimcombined `simCombined`).
+    /// Night battle; a combined friend fleet fights with its escort (kcsimcombined `simCombined`),
+    /// against an enemy combined fleet with its escort or main fleet (`isNBFightEscort`).
     pub(super) fn night_phase(&mut self, night_only: bool) {
         self.phase = Phase::Night;
-        self.engaged[0] = self.night_range();
+        self.engaged = [self.night_range(), self.enemy_night_range()];
         let mut sides = [self.night_setup(0, night_only), self.night_setup(1, night_only)];
         let ranges = [self.engaged(0), self.engaged(1)];
         let n = ranges[0].len().max(ranges[1].len());
@@ -147,7 +148,50 @@ impl<'a> Battle<'a> {
                 }
             }
         }
-        self.engaged[0] = (0, self.len(0));
+        self.engaged = [(0, self.len(0)), (0, self.len(1))];
+    }
+
+    /// Night part of a night-to-day battle against an enemy combined fleet (kcsim
+    /// `simNightFirstCombined` / `nightPhaseCombined`): two rounds in range order, the friend fleet
+    /// against the enemy escort, then against the enemy main fleet; every enemy ship can be
+    /// targeted (no fleet choice, escort ships protect the main flagship) and night ASW deals full
+    /// damage. Night equipment (flares, searchlights, night contact) of the enemy main fleet.
+    pub(super) fn night_first_combined(&mut self) {
+        self.phase = Phase::Night;
+        let (es, n1) = (self.fleets[1].escort_start, self.len(1));
+        self.engaged[1] = (0, es);
+        let sides = [self.night_setup(0, true), self.night_setup(1, true)];
+        self.engaged[1] = (0, n1);
+        for group in [(es, n1), (0, es)] {
+            if !(self.any_alive(0) && self.any_alive(1)) {
+                return;
+            }
+            let mut orders = [List::default(), List::default()];
+            for (side, (lo, hi)) in [(0, (0, self.len(0))), (1, group)] {
+                let mut l = List::default();
+                for i in lo..hi {
+                    // kcsim `orderByRange(…, true, true)`: SS.canShell needs WG / tanks (any target).
+                    if can_shell(self.core(side, i), &self.st[side][i], true, true) {
+                        l.push(i);
+                    }
+                }
+                orders[side] = self.order_by_range(side, l);
+            }
+            let rounds = orders[0].len().max(orders[1].len());
+            for k in 0..rounds {
+                for side in 0..2 {
+                    if let Some(&a) = orders[side].as_slice().get(k) {
+                        if can_night(self.core(side, a), &self.st[side][a]) {
+                            let env = env(&sides, side);
+                            self.night_turn(side, a, &env, sides[1 - side].searchlight, true);
+                        }
+                    }
+                    if !self.any_alive(1 - side) {
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     /// kcsim `canSpecialAttack(ship, isNB)` for friend ship `a` (night fleet flagship `flag`): a
@@ -204,8 +248,8 @@ impl<'a> Battle<'a> {
         if !subs.is_empty() && can_asw_night(c, &self.st[side][a]) && (!air || surface.is_empty()) {
             let (t, covered) = self.choose_target(def, subs.as_slice(), 0);
             // wikiwiki 夜戦: night ASW after a day battle does 0 power (scratch) except at night-start
-            // nodes and for combined-fleet escorts (kcsim `!NBonly && !isescort`).
-            let escort = self.fleets[side].combined.is_some() && a >= self.fleets[side].escort_start;
+            // nodes and for combined-fleet escorts, enemy escorts included (kcsim `!NBonly && !isescort`).
+            let escort = self.has_escort(side) && a >= self.fleets[side].escort_start;
             self.asw_attack(side, a, t, covered, false, !night_only && !escort);
             return;
         }

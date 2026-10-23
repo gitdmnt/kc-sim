@@ -19,15 +19,19 @@ pub struct Cf {
     pub shell_pow: f64,
     /// Shelling accuracy base (kcsim `COMBINEDCONSTS.shellAcc*`, 90 otherwise).
     pub shell_acc: f64,
-    /// Torpedo basic power bonus: 5, or 0 when the attacker or its target is an escort ship.
+    /// Torpedo basic power bonus: 5; friend combined vs single 0 (every shot involves an escort
+    /// ship); against or by an enemy combined fleet 15 (kcsim `torpedoPhase` `combinedAll`).
     pub torp_pow: f64,
-    /// As an airstrike target in a friend combined fleet: accuracy (fraction) and power-base bonus
-    /// (kcsim `SIMCONSTS.airstrikeAcc*F` / `airstrikeDmg*F`).
+    /// Flat torpedo accuracy (kcsim `combinedAll`: −35 against a combined fleet, −5 more for a
+    /// friend combined attacker, +5 back for an enemy combined one).
+    pub torp_acc: f64,
+    /// As an airstrike target in a combined fleet: accuracy (fraction) and power-base bonus
+    /// (kcsim `SIMCONSTS.airstrikeAcc*` / `airstrikeDmg*`).
     pub air_acc: f64,
     pub air_pow: f64,
 }
 
-pub const CF_NONE: Cf = Cf { shell_pow: 0.0, shell_acc: 90.0, torp_pow: 5.0, air_acc: 0.0, air_pow: 0.0 };
+pub const CF_NONE: Cf = Cf { shell_pow: 0.0, shell_acc: 90.0, torp_pow: 5.0, torp_acc: 0.0, air_acc: 0.0, air_pow: 0.0 };
 
 /// Airstrike power base (kcsim `airstrike`: 25).
 pub const AIR_BASE: f64 = 25.0;
@@ -639,7 +643,7 @@ pub fn torpedo_terms(att: &Unit, def: &Unit, power: f64) -> AccTerms {
         acc_mod *= 1.2;
     }
     acc_mod *= def.vanguard_target_mod(true);
-    let hit = HitFn::new(85.0, a.level, a.acc, &post, acc_mod, HitTail::Plain)
+    let hit = HitFn::new(85.0, a.level, a.acc + att.cf.torp_acc, &post, acc_mod, HitTail::Plain)
         .with(smoke_mod(att, SmokeKind::Torpedo), pt_acc_mod(att, def, 0.7, false))
         .with_bonus(att.bonus_acc(|| false));
     let ev = def.evasion(def.fm().torp_ev, def.core.imp.ev_torp);

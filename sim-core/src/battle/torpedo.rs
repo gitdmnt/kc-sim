@@ -1,5 +1,9 @@
 //! Opening and closing torpedo salvos (kcsim `torpedoPhase`, KC3Kai/kancolle-replay,
 //! MIT © fourinone41). All targets and attack powers are fixed before any torpedo lands.
+//! The main fleet of a combined fleet never fires torpedoes [kcsim `canOpTorpMain` abyssals not
+//! modelled]. Against an enemy combined fleet (`combinedAll`) a closing-torpedo shot at a combined
+//! side picks its main fleet with 35%, else its escort (en wiki Shooting Order and Targeting:
+//! closing torpedo 35% / 65%).
 
 use super::calc;
 use super::{Battle, List};
@@ -32,6 +36,17 @@ impl<'a> Battle<'a> {
             if targets[def].is_empty() {
                 continue;
             }
+            // Closing salvo vs a combined side: main / escort target pools.
+            let des = self.fleets[def].escort_start;
+            let mut pools = [List::default(), List::default()];
+            if self.ecombined && !opening && self.has_escort(def) {
+                for &t in targets[def].as_slice() {
+                    pools[(t >= des) as usize].push(t);
+                }
+            }
+            let split = !pools[0].is_empty() && !pools[1].is_empty();
+            // Main-fleet ships of a combined side do not fire.
+            let att_main_end = if self.has_escort(side) { self.fleets[side].escort_start } else { 0 };
             let order = {
                 let mut l = self.surface(side);
                 for &s in self.subs(side).as_slice() {
@@ -43,12 +58,19 @@ impl<'a> Battle<'a> {
                 let c = self.core(side, a);
                 let st = &self.st[side][a];
                 let ok = if opening { can_open_torp(c, st) } else { can_close_torp(c, st) };
-                if !ok {
+                if !ok || a < att_main_end {
                     continue;
                 }
                 let ratio = st.hp_ratio(c.max_hp);
                 let power = calc::torpedo_power(&self.unit(side, a), self.eng, ratio);
-                let (t, covered) = self.choose_target(def, targets[def].as_slice(), 0);
+                let cands = if !split {
+                    targets[def]
+                } else if self.rng().chance(0.35) {
+                    pools[0]
+                } else {
+                    pools[1]
+                };
+                let (t, covered) = self.choose_target(def, cands.as_slice(), 0);
                 shots.push((side, a, t, covered, power));
             }
         }

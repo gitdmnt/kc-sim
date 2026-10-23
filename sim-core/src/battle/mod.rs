@@ -1,16 +1,19 @@
 //! One battle (one node): setup, phase order, targeting, damage application, rank, supply, morale.
 //! Phase logic ported from KC3Kai/kancolle-replay `js/kcsim.js` (`sim`, `choiceWProtect`,
 //! `takeDamage`, `getRank` (rules from KC3Kai/ElectronicObserver), `updateSupply`, `updateMorale`)
-//! and `js/kcsimcombined.js` (`simCombined`: friend combined fleet vs a single enemy fleet),
-//! MIT © fourinone41; morale/supply/protection rules per en.kancollewiki.net.
+//! and `js/kcsimcombined.js` (`simCombined`: friend combined fleet vs a single enemy fleet;
+//! `sim6vs12` / `sim12vs12` against an enemy combined fleet, see `combined.rs`), MIT ©
+//! fourinone41; morale/supply/protection rules per en.kancollewiki.net.
 //!
-//! A friend combined fleet is one side whose ships are the main fleet followed by the escort
-//! (`FleetCore::escort_start`). Each phase engages a subset of a side (`Battle::engaged`): the air
-//! phase both fleets, opening ASW / torpedo, closing torpedo and night the escort, each shelling
-//! round one fleet (order per combined type as in `simCombined`).
+//! A combined fleet (friend or enemy) is one side whose ships are the main fleet followed by the
+//! escort (`FleetCore::escort_start`). Each phase engages a subset of a side (`Battle::engaged`):
+//! against a single enemy the air phase both friend fleets, opening ASW / torpedo, closing torpedo
+//! and night the friend escort, each shelling round one friend fleet (order per combined type as
+//! in `simCombined`); against an enemy combined fleet see `combined.rs`.
 
 mod air;
 pub mod calc;
+mod combined;
 mod day;
 pub mod lbas;
 mod night;
@@ -33,10 +36,15 @@ use lbas::{LandBaseCore, LbPlanes, MAX_SQUADRONS};
 
 /// Ships per fleet (main, or a single fleet).
 pub const MAX_SHIPS: usize = 7;
-/// Ships of a combined fleet's escort.
+/// Ships of a combined fleet's escort (and of a combined fleet's main fleet).
 pub const MAX_ESCORT: usize = 6;
 /// Capacity of position lists (main + escort).
 pub const LIST_CAP: usize = MAX_SHIPS + MAX_ESCORT;
+
+/// kcsim has no night-to-day battle for a friend combined fleet (`simNightFirstCombined` takes a
+/// single friend fleet).
+pub const NIGHT_TO_DAY_COMBINED: &str =
+    "nightToDay: a friend combined fleet cannot fight a night-to-day battle (not modelled; kcsim has single friend fleets only)";
 
 /// Small fixed-capacity index list (fleet positions).
 #[derive(Clone, Copy, Debug, Default)]
@@ -83,7 +91,7 @@ impl FleetCore {
         let inputs = || fl.ships.iter().chain(fl.escort_ships());
         let mut ships: Vec<ShipCore> = inputs().map(|s| ShipCore::new(s, player)).collect();
         let states = ships.iter().zip(inputs()).map(|(c, s)| c.initial_state(s)).collect();
-        let escort_start = if fl.combined.is_some() { fl.ships.len() } else { ships.len() };
+        let escort_start = if fl.escort_ships().is_empty() { ships.len() } else { fl.ships.len() };
         let (main, escort) = ships.split_at_mut(escort_start);
         crate::install::spread_anti_pt(main);
         crate::install::spread_anti_pt(escort);
@@ -139,19 +147,27 @@ fn validate_ships(name: &str, ships: &[ShipInput], max: usize) -> Result<(), Str
     Ok(())
 }
 
-/// A single fleet (enemy fleets, enemy comps). Escorts are rejected: enemy combined fleets are
-/// not supported.
+/// An enemy fleet (or enemy comp): single, or combined (main `ships` + 1..6 `escort` ships with a
+/// combined formation). `combined` (the combined type) is for the friend fleet only.
 pub fn validate_fleet(name: &str, fleet: &FleetInput, allow_empty: bool) -> Result<(), String> {
-    if fleet.ships.is_empty() && !allow_empty {
+    let escort = fleet.escort_ships();
+    if fleet.ships.is_empty() && !(allow_empty && escort.is_empty()) {
         return Err(format!("{name} fleet must have at least one ship"));
     }
-    if !fleet.escort_ships().is_empty() || fleet.combined.is_some() {
-        return Err(format!("{name} fleet: combined fleets (escort / combined) are supported for the friend fleet only"));
+    if fleet.combined.is_some() {
+        return Err(format!("{name} fleet: `combined` (combined fleet type) is for the friend fleet only; an enemy combined fleet is given by `escort`"));
     }
-    if fleet.formation.is_some_and(Formation::is_combined) {
-        return Err(format!("{name} fleet: combined formations need a combined fleet"));
+    if escort.is_empty() {
+        if fleet.formation.is_some_and(Formation::is_combined) {
+            return Err(format!("{name} fleet: combined formations need a combined fleet"));
+        }
+        return validate_ships(name, &fleet.ships, MAX_SHIPS);
     }
-    validate_ships(name, &fleet.ships, MAX_SHIPS)
+    if fleet.formation.is_some_and(|f| !f.is_combined()) {
+        return Err(format!("{name} fleet: a combined fleet (escort) needs a combined formation (combinedAntiSub / combinedForward / combinedDiamond / combinedBattle)"));
+    }
+    validate_ships(name, &fleet.ships, MAX_ESCORT)?;
+    validate_ships(&format!("{name} escort"), escort, MAX_ESCORT)
 }
 
 /// The friend fleet: single, or combined (`combined` + 1..6 escort ships + a combined formation).
@@ -180,10 +196,18 @@ pub fn friend_formation(fleet: &FleetInput) -> Formation {
     fleet.formation.unwrap_or(if fleet.combined.is_some() { Formation::CombinedBattle } else { Formation::LineAhead })
 }
 
+/// Enemy formation: given, else `combinedBattle` for a combined fleet and `lineAhead` otherwise.
+pub fn enemy_formation(fleet: &FleetInput) -> Formation {
+    fleet.formation.unwrap_or(if fleet.escort_ships().is_empty() { Formation::LineAhead } else { Formation::CombinedBattle })
+}
+
 impl Prepared {
     pub fn new(input: &BattleInput) -> Result<Prepared, String> {
         validate_friend(&input.friend)?;
         validate_fleet("enemy", &input.enemy, true)?;
+        if input.options.kind == BattleKind::NightToDay && input.friend.combined.is_some() {
+            return Err(NIGHT_TO_DAY_COMBINED.into());
+        }
         let waves = input.lbas.as_deref().unwrap_or(&[]);
         if waves.len() > lbas::MAX_WAVES {
             return Err(format!("lbas: {} waves (max {})", waves.len(), lbas::MAX_WAVES));
@@ -205,7 +229,7 @@ impl Prepared {
             setup: BattleSetup {
                 kind: input.options.kind,
                 engagement: input.options.engagement,
-                formations: [friend_formation(&input.friend), input.enemy.formation.unwrap_or_default()],
+                formations: [friend_formation(&input.friend), enemy_formation(&input.enemy)],
                 night_unless: None,
                 log: input.options.log,
                 smoke: input.options.smoke,
@@ -287,16 +311,25 @@ pub struct Battle<'a> {
     /// Friend-perspective air state (2..-2); meaningful only when `air_combat`.
     air: i8,
     air_combat: bool,
-    /// Fleet LoS per side (friend: main fleet) and of the friend escort.
-    fleet_los: [f64; 2],
-    fleet_los_escort: f64,
+    /// Fleet LoS per side of its (main, escort) fleet; a single fleet is its "main" fleet.
+    fleet_los: [[f64; 2]; 2],
     phase: Phase,
     /// Friend combined fleet type.
     combined: Option<CombinedType>,
-    /// Ship index range of each side taking part in the current phase.
+    /// Ship index range of each side that can be targeted in the current phase (and attacks,
+    /// unless `att` says otherwise).
     engaged: [(usize, usize); 2],
-    /// Combined battles: shelling (power bonus, accuracy base) per side in the current round.
+    /// Attacking ship ranges when they differ from `engaged` (enemy combined fleet battles).
+    att: Option<[(usize, usize); 2]>,
+    /// Friend combined vs single: shelling (power bonus, accuracy base) per side in the current
+    /// round.
     shell_cf: [(f64, f64); 2],
+    /// 6 vs 12 / 12 vs 12 day battle: kcsim `COMBINEDCONSTS[type].ecombined`, `combinedAll`
+    /// torpedoes and both fleets of each side in the air phase.
+    ecombined: bool,
+    /// Shelling round against both fleets of a combined side: each shot picks the fleet first
+    /// (kcsim `shellPhaseC` / `doShellC`).
+    pools: bool,
     lbas: Option<LbRun<'a>>,
     pub events: Option<Vec<AttackEvent>>,
     /// Smoke screen layers deployed by the friend fleet this battle (0 = none).
@@ -321,15 +354,21 @@ impl<'a> Battle<'a> {
             s.damecon_used = None;
         }
         let combined = fleets[0].combined;
-        // kcsimcombined `simCombined`: an enemy echelon uses the old echelon table.
-        if combined.is_some() && setup.formations[1] == Formation::Echelon {
-            setup.formations[1] = Formation::EchelonOld;
+        let has_escort = |side: usize| fleets[side].escort_start < fleets[side].ships.len();
+        // kcsimcombined `simCombined` / `sim6vs12`: a single fleet facing a combined fleet uses the
+        // old echelon table (en wiki Combat: echelon "single vs combined fleet battles").
+        for side in 0..2 {
+            if has_escort(1 - side) && setup.formations[side] == Formation::Echelon {
+                setup.formations[side] = Formation::EchelonOld;
+            }
         }
         let hp_start = [st[0].iter().map(|s| s.hp).collect(), st[1].iter().map(|s| s.hp).collect()];
         let alive = |side: usize| fleets[side].ships.iter().zip(&st[side]).filter(|(_, s)| s.hp > 0).map(|(c, _)| c);
-        // Combined: the main fleet and the enemy decide the second shelling round (`doShell2`).
-        let alive_main = |side: usize| alive(side).take(fleets[side].escort_start);
-        let second_shelling = alive_main(0).chain(alive_main(1)).any(|c| c.class.is_bb_class());
+        // kcsim `doShell2`: friend combined vs single counts the friend main fleet and the enemy;
+        // `sim6vs12` / `sim12vs12` every fleet of both sides.
+        let friend_end = if combined.is_some() && !has_escort(1) { fleets[0].escort_start } else { fleets[0].ships.len() };
+        let friend_bb = fleets[0].ships[..friend_end].iter().zip(&st[0]).any(|(c, s)| s.hp > 0 && c.class.is_bb_class());
+        let second_shelling = friend_bb || alive(1).any(|c| c.class.is_bb_class());
         let no_red_t = fleets[0].ships.iter().chain(fleets[1].ships.iter()).any(|c| c.no_red_t);
         let sub_only_enemy = alive(1).next().is_some() && alive(1).all(|c| c.class.is_sub());
         let fleet_aa = |side: usize| {
@@ -352,12 +391,14 @@ impl<'a> Battle<'a> {
             eng: 1.0,
             air: 0,
             air_combat: false,
-            fleet_los: [0.0; 2],
-            fleet_los_escort: 0.0,
+            fleet_los: [[0.0; 2]; 2],
             phase: Phase::AirStrike,
             combined,
             engaged,
+            att: None,
             shell_cf: [SHELL_SINGLE; 2],
+            ecombined: has_escort(1),
+            pools: false,
             lbas: None,
             events: if setup.log { Some(Vec::new()) } else { None },
             smoke: 0,
@@ -402,16 +443,30 @@ impl<'a> Battle<'a> {
         self.fleets[side].escort_start
     }
 
-    /// Flagship of the main fleet or of the friend escort.
+    /// `side` is a combined fleet (has an escort).
+    #[inline]
+    pub fn has_escort(&self, side: usize) -> bool {
+        self.escort_start(side) < self.len(side)
+    }
+
+    /// Flagship of the main fleet or of the escort (kcsim `Fleet.loadShips`: each fleet's first
+    /// ship is a flagship).
     #[inline]
     pub fn is_flagship(&self, side: usize, i: usize) -> bool {
-        i == 0 || (self.fleets[side].combined.is_some() && i == self.escort_start(side))
+        i == 0 || (i == self.escort_start(side) && self.has_escort(side))
     }
 
     /// Ships of `side` taking part in the current phase.
     #[inline]
     pub fn engaged(&self, side: usize) -> std::ops::Range<usize> {
         self.engaged[side].0..self.engaged[side].1
+    }
+
+    /// Ships of `side` attacking in the current phase (default: the engaged ones).
+    #[inline]
+    pub fn attackers(&self, side: usize) -> std::ops::Range<usize> {
+        let (lo, hi) = self.att.map_or(self.engaged[side], |a| a[side]);
+        lo..hi
     }
 
     #[inline]
@@ -473,20 +528,35 @@ impl<'a> Battle<'a> {
 
     /// Combined-fleet attack terms of a ship (kcsim `COMBINEDCONSTS`, `torpedoPhase`, `airstrike`).
     fn cf(&self, side: usize, i: usize) -> Cf {
-        if self.combined.is_none() {
+        if self.combined.is_none() && !self.has_escort(1) {
             return CF_NONE;
         }
-        let (shell_pow, shell_acc) = self.shell_cf[side];
-        // Every torpedo shot of a combined-vs-single battle involves an escort ship: no +5.
-        let mut cf = Cf { shell_pow, shell_acc, torp_pow: 0.0, ..CF_NONE };
-        if side == 0 {
-            let escort = i >= self.escort_start(0);
+        let escort = i >= self.escort_start(side);
+        let mut cf = CF_NONE;
+        if self.ecombined {
+            (cf.shell_pow, cf.shell_acc) = combined::ecombined_shell(self.combined, side, escort);
+            cf.torp_pow = 15.0;
+            cf.torp_acc = match (side, self.combined.is_some()) {
+                (0, false) => -35.0,
+                (0, true) => -40.0,
+                (_, false) => 0.0,
+                (_, true) => -30.0,
+            };
+        } else if self.combined.is_some() {
+            (cf.shell_pow, cf.shell_acc) = self.shell_cf[side];
+            // Every torpedo shot of a combined-vs-single battle involves an escort ship: no +5.
+            cf.torp_pow = 0.0;
+        }
+        // Airstrike target terms of a ship in a combined fleet.
+        if self.has_escort(side) {
             let raid = self.setup.kind == BattleKind::AirRaid;
-            (cf.air_acc, cf.air_pow) = match (escort, raid) {
-                (false, false) => (15.0 / 100.0, -10.0),
-                (false, true) => (10.0 / 100.0, -10.0),
-                (true, false) => (-20.0 / 100.0, -20.0),
-                (true, true) => (-25.0 / 100.0, -20.0),
+            (cf.air_acc, cf.air_pow) = match (side, escort, raid) {
+                (0, false, false) => (15.0 / 100.0, -10.0),
+                (0, false, true) => (10.0 / 100.0, -10.0),
+                (0, true, false) => (-20.0 / 100.0, -20.0),
+                (0, true, true) => (-25.0 / 100.0, -20.0),
+                (_, false, _) => (15.0 / 100.0, -10.0),
+                (_, true, _) => (-15.0 / 100.0, -20.0),
             };
         }
         cf
@@ -525,7 +595,10 @@ impl<'a> Battle<'a> {
     }
 
     /// kcsim `choiceWProtect`: random target, searchlight re-rolls, vanguard re-roll, flagship
-    /// protection. Returns (target, covered).
+    /// protection. Returns (target, covered). Combined fleets (en wiki "Shooting Order and
+    /// Targeting", Combined Fleets): by day only the main flagship is protected, by escort ships
+    /// only in airstrikes and opening ASW (kcsim `includeEscort`); at night the flagship of the
+    /// fleet fighting is protected.
     pub fn choose_target(&mut self, def_side: usize, cands: &[usize], sl_rerolls: u8) -> (usize, bool) {
         let n = cands.len();
         let mut t = cands[self.rng.below(n)];
@@ -539,15 +612,19 @@ impl<'a> Battle<'a> {
         if form == Formation::Vanguard && formation::vanguard_front(t, self.len(def_side)) {
             t = cands[self.rng.below(n)];
         }
-        if t != 0 || self.core(def_side, t).is_installation {
+        let night = self.phase == Phase::Night;
+        let flag = if night { self.engaged[def_side].0 } else { 0 };
+        if t != flag || self.core(def_side, t).is_installation {
             return (t, false);
         }
+        let es = self.escort_start(def_side);
+        let include_escort = night || matches!(self.phase, Phase::AirStrike | Phase::OpeningAsw);
         let rate = formation::protection_rate(form);
         if self.rng.chance(rate) {
             let mut defenders = List::default();
             for &c in cands {
                 let core = self.core(def_side, c);
-                if c != t && self.st[def_side][c].hp_ratio(core.max_hp) > 0.75 && !core.is_installation {
+                if c != t && (include_escort || c < es) && self.st[def_side][c].hp_ratio(core.max_hp) > 0.75 && !core.is_installation {
                     defenders.push(c);
                 }
             }
@@ -766,16 +843,7 @@ impl<'a> Battle<'a> {
                 }
             }
             BattleKind::Day | BattleKind::DayNight => {
-                detection = self.detection();
-                let failed = matches!(detection, Detection::Failure | Detection::FailureLost | Detection::NotFound);
-                self.lbas_phase();
-                if self.both_alive() {
-                    self.air_phase(failed, true);
-                }
-                match self.combined {
-                    Some(ct) => self.combined_day(ct),
-                    None => self.single_day(),
-                }
+                detection = self.day_battle();
                 let pursue = kind == BattleKind::DayNight
                     && self.both_alive()
                     && self.night_ready()
@@ -788,6 +856,24 @@ impl<'a> Battle<'a> {
                     }
                     self.night_phase(false);
                     did_night = true;
+                }
+            }
+            BattleKind::NightToDay => {
+                if self.has_escort(1) {
+                    if let Some(d) = self.night_to_day_combined() {
+                        detection = d;
+                    }
+                    did_night = true;
+                } else {
+                    // Single enemy: a night-battle node, then the day battle while both sides are
+                    // afloat (kcsim chplayer `nightToDay`: NB-only `sim`, then a day `sim`).
+                    if self.night_ready() {
+                        self.night_phase(true);
+                        did_night = true;
+                    }
+                    if self.both_alive() {
+                        detection = self.day_battle();
+                    }
                 }
             }
         }
@@ -810,6 +896,31 @@ impl<'a> Battle<'a> {
         }
     }
 
+    /// Day battle: detection, land-base waves, air phase and the surface phases of the fleet
+    /// matchup.
+    fn day_battle(&mut self) -> Detection {
+        let detection = self.detection();
+        let failed = matches!(detection, Detection::Failure | Detection::FailureLost | Detection::NotFound);
+        self.lbas_phase();
+        if self.both_alive() {
+            self.air_phase(failed, true);
+        }
+        match self.combined {
+            _ if self.ecombined => self.ecombined_day(),
+            Some(ct) => self.combined_day(ct),
+            None => self.single_day(),
+        }
+        detection
+    }
+
+    /// Fleet LoS of every fleet for artillery spotting (kcsim `clearFleetLoS` before shelling).
+    fn update_fleet_los(&mut self) {
+        for side in 0..2 {
+            let (es, n) = (self.escort_start(side), self.len(side));
+            self.fleet_los[side] = [self.compute_fleet_los(side, 0, es), self.compute_fleet_los(side, es, n)];
+        }
+    }
+
     /// Day phases after the air phase, single friend fleet (kcsim `sim`).
     fn single_day(&mut self) {
         if self.both_alive() {
@@ -820,7 +931,7 @@ impl<'a> Battle<'a> {
             self.phase = Phase::OpeningTorpedo;
             self.torpedo_phase(true);
         }
-        self.fleet_los = [self.compute_fleet_los(0, 0, self.len(0)), self.compute_fleet_los(1, 0, self.len(1))];
+        self.update_fleet_los();
         if self.both_alive() {
             self.phase = Phase::Shelling1;
             self.shelling(false);
@@ -852,8 +963,7 @@ impl<'a> Battle<'a> {
             self.torpedo_phase(true);
         }
         self.engaged[0] = (0, n);
-        self.fleet_los = [self.compute_fleet_los(0, 0, es), self.compute_fleet_los(1, 0, self.len(1))];
-        self.fleet_los_escort = self.compute_fleet_los(0, es, n);
+        self.update_fleet_los();
         let (cm, ce) = combined_shell_consts(ct);
         let second = self.second_shelling;
         if ct == CombinedType::Surface {
@@ -903,6 +1013,17 @@ impl<'a> Battle<'a> {
         }
     }
 
+    /// Enemy ships fighting at night: an enemy combined fleet's escort or main fleet
+    /// ([`Battle::night_fights_escort`]), else the whole fleet.
+    fn enemy_night_range(&self) -> (usize, usize) {
+        let (es, n) = (self.escort_start(1), self.len(1));
+        match (es < n, es < n && self.night_fights_escort()) {
+            (false, _) => (0, n),
+            (true, true) => (es, n),
+            (true, false) => (0, es),
+        }
+    }
+
     /// The night fleet and the enemy are afloat.
     fn night_ready(&self) -> bool {
         let (lo, hi) = self.night_range();
@@ -926,7 +1047,13 @@ impl<'a> Battle<'a> {
         }
     }
 
-    /// kcsim `getDetection` (friend side; enemies always detect).
+    /// kcsim `getDetection` (friend side; enemies always detect), checked against the en wiki
+    /// (Day Battle → Detection, Vita formula; Combined Fleet: a combined fleet against a single
+    /// enemy detects with its main fleet only). Friend combined fleets always detect with the main
+    /// fleet [12 vs 12 unverified: the wiki says "same as single fleet"]. Position weights
+    /// 2 / 5 / 8 / 8 / 8 / 8; a 7th ship (striking force) adds no weighted LoS as in kcsim
+    /// [unverified: the wiki table stops at 6 ships]. The enemy fighters shooting at recons are
+    /// those of the fleets in the air phase.
     fn detection(&mut self) -> Detection {
         use crate::equipment::cat;
         const W: [f64; 6] = [2.0, 5.0, 8.0, 8.0, 8.0, 8.0];
@@ -936,7 +1063,7 @@ impl<'a> Battle<'a> {
         let mut ships = 0.0f64;
         let mut k = 0;
         let mut recon_list: Vec<(usize, usize)> = Vec::new();
-        for i in 0..self.len(0) {
+        for i in 0..self.escort_start(0) {
             if !self.alive(0, i) {
                 continue;
             }
@@ -969,7 +1096,7 @@ impl<'a> Battle<'a> {
             recon_slots += 20.0 + 10.0 * carriers;
         }
         let mut fighter_slots = 0.0;
-        for i in 0..self.len(1) {
+        for i in 0..self.air_fleet_end(1) {
             if !self.alive(1, i) {
                 continue;
             }
