@@ -55,6 +55,7 @@ fn input(routing: Value, ships: Vec<ShipInput>) -> SortieInput {
         config: SortieConfig::default(),
         policy: SortiePolicy::default(),
         gauge: None,
+        consecutive: None,
         max_nodes: None,
         top_paths: None,
         lbas: None,

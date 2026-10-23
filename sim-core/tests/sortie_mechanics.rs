@@ -273,3 +273,17 @@ fn node_battle_kind_override() {
     let s = simulate_sortie(&one_battle(dd, json!({})), 50, 1).unwrap();
     assert_eq!(s.nodes["A"].night_rate, 0.0);
 }
+
+#[test]
+fn consecutive_sorties_carry_morale() {
+    let boss = json!([{ "weight": 1.0, "fleet": enemy_fleet() }]);
+    let base = input(friend_fleet(), boss.clone(), json!({}));
+    let ind = simulate_sortie(&base, 200, 5).unwrap();
+    assert_eq!(ind.wait_minutes_mean, None);
+    let fixed = simulate_sortie(&input(friend_fleet(), boss.clone(), json!({ "consecutive": { "waitMinutes": 15 } })), 200, 5).unwrap();
+    assert_eq!(fixed.wait_minutes_mean, Some(15.0));
+    // Back to back without a wait, morale only goes down: the fleet does no better than fresh sorties.
+    let tired = simulate_sortie(&input(friend_fleet(), boss, json!({ "consecutive": { "untilMorale": 0 } })), 200, 5).unwrap();
+    assert_eq!(tired.wait_minutes_mean, Some(0.0));
+    assert!(tired.boss.kill_rate <= ind.boss.kill_rate + 0.08, "{} vs {}", tired.boss.kill_rate, ind.boss.kill_rate);
+}

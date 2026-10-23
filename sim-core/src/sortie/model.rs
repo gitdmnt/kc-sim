@@ -280,6 +280,10 @@ pub struct SortieInput {
     pub policy: SortiePolicy,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gauge: Option<GaugeInput>,
+    /// Run the `count` sorties back to back: morale carries from one sortie to the next, with the
+    /// given wait in between (absent: every sortie starts from the input morale).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consecutive: Option<GaugeMorale>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_nodes: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -477,6 +481,9 @@ pub struct SortieSummary {
     /// Land-base sortie and resupply cost per sortie (fuel, ammo, bauxite; inside `resourcesPerSortie`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lbas_cost_mean: Option<ResourceAmounts>,
+    /// With `consecutive`: mean wait between sorties (minutes).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait_minutes_mean: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub effects: Option<NodeEffectsSummary>,
     pub friend: Vec<SortieShipSummary>,

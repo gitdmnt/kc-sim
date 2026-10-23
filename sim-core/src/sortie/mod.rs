@@ -188,6 +188,8 @@ pub struct Sortie {
     tp_ships: Option<Vec<ShipTp>>,
     bucket_above: Option<f64>,
     extra: [f64; 4],
+    /// `consecutive`: morale carried over the sorties of `simulate`.
+    consecutive: Option<GaugeMorale>,
     /// Resource vector of the last `run_one` (see `Cost`).
     last_cost: Cell<Cost>,
     /// Friend fleets without the evacuated ships, by evacuation mask.
@@ -567,6 +569,7 @@ impl Sortie {
             rations,
             has_effects,
             bucket_above: input.repair.and_then(|r| r.bucket_above_sec),
+            consecutive: input.consecutive.clone(),
             extra: input.extra_per_sortie.map_or([0.0; 4], |e| [e.fuel, e.ammo, e.steel, e.bauxite]),
             last_cost: Cell::new([0.0; 6]),
             tp_ships: wants_tp.then(|| ships.iter().map(|s| tp::ship_tp(s)).collect()),
@@ -1211,6 +1214,7 @@ impl Sortie {
                 steel: 0.0,
                 bauxite: mean(rec.lb_cost[2]),
             }),
+            wait_minutes_mean: None,
             repair: FleetRepairSummary {
                 fuel: dist(&rec.fleet_fuel),
                 steel: dist(&rec.fleet_steel),
@@ -1267,10 +1271,26 @@ impl Sortie {
     /// Run `count` sorties and aggregate.
     pub fn simulate(&self, count: u32, rng: &mut Rng, top_paths: usize) -> SortieSummary {
         let mut rec = self.new_rec();
-        for _ in 0..count {
-            self.run_one(rng, None, Some(&mut rec), None);
+        let mut morale: Vec<i32> = self.init.iter().map(|s| s.morale).collect();
+        let mut wait = 0.0;
+        for k in 0..count {
+            match &self.consecutive {
+                Some(cfg) => {
+                    if k > 0 {
+                        wait += Self::wait_recover(&mut morale, cfg);
+                    }
+                    self.run_one(rng, None, Some(&mut rec), Some(&mut morale));
+                }
+                None => {
+                    self.run_one(rng, None, Some(&mut rec), None);
+                }
+            }
         }
-        self.summarize(rec, count, top_paths)
+        let mut s = self.summarize(rec, count, top_paths);
+        if self.consecutive.is_some() {
+            s.wait_minutes_mean = Some(if count > 1 { wait / (count - 1) as f64 } else { 0.0 });
+        }
+        s
     }
 
     /// Waits between sorties per `cfg` and recovers morale +3 per 3 minutes up to 49 (kcwiki 士气); returns minutes.

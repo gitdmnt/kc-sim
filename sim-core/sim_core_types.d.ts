@@ -689,6 +689,10 @@ export interface SortieInput {
   config?: SortieConfig;
   policy?: SortiePolicy;
   gauge?: GaugeInput;
+  /** Run the `count` sorties back to back (連続出撃): morale carries from one sortie to the next,
+   *  recovering during the wait in between (same rules as `GaugeInput.morale`). The web worker
+   *  splits runs into chunks, each starting from the input morale. Absent: independent sorties. */
+  consecutive?: GaugeMorale;
   /** Guard against routing loops: maximum nodes per sortie (Start excluded). Default 20. */
   maxNodes?: number;
   /** Number of most frequent paths to report. Default 20. */
@@ -854,6 +858,8 @@ export interface SortieSummary {
    *  with a target (land attackers ⌈1.5n⌉ / ⌊0.7n⌋, large bombers ⌈2n⌉ / ⌈2n⌉, others ⌈n⌉ /
    *  ⌈0.6n⌉ for n planes), plus 3 fuel and 5 bauxite per plane lost. Present with land bases. */
   lbasCostMean?: Required<ResourceAmounts>;
+  /** With `consecutive`: mean wait between two sorties (minutes). */
+  waitMinutesMean?: number;
   /** Fraction of sorties in which at least one friend ship sank. */
   sunkRate: number;
   battlesMean: number;
