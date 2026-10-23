@@ -322,6 +322,33 @@ fn sortie_node_and_boss_support() {
 }
 
 #[test]
+fn sortie_support_costs() {
+    let amounts = |f: f64, a: f64, b: f64| ResourceAmounts { fuel: f, ammo: a, steel: 0.0, bauxite: b };
+    // Shelling support (BB fuel 100 / ammo 130, DD 100 / 100): ⌈50%⌉ fuel, ⌈80%⌉ ammo (< 3 CV/CVL/AV),
+    // paid every sortie even when it never arrives; node and boss each.
+    let shell = support(vec![friend_bb(), friend_bb(), friend_dd(), friend_dd()], Some(0.0));
+    let s = simulate_sortie(&sortie(json!({ "node": shell }), json!(null)), 50, 1).unwrap();
+    assert_eq!(s.nodes["A"].support_rate, Some(0.0));
+    assert_eq!(s.support_cost_mean, Some(amounts(200.0, 104.0 * 2.0 + 80.0 * 2.0, 0.0)));
+    let s = simulate_sortie(&sortie(json!({ "node": shell, "boss": shell }), json!(null)), 50, 1).unwrap();
+    assert_eq!(s.support_cost_mean, Some(amounts(400.0, 736.0, 0.0)));
+    // Marriage discount on the refill: Lv 100 → ⌊0.85 × 50⌋ = 42, ⌊0.85 × 104⌋ = 88.
+    let mut married = friend_bb();
+    married.level = Some(100.0);
+    let wed = support(vec![married, friend_bb(), friend_dd(), friend_dd()], Some(0.0));
+    let s = simulate_sortie(&sortie(json!({ "node": wed }), json!(null)), 50, 1).unwrap();
+    assert_eq!(s.support_cost_mean, Some(amounts(192.0, 88.0 + 104.0 + 160.0, 0.0)));
+    // Three carriers: ⌈40%⌉ ammo; planes lost to enemy AA cost 5 bauxite each, inside the totals.
+    let air = support(vec![friend_cv(), friend_cv(), friend_cv(), friend_dd(), friend_dd()], Some(1.0));
+    let s = simulate_sortie(&sortie(json!({ "node": air }), json!(null)), 200, 1).unwrap();
+    let c = s.support_cost_mean.unwrap();
+    assert_eq!((c.fuel, c.ammo), (250.0, 200.0));
+    assert!(c.bauxite > 0.0, "{c:?}");
+    assert!(s.resources_per_sortie.bauxite.mean >= c.bauxite && s.resources_per_sortie.fuel.mean >= c.fuel);
+    assert!(simulate_sortie(&sortie(json!(null), json!(null)), 10, 1).unwrap().support_cost_mean.is_none());
+}
+
+#[test]
 fn sortie_friend_fleet_nodes() {
     let ff = FriendFleetInput { fleet: fleet(vec![friend_bb(), friend_ca()]), chance: None, nodes: None };
     // Default: the goal node only; the boss night battle happens whenever the enemy survives.

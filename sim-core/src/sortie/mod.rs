@@ -325,6 +325,7 @@ struct Rec {
     underway_used: f64,
     rations_used: f64,
     lb_cost: [f64; 3],
+    sup_cost: [f64; 3],
     warnings: BTreeSet<String>,
     raid: RaidAcc,
     /// Sorties with at least one base raid.
@@ -1151,7 +1152,7 @@ impl Sortie {
             }
         }
         ex.lb_left = lb_planes;
-        let (cost, lb_cost) = self.cost_of(&st, &ex);
+        let (cost, lb_cost, sup_cost) = self.cost_of(&st, &ex, &sup_st);
         self.last_cost.set(cost);
         if let Some(r) = rec {
             r.costs.push(cost);
@@ -1186,6 +1187,9 @@ impl Sortie {
             r.underway_used += ex.underway_used as f64;
             r.rations_used += ex.rations_used as f64;
             for (a, b) in r.lb_cost.iter_mut().zip(lb_cost) {
+                *a += b;
+            }
+            for (a, b) in r.sup_cost.iter_mut().zip(sup_cost) {
                 *a += b;
             }
             let mut any_sunk = false;
@@ -1267,9 +1271,33 @@ impl Sortie {
         c
     }
 
+    /// Support expedition cost of a sortie, paid whether or not support arrives, node and boss
+    /// support each (wikiwiki 支援艦隊 遠征一覧: fuel 50%, ammo 40% with ≥ 3 CV / CVL / AV — armored
+    /// carriers and LHA do not count, 「旧来仕様準拠」 — else 80%, rounded up, 「端数切り上げ」), refilled
+    /// with the marriage discount (as any resupply), plus 5 bauxite per plane lost. Returns
+    /// (fuel, ammo, bauxite).
+    fn support_cost(&self, left: &[Vec<ShipState>; 2]) -> [f64; 3] {
+        use crate::ship::ShipClass::{AV, CV, CVL};
+        let mut c = [0.0; 3];
+        for (sc, st) in self.support.iter().zip(left).filter_map(|(s, st)| s.as_ref().map(|s| (s, st))) {
+            let carriers = sc.fleet.ships.iter().filter(|s| matches!(s.class, CV | CVL | AV)).count();
+            let ammo_rate = if carriers >= 3 { 0.4 } else { 0.8 };
+            for ((core, s0), s) in sc.fleet.ships.iter().zip(&sc.init).zip(st) {
+                let married = core.level >= MARRIED_LEVEL;
+                let fuel = (s0.fuel_max as f64 * 0.5).ceil() as i32;
+                let ammo = (s0.ammo_max as f64 * ammo_rate).ceil() as i32;
+                c[0] += resupply_cost(fuel, married) as f64;
+                c[1] += resupply_cost(ammo, married) as f64;
+                c[2] += 5.0 * s0.planes.iter().zip(&s.planes).map(|(a, b)| (a - b).max(0)).sum::<i32>() as f64;
+            }
+        }
+        c
+    }
+
     /// Net resources of a finished sortie (resupply, bauxite, docking or buckets, land bases,
-    /// anchorage steel, extras, minus node gains), and the land-base part (fuel, ammo, bauxite).
-    fn cost_of(&self, st: &[ShipState], ex: &Extras) -> (Cost, [f64; 3]) {
+    /// support expeditions, anchorage steel, extras, minus node gains), the land-base part and the
+    /// support part (fuel, ammo, bauxite each).
+    fn cost_of(&self, st: &[ShipState], ex: &Extras, sup: &[Vec<ShipState>; 2]) -> (Cost, [f64; 3], [f64; 3]) {
         let mut c: Cost = [0.0; 6];
         for (i, (s, s0)) in st.iter().zip(&self.init).enumerate() {
             let (rf, ra) = ex.refill[i];
@@ -1294,11 +1322,15 @@ impl Sortie {
         c[0] += lb[0];
         c[1] += lb[1];
         c[3] += lb[2];
+        let sp = self.support_cost(sup);
+        c[0] += sp[0];
+        c[1] += sp[1];
+        c[3] += sp[2];
         c[2] += 3.0 * ex.anchorage_hp;
         for ((x, e), g) in c.iter_mut().zip(self.extra).zip(ex.gain) {
             *x += e - g;
         }
-        (c, lb)
+        (c, lb, sp)
     }
 
     /// Applies a maelstrom to the ships still in the fleet; returns (is fuel, total lost).
@@ -1411,6 +1443,12 @@ impl Sortie {
                 ammo: mean(rec.lb_cost[1]),
                 steel: 0.0,
                 bauxite: mean(rec.lb_cost[2]),
+            }),
+            support_cost_mean: self.support.iter().any(Option::is_some).then(|| ResourceAmounts {
+                fuel: mean(rec.sup_cost[0]),
+                ammo: mean(rec.sup_cost[1]),
+                steel: 0.0,
+                bauxite: mean(rec.sup_cost[2]),
             }),
             wait_minutes_mean: None,
             repair: FleetRepairSummary {

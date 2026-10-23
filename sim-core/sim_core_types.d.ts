@@ -1009,7 +1009,7 @@ export interface SortieInput {
    *  272 command facility works. A 7-ship fleet always is one. A combined fleet cannot be. */
   striking?: boolean;
   repair?: RepairPolicy;
-  /** Costs the engine does not model (support expeditions, ...): added to every sortie in
+  /** Costs the engine does not model (other fleets' expeditions, ...): added to every sortie in
    *  `resourcesPerSortie` and `gauge.resources`. Not interpreted otherwise. */
   extraPerSortie?: ResourceAmounts;
 }
@@ -1167,6 +1167,11 @@ export interface SortieSummary {
    *  with a target (land attackers ⌈1.5n⌉ / ⌊0.7n⌋, large bombers ⌈2n⌉ / ⌈2n⌉, others ⌈n⌉ /
    *  ⌈0.6n⌉ for n planes), plus 3 fuel and 5 bauxite per plane lost. Present with land bases. */
   lbasCostMean?: Required<ResourceAmounts>;
+  /** Support expedition cost per sortie (inside `resourcesPerSortie`), paid every sortie whether
+   *  or not support arrives, for `support.node` and `support.boss` each: per ship ⌈50%⌉ of max fuel
+   *  and ⌈40%⌉ (≥ 3 CV / CVL / AV in the fleet) or ⌈80%⌉ of max ammo, with the marriage discount,
+   *  plus 5 bauxite per plane lost. Present with `support`. */
+  supportCostMean?: Required<ResourceAmounts>;
   /** With `consecutive`: mean wait between two sorties (minutes). */
   waitMinutesMean?: number;
   /** Fraction of sorties in which at least one friend ship sank. */

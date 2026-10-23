@@ -346,7 +346,7 @@ pub struct SortieInput {
     pub striking: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub repair: Option<RepairPolicy>,
-    /// Costs the engine does not model (support expeditions, ...), added to every sortie.
+    /// Costs the engine does not model (other fleets' expeditions, ...), added to every sortie.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub extra_per_sortie: Option<ResourceAmounts>,
 }
@@ -547,6 +547,9 @@ pub struct SortieSummary {
     /// Land-base sortie and resupply cost per sortie (fuel, ammo, bauxite; inside `resourcesPerSortie`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lbas_cost_mean: Option<ResourceAmounts>,
+    /// Support expedition cost per sortie (fuel, ammo, bauxite; inside `resourcesPerSortie`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub support_cost_mean: Option<ResourceAmounts>,
     /// With `consecutive`: mean wait between sorties (minutes).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wait_minutes_mean: Option<f64>,
