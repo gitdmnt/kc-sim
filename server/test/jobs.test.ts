@@ -40,7 +40,9 @@ beforeEach(async () => {
 describe("jobs run", () => {
   test("the worker has no cron and no scheduled handler; GitHub Actions runs the jobs", async () => {
     expect(readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8")).toContain("crons = []");
-    expect(readFileSync(new URL("../../.github/workflows/jobs.yml", import.meta.url), "utf8")).toContain("scripts/run-jobs.ts run");
+    const workflow = readFileSync(new URL("../../.github/workflows/jobs.yml", import.meta.url), "utf8");
+    expect(workflow).toContain("scripts/run-jobs.ts run");
+    expect(workflow.match(/- cron: "([^"]+)"/g)).toEqual(['- cron: "7 18 * * *"']);
     expect(readFileSync(new URL("../src/index.ts", import.meta.url), "utf8")).not.toContain("scheduled");
   });
 

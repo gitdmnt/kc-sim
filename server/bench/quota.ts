@@ -40,7 +40,7 @@ for (let i = 0; i < records.length; i += 60) {
   requests.uploads++;
   await call("POST", "/api/v1/observations", JSON.stringify({ observations: records.slice(i, i + 60).map(uploadItem) }), { Authorization: `Bearer ${token}` });
 }
-// hourly jobs runs until every queue is empty (production budget per run; the last one finds nothing to do)
+// jobs runs until every queue is empty (production budget per run; the last one finds nothing to do)
 for (let i = 0; i < 20_000; i++) {
   clock += 3_600_000;
   requests.jobs++;

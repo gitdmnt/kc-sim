@@ -1,11 +1,11 @@
 // Background work (docs/DEPLOY.md §5 "Jobs", "CPU budget"). scripts/run-jobs.ts runs the stages below in GitHub
-// Actions (hourly, against production D1 over the D1 HTTP API) in passes under one cost-model budget per run
+// Actions (daily, against production D1 over the D1 HTTP API) in passes under one cost-model budget per run
 // (RUN_MS, RUN_D1_CALLS; src/budget.ts) and one lease. A pass gives each stage a share of PASS_MS; each stage
 // stops when its next unit would not fit:
 //   ingest (staged uploads → observations, ≤ 40 %), aggregation (≤ 30 %), estimator (the rest).
 // Passes repeat until no queue has work, a pass gets nothing done, or the run's budget is spent; the queues keep
 // the rest for the next run. Upload requests only stage (routes/write.ts); stored observations appear with the
-// next jobs run, within about an hour.
+// next jobs run, within about a day.
 import type { GridFn } from "../../shared/estimate/forward";
 import { Budget, COST, PASS_MS, RUN_MS } from "./budget";
 import { runEstimator, type EstimatorResult } from "./estimator/job";

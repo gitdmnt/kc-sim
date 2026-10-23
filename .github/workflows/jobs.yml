@@ -1,18 +1,19 @@
 # Production background jobs (docs/DEPLOY.md §5 "Jobs"). They used to run in the worker's hourly cron; they now run
 # here, as bun scripts against production D1 over the D1 HTTP API (server/scripts/lib/d1-database.ts, D1_REMOTE=1).
-#   hourly: staged uploads → observations, aggregation, estimator (scripts/run-jobs.ts run), then the KCNav queue
-#           (scripts/run-jobs.ts kcnav: one request per ≥ 65 s gate, persisted in D1, until the queue is empty or
-#           its time is up)
-#   daily:  routing inferred from poi sortie observations for maps without hand-authored rules, and the check of
-#           observations against the hand-authored rules (scripts/infer-routing.ts --write)
+# Once a day (18:07 UTC = 03:07 JST), job `jobs` and then job `routing`:
+#   jobs:    staged uploads → observations, aggregation, estimator (scripts/run-jobs.ts run), then the KCNav queue
+#            (scripts/run-jobs.ts kcnav: one request per ≥ 65 s gate, persisted in D1, until the queue is empty or
+#            its time is up)
+#   routing: routing inferred from poi sortie observations for maps without hand-authored rules, and the check of
+#            observations against the hand-authored rules (scripts/infer-routing.ts --write). It runs after `jobs`
+#            even when `jobs` failed (its input is the stored observations), and alone for a dispatch with task=routing.
 # GitHub runs schedules on a best-effort basis (often minutes late, occasionally skipped); every queue is persistent,
 # so a late or skipped run only delays the work.
 name: jobs
 
 on:
   schedule:
-    - cron: "7 * * * *"
-    - cron: "37 18 * * *" # 03:37 JST
+    - cron: "7 18 * * *" # 03:07 JST
   workflow_dispatch:
     inputs:
       task:
@@ -31,11 +32,11 @@ env:
 
 jobs:
   jobs:
-    if: (github.event_name == 'schedule' && github.event.schedule == '7 * * * *') || (github.event_name == 'workflow_dispatch' && inputs.task != 'routing')
+    if: github.event_name == 'schedule' || inputs.task != 'routing'
     runs-on: ubuntu-latest
     # Private repo: Actions minutes are billed per job, rounded up (DEPLOY.md §5 "Cost"). An idle run takes ~1 min;
-    # the time caps below bound a busy one to ~22 min.
-    timeout-minutes: 30
+    # the time caps below (25 + 25 min) bound a busy one to ~52 min.
+    timeout-minutes: 60
     # One jobs run at a time (the D1 jobs lease would also refuse a second one); a newer run waits.
     concurrency:
       group: jobs-production-jobs
@@ -70,14 +71,16 @@ jobs:
 
       - name: Jobs (ingest, aggregation, estimator)
         working-directory: server
-        run: bun scripts/run-jobs.ts run --minutes 10
+        run: bun scripts/run-jobs.ts run --minutes 25
 
       - name: KCNav queue
         working-directory: server
-        run: bun scripts/run-jobs.ts kcnav --minutes 10
+        run: bun scripts/run-jobs.ts kcnav --minutes 25
 
   routing:
-    if: (github.event_name == 'schedule' && github.event.schedule == '37 18 * * *') || (github.event_name == 'workflow_dispatch' && inputs.task != 'jobs')
+    needs: jobs
+    # !cancelled() lets it run when `jobs` failed or was skipped (dispatch with task=routing); a plain `needs` would skip it.
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || inputs.task != 'jobs') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
