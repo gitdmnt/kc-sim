@@ -14,9 +14,11 @@ import type { EnemyLookup } from "../sim/adapter";
 import { DAY_SPECIAL, ENGAGEMENT_BY_ID, NIGHT_SPECIAL } from "./observe";
 import type { BattleRecord } from "./types";
 
-const PHASE: Record<SimEvent["phase"], AttackPhase> = {
-  airStrike: "air", landBase: "air", openingAsw: "opening_asw", openingTorpedo: "opening_torpedo",
+// 支援艦隊・友軍艦隊の攻撃は味方艦の番号を持たないので捕捉レコードに書かない (null)
+const PHASE: Record<SimEvent["phase"], AttackPhase | null> = {
+  airStrike: "air", landBase: "air", jetLandBase: "air", jetAirStrike: "air", openingAsw: "opening_asw", openingTorpedo: "opening_torpedo",
   shelling1: "shelling1", shelling2: "shelling2", shelling3: "shelling3", closingTorpedo: "closing_torpedo", night: "night",
+  support: null, friendFleet: null,
 };
 
 const FORMATION_ID: Record<Formation, number> = {
@@ -253,11 +255,14 @@ export const captureFromRun = (input: BattleInput, out: RunBattleOutput, opts: C
     const source: SimEvent[] = [];
     for (const e of evs) {
       const side = e.attackerSide === "friend" ? 0 : 1;
+      // 友軍艦隊への敵の攻撃の defender は友軍艦の番号 (味方艦の HP は変わらない)
+      if (e.phase === "friendFleet" && side === 1) continue;
       hp[1 - side]![e.defender] = e.defenderHpAfter;
       // 航空戦 stage3 は命中した対象しか分からない
       if (e.kind === "air" && e.hit === "miss") continue;
-      source.push(e);
       const phase = PHASE[e.phase];
+      if (!phase) continue;
+      source.push(e);
       const special: Partial<Record<SpecialAttack, number>> = phase === "night" ? NIGHT_SP : DAY_AT;
       captured.push({
         seq: captured.length,
