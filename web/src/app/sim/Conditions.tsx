@@ -12,6 +12,7 @@ import type { SortieMapPrefs } from "./sortieConfig";
 import { Group } from "./conditions/parts";
 import { RetreatSettings } from "./conditions/RetreatSettings";
 import { SortieTabs } from "./conditions/SortieTabs";
+import { ExtraFleets } from "./conditions/ExtraFleets";
 
 const NIGHT_LABEL: Record<NightPolicy, string> = {
   never: "夜戦しない",
@@ -140,6 +141,10 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, select
           </Select>
         </Field>
         <span />
+        <div className="col-span-3">
+          <ExtraFleets mode="battle" prefs={prefs} setPrefs={setPrefs} preset={preset} />
+        </div>
+        <div className="col-span-3 h-px bg-ink-800" />
         {common}
       </div>
     );
@@ -148,7 +153,26 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, select
   const mapPrefs = mapPrefsOf(prefs.sortieMaps, prefs.map);
   const setMapPrefs = (p: Partial<SortieMapPrefs>) => setPrefs({ sortieMaps: { ...prefs.sortieMaps, [prefs.map]: { ...mapPrefs, ...p } } });
   return (
-    <SortieTabs prefs={prefs} setPrefs={setPrefs} mapPrefs={mapPrefs} setMapPrefs={setMapPrefs} nodes={nodes} bossSets={bossSets} basic={
+    <SortieTabs
+      prefs={prefs}
+      setPrefs={setPrefs}
+      mapPrefs={mapPrefs}
+      setMapPrefs={setMapPrefs}
+      nodes={nodes}
+      bossSets={bossSets}
+      fleets={
+        <ExtraFleets
+          mode="sortie"
+          prefs={prefs}
+          setPrefs={setPrefs}
+          mapPrefs={mapPrefs}
+          setMapPrefs={setMapPrefs}
+          nodes={nodes.filter((n) => n.type !== "start").map((n) => n.letter)}
+          compNodes={battleNodes.map((n) => n.letter)}
+          preset={preset}
+        />
+      }
+      basic={
     <div className="grid grid-cols-3 gap-3">
       <Field label="夜戦">
         <Select value={prefs.night} onChange={(e) => setPrefs({ night: e.target.value as NightPolicy })}>

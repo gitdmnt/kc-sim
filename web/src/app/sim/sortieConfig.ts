@@ -37,6 +37,10 @@ export interface SortieMapPrefs {
   effects: Record<string, NodeEffect>;
   /** 煙幕を試みるマス */
   smoke: string[];
+  /** 基地空襲: `node` に着いたとき `chancePct` % で `compNode` の敵編成が基地を空襲する */
+  baseRaid?: { node: string; chancePct: number; compNode: string };
+  /** 友軍艦隊が来るマス (空 = 目標マス) */
+  friendNode?: string;
 }
 
 export const DEFAULT_GAUGE: GaugeConfig = {

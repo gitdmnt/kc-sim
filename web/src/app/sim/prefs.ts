@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import type { NightPolicy } from "@sim-core";
+import type { NightPolicy, SupportType } from "@sim-core";
 import { STORAGE_PREFIX } from "../../fleet";
 import { DEFAULT_SORTIE_GLOBAL } from "./sortieConfig";
 import type { SortieGlobalPrefs } from "./sortieConfig";
@@ -7,6 +7,12 @@ import type { SortieGlobalPrefs } from "./sortieConfig";
 export type SimMode = "sortie" | "battle";
 /** 単一マス戦闘で選べる戦闘種別 (エンジンは空襲なども持つ) */
 export type OfferedKind = "day" | "dayNight" | "nightOnly";
+
+/** 支援艦隊 1 枠の設定: 出すか、種別 (auto は編成から) */
+export interface SupportPref {
+  enabled: boolean;
+  type: SupportType | "auto";
+}
 
 /**
  * 作業台の選択と条件 (localStorage)。目標マス・能動分岐・出撃の条件 (sortieMaps: ゲージ・進撃・マスの効果) は海域ごとに保存し、
@@ -39,6 +45,12 @@ export interface WorkspacePrefs extends SortieGlobalPrefs {
   /** 装甲破砕 (デバフ) 済みとして敵の装甲を下げる */
   eventDebuff: boolean;
   battleKind: OfferedKind;
+  /** 支援艦隊 (艦はプリセットの supportNode / supportBoss)。単一戦闘はボスなら決戦、ほかは道中 */
+  support: { node: SupportPref; boss: SupportPref };
+  /** 友軍艦隊 (艦はプリセットの friendFleet): 来るか、来る確率 (%) */
+  friend: { enabled: boolean; chancePct: number };
+  /** 単一戦闘: 選んだ編成が基地航空隊を空襲する (防空の隊が迎え撃つ) */
+  battleRaid: boolean;
 }
 
 /** 2: 実行回数の既定が 100,000 から 10,000 になった */
@@ -63,6 +75,9 @@ export const DEFAULT_PREFS: WorkspacePrefs = {
   eventBonus: true,
   eventDebuff: false,
   battleKind: "day",
+  support: { node: { enabled: false, type: "auto" }, boss: { enabled: false, type: "auto" } },
+  friend: { enabled: false, chancePct: 100 },
+  battleRaid: false,
   ...DEFAULT_SORTIE_GLOBAL,
 };
 

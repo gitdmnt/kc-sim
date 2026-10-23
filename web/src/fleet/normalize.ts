@@ -114,6 +114,10 @@ export const normalizePreset = (
   if (preset.fleetType === "single" && preset.ships.length > 6) preset.fleetType = "striking_force";
   preset.ships = preset.ships.slice(0, maxShipsOf(preset.fleetType));
   if (Array.isArray(raw.escort)) preset.escort = raw.escort.map(normalizeShip);
+  // 支援艦隊は 6 隻、友軍艦隊は 7 隻まで
+  if (Array.isArray(raw.supportNode)) preset.supportNode = raw.supportNode.slice(0, 6).map(normalizeShip);
+  if (Array.isArray(raw.supportBoss)) preset.supportBoss = raw.supportBoss.slice(0, 6).map(normalizeShip);
+  if (Array.isArray(raw.friendFleet)) preset.friendFleet = raw.friendFleet.slice(0, 7).map(normalizeShip);
   if (Array.isArray(raw.lbas)) preset.lbas = raw.lbas.slice(0, MAX_AIR_BASES).map(normalizeAirBase);
   if (raw.hqLevel !== undefined) preset.hqLevel = num(raw.hqLevel, 120);
   if (typeof raw.source === "string") preset.source = raw.source as Preset["source"];

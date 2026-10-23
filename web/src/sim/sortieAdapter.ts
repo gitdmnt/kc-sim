@@ -15,6 +15,8 @@ import type {
   SortieInput,
   SortieMap,
   SortieNode,
+  SupportInput,
+  SupportType,
 } from "@sim-core";
 import type { MapData } from "../data/mapData";
 import { describeRule } from "../data/routing";
@@ -87,6 +89,24 @@ export const extraFleet = (preset: Preset, key: ExtraFleetKey, master: MasterDat
   const b = buildFriendShips({ ...preset, fleetType: "single", ships }, master, { ...opts, prefix: EXTRA_FLEETS[key] });
   warnings.push(...b.warnings);
   return { ships: b.input };
+};
+
+/** 支援艦隊 1 枠の指定: `type` を省くと編成から (エンジンの判定) */
+export interface SupportOpt {
+  type?: SupportType;
+}
+
+/** プリセットの支援艦隊 → SupportInput。艦がいなければ null (`warnings` に理由) */
+export const supportInput = (
+  preset: Preset,
+  key: "supportNode" | "supportBoss",
+  opt: SupportOpt,
+  master: MasterData,
+  opts: FriendOptions,
+  warnings: string[]
+): SupportInput | null => {
+  const fleet = extraFleet(preset, key, master, opts, warnings);
+  return fleet && { fleet, ...(opt.type ? { type: opt.type } : {}) };
 };
 
 // ---- ルーティング文書の走査 (設定 UI 用) ----
@@ -208,8 +228,8 @@ export interface SortieSettings {
   consecutive?: GaugeMorale;
   hqLevel: number;
   applyFit: boolean;
-  /** 支援艦隊を出すか (道中 = 目標マス以外の戦闘マス、決戦 = 目標マス)。艦はプリセットの supportNode / supportBoss */
-  support?: { node: boolean; boss: boolean };
+  /** 支援艦隊 (道中 = 目標マス以外の戦闘マス、決戦 = 目標マス)。艦はプリセットの supportNode / supportBoss。無い枠は出さない */
+  support?: { node?: SupportOpt; boss?: SupportOpt };
   /** 友軍艦隊 (プリセットの friendFleet): 来る確率 0..1 と来るマス (空は目標マス) */
   friendFleet?: { chance: number; nodes: string[] };
   /** 基地空襲: `node` に着いたとき確率 `chance` (0..1) で、`compNode` の敵編成が基地を空襲する */
@@ -300,8 +320,8 @@ export const buildSortieInput = (
   if (baseRaids.length > 0 && lbas.length === 0) warnings.push("基地空襲: 中隊のある基地航空隊がありません");
 
   const support = {
-    ...(s.support?.node && { node: extraFleet(preset, "supportNode", master, friendOpts, warnings) }),
-    ...(s.support?.boss && { boss: extraFleet(preset, "supportBoss", master, friendOpts, warnings) }),
+    ...(s.support?.node && { node: supportInput(preset, "supportNode", s.support.node, master, friendOpts, warnings) }),
+    ...(s.support?.boss && { boss: supportInput(preset, "supportBoss", s.support.boss, master, friendOpts, warnings) }),
   };
   const friendFleetInput = s.friendFleet && extraFleet(preset, "friendFleet", master, friendOpts, warnings);
   const combined = !!friend.combined;
@@ -357,7 +377,7 @@ export const buildSortieInput = (
     ...(s.extraPerSortie && Object.values(s.extraPerSortie).some((v) => v) ? { extraPerSortie: s.extraPerSortie } : {}),
     ...(s.consecutive ? { consecutive: s.consecutive } : {}),
     ...(support.node || support.boss
-      ? { support: { ...(support.node && { node: { fleet: support.node } }), ...(support.boss && { boss: { fleet: support.boss } }) } }
+      ? { support: { ...(support.node && { node: support.node }), ...(support.boss && { boss: support.boss }) } }
       : {}),
     ...(friendFleetInput && s.friendFleet
       ? { friendFleet: { fleet: friendFleetInput, chance: s.friendFleet.chance, ...(s.friendFleet.nodes.length > 0 ? { nodes: s.friendFleet.nodes } : {}) } }

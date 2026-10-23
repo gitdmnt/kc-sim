@@ -112,6 +112,7 @@ export const ResourceTable = ({ s }: { s: SortieSummary }) => {
           title="高速修復材を使う前の時間"
         />
         {s.lbasCostMean && <Line label="基地航空隊 (燃料 / 弾薬 / 鋼材 / ボーキ)" value={four(s.lbasCostMean)} title="出撃した基地の費用と、失った機体の補充 (上の表に含む)" />}
+        {s.supportCostMean && <Line label="支援艦隊 (燃料 / 弾薬 / 鋼材 / ボーキ)" value={four(s.supportCostMean)} title="道中・決戦支援の遠征の消費と、失った機体の補充 (上の表に含む)" />}
         {used && <Line label="洋上補給 / 戦闘糧食 (個)" value={`${s.underwayUsedMean.toFixed(2)} / ${s.rationsUsedMean.toFixed(2)}`} />}
         {e && (
           <>

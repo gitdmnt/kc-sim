@@ -7,6 +7,7 @@ import type { Preset, PresetFleetType } from "../../fleet";
 import { abyssalName } from "../../data/names";
 import { useMapData, useMapList } from "../../data/useMapData";
 import { pickSet, resolveSelects } from "../../sim/sortieAdapter";
+import { battleExtrasOf, sortieExtrasOf } from "./extraFleets";
 import type { SortieSettings } from "../../sim/sortieAdapter";
 import { Button, EmptyState, Popover, Select, Tabs, S, cx } from "../../ui";
 import type { TabItem } from "../../ui";
@@ -37,8 +38,8 @@ const BATTLE_TYPES = ["battle", "boss", "night_battle", "air_battle", "air_raid"
 const SELECTED_KEY = `${STORAGE_PREFIX}selectedPreset`;
 const FLEET_TYPES = Object.keys(S.fleetTypes) as PresetFleetType[];
 
-/** 左の列で開いている艦隊 (連合艦隊の主力 / 随伴、基地航空隊) */
-type FleetTab = "main" | "escort" | "lbas";
+/** 左の列で開いている艦隊 (連合艦隊の主力 / 随伴、支援艦隊、友軍艦隊、基地航空隊) */
+type FleetTab = "main" | "escort" | "support" | "friend" | "lbas";
 
 /** 艦隊の種別を変える。通常 ⇄ 連合で陣形の系統が変わるので、その系統の既定に戻す。主力は新しい種別の上限で切る (遊撃部隊から戻すと 7 番艦が外れる) */
 const withFleetType = (p: Preset, fleetType: PresetFleetType): Preset => {
@@ -67,6 +68,7 @@ export const Workspace = () => {
   const [prefs, setPrefs] = usePrefs();
   const mode = prefs.mode;
   const [fleetTab, setFleetTab] = useState<FleetTab>("main");
+  const [supportFleet, setSupportFleet] = useState<"supportNode" | "supportBoss">("supportNode");
 
   // 海域タブからの遷移
   const intent = useIntentFor("sortie");
@@ -167,14 +169,17 @@ export const Workspace = () => {
   const eventLoaded = eventRes?.map === prefs.map ? eventRes : undefined;
 
   // 名前・メモの変更では計算し直さない
-  const presetKey = preset ? JSON.stringify([preset.fleetType, preset.ships, preset.escort, preset.lbas, preset.formation, preset.hqLevel]) : "";
+  const presetKey = preset
+    ? JSON.stringify([preset.fleetType, preset.ships, preset.escort, preset.lbas, preset.formation, preset.hqLevel, preset.supportNode, preset.supportBoss, preset.friendFleet])
+    : "";
   // 出撃の目標マス (海域ごとに保存)。この海域に無いマスならボス
   const target = nodes.some((n) => n.letter === prefs.targets[prefs.map] && !n.isBoss) ? prefs.targets[prefs.map] : undefined;
   // 能動分岐: 保存した選択、無ければ目標マスへ届く既定
   const selects = useMemo(() => resolveSelects(routing, prefs.selects[prefs.map] ?? {}, target), [routing, prefs.selects, prefs.map, target]);
   const sortieMap = mapPrefsOf(prefs.sortieMaps, prefs.map);
   const sortieExtra = [sortieMap, prefs.useFcf, prefs.underway, prefs.rations, prefs.bucketAboveMin, prefs.extraPerSortie, prefs.consecutive];
-  const condKey = JSON.stringify([mode, diff, cfg, selects, node, compId, target, prefs.night, prefs.onHeavy, prefs.allowDamecon, prefs.onModerate, prefs.applyFit, prefs.eventBonus, prefs.eventDebuff, prefs.battleKind, prefs.seed, settings.useEstimates, sortieExtra]);
+  const fleetExtra = [prefs.support, prefs.friend, prefs.battleRaid];
+  const condKey = JSON.stringify([mode, diff, cfg, selects, node, compId, target, prefs.night, prefs.onHeavy, prefs.allowDamecon, prefs.onModerate, prefs.applyFit, prefs.eventBonus, prefs.eventDebuff, prefs.battleKind, prefs.seed, settings.useEstimates, sortieExtra, fleetExtra]);
   // req が null のときは why (実行ボタンの title と結果の欄に出す理由)。入力の誤りは error
   const built = useMemo((): { req: SimRequest<SimOutcome> | null; error: string | null; why?: string } => {
     if (!preset || preset.ships.length === 0) return { req: null, error: null, why: "艦隊に艦を入れると実行できます" };
@@ -196,6 +201,7 @@ export const Workspace = () => {
           gauge: cfg.gaugeNo,
           night: prefs.night,
           ...sortieOptionsOf(prefs, sortieMap, bossSets),
+          ...sortieExtrasOf(prefs, sortieMap),
           formations: cfg.formations,
           hqLevel: preset.hqLevel ?? 120,
           applyFit: prefs.applyFit,
@@ -203,7 +209,16 @@ export const Workspace = () => {
         return { req: sortieRequest(preset, catalog.master, data, st, common), error: null };
       }
       if (!nodeSet || !node) return { req: null, error: null, why: "この海域には敵編成のデータがありません" };
-      return { req: battleRequest(preset, catalog.master, data, nodeSet, compId, { ...common, applyFit: prefs.applyFit, kind: prefs.battleKind, node, boss: node === bossLetter }), error: null };
+      return {
+        req: battleRequest(preset, catalog.master, data, nodeSet, compId, {
+          ...common,
+          ...battleExtrasOf(prefs, node === bossLetter),
+          applyFit: prefs.applyFit,
+          kind: prefs.battleKind,
+          node,
+        }),
+        error: null,
+      };
     } catch (e) {
       return { req: null, error: (e as Error).message };
     }
@@ -391,8 +406,11 @@ export const Workspace = () => {
   const fleetTabs: TabItem<FleetTab>[] = [
     { id: "main", label: S.fleet.main, hint: preset ? String(preset.ships.length) : undefined },
     ...(combined ? [{ id: "escort" as const, label: S.fleet.escort, hint: String(preset.escort?.length ?? 0) }] : []),
+    { id: "support", label: S.fleet.support, hint: String((preset?.supportNode?.length ?? 0) + (preset?.supportBoss?.length ?? 0)) },
+    { id: "friend", label: S.fleet.friendFleet, hint: String(preset?.friendFleet?.length ?? 0) },
     { id: "lbas", label: S.fleet.airBases, hint: String(preset?.lbas?.filter((b) => b.mode === "sortie").length ?? 0) },
   ];
+  const panelFleet = shownTab === "escort" ? "escort" : shownTab === "support" ? supportFleet : shownTab === "friend" ? "friendFleet" : "main";
 
   // lg: 2 列 × (操作の行, 本体)。操作の行は列ごとに高さが違っても本体の上端が揃う。狭い画面は 編成 → 艦隊 → 操作 → 結果 の 1 列
   return (
@@ -434,7 +452,31 @@ export const Workspace = () => {
         ) : shownTab === "lbas" && preset ? (
           <AirBasePanel store={store} preset={preset} nodes={battleNodes.map((n) => n.letter)} areaId={Number.parseInt(prefs.map, 10) || undefined} />
         ) : (
-          <FleetPanel key={shownTab} store={store} preset={preset} select={select} losCns={losCns} fleet={shownTab === "escort" ? "escort" : "main"} />
+          <FleetPanel
+            key={panelFleet}
+            store={store}
+            preset={preset}
+            select={select}
+            losCns={losCns}
+            fleet={panelFleet}
+            header={
+              shownTab === "support" ? (
+                <Tabs<"supportNode" | "supportBoss">
+                  className="shrink-0"
+                  variant="pill"
+                  size="sm"
+                  value={supportFleet}
+                  onChange={setSupportFleet}
+                  tabs={[
+                    { id: "supportNode", label: S.fleet.supportNode, hint: String(preset?.supportNode?.length ?? 0) },
+                    { id: "supportBoss", label: S.fleet.supportBoss, hint: String(preset?.supportBoss?.length ?? 0) },
+                  ]}
+                />
+              ) : shownTab === "friend" ? (
+                <p className="text-xs text-ink-400">{S.fleet.friendFleetHint}</p>
+              ) : undefined
+            }
+          />
         )}
       </div>
 

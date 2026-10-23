@@ -166,6 +166,38 @@ describe("buildSortieInput", () => {
     expect(() => buildSortieInput(preset, master, { ...data, detail: { ...data.detail, routing: null } }, settings)).toThrow("ルーティング");
   });
 
+  test("support, friend fleet, base raid with defense bases, enemy escort and night-to-day nodes", () => {
+    const extra = {
+      ...preset,
+      supportBoss: preset.ships,
+      friendFleet: preset.ships,
+      lbas: [{ mode: "defense" as const, squadrons: [], targets: ["", ""] as [string, string] }],
+    };
+    const b = buildSortieInput(extra, master, data, {
+      ...settings,
+      support: { node: {}, boss: { type: "shelling" } },
+      friendFleet: { chance: 0.5, nodes: [] },
+      baseRaid: { node: "A", chance: 0.3, compNode: "A" },
+    });
+    // 道中支援の艦がいなければ来ない (警告)、決戦支援は種別つき
+    expect(b.input.support).toEqual({ boss: { fleet: { ships: [expect.objectContaining({ maxHp: 30 })] }, type: "shelling" } });
+    expect(b.warnings.some((w) => w.includes("道中支援艦隊に艦がいません"))).toBe(true);
+    expect(b.input.friendFleet).toMatchObject({ chance: 0.5 });
+    expect(b.input.friendFleet!.nodes).toBeUndefined();
+    expect(b.input.baseRaids).toEqual([{ node: "A", chance: 0.3, comps: b.input.map.nodes.A.comps! }]);
+    // 中隊の無い防空の基地は送らない
+    expect(b.input.lbas).toBeUndefined();
+    expect(b.warnings.some((w) => w.includes("基地空襲: 中隊のある基地航空隊がありません"))).toBe(true);
+
+    // 随伴のある敵編成は敵連合艦隊、夜昼戦マスは nightToDay、距離は lbasDistance
+    const escortComp = { ...data.comps.A[0], comps: data.comps.A[0].comps.map((c) => ({ ...c, formation: 12, escort: c.main })) };
+    const nodes = data.detail.nodes.map((n) => (n.letter === "A" ? { ...n, type: "night_to_day" as const, lbasDistance: 4 } : n));
+    const e = buildSortieInput(preset, master, { ...data, detail: { ...data.detail, nodes }, comps: { ...data.comps, A: [escortComp] } }, settings);
+    expect(e.input.map.nodes.A).toMatchObject({ kind: "nightToDay", lbasDistance: 4 });
+    expect(e.input.map.nodes.A.comps![0].fleet).toMatchObject({ formation: "combinedForward", escort: [{ id: 1501 }] });
+    expect(e.warnings.some((w) => w.includes("主力のみ"))).toBe(false);
+  });
+
   test("striking force, retreat / advance / consumables policy, node effects, repair, extra cost, consecutive", () => {
     const striking = { ...preset, fleetType: "striking_force" as const };
     const b = buildSortieInput(striking, master, data, {

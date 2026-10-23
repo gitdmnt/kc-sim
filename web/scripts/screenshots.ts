@@ -263,6 +263,49 @@ try {
   await page.waitForTimeout(600);
   await checkNoScroll("1024x600 target node");
   await shot("workspace-1024-target");
+  // 支援艦隊 (決戦支援に 1 隻) と友軍艦隊 (1 隻)、条件の「艦隊」で決戦支援・友軍・基地空襲を有効に
+  const addShip = async (n: number) => {
+    await page.getByLabel(`${n}番艦を追加`).click();
+    await page.getByRole("dialog").getByRole("listbox").getByRole("option").first().click();
+  };
+  await page.getByRole("tab", { name: /^支援/ }).click();
+  await page.getByRole("tab", { name: /^決戦支援/ }).click();
+  await addShip(1);
+  await page.waitForTimeout(300);
+  await checkNoScroll("1024x600 support fleet");
+  await shot("workspace-1024-support");
+  await page.getByRole("tab", { name: /^友軍/ }).click();
+  await addShip(1);
+  await page.waitForTimeout(300);
+  await checkNoScroll("1024x600 friend fleet");
+  await shot("workspace-1024-friend");
+  const prevFleets = await meta(page);
+  await page.getByRole("button", { name: "条件" }).click();
+  await page.getByRole("dialog").getByRole("tab", { name: /^艦隊/ }).click();
+  await page.getByRole("checkbox", { name: /^決戦支援/ }).check();
+  await page.getByRole("checkbox", { name: /^友軍艦隊/ }).check();
+  await page.getByLabel("空襲されるマス").selectOption({ index: 1 });
+  await page.waitForTimeout(150);
+  await shot("conditions-fleets-1024");
+  await page.keyboard.press("Escape");
+  await waitResult(prevFleets);
+  await checkNoScroll("1024x600 support / friend / raid results");
+  await shot("workspace-1024-fleets-results");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.waitForTimeout(400);
+  await checkNoScroll("1280x800 support / friend / raid results");
+  await shot("workspace-1280-fleets-results");
+  // 単一戦闘: 支援・友軍・基地空襲 (選んだ編成が空襲)
+  const prevBattle = await meta(page);
+  await page.getByRole("tab", { name: "単一戦闘", exact: true }).click();
+  await page.getByRole("button", { name: "条件" }).click();
+  await page.getByRole("checkbox", { name: /基地航空隊を空襲する/ }).check();
+  await page.waitForTimeout(150);
+  await shot("conditions-battle-fleets");
+  await page.keyboard.press("Escape");
+  await waitResult(prevBattle);
+  await checkNoScroll("1280x800 battle with support / friend / raid");
+  await shot("workspace-1280-battle-fleets");
 
   // 狭いウィンドウ (800px 幅): 1 列に積んでページをスクロールする
   await page.setViewportSize({ width: 800, height: 900 });

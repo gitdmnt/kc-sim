@@ -34,7 +34,7 @@ it uses the static bundles; it fails if the 出撃 tab scrolls, page or tab cont
 Layout: no header inside poi (the plugin draws the one header: シミュレーション / 観測ログ / 送信設定); a title row when
 opened directly. The tabs 出撃 / 海域 / 敵艦 / 推定 / 設定 are a vertical bar (icon + name) on the left. Left column:
 編成 (preset selector + ⋯: name, HQ level, poi import of fleet 1–4 or 連合 = fleets 1 + 2, new / duplicate / IO / delete),
-艦隊 (通常艦隊 / 機動部隊 / 水上部隊 / 輸送護衛部隊 / 遊撃部隊) and the 主力 / 随伴 / 基地 tabs above the fleet. Right column: the
+艦隊 (通常艦隊 / 機動部隊 / 水上部隊 / 輸送護衛部隊 / 遊撃部隊) and the 主力 / 随伴 / 支援 / 友軍 / 基地 tabs above the fleet. Right column: the
 simulator toolbar in the order of use, left to right: 海域 (+ 難易度 for event maps), 出撃 / 単一戦闘 (with node and enemy
 comp), 条件 (sliders icon), then 自動 (checkbox) and 実行 (play icon + count, fills with progress), above the results.
 出撃 mode also has 目標マス next to the map (default ボス, saved per map in `kcsim:workspace`): the sortie ends at that
@@ -42,8 +42,8 @@ node, and the key rates (到達 / 突破 / S勝利 / 旗艦撃沈, gauge) count 
 条件 has one 能動分岐 choice per `select` node of the map's rules (options labeled by destination), also saved per map;
 a node without a saved choice uses `defaults.select` (else the first option), or, when 目標マス is set and that option
 cannot reach it, the first option that can (`resolveSelects`).
-Enemy combined fleets (e.g. 6-5 M) are not in sim-core: their escort is dropped and the results panel says
-「敵連合艦隊 (M) は随伴を除き主力のみで近似」 (also listed under 前提). Left: a one-line fleet
+Enemy combined fleets (e.g. 6-5 M) are sent with their escort and fought as 6 vs 12 / 12 vs 12 (formations 11–14 →
+第一〜第四警戒航行序列); results list the enemy main fleet, then its escort. Left: a one-line fleet
 summary (icons: 制空, 速力, 索敵 Cn1–4, ドラム缶, 電探) and the six ships in a 2 × 3 grid like the game; each ship is a
 header (number, ship type, name, Lv) over one column of slots (equipment icon, name, ★, 熟練, 搭載); mods, morale and
 stats behind ⋯. Right: the key rates as bars on one 0–100% scale (ボス到達 colored by boss rank, 突破 = boss A+ per
@@ -51,11 +51,15 @@ sortie, S勝利 = boss S+ per sortie, 大破撤退), secondary numbers (周回, 
 and detail tabs (マス: reach bar colored by rank, 退避 and 大破撤退 per node; 経路: route map with edge width = traversal
 rate; 損耗: per ship damage, docking time, bauxite, damage control, evacuation; 資源; ゲージ when a gauge is set; 前提).
 
-出撃 条件 has four tabs (`src/app/sim/conditions/`; 撤退・消費・ゲージ・マス・資源 are saved in `kcsim:workspace`, ゲージ / マス
-per map in `sortieMaps`; start, flags and formations are not saved):
+出撃 条件 has five tabs (`src/app/sim/conditions/`; 撤退・消費・ゲージ・マス・資源・艦隊 are saved in `kcsim:workspace`, ゲージ /
+マス and the 基地空襲 / 友軍 nodes per map in `sortieMaps`; start, flags and formations are not saved):
 - 基本: night policy, 撤退 (大破撤退 `onHeavy`, ダメコン所持艦は進撃 `allowDamecon`, 中破撤退 `onModerate`, 護衛退避
   `useFcf` with the flagship's command facility 107 / 272 / 413 shown), ボス前の消費 (洋上補給 `policy.underway`,
   戦闘糧食 `policy.rations`), start, 能動分岐, flags, formations per node, phase / gauge number, count and seed.
+- 艦隊 (`conditions/ExtraFleets.tsx`, also in 単一戦闘's 条件): 道中支援 / 決戦支援 on/off with a type (編成から / 航空 /
+  砲撃 / 長距離雷撃 / 対潜) → `SortieInput.support {node, boss}` (単一戦闘: `BattleInput.support`, 決戦 at the boss); 友軍艦隊
+  on/off, arrival % and node (default 目標マス) → `friendFleet`; 基地空襲: the node raided on arrival, chance and the
+  node whose enemy comps raid → `baseRaids` (単一戦闘: the chosen comp raids every base with squadrons, `baseRaid`).
 - マス: 進撃 / 撤退 / 強行 after each node (`policy.advance`: retreat / push), 煙幕 per battle node (`policy.smoke`;
   barrage-balloon nodes from `shared/sim/nodeEffects.ts` are marked 気球 and sent as `SortieNode.balloons`), gains of
   resource and landing nodes (`SortieNode.resource`) and losses of maelstroms (`SortieNode.maelstrom`).
@@ -63,7 +67,7 @@ per map in `sortieMaps`; start, flags and formations are not saved):
   force and TP per S win, additional gauges (`gauge.phases`: kind, remaining, phase), morale carried until the gauge
   breaks (`gauge.morale`) and 連続出撃 (`consecutive`).
 - 資源: 高速修復材 above a docking time (`repair.bucketAboveSec`) and costs per sortie the engine does not model
-  (`extraPerSortie`, e.g. support fleets).
+  (`extraPerSortie`; support expedition costs are counted by the engine, `supportCostMean`).
 
 The 資源 tab shows net fuel / ammo / steel / bauxite / buckets / docking time per sortie (mean, median, 90%) and per
 gauge clear, docking costs, land-base cost, underway replenishment / rations used and node effects; ゲージ shows sorties
@@ -72,11 +76,17 @@ to clear (mean, median, 90%), capped runs, morale waits, sorties per gauge and r
 
 Combined fleets: 主力 and 随伴 are edited with the same panel; the formation lists switch to 第一〜第四警戒航行序列
 (a formation of the other kind falls back to 単縦陣 / 第四警戒). Results list the main fleet, then the escort (「随伴 …」).
+支援: 道中支援 / 決戦支援 fleets (6 ships each) and 友軍: the friend fleet (7 ships, any master ship via 「全艦から選ぶ」), edited
+with the same panel and saved in the preset (`supportNode` / `supportBoss` / `friendFleet`). Results show 支援 / 友軍 per
+node (マス), 基地空襲 (rate, defence air state and base HP lost in its tooltip) and the support cost (資源); 単一戦闘 shows
+支援到達 / 友軍来援 / 防空の制空.
 基地: up to three land bases × four squadrons (aircraft only, picked like ship equipment; recon 4 planes, others 18),
 each 出撃 / 防空 / 待機. 出撃 bases send two waves at the chosen nodes of the current map (same node twice = both waves
-there) before the fleet's battle, in sorties and in 単一戦闘 (waves whose target is the battle's node). 防空 / 待機 bases
-do not fly. 「poi から取り込み」 loads poi's bases of the map's area (else the newest area); targets stay as chosen. The
-fleet type, escort, land bases and their targets are saved in the preset.
+there) before the fleet's battle, in sorties and in 単一戦闘 (waves whose target is the battle's node). 防空 bases
+defend against 基地空襲 (`LandBase.defense`); 待機 bases do nothing; with a raid set, every base with squadrons can be
+hit. Squadron radius (`api_distance`) and the node's `lbasDistance` drop waves beyond reach (sim-core warning).
+「poi から取り込み」 loads poi's bases of the map's area (else the newest area); targets stay as chosen. The
+fleet type, escort, support / friend fleets, land bases and their targets are saved in the preset.
 
 Auto-run (`src/app/sim/useSimRun.ts`): while 自動 is on, every change to the simulated inputs (ships, equipment,
 map, difficulty, mode, conditions, estimate settings; not the preset name or note) re-runs 10,000 sorties/battles

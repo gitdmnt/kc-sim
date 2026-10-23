@@ -6,6 +6,7 @@ export const NODE_COLOR: Record<string, string> = {
   battle: "var(--color-danger-600)",
   boss: "var(--color-danger-500)",
   night_battle: "#8a62bf",
+  night_to_day: "#6d5fb8",
   air_battle: "var(--color-warn-600)",
   air_raid: "#a8641c",
   empty: "#5c6d86",
@@ -20,7 +21,7 @@ export const NODE_COLOR: Record<string, string> = {
 };
 
 export const NODE_TYPE_LABEL: Record<string, string> = {
-  start: "出撃地点", battle: "通常戦闘", boss: "ボス", night_battle: "夜戦", air_battle: "航空戦",
+  start: "出撃地点", battle: "通常戦闘", boss: "ボス", night_battle: "夜戦", night_to_day: "夜昼戦", air_battle: "航空戦",
   air_raid: "空襲", empty: "気のせい/空", select: "分岐選択", resource: "資源", maelstrom: "渦潮",
   landing: "揚陸", escort_success: "護衛成功", air_recon: "航空偵察", anchorage_repair: "泊地修理", unknown: "不明",
 };

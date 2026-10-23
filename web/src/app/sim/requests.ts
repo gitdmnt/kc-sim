@@ -20,7 +20,7 @@ import { DataApiError, getDataApi } from "../../data/api";
 import type { MapData } from "../../data/mapData";
 import { runInWorker, runSortieInWorker } from "../../sim/client";
 import { allocateCounts, mergeSummaries } from "../../sim/runner";
-import { buildSortieInput, extraFleet, mapLookup } from "../../sim/sortieAdapter";
+import { buildSortieInput, extraFleet, mapLookup, supportInput } from "../../sim/sortieAdapter";
 import type { EventBonusSettings, SortieSettings } from "../../sim/sortieAdapter";
 import type { AssumptionData } from "./Assumptions";
 import type { SimRequest } from "./useSimRun";
@@ -168,8 +168,8 @@ export const sortieRequest = (
 export interface BattleExtras {
   /** 選んだマスがボス (支援は決戦支援、それ以外は道中支援) */
   boss: boolean;
-  /** 支援艦隊を出すか (道中 / 決戦) */
-  support?: { node: boolean; boss: boolean };
+  /** 支援艦隊 (道中 / 決戦)。無い枠は出さない */
+  support?: SortieSettings["support"];
   /** 友軍艦隊が来る確率 (0..1)。省略は友軍なし */
   friendChance?: number;
   /** 選んだ編成が基地航空隊を空襲する */
@@ -197,10 +197,9 @@ export const battleRequest = (
   const lbas = landBaseWaves(preset.lbas, o.node, master);
   const extras: Partial<BattleInput> = {};
   const extraWarnings: string[] = [];
-  const supportFleet = (o.boss ? o.support?.boss : o.support?.node)
-    ? extraFleet(preset, o.boss ? "supportBoss" : "supportNode", master, fitOpts, extraWarnings)
-    : null;
-  if (supportFleet) extras.support = { fleet: supportFleet, ...(o.boss ? { boss: true } : {}) };
+  const supportOpt = o.boss ? o.support?.boss : o.support?.node;
+  const support = supportOpt && supportInput(preset, o.boss ? "supportBoss" : "supportNode", supportOpt, master, fitOpts, extraWarnings);
+  if (support) extras.support = { ...support, ...(o.boss ? { boss: true } : {}) };
   const ffFleet = o.friendChance !== undefined ? extraFleet(preset, "friendFleet", master, fitOpts, extraWarnings) : null;
   if (ffFleet) extras.friendFleet = { fleet: ffFleet, chance: o.friendChance };
   const raid = o.baseRaid ? raidBases(preset.lbas, master) : { bases: [], numbers: [] };

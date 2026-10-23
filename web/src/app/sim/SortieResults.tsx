@@ -11,6 +11,8 @@ import type { SortieOutcome } from "./requests";
 import { GAUGE_LABEL, GaugeResult } from "./GaugeResult";
 import { ResourceTable, dockingFact, fmtDuration } from "./ResourceTable";
 import { ShipLossTable } from "./ShipLossTable";
+import { raidTitle } from "./extraFleets";
+import { S } from "../../ui";
 
 const num = (v: number | null | undefined, d = 1) => (v === null || v === undefined ? "—" : v.toFixed(d));
 
@@ -105,6 +107,8 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
   const anyNight = nodeRows.some(([, n]) => n.nightRate >= 0.0005);
   const maxRetreat = Math.max(0.0001, ...nodeRows.map(([, n]) => n.retreatHeavyRate));
   const anyFcf = nodeRows.some(([, n]) => n.fcfRate >= 0.0005);
+  const anySupport = nodeRows.some(([, n]) => n.supportRate !== undefined);
+  const anyFriend = nodeRows.some(([, n]) => n.friendFleetRate !== undefined);
   const r = s.resourcesPerSortie;
   const view: Detail = detail === "gauge" && !clear ? "nodes" : detail;
   const notes = out.assumptions.warnings.length;
@@ -130,6 +134,13 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
           />
         </div>
         {s.fcfRate >= 0.0005 && <Fact label="護衛退避" value={pct(s.fcfRate)} title="司令部施設で艦を退避させた出撃の割合" />}
+        {s.baseRaid && (
+          <Fact
+            label={S.extraFleets.raidRate}
+            value={pct(s.baseRaid.rate ?? 0)}
+            title={raidTitle(s.baseRaid, out.baseNumbers)}
+          />
+        )}
         {s.waitMinutesMean !== undefined && <Fact label="出撃間の待ち" value={fmtDuration(s.waitMinutesMean * 60)} title="連続出撃: 士気の回復を待つ時間の平均 (1 出撃あたり)" />}
         {s.sunkRate >= 0.0005 && <Fact label="味方撃沈" value={pct(s.sunkRate)} tone="danger" />}
         {uncertain.length > 0 && (
@@ -181,6 +192,16 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
                     退避
                   </Th>
                 )}
+                {anySupport && (
+                  <Th className="w-14" title="そのマスの戦闘で支援艦隊が到達した割合">
+                    支援
+                  </Th>
+                )}
+                {anyFriend && (
+                  <Th className="w-14" title="そのマスの戦闘で友軍艦隊が戦った割合">
+                    友軍
+                  </Th>
+                )}
                 <Th className="w-28" title="そのマスで大破撤退する割合 (出撃あたり)">
                   大破撤退
                 </Th>
@@ -212,6 +233,8 @@ export const SortieResults = ({ out, meta }: { out: SortieOutcome; meta: React.R
                   <Num>{pct(n.reachRate)}</Num>
                   {anyNight && <Num>{n.battleRate > 0 ? pct(n.nightRate) : "—"}</Num>}
                   {anyFcf && <Num>{pct(n.fcfRate)}</Num>}
+                  {anySupport && <Num>{n.battleRate > 0 ? pct(n.supportRate ?? 0) : "—"}</Num>}
+                  {anyFriend && <Num>{n.battleRate > 0 ? pct(n.friendFleetRate ?? 0) : "—"}</Num>}
                   <Td>
                     <span className="flex items-center gap-2">
                       <span className="h-1.5 flex-1 overflow-hidden rounded-full">

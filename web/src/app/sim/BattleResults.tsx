@@ -3,7 +3,9 @@ import type { ShipSummary, SimulationSummary } from "@sim-core";
 import { ProgressBar, StackedBar, Tabs } from "../../ui";
 import { Assumptions } from "./Assumptions";
 import { CompMarks, FormationGlyph } from "./CompMarks";
-import { DTable, DTr, Num, RateList, RateRow, STATE_PARTS, Td, Th, pct, rankBar } from "./bars";
+import { DTable, DTr, Fact, Num, RateList, RateRow, STATE_PARTS, Td, Th, pct, rankBar } from "./bars";
+import { raidTitle } from "./extraFleets";
+import { S } from "../../ui";
 import type { BattleOutcome } from "./requests";
 
 /** 主要な率 (結果がまだ無いときも同じ枠)。勝敗の棒は S → A → B 以上の順に区間が増える。 */
@@ -90,6 +92,19 @@ export const BattleResults = ({ out, meta, shipName }: { out: BattleOutcome; met
   return (
     <>
       <BattleRates s={s} />
+      {(s.supportRate !== undefined || s.friendFleetRate !== undefined || s.baseRaid) && (
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+          {s.supportRate !== undefined && <Fact label={S.extraFleets.supportRate} value={pct(s.supportRate)} title="支援艦隊が到達した戦闘の割合" />}
+          {s.friendFleetRate !== undefined && <Fact label={S.extraFleets.friendRate} value={pct(s.friendFleetRate)} title="夜戦になり友軍艦隊が戦った戦闘の割合" />}
+          {s.baseRaid && (
+            <Fact
+              label={`${S.extraFleets.raidAir} (優勢以上)`}
+              value={pct(s.baseRaid.airStateRates.supremacy + s.baseRaid.airStateRates.superiority)}
+              title={raidTitle(s.baseRaid, out.baseNumbers)}
+            />
+          )}
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-2">
         <Tabs

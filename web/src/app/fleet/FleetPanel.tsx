@@ -16,28 +16,33 @@ interface Props {
   select: (id: string | null) => void;
   /** 選んだ海域の分岐が使う索敵の係数 (33式の Cn) */
   losCns: number[];
-  /** 連合艦隊の主力 (ships) と随伴 (escort) のどちらを編集するか。既定は主力 */
-  fleet?: "main" | "escort";
+  /** 編集する艦隊: 主力 (ships)、連合艦隊の随伴 (escort)、支援艦隊 (supportNode / supportBoss)、友軍艦隊 (friendFleet)。既定は主力 */
+  fleet?: "main" | "escort" | "supportNode" | "supportBoss" | "friendFleet";
+  /** 艦の一覧の上に置く要素 (支援艦隊の道中 / 決戦の切り替えなど) */
+  header?: React.ReactNode;
 }
 
 /**
  * 艦隊の編集: 上に艦隊の諸元、下に 1 隻 1 行。プリセットの切り替え・管理はツールバー (PresetMenu)。プリセットが無ければ最初の艦の追加で作る。
- * 連合艦隊の随伴は `fleet="escort"` で同じ部品を使う。
+ * 連合艦隊の随伴・支援艦隊・友軍艦隊も `fleet` で同じ部品を使う (poi の取り込みは主力と随伴だけ)。
  */
-export const FleetPanel = ({ store, preset, select, losCns, fleet = "main" }: Props) => {
+export const FleetPanel = ({ store, preset, select, losCns, fleet = "main", header }: Props) => {
   const poiFleets = usePoiFleets();
   const { importPoi, importEscort, reimport, reimportTitle } = useImportPoi(store, select);
   const escort = fleet === "escort";
-  const ships = (escort ? preset?.escort : preset?.ships) ?? [];
-  const setShips = (next: PresetShip[]) =>
-    preset ? store.save(escort ? { ...preset, escort: next } : { ...preset, ships: next }) : select(store.save({ ...blankPreset(), ships: next }).id);
+  const key = fleet === "main" ? "ships" : fleet;
+  const ships = preset?.[key] ?? [];
+  const setShips = (next: PresetShip[]) => (preset ? store.save({ ...preset, [key]: next }) : select(store.save({ ...blankPreset(), [key]: next }).id));
+  // 遊撃部隊の主力と友軍艦隊は 7 隻、ほかは 6 隻
+  const max = fleet === "main" ? (preset ? maxShipsOf(preset.fleetType) : 6) : fleet === "friendFleet" ? 7 : 6;
 
   return (
     <section className="flex min-w-0 flex-col gap-2 rounded-md border border-ink-800 bg-ink-900 px-4 py-3 lg:min-h-0">
+      {header}
       {preset && ships.length > 0 && (
         <div className="flex min-w-0 items-start justify-between gap-2">
-          <FleetStats preset={escort ? { ...preset, ships } : preset} cns={losCns} />
-          {poiFleets.length > 0 && (
+          <FleetStats preset={fleet === "main" ? preset : escort ? { ...preset, ships } : { ...preset, fleetType: "single", ships }} cns={losCns} />
+          {poiFleets.length > 0 && (fleet === "main" || escort) && (
             <Button size="sm" className="-my-0.5" title={reimportTitle(preset)} onClick={() => reimport(preset)}>
               <RefreshCw size={14} aria-hidden />
               {S.fleet.reimportPoi}
@@ -58,8 +63,7 @@ export const FleetPanel = ({ store, preset, select, losCns, fleet = "main" }: Pr
             onRemove={() => setShips(ships.filter((_, j) => j !== i))}
           />
         ))}
-        {/* 遊撃部隊の主力は 7 隻、それ以外は 6 隻 */}
-        {ships.length < (escort || !preset ? 6 : maxShipsOf(preset.fleetType)) && (
+        {ships.length < max && (
           <div className="flex min-w-0 flex-col gap-2">
             <div className={HEAD_COLS}>
               <Plus size={14} className="text-ink-500" aria-hidden />
@@ -71,7 +75,7 @@ export const FleetPanel = ({ store, preset, select, losCns, fleet = "main" }: Pr
                 className="col-span-3"
               />
             </div>
-            {ships.length === 0 && poiFleets.length > 0 && (
+            {ships.length === 0 && poiFleets.length > 0 && (fleet === "main" || escort) && (
               <div className="flex items-center gap-1 pl-5">
                 <span className="mr-2 text-sm text-ink-400">{S.fleet.importPoi}</span>
                 {[0, 1, 2, 3].map((i) => (
