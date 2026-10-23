@@ -98,6 +98,8 @@ try {
   await web.getByTitle("第1艦隊").click();
   await web.getByText("大和改二").first().waitFor({ timeout: 10_000 });
   await web.getByText("突破").first().waitFor();
+  // 埋め込んだ Web UI の中でも計算が終わり、結果が出る (実行ボタンは計算済みになり、その理由を title に出す)
+  await web.locator("span[title^='この入力の']").waitFor({ timeout: 60_000 });
   await page.waitForTimeout(300);
   await shot("19-plugin-embedded");
   const header = await headerBoxes();

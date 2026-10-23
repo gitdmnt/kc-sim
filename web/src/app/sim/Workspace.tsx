@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Play, SlidersHorizontal, Square } from "lucide-react";
+import { Check, Play, SlidersHorizontal, Square } from "lucide-react";
 import type { FitEntry } from "@shared/sim/fit";
 import { STORAGE_PREFIX } from "../../fleet";
 import type { Preset, PresetFleetType } from "../../fleet";
@@ -26,6 +26,7 @@ import { battleRequest, loadFitBonuses, sortieRequest } from "./requests";
 import type { SimOutcome } from "./requests";
 import { SortieRates, SortieResults } from "./SortieResults";
 import { useSimRun } from "./useSimRun";
+import type { SimRequest } from "./useSimRun";
 
 /** 自動実行の回数と待ち時間。最も重い海域でも Worker の起動込みで数百 ms に収まる回数 */
 const AUTO_COUNT = 10_000;
@@ -152,12 +153,15 @@ export const Workspace = () => {
   // 出撃の目標マス (海域ごとに保存)。この海域に無いマスならボス
   const target = nodes.some((n) => n.letter === prefs.targets[prefs.map] && !n.isBoss) ? prefs.targets[prefs.map] : undefined;
   const condKey = JSON.stringify([mode, diff, cfg, node, compId, target, prefs.night, prefs.onHeavy, prefs.allowDamecon, prefs.onModerate, prefs.applyFit, prefs.battleKind, prefs.seed, settings.useEstimates]);
-  const built = useMemo(() => {
-    if (!preset || preset.ships.length === 0 || !data || (prefs.applyFit && fit === undefined)) return { req: null, error: null };
+  // req が null のときは why (実行ボタンの title と結果の欄に出す理由)。入力の誤りは error
+  const built = useMemo((): { req: SimRequest<SimOutcome> | null; error: string | null; why?: string } => {
+    if (!preset || preset.ships.length === 0) return { req: null, error: null, why: "艦隊に艦を入れると実行できます" };
+    if (!data) return { req: null, error: null, why: "海域のデータを読み込み中…" };
+    if (prefs.applyFit && fit === undefined) return { req: null, error: null, why: "装備ボーナスを読み込み中…" };
     const common = { fit: fit ?? null, useServerEstimates: settings.useEstimates, seed: prefs.seed };
     try {
       if (mode === "sortie") {
-        if (!routing) return { req: null, error: null };
+        if (!routing) return { req: null, error: null, why: "この海域には分岐のデータがありません (単一戦闘は実行できます)" };
         const finalSet = cfg.gaugeKind === "hp" && cfg.finalSetKey ? bossSets.find((s) => `${s.difficulty}:${s.retrievedAt}` === cfg.finalSetKey) : undefined;
         const st: SortieSettings = {
           start: cfg.start || undefined,
@@ -176,7 +180,7 @@ export const Workspace = () => {
         };
         return { req: sortieRequest(preset, catalog.master, data, st, common), error: null };
       }
-      if (!nodeSet || !node) return { req: null, error: null };
+      if (!nodeSet || !node) return { req: null, error: null, why: "この海域には敵編成のデータがありません" };
       return { req: battleRequest(preset, catalog.master, data, nodeSet, compId, { ...common, applyFit: prefs.applyFit, kind: prefs.battleKind, node }), error: null };
     } catch (e) {
       return { req: null, error: (e as Error).message };
@@ -190,6 +194,15 @@ export const Workspace = () => {
 
   const noMaster = catalog.shipOptions.length === 0;
   const loadError = (maps.error && !maps.data ? maps.error : null) ?? md.error;
+  // 実行できない理由。読み込みの失敗は DataError が出す
+  const why = loadError ? undefined : built.why;
+  // 表示中の結果がこの入力の、この回数以上の計算 (seed が同じなので実行し直しても同じ結果になる)
+  const done = !!sim.result && !sim.stale && !sim.progress && sim.result.count >= prefs.count;
+  const runTitle = done
+    ? `この入力の ${sim.result!.count.toLocaleString()} 回の結果を表示中 (seed が同じなので実行し直しても同じ結果。回数・seed は条件で変えられます)`
+    : built.req
+      ? `${prefs.count.toLocaleString()} 回実行`
+      : (why ?? built.error ?? (loadError ? "海域のデータを取得できませんでした" : undefined));
 
   const meta = sim.result && (
     <span
@@ -327,11 +340,21 @@ export const Workspace = () => {
             中止
           </Button>
         ) : (
-          <Button size="sm" variant="primary" className="relative w-24 overflow-hidden" disabled={!built.req} aria-label={`実行 ${fmtCount(prefs.count)}`} onClick={() => sim.run(prefs.count)}>
-            {progress}
-            <Play size={14} aria-hidden />
-            {fmtCount(prefs.count)}
-          </Button>
+          // 押せないときも理由が tooltip で読めるよう、title は外側に付ける (disabled のボタンはポインタを受けない)
+          <span className="inline-flex" title={runTitle}>
+            <Button
+              size="sm"
+              variant="primary"
+              className="relative w-24 overflow-hidden"
+              disabled={!built.req || done}
+              aria-label={`実行 ${fmtCount(prefs.count)}`}
+              onClick={() => sim.run(prefs.count)}
+            >
+              {progress}
+              {done ? <Check size={14} aria-hidden /> : <Play size={14} aria-hidden />}
+              {fmtCount(prefs.count)}
+            </Button>
+          </span>
         )}
       </div>
     </div>
@@ -395,6 +418,7 @@ export const Workspace = () => {
         <div className={cx("flex min-h-0 flex-1 flex-col gap-4 px-4 py-3 transition-opacity duration-200", (sim.stale || !out) && "opacity-45")}>
           {loadError && <DataError error={loadError} />}
           {error && <p className="text-xs text-danger-400">{error}</p>}
+          {why && <p className="text-xs text-ink-300">{why}</p>}
           {out && out.enemyCombined.length > 0 && <p className="text-xs text-warn-400">{enemyCombinedNote(out.enemyCombined)}</p>}
           {out?.kind === "sortie" ? (
             <SortieResults out={out} meta={meta} />

@@ -4,6 +4,7 @@
  * データ API は vite が KCSIM_API (既定 127.0.0.1:8787) に中継し、落ちていれば静的バンドル (server/dist/maps) を使う。
  * ブラウザは playwright のキャッシュにある chromium_headless_shell を使う (CHROMIUM_PATH で上書き可)。
  * 出撃タブはページも main (タブの中身) もスクロールしないことを 1280×800・1200×710・1024×600 で確かめる。
+ * 実行ボタン: 自動の結果が今の入力のものなら押せず (理由は title)、自動オフではクリックで結果が出ることも確かめる。
  */
 import { chromium } from "playwright-core";
 import type { Page } from "playwright-core";
@@ -64,6 +65,10 @@ const waitResult = async (prev: string) => {
   );
   await page.waitForTimeout(300);
 };
+/** 表示中の結果が今の入力・回数のもの (実行ボタンが計算済みで、その理由を title に出す) */
+const DONE = "span[title^='この入力の']";
+const waitDone = () => page.waitForSelector(DONE, { timeout: 180_000 });
+const run = page.getByRole("button", { name: /^実行/ });
 
 const checkNoScroll = async (label: string) => {
   const [sh, ih, mainSh, mainCh] = await page.evaluate(() => {
@@ -88,10 +93,9 @@ try {
   await page.getByLabel("海域").selectOption(MAP);
   await waitResult(prev);
   console.log("auto:", await meta(page));
-  prev = await meta(page);
-  await page.getByRole("button", { name: /^実行/ }).click();
-  await waitResult(prev);
-  console.log("manual:", await meta(page));
+  // 自動の結果がこの入力・この回数のものなら、実行し直しても同じ結果なので押せず、理由を title に出す
+  await waitDone();
+  if (await run.isEnabled()) throw new Error("実行 is enabled although the shown result is current");
   const kpi = await page.locator("[data-results]").first().innerText();
   console.log("---- sortie ----\n" + kpi.split("\n").slice(0, 24).join(" | "));
   await checkNoScroll("1280x800");
@@ -178,9 +182,17 @@ try {
   await page.getByLabel("海域").selectOption({ index: 0 });
   await page.waitForTimeout(1000);
   if (await meta(page)) throw new Error("ran while 自動 is off");
-  await auto.check();
+  // 自動がオフなら 実行 のクリックで計算する (クリックがボタンに届き、結果が出る)
+  await run.click();
   await waitResult("");
-  console.log("自動 persisted; off: no run, on:", await meta(page));
+  await waitDone();
+  console.log("manual (自動 off):", await meta(page));
+  await page.getByLabel("海域").selectOption(MAP);
+  await page.waitForTimeout(1000);
+  if (await page.$(DONE)) throw new Error("ran while 自動 is off");
+  await auto.check();
+  await waitDone();
+  console.log("自動 persisted; off: 実行 runs, on:", await meta(page));
 
   // 最悪の高さ: 装備 5 枠の艦 6 隻 (第1艦隊の 1〜4 番艦を並べる)。枠の中だけスクロールし、ページは動かない
   await tab("出撃");
