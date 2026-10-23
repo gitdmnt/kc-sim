@@ -5,7 +5,7 @@ import { STORAGE_PREFIX } from "../../fleet";
 import type { Preset, PresetFleetType } from "../../fleet";
 import { abyssalName } from "../../data/names";
 import { useMapData, useMapList } from "../../data/useMapData";
-import { pickSet } from "../../sim/sortieAdapter";
+import { enemyCombinedNote, pickSet } from "../../sim/sortieAdapter";
 import type { SortieSettings } from "../../sim/sortieAdapter";
 import { Button, EmptyState, Popover, Select, Tabs, S, cx } from "../../ui";
 import type { TabItem } from "../../ui";
@@ -395,6 +395,7 @@ export const Workspace = () => {
         <div className={cx("flex min-h-0 flex-1 flex-col gap-4 px-4 py-3 transition-opacity duration-200", (sim.stale || !out) && "opacity-45")}>
           {loadError && <DataError error={loadError} />}
           {error && <p className="text-xs text-danger-400">{error}</p>}
+          {out && out.enemyCombined.length > 0 && <p className="text-xs text-warn-400">{enemyCombinedNote(out.enemyCombined)}</p>}
           {out?.kind === "sortie" ? (
             <SortieResults out={out} meta={meta} />
           ) : out?.kind === "battle" ? (

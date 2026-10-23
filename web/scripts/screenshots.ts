@@ -201,6 +201,26 @@ try {
   await page.setViewportSize({ width: 1024, height: 600 });
   await page.waitForTimeout(300);
   await checkNoScroll("1024x600 six 5-slot ships");
+  await shot("workspace-1024");
+  // 連合艦隊 (随伴) と基地航空隊 (poi の基地を取り込み、1 波目の目標を最初の戦闘マスに)、目標マスも同じ高さで収まる
+  await page.getByLabel("艦隊", { exact: true }).selectOption("carrier_task_force");
+  await page.getByRole("tab", { name: /^随伴/ }).click();
+  // 空の随伴に poi の第2艦隊を入れる (これで連合艦隊として計算される)
+  const prevEscort = await meta(page);
+  await page.getByTitle("第2艦隊").first().click();
+  await waitResult(prevEscort);
+  await checkNoScroll("1024x600 escort");
+  await shot("workspace-1024-escort");
+  await page.getByRole("tab", { name: /^基地/ }).click();
+  await page.getByRole("button", { name: "poi から取り込み" }).click();
+  await page.getByLabel("第1基地 1波目の目標").selectOption({ index: 1 });
+  await page.waitForTimeout(400);
+  await checkNoScroll("1024x600 land bases");
+  await shot("workspace-1024-lbas");
+  await page.getByLabel("目標マス").selectOption({ index: 1 });
+  await page.waitForTimeout(600);
+  await checkNoScroll("1024x600 target node");
+  await shot("workspace-1024-target");
 
   // 狭いウィンドウ (800px 幅): 1 列に積んでページをスクロールする
   await page.setViewportSize({ width: 800, height: 900 });

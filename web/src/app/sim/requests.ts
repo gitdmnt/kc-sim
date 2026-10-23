@@ -9,7 +9,7 @@ import { getDataApi } from "../../data/api";
 import type { MapData } from "../../data/mapData";
 import { runInWorker, runSortieInWorker } from "../../sim/client";
 import { allocateCounts, mergeSummaries } from "../../sim/runner";
-import { buildSortieInput, mapLookup } from "../../sim/sortieAdapter";
+import { buildSortieInput, enemyCombinedNote, hasEnemyEscort, mapLookup } from "../../sim/sortieAdapter";
 import type { SortieSettings } from "../../sim/sortieAdapter";
 import type { AssumptionData } from "./Assumptions";
 import type { SimRequest } from "./useSimRun";
@@ -24,6 +24,8 @@ export interface SortieOutcome {
   compSets: Record<string, EnemyCompSet>;
   /** 目標マス (主要率をこのマスで数えた)。省略はボス */
   target?: string;
+  /** 敵連合艦隊を主力だけで近似したマス */
+  enemyCombined: string[];
   assumptions: AssumptionData;
   seed: number;
 }
@@ -40,6 +42,8 @@ export interface BattleOutcome {
   total: SimulationSummary;
   comps: CompRun[];
   friendNames: string[];
+  /** 敵連合艦隊を主力だけで近似したマス (選んだ編成に随伴があれば そのマス) */
+  enemyCombined: string[];
   assumptions: AssumptionData;
   seed: number;
 }
@@ -94,6 +98,7 @@ export const sortieRequest = (
             uncertain: build.uncertain,
             target: st.target,
             compSets: build.compSets,
+            enemyCombined: build.enemyCombined,
             assumptions: {
               friend: build.friend,
               enemy: build.enemyBuilds,
@@ -128,12 +133,20 @@ export const battleRequest = (
   const fleet = friendFleet(friend, friendFormationOf(preset));
   const lbas = landBaseWaves(preset.lbas, o.node, master);
   const inputs = chosen.map((c, i) => buildBattleInput(fleet, builds[i].input, { kind: o.kind, enemyFormation: enemyFormationOf(c), lbas }));
+  const enemyCombined = hasEnemyEscort(chosen) ? [o.node] : [];
   const assumptions: AssumptionData = {
     friend,
     enemy: builds,
     applyFit: o.applyFit,
     serverEstimates: o.useServerEstimates,
-    warnings: [...new Set([...(o.applyFit && !o.fit ? [FIT_MISSING] : []), ...friend.warnings, ...builds.flatMap((b) => b.warnings)])],
+    warnings: [
+      ...new Set([
+        ...(o.applyFit && !o.fit ? [FIT_MISSING] : []),
+        ...(enemyCombined.length > 0 ? [enemyCombinedNote(enemyCombined)] : []),
+        ...friend.warnings,
+        ...builds.flatMap((b) => b.warnings),
+      ]),
+    ],
   };
   return {
     start: (count, onProgress) => {
@@ -155,6 +168,7 @@ export const battleRequest = (
             total: mergeSummaries(comps.map((r) => r.summary), { skipEnemy: comps.length > 1 }),
             comps,
             friendNames: friendNamesOf(friend),
+            enemyCombined,
             assumptions,
             seed: o.seed,
           };

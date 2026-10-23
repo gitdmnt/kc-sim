@@ -62,7 +62,7 @@ export const S = {
     transport_escort: "輸送護衛部隊",
   },
   airBase: {
-    title: (n: number) => `第${n}基地航空隊`,
+    title: (n: number) => `第${n}基地`,
     modes: { sortie: "出撃", defense: "防空", standby: "待機" },
     squadron: (n: number) => `第${n}中隊`,
     wave: (n: number) => `${n}波目`,

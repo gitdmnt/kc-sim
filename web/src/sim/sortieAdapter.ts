@@ -38,6 +38,13 @@ export const mapLookup = (data: Pick<MapData, "ships" | "equips">): EnemyLookup 
   detail: (id) => data.ships.get(id),
 });
 
+/** 敵の随伴艦隊を持つ編成があるか (sim-core は敵連合艦隊を持たないので主力だけで近似する) */
+export const hasEnemyEscort = (comps: { escort: unknown[] }[]): boolean => comps.some((c) => c.escort.length > 0);
+
+/** 結果パネルと前提に出す注記 (`nodes` は敵連合艦隊のマス、単一戦闘なら選んだマス) */
+export const enemyCombinedNote = (nodes: string[]): string => `敵連合艦隊 (${nodes.join(", ")}) は随伴を除き主力のみで近似`;
+
+/** 敵編成 → sim-core。敵連合艦隊は随伴を落として主力だけ (sim-core は味方連合 vs 敵通常艦隊のみ) */
 export const toSimComps = (
   set: EnemyCompSet,
   data: Pick<MapData, "ships" | "equips">,
@@ -138,6 +145,8 @@ export interface SortieBuild {
   uncertain: Set<string>;
   /** ノード → シミュレーションに使った編成セット (出典表示用) */
   compSets: Record<string, EnemyCompSet>;
+  /** 敵連合艦隊が出るマス (主力だけで近似した) */
+  enemyCombined: string[];
 }
 
 export const buildSortieInput = (
@@ -157,6 +166,7 @@ export const buildSortieInput = (
 
   const enemyBuilds: EnemyBuild[] = [];
   const compSets: Record<string, EnemyCompSet> = {};
+  const enemyCombined: string[] = [];
   const nodes: Record<string, SortieNode> = {};
   for (const n of data.detail.nodes) {
     nodes[n.letter] = { kind: (n.type ?? undefined) as SortieNode["kind"], boss: n.isBoss };
@@ -168,6 +178,7 @@ export const buildSortieInput = (
     const { comps, builds } = toSimComps(picked.set, data, opts);
     nodes[n.letter].comps = comps;
     compSets[n.letter] = picked.set;
+    if (hasEnemyEscort(picked.set.comps)) enemyCombined.push(n.letter);
     enemyBuilds.push(...builds);
   }
 
@@ -218,5 +229,6 @@ export const buildSortieInput = (
     ...(gauge ? { gauge } : {}),
     ...(lbas.length > 0 ? { lbas } : {}),
   };
-  return { input, warnings: [...warnings, ...friend.warnings], friend, enemyBuilds, uncertain: uncertainNodes(routing), compSets };
+  if (enemyCombined.length > 0) warnings.push(enemyCombinedNote(enemyCombined));
+  return { input, warnings: [...warnings, ...friend.warnings], friend, enemyBuilds, uncertain: uncertainNodes(routing), compSets, enemyCombined };
 };
