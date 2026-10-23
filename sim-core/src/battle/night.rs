@@ -202,6 +202,12 @@ impl<'a> Battle<'a> {
                 return Some(s);
             }
         }
+        self.night_zuiun_roll(a, sides)
+    }
+
+    /// Night Zuiun cut-in of friend ship `a` (kcsim `canSpecialAttack` `isSpecial` night types):
+    /// both attacks by `a`.
+    pub(super) fn night_zuiun_roll(&mut self, a: usize, sides: &[SideNight; 2]) -> Option<(Fsa, List)> {
         if !self.core(0, a).night_zuiun {
             return None;
         }
@@ -219,7 +225,7 @@ impl<'a> Battle<'a> {
     /// Special attack at night: each attacker makes a night attack on a surface target with the
     /// special modifiers (kcsim `nightPhase` special branch + `NBattack(…, attackSpecial)`). A night
     /// Zuiun cut-in lights the enemy like an own star shell for the rest of the battle.
-    fn special_night_attack(&mut self, kind: Fsa, flag: usize, attackers: List, sides: &mut [SideNight; 2]) {
+    pub(super) fn special_night_attack(&mut self, kind: Fsa, flag: usize, attackers: List, sides: &mut [SideNight; 2]) {
         for &a in attackers.as_slice() {
             let targets = self.surface(1);
             if targets.is_empty() {

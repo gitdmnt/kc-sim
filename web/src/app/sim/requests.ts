@@ -218,6 +218,8 @@ export const battleRequest = (
     if (escort.some((x) => x)) extras.escortBonuses = escort;
     const bases = (b.lbasBonuses ?? []).map((x) => bonusAt(x, o.node));
     if (bases.some((x) => x)) extras.lbasBonuses = bases;
+    const ff = ffFleet ? (b.friendFleetBonuses ?? []).map((x) => bonusAt(x, o.node)) : [];
+    if (ff.some((x) => x)) extras.friendFleetBonuses = ff;
     const debuffs = e.debuff ? debuffsAt(e.response, o.node) : [];
     if (debuffs.length) extras.debuffs = debuffs;
     bonusWarnings.push(eventBonusNote(e), ...b.warnings);

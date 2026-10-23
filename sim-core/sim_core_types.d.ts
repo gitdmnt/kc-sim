@@ -382,6 +382,9 @@ export interface BattleInput {
   /** Friend fleet (友軍艦隊): fights at night before the player's night battle (`dayNight` when
    *  the night battle happens, `nightOnly`, the night part of `nightToDay`). A single fleet. */
   friendFleet?: FriendFleetInput;
+  /** Event bonuses of the friend fleet's ships, in `friendFleet.fleet.ships` order (`null` = none;
+   *  Error with more entries than friend fleet ships). */
+  friendFleetBonuses?: (ShipBonusSet | null)[];
   /** Enemy air raid on the land bases (基地空襲), resolved before the battle. */
   baseRaid?: BaseRaidInput;
 }
@@ -790,6 +793,8 @@ export interface SortieNode {
   escortBonuses?: (ShipBonusSet | null)[];
   /** Event bonuses of the land bases attacking this node (`SortieInput.lbas` order). */
   lbasBonuses?: (BaseBonusSet | null)[];
+  /** Event bonuses of the friend fleet's ships at this node (`friendFleet.fleet.ships` order). */
+  friendFleetBonuses?: (ShipBonusSet | null)[];
   /** Armor debuffs of the enemy ships here (at the goal node also `gauge.finalComps`). */
   debuffs?: ArmorDebuff[];
   /** Land-base distance of the node (api_distance). Waves to a node beyond a base's radius are

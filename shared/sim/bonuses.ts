@@ -1,7 +1,8 @@
 /**
  * イベント特効 (`GET /api/v1/maps/{map}/bonuses`) を sim-core の入力に変換する。
- * 単一戦闘は `BattleInput.bonuses` / `escortBonuses` / `lbasBonuses` / `debuffs`、
- * 出撃はマスごとの `SortieNode.bonuses` / `escortBonuses` / `lbasBonuses` / `debuffs`。
+ * 単一戦闘は `BattleInput.bonuses` / `escortBonuses` / `lbasBonuses` / `friendFleetBonuses` / `debuffs`、
+ * 出撃はマスごとの `SortieNode.bonuses` / `escortBonuses` / `lbasBonuses` / `friendFleetBonuses` / `debuffs`。
+ * 友軍艦隊もそのマスの特効を受ける (bonus.js `applyAutoBonusShip(ship, isFF)`)。
  *
  * 畳み方は kancolle-replay `simulator-ui/bonus.js` (MIT) に合わせる。
  * - マスごとに、該当する項目 (`nodes` が null か含む、`nodesExclude` に含まれない) の dmg/acc/eva をキーごとに掛ける。
@@ -59,6 +60,8 @@ export interface BonusBuild {
   escortBonuses?: (NodeBonus<ShipBonusSet> | null)[];
   /** `opts.lbas` の各基地 (渡したときだけ)。 */
   lbasBonuses?: (NodeBonus<BaseBonusSet> | null)[];
+  /** 友軍艦隊の各艦 (`preset.friendFleet` があるときだけ)。 */
+  friendFleetBonuses?: (NodeBonus<ShipBonusSet> | null)[];
   /** 評価できなかった項目など。 */
   warnings: string[];
 }
@@ -288,6 +291,7 @@ export const buildBonuses = (preset: Preset, res: EventBonusResponse, master: Ma
   const ships = (list: PresetShip[]) => list.map((ship) => fold((l) => shipSetAt(res, ship, master, l, opts, missingBase), letters));
   const out: BonusBuild = { bonuses: ships(preset.ships), warnings };
   if (preset.escort?.length) out.escortBonuses = ships(preset.escort);
+  if (preset.friendFleet?.length) out.friendFleetBonuses = ships(preset.friendFleet);
   if (opts.lbas) {
     const lbLetters = lettersOf(res.lbasBonuses);
     out.lbasBonuses = opts.lbas.map((base) => {

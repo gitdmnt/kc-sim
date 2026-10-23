@@ -75,6 +75,9 @@ pub struct SortieNode {
     /// Event bonuses of the land bases attacking this node, in `lbas` (base) order.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lbas_bonuses: Option<Vec<Option<BaseBonusSet>>>,
+    /// Event bonuses of the friend fleet's ships at this node, in `friendFleet.fleet.ships` order.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub friend_fleet_bonuses: Option<Vec<Option<ShipBonusSet>>>,
     /// Armor debuffs of the enemy ships here (at the goal node also `gauge.finalComps`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub debuffs: Option<Vec<ArmorDebuff>>,

@@ -12,7 +12,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::rc::Rc;
 
-use crate::battle::friend::FriendCore;
+use crate::battle::friend::{self, FriendCore};
 use crate::battle::lbas::{initial_planes, LandBaseCore, LbPlanes, MAX_SQUADRONS, MAX_WAVES};
 use crate::battle::raid::{air_state_of, base_raid, has_heavy_bombers, BaseTarget, RaidAcc, RaidBases, Raider, BASE_HP};
 use crate::battle::support::SupportCore;
@@ -145,10 +145,11 @@ struct NodeInfo {
     warning: Option<String>,
     /// Land-base waves at this node: base index per wave, in base order then target order.
     lb_waves: Vec<usize>,
-    /// Event bonuses at this node: friend ships (main then escort; empty = none) and land bases
-    /// (base order; empty = none).
+    /// Event bonuses at this node: friend ships (main then escort; empty = none), land bases
+    /// (base order; empty = none) and the friend fleet's ships (empty = none).
     bonus: Vec<Option<Bonus>>,
     lb_bonus: Vec<Option<BaseBonus>>,
+    ff_bonus: Vec<Option<Bonus>>,
     /// The friend fleet can arrive here (`friendFleet.nodes`, default the goal node).
     friend_fleet: bool,
     /// Base raids on arrival at this node, before its battle.
@@ -568,6 +569,7 @@ impl Sortie {
             let (main_len, esc_len) = (input.friend.ships.len(), input.friend.escort_ships().len());
             let ship_bonus = bonus::build_fleet(n.and_then(|n| n.bonuses.as_deref()), n.and_then(|n| n.escort_bonuses.as_deref()), main_len, esc_len, &format!("node {letter} "))?;
             let lb_bonus = bonus::build_bases(&format!("node {letter} lbasBonuses"), n.and_then(|n| n.lbas_bonuses.as_deref()), bases.len(), MAX_SQUADRONS)?;
+            let ff_bonus = friend::bonuses(input.friend_fleet.as_ref(), n.and_then(|n| n.friend_fleet_bonuses.as_deref()), &format!("node {letter} "))?;
             let balloons = n.and_then(|n| n.balloons).unwrap_or(false);
             let smoke = input.policy.smoke.contains(&letter);
             nodes.push(NodeInfo {
@@ -586,6 +588,7 @@ impl Sortie {
                 lb_waves,
                 bonus: ship_bonus,
                 lb_bonus,
+                ff_bonus,
                 friend_fleet: false,
                 raids: Vec::new(),
             });
@@ -1059,7 +1062,7 @@ impl Sortie {
                     b.set_support(sc, std::mem::take(&mut sup_st[si]));
                 }
                 if let (true, Some(ff)) = (info.friend_fleet, &self.friend_fleet) {
-                    b.set_friend_fleet(ff);
+                    b.set_friend_fleet(ff, &info.ff_bonus);
                 }
                 let o = b.run();
                 carry = b.carry;

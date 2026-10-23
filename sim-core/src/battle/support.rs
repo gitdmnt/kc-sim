@@ -10,6 +10,7 @@
 
 use super::air::friend_fighter_loss;
 use super::{calc, validate_fleet, Battle, FleetCore, List, MAX_SHIPS};
+use crate::bonus::Bonus;
 use crate::equipment::{cat, f, Equip};
 use crate::formation::{self, countered};
 use crate::formulas::{self, soft_cap, Roll};
@@ -171,17 +172,24 @@ impl<'a> Battle<'a> {
         self.support.as_mut().map(|r| std::mem::take(&mut r.st))
     }
 
-    /// Run `f` with `fleet` / `st` / `form` on the friend side (every ship engaged, no combined
-    /// terms, no event bonuses): support and friend fleet phases reuse the engine's targeting,
-    /// damage and logging.
-    pub(super) fn with_fleet<R>(&mut self, fleet: &'a FleetCore, st: &mut Vec<ShipState>, form: Formation, f: impl FnOnce(&mut Self) -> R) -> R {
+    /// Run `f` with `fleet` / `st` / `form` / event `bonus` on the friend side (every ship engaged,
+    /// no combined terms): support and friend fleet phases reuse the engine's targeting, damage and
+    /// logging.
+    pub(super) fn with_fleet<R>(
+        &mut self,
+        fleet: &'a FleetCore,
+        st: &mut Vec<ShipState>,
+        form: Formation,
+        bonus: &'a [Option<Bonus>],
+        f: impl FnOnce(&mut Self) -> R,
+    ) -> R {
         let engaged = [(0, fleet.ships.len()), (0, self.len(1))];
         let fleet0 = std::mem::replace(&mut self.fleets[0], fleet);
         std::mem::swap(&mut self.st[0], st);
         let form0 = std::mem::replace(&mut self.setup.formations[0], form);
         let combined = self.combined.take();
         let engaged0 = std::mem::replace(&mut self.engaged, engaged);
-        let bonus = std::mem::take(&mut self.bonus);
+        let bonus = std::mem::replace(&mut self.bonus, bonus);
         let r = f(self);
         self.fleets[0] = fleet0;
         std::mem::swap(&mut self.st[0], st);
@@ -227,7 +235,7 @@ impl<'a> Battle<'a> {
             let main_form = self.fleets[0].combined.is_none().then_some(self.setup.formations[0]);
             let mut st = std::mem::take(&mut self.support.as_mut().expect("support").st);
             let phase = std::mem::replace(&mut self.phase, Phase::Support);
-            self.with_fleet(&sc.fleet, &mut st, Formation::LineAhead, |b| match k {
+            self.with_fleet(&sc.fleet, &mut st, Formation::LineAhead, &[], |b| match k {
                 SupportType::Shelling => b.support_fire(main_form, false),
                 SupportType::Torpedo => b.support_fire(main_form, true),
                 SupportType::Air => b.support_air(),

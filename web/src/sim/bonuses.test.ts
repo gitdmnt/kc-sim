@@ -118,6 +118,13 @@ describe("buildBonuses", () => {
     expect(debuffsAt(res, "A")).toEqual([{ amount: 5 }]);
   });
 
+  test("friend fleet ships get the node's bonuses", () => {
+    const res = response([entry(null, { dmg: 1.2, shipType: [2] }), entry(["Z"], { dmg: 1.5, shipType: [3] })]);
+    const out = buildBonuses({ ...preset([ship(30)]), friendFleet: [ship(3), ship(20)] }, res, master);
+    expect(out.friendFleetBonuses).toEqual([{ all: { dmg: 1.2 } }, { nodes: { Z: { dmg: 1.5 } } }]);
+    expect(buildBonuses(preset([ship(30)]), res, master).friendFleetBonuses).toBeUndefined();
+  });
+
   test("the engine accepts the output", () => {
     const res = response([entry(null, { dmg: 2, shipType: [2] })]);
     const built = buildBonuses(preset([ship(3)]), res, master);
@@ -173,5 +180,15 @@ describe("buildSortieInput: event bonuses per node", () => {
     const off = buildSortieInput(p, master, data, settings, { eventBonus: { response: res, debuff: false } });
     expect(off.input.map.nodes.B!.debuffs).toBeUndefined();
     expect(buildSortieInput(p, master, data, settings).input.map.nodes.B!.bonuses).toBeUndefined();
+  });
+
+  test("friend fleet bonuses only with a friend fleet", () => {
+    const res = response([entry(["B"], { dmg: 1.4, shipType: [3] })]);
+    const p = { ...preset([dd()]), friendFleet: [{ ...ship(20), observed: { ...dd().observed!, maxHp: 40, nowHp: 40 } }] };
+    const on = buildSortieInput(p, master, data, { ...settings, friendFleet: { chance: 1, nodes: [] } }, { eventBonus: { response: res, debuff: false } });
+    expect(on.input.map.nodes.B!.friendFleetBonuses).toEqual([{ dmg: 1.4 }]);
+    expect(on.input.map.nodes.A!.friendFleetBonuses).toBeUndefined();
+    const off = buildSortieInput(p, master, data, settings, { eventBonus: { response: res, debuff: false } });
+    expect(off.input.map.nodes.B!.friendFleetBonuses).toBeUndefined();
   });
 });

@@ -487,6 +487,9 @@ pub struct BattleInput {
     /// Friend fleet (友軍艦隊): fights at night before the player's night battle.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub friend_fleet: Option<FriendFleetInput>,
+    /// Event bonuses of the friend fleet's ships, in `friend_fleet.fleet.ships` order.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub friend_fleet_bonuses: Option<Vec<Option<ShipBonusSet>>>,
 }
 
 /// Event historical bonus multipliers (kancolle-replay `bonusDmg` / `bonusAcc` / `bonusEva`); each

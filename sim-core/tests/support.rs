@@ -448,6 +448,69 @@ fn friend_fleet_rerolls_the_enemy_flagship() {
     assert!(ff_rate < 0.03 && pl_rate > 0.06, "{ff_rate} {pl_rate}");
 }
 
+#[test]
+fn friend_fleet_ships_are_never_sunk() {
+    // Battleships against a destroyer friend fleet: lethal hits are replaced (player sinking protection).
+    let enemy = fleet(vec![enemy_bb(), enemy_bb(), enemy_bb(), enemy_bb(), enemy_bb(), enemy_bb()]);
+    let mut b = battle(fleet(vec![friend_cv()]), enemy, BattleKind::NightOnly);
+    let dd = |hp: i32| ShipInput { hp: Some(hp), ..friend_dd() };
+    // The 4th ship starts heavily damaged: unprotected.
+    b.friend_fleet = Some(FriendFleetInput { fleet: fleet(vec![dd(32), dd(32), dd(32), dd(7), dd(32), dd(32)]), chance: None, nodes: None });
+    b.options.log = true;
+    let (mut hits, mut sunk_taiha) = (0, 0);
+    for seed in 0..300 {
+        let r = run_battle(&b, seed).unwrap().result;
+        for e in r.events.as_ref().unwrap().iter().filter(|e| e.phase == Phase::FriendFleet && e.attacker_side == Side::Enemy && e.damage > 0) {
+            hits += 1;
+            if e.defender == 3 {
+                sunk_taiha += (e.defender_hp_after == 0) as u32;
+            } else {
+                assert!(e.defender_hp_after > 0, "seed {seed}: {e:?}");
+            }
+        }
+    }
+    assert!(hits > 50 && sunk_taiha > 0, "{hits} {sunk_taiha}");
+}
+
+#[test]
+fn friend_fleet_event_bonuses() {
+    let mut b = battle(fleet(vec![friend_cv()]), enemy_fleet(), BattleKind::NightOnly);
+    b.friend_fleet = Some(strong_ff());
+    b.options.log = true;
+    let ff_damage = |b: &BattleInput| -> i64 {
+        (0..200)
+            .flat_map(|seed| run_battle(b, seed).unwrap().result.events.unwrap())
+            .filter(|e| e.phase == Phase::FriendFleet && e.attacker_side == Side::Friend)
+            .map(|e| e.damage as i64)
+            .sum()
+    };
+    let plain = ff_damage(&b);
+    let set = serde_json::from_value::<ShipBonusSet>(json!({ "dmg": 2.0 })).unwrap();
+    b.friend_fleet_bonuses = Some(vec![Some(set.clone()); 6]);
+    let boosted = ff_damage(&b);
+    assert!(boosted as f64 > 1.3 * plain as f64, "{plain} {boosted}");
+    // More entries than friend fleet ships: an error, in battles and at sortie nodes.
+    b.friend_fleet_bonuses = Some(vec![Some(set); 7]);
+    assert!(run_battle(&b, 1).unwrap_err().contains("friendFleetBonuses"));
+    let mut s = sortie(json!(null), json!(strong_ff()));
+    s.map.nodes.get_mut("B").unwrap().friend_fleet_bonuses = Some(vec![None; 7]);
+    assert!(simulate_sortie(&s, 10, 1).unwrap_err().contains("node B friendFleetBonuses"));
+}
+
+#[test]
+fn friend_fleet_night_zuiun_cut_in() {
+    let night_zuiun = || plane(490, 11, 10, EquipmentStats { firepower: Some(3.0), bombing: Some(11.0), ..Default::default() }, 4, 0);
+    let cav = ship(6, 99.0, 70, 70.0, 20.0, 60.0, 70.0, 50.0, 0.0, 40.0, vec![gun_203(), gun_203(), night_zuiun(), night_zuiun(), radar_22()]);
+    let mut b = battle(fleet(vec![friend_cv()]), enemy_fleet(), BattleKind::NightOnly);
+    b.friend_fleet = Some(FriendFleetInput { fleet: fleet(vec![cav]), chance: None, nodes: None });
+    b.options.log = true;
+    let nz: usize = (0..200)
+        .map(|seed| run_battle(&b, seed).unwrap().result.events.unwrap())
+        .map(|ev| ev.iter().filter(|e| e.phase == Phase::FriendFleet && e.special == SpecialAttack::NightZuiunZzr).count())
+        .sum();
+    assert!(nz > 0);
+}
+
 fn enemy_with_escort() -> FleetInput {
     let tough = |mut s: ShipInput| {
         s.max_hp = 400;

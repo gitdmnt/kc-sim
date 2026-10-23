@@ -55,9 +55,10 @@ interface Row {
 interface Input { savedAt: string; rows: Row[]; ships: ShipRow[]; equips: EquipRow[]; fit: FitEntry[]; details: Record<number, ShipDetail>;
   /** Event maps: GET /api/v1/maps/{map}/bonuses by map id. */
   eventBonuses: Record<number, EventBonusResponse>;
-  /** Hidden stats of the event friend-fleet ships (kancolle-replay kcSHIPDATA, MIT): Lv1 and Lv99 EV / ASW / LoS, luck. */
+  /** Hidden stats of the event friend-fleet ships (kancolle-replay kcSHIPDATA, MIT): Lv1 and Lv99 EV / ASW / LoS, luck
+   *  (base and maximum). */
   friendStats: Record<number, FriendStats> }
-interface FriendStats { EV: number; EVbase: number; ASW: number; ASWbase: number; LOS: number; LOSbase: number; LUK: number }
+interface FriendStats { EV: number; EVbase: number; ASW: number; ASWbase: number; LOS: number; LOSbase: number; LUK: number; LUKmax?: number }
 
 async function loadOnline(): Promise<Input> {
   const db = openD1();
@@ -154,6 +155,14 @@ const FRIEND_FORMATION: Record<number, Formation> = {
   11: "combinedAntiSub", 12: "combinedForward", 13: "combinedDiamond", 14: "combinedBattle",
 };
 const ENGAGEMENT: Record<number, Engagement> = { 1: "sameCourse", 2: "headOn", 3: "tAdvantage", 4: "tDisadvantage" };
+/**
+ * Friend-fleet improvements as kancolle-replay imports a KCNav friend fleet (convert.js `kcnavToSaveShips`,
+ * common.js `friendFleetEquipImproveException`): ★10 on the regular slots, these equipment ids at the given ★, the
+ * reinforcement slot and FRIEND_NO_IMPROVE_TYPES ★0.
+ */
+const FRIEND_IMPROVE: Record<number, number> = { 172: 0, 183: 4, 308: 0, 376: 4, 387: 7, 456: 0, 468: 6, 534: 8, 536: 8 };
+/** api_type[2] left at ★0: landing craft, special amphibious tanks, army units (kcEQDATA 24 / 46 / 52). */
+const FRIEND_NO_IMPROVE_TYPES = new Set([24, 46, 52]);
 
 /** KCNav ship → preset ship with its displayed stats as `observed` (what poi would import). */
 function presetShip(s: BattleSetupShip, maxHp: number, nowHp: number): PresetShip {
@@ -273,22 +282,31 @@ function build(r: Row): Built | string {
     support = { fleet: { ships: built.input }, type: SUPPORT_TYPE[flag], chance: 1 };
   }
 
-  // Event friend fleet (api_friendly_info): FP/TP/AA/AR naked from api_Param, equipment from api_Slot (improvements
-  // unknown: 0), HP as sent. EV/ASW/LoS (scaled to the level) and luck from kancolle-replay kcSHIPDATA.
+  // Event friend fleet (api_friendly_info): FP/TP/AA/AR naked from api_Param, equipment from api_Slot with its visible
+  // bonuses (our fit data, as kcsim `loadEquips` with MECHANICS.eqBonus), HP as sent. The packet has no improvements,
+  // EV/ASW/LoS or luck; they are set the way kancolle-replay imports a KCNav friend fleet (simulator-ui/convert.js
+  // `kcnavToSaveShips`): see FRIEND_IMPROVE, luck at the ship's maximum (kcSHIPDATA LUKmax), EV/ASW/LoS from kcSHIPDATA
+  // scaled to the level. Max luck fits the packets' cut-in rates (VALIDATION.md §4).
   let friendFleetIn: FriendFleetInput | undefined;
+  let friendShips: PresetShip[] | undefined;
   const fi = s.yasen_rawapi?.api_friendly_info ?? p.api_friendly_info;
   if (fi) {
-    const ships: PresetShip[] = fi.api_ship_id.map((id, i) => {
+    const eq = (e: number | undefined, regular: boolean): PresetEquip | null => {
+      if (!e || e <= 0) return null;
+      const improvable = regular && !FRIEND_NO_IMPROVE_TYPES.has(master.data.equips[e]?.api_type?.[2] ?? 0);
+      return { masterId: e, improvement: improvable ? (FRIEND_IMPROVE[e] ?? 10) : 0, proficiency: 7 };
+    };
+    friendShips = fi.api_ship_id.map((id, i) => {
       const slotNum = master.data.ships[id]?.api_slot_num ?? 4;
-      const eq = (e: number | undefined): PresetEquip | null => (e && e > 0 ? { masterId: e, improvement: 0, proficiency: 7 } : null);
       return {
         masterId: id, level: fi.api_ship_lv[i] ?? 1, luckMod: 0, hpMod: 0, aswMod: 0, morale: 49,
-        equips: Array.from({ length: slotNum }, (_, j) => eq(fi.api_Slot[i]?.[j])),
-        exSlot: eq(fi.api_slot_ex?.[i]),
+        equips: Array.from({ length: slotNum }, (_, j) => eq(fi.api_Slot[i]?.[j], true)),
+        exSlot: eq(fi.api_slot_ex?.[i], false),
       };
     });
-    if (ships.some((x) => !master.data.ships[x.masterId])) return "friend fleet ship missing from master data";
-    const built = buildFriendShips({ id: "", name: "", createdAt: 0, updatedAt: 0, fleetType: "single", formation: "line_ahead", ships }, master.data);
+    if (friendShips.some((x) => !master.data.ships[x.masterId])) return "friend fleet ship missing from master data";
+    const built = buildFriendShips({ id: "", name: "", createdAt: 0, updatedAt: 0, fleetType: "single", formation: "line_ahead", ships: friendShips },
+      master.data, { fitBonuses: input.fit });
     built.input.forEach((sh, i) => {
       const [fp = 0, tp = 0, aa = 0, ar = 0] = fi.api_Param[i] ?? [];
       sh.maxHp = fi.api_maxhps[i] ?? sh.maxHp;
@@ -297,25 +315,26 @@ function build(r: Row): Built | string {
       const lv = (base: number, max: number) => Math.floor(base + ((max - base) * (sh.level ?? 1)) / 99);
       sh.stats = {
         ...sh.stats, firepower: fp, torpedo: tp, antiAir: aa, armor: ar,
-        ...(k ? { evasion: lv(k.EVbase, k.EV), asw: lv(k.ASWbase, k.ASW), los: lv(k.LOSbase, k.LOS), luck: k.LUK } : {}),
+        ...(k ? { evasion: lv(k.EVbase, k.EV), asw: lv(k.ASWbase, k.ASW), los: lv(k.LOSbase, k.LOS), luck: k.LUKmax ?? k.LUK } : {}),
       };
-      delete sh.equipBonus;
     });
     friendFleetIn = { fleet: { ships: built.input }, chance: 1 };
   }
 
-  // Event historical bonuses at this node (kancolle-replay data via GET /maps/{map}/bonuses); debuffs only with
-  // --debuffs, since whether the player had cleared the armor gimmick is not in the data.
+  // Event historical bonuses at this node (kancolle-replay data via GET /maps/{map}/bonuses), for the friend fleet too
+  // (kancolle-replay `applyAutoBonusShip(ship, isFF)`); debuffs only with --debuffs, since whether the player had
+  // cleared the armor gimmick is not in the data.
   const res = input.eventBonuses[r.map_id];
   const bonusIn: Partial<BattleInput> = {};
   if (res) {
-    const preset: Preset = { id: "", name: "", createdAt: 0, updatedAt: 0, fleetType, formation: "line_ahead", ships: main, escort };
+    const preset: Preset = { id: "", name: "", createdAt: 0, updatedAt: 0, fleetType, formation: "line_ahead", ships: main, escort, friendFleet: friendShips };
     const b = buildBonuses(preset, res, master.data, { lbas: lbasBases });
     warnings.push(...b.warnings);
     const at = <T extends object>(xs: (NodeBonus<T> | null)[] | undefined) => xs?.map((x) => bonusAt(x, r.node_letter));
     if (b.bonuses.some((x) => bonusAt(x, r.node_letter))) bonusIn.bonuses = at(b.bonuses);
     if (b.escortBonuses?.some((x) => bonusAt(x, r.node_letter))) bonusIn.escortBonuses = at(b.escortBonuses);
     if (b.lbasBonuses?.some((x) => bonusAt(x, r.node_letter))) bonusIn.lbasBonuses = at(b.lbasBonuses);
+    if (b.friendFleetBonuses?.some((x) => bonusAt(x, r.node_letter))) bonusIn.friendFleetBonuses = at(b.friendFleetBonuses);
     if (values.debuffs) {
       const d = debuffsAt(res, r.node_letter);
       if (d.length) bonusIn.debuffs = d;
@@ -408,7 +427,8 @@ for (const r of input.rows) {
     const run = runBattle({ ...b.input, options: { ...b.input.options, log: true } }, r.id * 1000 + k);
     for (const e of run.result.events ?? []) {
       const ph = PHASES.find(([sim]) => sim === e.phase)?.[1];
-      if (!ph) continue;
+      // Enemy shots in the friend fleet phase hit the friend fleet, not the player (the packets' ledger skips them too).
+      if (!ph || (ph === "friendFleet" && e.attackerSide === "enemy")) continue;
       const t = (phasePred[ph] ??= [0, 0]);
       t[e.attackerSide === "friend" ? 0 : 1] += e.damage / LOGGED;
     }

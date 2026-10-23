@@ -326,7 +326,7 @@ export const buildSortieInput = (
   const friendFleetInput = s.friendFleet && extraFleet(preset, "friendFleet", master, friendOpts, warnings);
   const combined = !!friend.combined;
 
-  // イベント特効: 戦闘のあるマスごとに、艦・基地の値とデバフ
+  // イベント特効: 戦闘のあるマスごとに、艦・基地・友軍艦隊の値とデバフ
   if (opts.eventBonus) {
     const e = opts.eventBonus;
     const b = buildBonuses(preset, e.response, master, { unconfirmed: e.unconfirmed, accEva: e.accEva, lbas: lbasBases });
@@ -338,6 +338,8 @@ export const buildSortieInput = (
       if (escort.some((x) => x)) n.escortBonuses = escort;
       const bases = (b.lbasBonuses ?? []).map((x) => bonusAt(x, letter));
       if (bases.some((x) => x)) n.lbasBonuses = bases;
+      const ff = friendFleetInput ? (b.friendFleetBonuses ?? []).map((x) => bonusAt(x, letter)) : [];
+      if (ff.some((x) => x)) n.friendFleetBonuses = ff;
       const debuffs = e.debuff ? debuffsAt(e.response, letter) : [];
       if (debuffs.length) n.debuffs = debuffs;
     }

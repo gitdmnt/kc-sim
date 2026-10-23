@@ -141,6 +141,8 @@ pub struct Prepared {
     pub rates: Rates,
     pub support: Option<SupportCore>,
     pub friend_fleet: Option<FriendCore>,
+    /// Event bonuses of the friend fleet's ships (empty = none).
+    ff_bonus: Vec<Option<Bonus>>,
     /// Enemy air raid on the bases, resolved before the battle.
     pub raid: Option<raid::BattleRaid>,
 }
@@ -269,6 +271,7 @@ impl Prepared {
             rates: Rates::new(input.options.special_attack_rates.as_ref()),
             support: input.support.as_ref().map(|s| SupportCore::new(s, s.boss.unwrap_or(false))).transpose()?,
             friend_fleet: input.friend_fleet.as_ref().map(FriendCore::new).transpose()?,
+            ff_bonus: friend::bonuses(input.friend_fleet.as_ref(), input.friend_fleet_bonuses.as_deref(), "")?,
             raid,
         })
     }
@@ -285,7 +288,7 @@ impl Prepared {
             b.set_support(s, s.init.clone());
         }
         if let Some(f) = &self.friend_fleet {
-            b.set_friend_fleet(f);
+            b.set_friend_fleet(f, &self.ff_bonus);
         }
         b
     }

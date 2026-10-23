@@ -4,17 +4,33 @@
 //! wikiwiki.jp 友軍艦隊 (turn order, enemy turn skipping, last-enemy protection, flagship re-roll).
 //!
 //! The friend fleet takes the friend side's place for the phase ([`Battle::with_fleet`]) and
-//! attacks with the engine's night attack code (`night_turn`). Fleet special attacks (Nelson Touch
-//! etc.) never fire for a friend fleet (wikiwiki 友軍艦隊 「特殊砲撃(Nelson Touch等)は該当艦が旗艦に
-//! なっていても発動しない」): they are rolled in `night_phase`, which this phase does not use; code
-//! rolling specials inside `night_turn` / `night_attack` must check `Battle::ff_phase`.
+//! attacks with the engine's night attack code (`night_turn`), with its own event bonuses
+//! (`friendFleetBonuses`; kancolle-replay `applyAutoBonusShip(ship, isFF)` folds the event data at
+//! the battle's node for friend fleets too). Its ships have the player's sinking protection
+//! (kcsim `Ship.reset`: `protection = isflagship || HP/maxHP > .25` for playable ships): KCNav
+//! packets of event 62 show enemy hits on friend ships replaced by ⌊HP × 0.5 + 0.3 × rand(HP)⌋ and
+//! no friend ship sunk. Fleet special attacks (Nelson Touch etc.) never fire for a friend fleet
+//! (wikiwiki 友軍艦隊 「特殊砲撃(Nelson Touch等)は該当艦が旗艦になっていても発動しない」): they are
+//! rolled in `night_phase`, which this phase does not use; code rolling specials inside
+//! `night_turn` / `night_attack` must check `Battle::ff_phase`.
 
 use super::calc::NightEnv;
 use super::night::{can_night, SideNight};
 use super::{validate_fleet, Battle, FleetCore};
+use crate::bonus::{self, Bonus};
 use crate::model::*;
 use crate::rng::Rng;
 use crate::ship::ShipState;
+
+/// Event bonuses of the friend fleet's ships (`friendFleetBonuses`, in ship order); empty when no
+/// ship has one.
+pub fn bonuses(input: Option<&FriendFleetInput>, sets: Option<&[Option<ShipBonusSet>]>, at: &str) -> Result<Vec<Option<Bonus>>, String> {
+    let mut out = bonus::build_ships(&format!("{at}friendFleetBonuses"), sets, input.map_or(0, |f| f.fleet.ships.len()))?;
+    if out.iter().all(Option::is_none) {
+        out.clear();
+    }
+    Ok(out)
+}
 
 /// Static data of the friend fleet; its ships start every battle fresh (`init`).
 pub struct FriendCore {
@@ -35,13 +51,18 @@ impl FriendCore {
         if !(0.0..=1.0).contains(&chance) {
             return Err("friendFleet.chance must be in [0, 1]".into());
         }
-        let (fleet, init) = FleetCore::build(&input.fleet, true);
+        let (fleet, mut init) = FleetCore::build(&input.fleet, true);
+        for (i, (s, c)) in init.iter_mut().zip(&fleet.ships).enumerate() {
+            s.protected = i == 0 || s.hp_ratio(c.max_hp) > 0.25;
+        }
         Ok(FriendCore { fleet, init, formation: input.fleet.formation.unwrap_or_default(), chance })
     }
 }
 
 pub(super) struct FriendRun<'a> {
     core: &'a FriendCore,
+    /// Event bonuses at this battle's node (empty = none).
+    bonus: &'a [Option<Bonus>],
     fought: bool,
 }
 
@@ -71,8 +92,8 @@ fn env(sides: &[SideNight; 2], side: usize) -> NightEnv {
 }
 
 impl<'a> Battle<'a> {
-    pub fn set_friend_fleet(&mut self, core: &'a FriendCore) {
-        self.friend_fleet = Some(FriendRun { core, fought: false });
+    pub fn set_friend_fleet(&mut self, core: &'a FriendCore, bonus: &'a [Option<Bonus>]) {
+        self.friend_fleet = Some(FriendRun { core, bonus, fought: false });
     }
 
     /// `Some(fought)` when a friend fleet was set.
@@ -85,7 +106,7 @@ impl<'a> Battle<'a> {
     /// is rolled for this phase only, without air-state gating.
     pub(super) fn friend_fleet_phase(&mut self) {
         let Some(run) = self.friend_fleet.as_ref() else { return };
-        let fc = run.core;
+        let (fc, bonus) = (run.core, run.bonus);
         if !self.any_alive(1) || (fc.chance < 1.0 && !self.rng.chance(fc.chance)) {
             return;
         }
@@ -95,7 +116,7 @@ impl<'a> Battle<'a> {
         let phase = std::mem::replace(&mut self.phase, Phase::FriendFleet);
         let air_combat = std::mem::replace(&mut self.air_combat, false);
         self.ff_phase = true;
-        self.with_fleet(&fc.fleet, &mut st, form, |b| b.friend_night());
+        self.with_fleet(&fc.fleet, &mut st, form, bonus, |b| b.friend_night());
         self.ff_phase = false;
         self.air_combat = air_combat;
         self.phase = phase;
@@ -103,10 +124,11 @@ impl<'a> Battle<'a> {
 
     /// Friend ships attack in order; after each (but the last) the next enemy able to attack
     /// fires back (escort first, then main; enemies unable to attack are skipped). Before a friend
-    /// ship attacks, a lone surviving enemy is protected from sinking.
+    /// ship attacks, a lone surviving enemy is protected from sinking. A friend ship may make a
+    /// night Zuiun cut-in (kcsim `canSpecialAttack(attacker, true, nightEquips, true)`: no fleet
+    /// special attack), which lights the enemy for the rest of the phase.
     fn friend_night(&mut self) {
-        let sides = [self.night_setup(0, true), self.night_setup(1, true)];
-        let (envs, sl) = ([env(&sides, 0), env(&sides, 1)], [sides[0].searchlight, sides[1].searchlight]);
+        let mut sides = [self.night_setup(0, true), self.night_setup(1, true)];
         let (n0, n1, es1) = (self.len(0), self.len(1), self.escort_start(1));
         let mut k = 0;
         for a in 0..n0 {
@@ -115,7 +137,11 @@ impl<'a> Battle<'a> {
                 if let (Some(last), None) = (alive.next(), alive.next()) {
                     self.st[1][last].protected = true;
                 }
-                self.night_turn(0, a, &envs[0], sl[1], true);
+                let zuiun = if self.surface(1).is_empty() { None } else { self.night_zuiun_roll(a, &sides) };
+                match zuiun {
+                    Some((kind, attackers)) => self.special_night_attack(kind, 0, attackers, &mut sides),
+                    None => self.night_turn(0, a, &env(&sides, 0), sides[1].searchlight, true),
+                }
             }
             if a + 1 >= n0 || !self.any_alive(1) {
                 break;
@@ -125,7 +151,7 @@ impl<'a> Battle<'a> {
                 k += 1;
             }
             if k < n1 {
-                self.night_turn(1, order(k), &envs[1], sl[0], true);
+                self.night_turn(1, order(k), &env(&sides, 1), sides[0].searchlight, true);
                 k += 1;
             }
             if !self.any_alive(0) {
