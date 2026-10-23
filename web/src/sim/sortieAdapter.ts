@@ -12,6 +12,7 @@ import type {
   SortieNode,
 } from "@sim-core";
 import type { MapData } from "../data/mapData";
+import { describeRule } from "../data/routing";
 import type { EnemyCompSet, RoutingDoc, Rule, Predicate } from "@shared/data/types";
 import type { MasterData, Preset } from "@shared/fleet/types";
 import { buildEnemyShips, buildFriendShips, buildSquadrons, enemyFormationOf, friendFleet, isCombinedFormation } from "@shared/sim/adapter";
@@ -89,6 +90,34 @@ export const selectNodes = (doc: RoutingDoc | null): Record<string, string[]> =>
     walkRules(node.rules, (r) => {
       if (r.select) out[letter] = [...new Set([...(out[letter] ?? []), ...r.select])];
     });
+  }
+  return out;
+};
+
+/**
+ * 出撃に渡す能動分岐の選択 (ノード → 行き先)。保存した選択が今の選択肢にあればそれ。無ければ既定
+ * (`defaults.select` → 先頭) だが、目標マスがあって既定の行き先から届かないときは届く最初の選択肢にする。
+ */
+export const resolveSelects = (doc: RoutingDoc | null, saved: Record<string, string>, target?: string): Record<string, string> => {
+  const next = new Map(Object.entries(doc?.nodes ?? {}).map(([n, node]) => [n, (node.rules ?? []).flatMap((r) => describeRule(r).targets)]));
+  // 選択ノード自身には戻らない (戻っても同じ選択になる)
+  const reaches = (from: string, node: string) => {
+    const seen = new Set([node, from]);
+    for (const n of seen) {
+      if (n === target) return true;
+      if (n !== node) next.get(n)?.forEach((m) => seen.add(m));
+    }
+    return false;
+  };
+  const out: Record<string, string> = {};
+  for (const [node, options] of Object.entries(selectNodes(doc))) {
+    const preset = doc?.defaults?.select?.[node];
+    const fallback = preset && options.includes(preset) ? preset : options[0];
+    out[node] = options.includes(saved[node])
+      ? saved[node]
+      : target && !reaches(fallback, node)
+        ? (options.find((o) => reaches(o, node)) ?? fallback)
+        : fallback;
   }
   return out;
 };

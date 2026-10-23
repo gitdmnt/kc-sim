@@ -5,7 +5,7 @@ import { STORAGE_PREFIX } from "../../fleet";
 import type { Preset, PresetFleetType } from "../../fleet";
 import { abyssalName } from "../../data/names";
 import { useMapData, useMapList } from "../../data/useMapData";
-import { enemyCombinedNote, pickSet } from "../../sim/sortieAdapter";
+import { enemyCombinedNote, pickSet, resolveSelects } from "../../sim/sortieAdapter";
 import type { SortieSettings } from "../../sim/sortieAdapter";
 import { Button, EmptyState, Popover, Select, Tabs, S, cx } from "../../ui";
 import type { TabItem } from "../../ui";
@@ -152,7 +152,9 @@ export const Workspace = () => {
   const presetKey = preset ? JSON.stringify([preset.fleetType, preset.ships, preset.escort, preset.lbas, preset.formation, preset.hqLevel]) : "";
   // 出撃の目標マス (海域ごとに保存)。この海域に無いマスならボス
   const target = nodes.some((n) => n.letter === prefs.targets[prefs.map] && !n.isBoss) ? prefs.targets[prefs.map] : undefined;
-  const condKey = JSON.stringify([mode, diff, cfg, node, compId, target, prefs.night, prefs.onHeavy, prefs.allowDamecon, prefs.onModerate, prefs.applyFit, prefs.battleKind, prefs.seed, settings.useEstimates]);
+  // 能動分岐: 保存した選択、無ければ目標マスへ届く既定
+  const selects = useMemo(() => resolveSelects(routing, prefs.selects[prefs.map] ?? {}, target), [routing, prefs.selects, prefs.map, target]);
+  const condKey = JSON.stringify([mode, diff, cfg, selects, node, compId, target, prefs.night, prefs.onHeavy, prefs.allowDamecon, prefs.onModerate, prefs.applyFit, prefs.battleKind, prefs.seed, settings.useEstimates]);
   // req が null のときは why (実行ボタンの title と結果の欄に出す理由)。入力の誤りは error
   const built = useMemo((): { req: SimRequest<SimOutcome> | null; error: string | null; why?: string } => {
     if (!preset || preset.ships.length === 0) return { req: null, error: null, why: "艦隊に艦を入れると実行できます" };
@@ -166,7 +168,7 @@ export const Workspace = () => {
         const st: SortieSettings = {
           start: cfg.start || undefined,
           target,
-          selects: cfg.selects,
+          selects,
           flags: cfg.flags,
           difficulty: diff,
           phase: cfg.phase,
@@ -319,6 +321,7 @@ export const Workspace = () => {
               routing={routing}
               cfg={cfg}
               setCfg={setCfg}
+              selects={selects}
               battleNodes={battleNodes}
               bossSets={bossSets}
               formation={preset?.formation ?? null}

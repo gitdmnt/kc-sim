@@ -6,7 +6,7 @@ import type { MapBundle, RoutingDoc } from "@shared/data/types";
 import { MemoryStorage } from "../fleet/storage";
 import type { MasterData, Preset } from "@shared/fleet/types";
 import {
-  buildSortieInput, compSourceLabel, flagNames, hasStartRules, pickSet, selectNodes, startNodes, uncertainNodes,
+  buildSortieInput, compSourceLabel, flagNames, hasStartRules, pickSet, resolveSelects, selectNodes, startNodes, uncertainNodes,
 } from "./sortieAdapter";
 import { geometricSorties, mergeSortieSummaries, runSortieJob } from "./runner";
 
@@ -29,6 +29,35 @@ describe("routing scans", () => {
     expect(selectNodes(routing)).toEqual({ F: ["D", "J"] });
     expect(flagNames(routing)).toEqual([{ name: "open", default: true }]);
     expect([...uncertainNodes(routing)]).toEqual(["A"]);
+  });
+});
+
+describe("resolveSelects", () => {
+  // F: D / J (既定 D)。J の先にだけ K、K の先の選択 K: L / M (既定 L)
+  const doc: RoutingDoc = {
+    map: "9-9",
+    defaults: { select: { F: "D" } },
+    nodes: {
+      Start: { rules: [{ to: "F" }] },
+      F: { rules: [{ when: { m: "flag", name: "x" }, to: "D" }, { rules: [{ select: ["D", "J"] }] }] },
+      D: { rules: [{ to: "F" }] },
+      J: { rules: [{ to: "K" }] },
+      K: { rules: [{ select: ["L", "M"] }] },
+      L: { end: true },
+      M: { end: true },
+    },
+  };
+  test("saved choice, else defaults.select, else first", () => {
+    expect(resolveSelects(doc, {})).toEqual({ F: "D", K: "L" });
+    expect(resolveSelects(doc, { F: "J", K: "M" })).toEqual({ F: "J", K: "M" });
+    // 今の選択肢に無い保存値は使わない
+    expect(resolveSelects(doc, { F: "Q" })).toEqual({ F: "D", K: "L" });
+  });
+  test("a target behind a select picks an option that reaches it; the saved choice wins", () => {
+    expect(resolveSelects(doc, {}, "M")).toEqual({ F: "J", K: "M" });
+    expect(resolveSelects(doc, {}, "K")).toEqual({ F: "J", K: "L" });
+    expect(resolveSelects(doc, {}, "D")).toEqual({ F: "D", K: "L" });
+    expect(resolveSelects(doc, { F: "D" }, "M")).toEqual({ F: "D", K: "M" });
   });
 });
 

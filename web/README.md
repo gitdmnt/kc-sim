@@ -39,6 +39,9 @@ simulator toolbar in the order of use, left to right: 海域 (+ 難易度 for ev
 comp), 条件 (sliders icon), then 自動 (checkbox) and 実行 (play icon + count, fills with progress), above the results.
 出撃 mode also has 目標マス next to the map (default ボス, saved per map in `kcsim:workspace`): the sortie ends at that
 node, and the key rates (到達 / 突破 / S勝利 / 旗艦撃沈, gauge) count it instead of the boss (sim-core `config.target`).
+条件 has one 能動分岐 choice per `select` node of the map's rules (options labeled by destination), also saved per map;
+a node without a saved choice uses `defaults.select` (else the first option), or, when 目標マス is set and that option
+cannot reach it, the first option that can (`resolveSelects`).
 Enemy combined fleets (e.g. 6-5 M) are not in sim-core: their escort is dropped and the results panel says
 「敵連合艦隊 (M) は随伴を除き主力のみで近似」 (also listed under 前提). Left: a one-line fleet
 summary (icons: 制空, 速力, 索敵 Cn1–4, ドラム缶, 電探) and the six ships in a 2 × 3 grid like the game; each ship is a

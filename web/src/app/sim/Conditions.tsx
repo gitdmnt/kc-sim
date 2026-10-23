@@ -25,11 +25,10 @@ const PRESET_FORMATIONS: Record<PresetFormation, string> = { ...S.formations, ..
 const SINGLE_KEYS = Object.keys(S.formations) as PresetFormation[];
 const COMBINED_KEYS = Object.keys(S.combinedFormations) as PresetFormation[];
 
-/** 海域ごとの出撃条件 (保存しない)。 */
+/** 海域ごとの出撃条件 (保存しない。能動分岐は prefs.selects)。 */
 export interface MapConfig {
   /** 出撃地点。"" は規則 (start.rules) で自動 */
   start: string;
-  selects: Record<string, string>;
   flags: Record<string, boolean>;
   /** ノード → 陣形。無いノードは自動 */
   formations: Record<string, Formation>;
@@ -46,7 +45,6 @@ export interface MapConfig {
 
 export const defaultMapConfig = (routing: RoutingDoc | null): MapConfig => ({
   start: hasStartRules(routing) ? "" : startNodes(routing)[0],
-  selects: {},
   flags: {},
   formations: {},
   phase: (routing?.defaults as { phase?: number } | undefined)?.phase,
@@ -73,6 +71,8 @@ interface Props {
   routing: RoutingDoc | null;
   cfg: MapConfig;
   setCfg: (p: Partial<MapConfig>) => void;
+  /** 能動分岐ノード → 出撃に使う行き先 (resolveSelects) */
+  selects: Record<string, string>;
   /** 敵編成のある戦闘ノード (ノード別陣形用) */
   battleNodes: MapNode[];
   bossSets: EnemyCompSet[];
@@ -83,7 +83,7 @@ interface Props {
 }
 
 /** 条件パネル (ツールバーの「条件」)。 */
-export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, battleNodes, bossSets, formation, setFormation, combined }: Props) => {
+export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, selects, battleNodes, bossSets, formation, setFormation, combined }: Props) => {
   const starts = startNodes(routing);
   const selNodes = selectNodes(routing);
   const flags = flagNames(routing);
@@ -177,8 +177,8 @@ export const Conditions = ({ mode, prefs, setPrefs, routing, cfg, setCfg, battle
       {Object.entries(selNodes).map(([node, options]) => (
         <Field key={node} label={`能動分岐 ${node}`}>
           <Select
-            value={cfg.selects[node] ?? routing?.defaults?.select?.[node] ?? options[0]}
-            onChange={(e) => setCfg({ selects: { ...cfg.selects, [node]: e.target.value } })}
+            value={selects[node]}
+            onChange={(e) => setPrefs({ selects: { ...prefs.selects, [prefs.map]: { ...prefs.selects[prefs.map], [node]: e.target.value } } })}
           >
             {options.map((o) => (
               <option key={o} value={o}>

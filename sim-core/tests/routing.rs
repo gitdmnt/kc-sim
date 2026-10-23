@@ -288,6 +288,38 @@ fn predicates_and_actions() {
 }
 
 #[test]
+fn select_semantics() {
+    let route = |doc: Value, choice: Option<&str>, combined: bool| {
+        let mut inp = input(doc, vec![ship(2, 10.0, 40.0, vec![])]);
+        if combined {
+            inp.friend.escort = Some(vec![ship(2, 10.0, 40.0, vec![])]);
+            inp.friend.combined = Some(CombinedType::Carrier);
+        }
+        if let Some(c) = choice {
+            inp.config.selects.insert("Start".into(), c.into());
+        }
+        path(&inp, 1)
+    };
+    let sel = json!([{ "select": ["A", "B"] }]);
+    assert_eq!(route(tiny(sel.clone()), None, false), "Start-A");
+    assert_eq!(route(tiny(sel.clone()), Some("B"), false), "Start-B");
+    assert_eq!(route(tiny(sel.clone()), Some("B"), true), "Start-B");
+    // defaults.select, overridden by the config
+    let mut doc = tiny(sel);
+    doc["defaults"]["select"] = json!({ "Start": "B" });
+    assert_eq!(route(doc.clone(), None, false), "Start-B");
+    assert_eq!(route(doc, Some("A"), false), "Start-A");
+    // a forced rule above the select wins
+    let forced = json!([{ "when": { "m": "flag", "name": "open" }, "to": "C" }, { "select": ["A", "B"] }]);
+    assert_eq!(route(tiny(forced), Some("B"), false), "Start-C");
+    // nested select under a condition; a second select with other options keeps its default
+    let nested = json!([{ "when": { "m": "phase", "eq": 2 }, "rules": [{ "when": { "m": "ships", "gte": 2 }, "select": ["A", "C"] }, { "select": ["A", "B"] }] }, { "to": "C" }]);
+    assert_eq!(route(tiny(nested.clone()), Some("B"), false), "Start-B");
+    assert_eq!(route(tiny(nested.clone()), Some("B"), true), "Start-A");
+    assert_eq!(route(tiny(nested), Some("C"), true), "Start-C");
+}
+
+#[test]
 fn combined_fleet_metrics() {
     let main = || vec![ship(11, 10.0, 40.0, vec![]), ship(9, 5.0, 40.0, vec![])];
     let escort = || vec![ship(3, 10.0, 40.0, vec![equip(75, 30, 0.0, 0)]), ship(2, 10.0, 40.0, vec![]), ship(2, 10.0, 40.0, vec![])];

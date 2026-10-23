@@ -6,7 +6,7 @@ export type SimMode = "sortie" | "battle";
 /** 単一マス戦闘で選べる戦闘種別 (エンジンは空襲なども持つ) */
 export type OfferedKind = "day" | "dayNight" | "nightOnly";
 
-/** 作業台の選択と条件 (localStorage)。分岐・フラグ・ゲージなど海域ごとの設定は保存しない。 */
+/** 作業台の選択と条件 (localStorage)。目標マスと能動分岐は海域ごとに保存し、フラグ・ゲージなどほかの海域ごとの設定は保存しない。 */
 export interface WorkspacePrefs {
   /** 保存形式の版。既定値を変えたときの移行の判別に使う */
   version: number;
@@ -18,6 +18,8 @@ export interface WorkspacePrefs {
   node: string | null;
   /** 出撃の目標マス (海域 → マス)。無い海域はボス */
   targets: Record<string, string>;
+  /** 能動分岐の選択 (海域 → ノード → 行き先)。無いノードは既定 (目標マスがあればそこへ届く選択肢) */
+  selects: Record<string, Record<string, string>>;
   auto: boolean;
   /** 手動実行の回数 */
   count: number;
@@ -40,6 +42,7 @@ export const DEFAULT_PREFS: WorkspacePrefs = {
   mode: "sortie",
   node: null,
   targets: {},
+  selects: {},
   auto: true,
   count: 10_000,
   seed: 12345,
