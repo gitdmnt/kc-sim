@@ -49,7 +49,44 @@ const entrySchema = z.object({
     fleet: z.object({ fleettype: z.number().int(), fleet1: z.array(fleetShip).min(1), fleet2: z.array(fleetShip).nullish() }).loose(),
   }).loose(),
 }).loose();
-export type BattleEntry = z.infer<typeof entrySchema>;
+
+// ---- the stored entry as simulation input (scripts/battle-accuracy.ts) ----
+
+const setupShip = z.object({
+  id: z.number().int(),
+  lvl: z.number().int(),
+  /** Displayed totals (equipment and fit bonuses included); `as` = ASW, `ls` = LoS, `lk` = luck. */
+  stats: z.object({ fp: z.number(), tp: z.number(), aa: z.number(), ar: z.number(), ev: z.number(), as: z.number(), ls: z.number(), lk: z.number() }),
+  /** max(slot count, 4) normal slots, then the reinforcement slot when one longer; −1 = empty. */
+  equips: nums,
+  improvements: nums.nullish(),
+  proficiency: nums.nullish(),
+  /** Plane counts of the normal slots. */
+  slots: nums.nullish(),
+  fuel: z.number().nullish(),
+  ammo: z.number().nullish(),
+  morale: z.number().nullish(),
+});
+const setupBase = z.object({ planes: nums, slots: nums, proficiency: nums, improvements: nums });
+const nums2 = z.array(nums);
+const setupPacket = z.object({
+  api_ship_ke: nums, api_ship_lv: nums, api_eParam: nums2, api_eSlot: nums2,
+  api_e_maxhps: nums, api_e_nowhps: nums, api_f_maxhps: nums, api_f_nowhps: nums, api_fParam: nums2,
+  api_f_maxhps_combined: nums.nullish(), api_f_nowhps_combined: nums.nullish(), api_fParam_combined: nums2.nullish(),
+  /** `api_base_id` is 1-based into `fleet.lbas`. */
+  api_air_base_attack: z.array(z.object({ api_base_id: z.number().int() }).loose()).nullish(),
+});
+const setupSchema = z.object({
+  battle: z.object({
+    rawapi: setupPacket,
+    fleet: z.object({ fleettype: z.number().int(), fleet1: z.array(setupShip), fleet2: z.array(setupShip).nullish(), lbas: z.array(setupBase).nullish() }),
+  }),
+});
+export type BattleSetup = z.infer<typeof setupSchema>["battle"];
+export type BattleSetupShip = z.infer<typeof setupShip>;
+
+/** The stored `raw` entry's fleet and first packet, validated (throws on a missing field). */
+export const parseBattleSetup = (raw: unknown): BattleSetup => setupSchema.parse(raw).battle;
 
 const pageSchema = z.object({
   result: z.object({

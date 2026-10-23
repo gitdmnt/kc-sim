@@ -70,15 +70,18 @@ export async function loadMaster(db: D1Database, shipIds: Iterable<number>, equi
     db.prepare(SHIP_SQL).bind(ids(shipIds)).all<ShipRow>(),
     db.prepare(EQUIP_SQL).bind(ids(equipIds)).all<EquipRow>(),
   ]);
-  const shipMap = new Map(ships.results.map((r) => [r.id, r]));
-  const equipMap = new Map(equips.results.map((r) => [r.id, r]));
+  return masterFromRows(ships.results, equips.results);
+}
+
+/** Master over already loaded rows (e.g. a saved snapshot). */
+export function masterFromRows(ships: ShipRow[], equips: EquipRow[]): Master {
   const data: MasterData = { ships: {}, equips: {} };
-  for (const r of ships.results) data.ships[r.id] = shipMaster(r);
-  for (const r of equips.results) data.equips[r.id] = equipMaster(r);
-  const apiShips = new Map(ships.results.map((r) => [r.id, apiShip(r)]));
-  const apiEquips = new Map(equips.results.map((r) => [r.id, apiEquip(r)]));
+  for (const r of ships) data.ships[r.id] = shipMaster(r);
+  for (const r of equips) data.equips[r.id] = equipMaster(r);
+  const apiShips = new Map(ships.map((r) => [r.id, apiShip(r)]));
+  const apiEquips = new Map(equips.map((r) => [r.id, apiEquip(r)]));
   return {
-    ships: shipMap, equips: equipMap, data,
+    ships: new Map(ships.map((r) => [r.id, r])), equips: new Map(equips.map((r) => [r.id, r])), data,
     lookup: { ship: (id) => apiShips.get(id), equip: (id) => apiEquips.get(id), detail: () => undefined },
   };
 }

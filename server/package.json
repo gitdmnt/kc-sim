@@ -21,6 +21,7 @@
     "kcnav:status": "bun scripts/kcnav.ts status",
     "kcnav:run": "bun scripts/kcnav.ts run --follow",
     "validate:routing": "bun scripts/validate-routing.ts",
+    "validate:accuracy": "bun scripts/battle-accuracy.ts",
     "infer:routing": "bun scripts/infer-routing.ts",
     "export:bundle": "bun scripts/export-bundle.ts",
     "aggregate": "bun scripts/aggregate.ts",
