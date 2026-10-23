@@ -392,7 +392,7 @@ export interface BattleInput {
 /**
  * Event historical bonus multipliers (kancolle-replay `bonusDmg` / `bonusAcc` / `bonusEva`), each
  * default 1. `dmg` on the post-cap power of shelling, torpedo, night, ASW and airstrikes; `acc` on
- * the hit fraction of shelling, torpedo, night and ASW (not airstrikes); `eva` on the ship's
+ * the hit fraction of shelling, torpedo, night, ASW and airstrikes; `eva` on the ship's
  * evasion fraction against every attack.
  */
 export interface DamageMods {

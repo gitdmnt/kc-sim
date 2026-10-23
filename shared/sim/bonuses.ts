@@ -41,13 +41,19 @@ export interface NodeBonus<T> {
   nodes?: Record<string, T>;
 }
 
-/** kancolle-replay の accEvaType。data=データの値、none=1、dmg=dmg と同じ値、half=1+(dmg−1)/2。 */
-export type AccEvaMode = "data" | "none" | "dmg" | "half";
+/**
+ * 命中・回避の倍率の扱い。data=データの値、none=1、dmg=dmg と同じ値、half=1+(dmg−1)/2 (ここまで kancolle-replay の
+ * accEvaType)、dmgHalf=命中は dmg と同じ・回避は 1+(dmg−1)/2。
+ * auto (既定) は、データのどこかに acc/eva があれば data (kancolle-replay も acc/eva のあるデータでは data を既定にする)、
+ * 無ければ dmgHalf。dmgHalf は 2026 夏イベ (62) の実戦闘 916 件の命中で合わせた: 特効艦の昼砲撃・航空攻撃の命中と、
+ * 特効艦への敵の命中が実測に合う (docs/VALIDATION.md §4)。ゲームの特効は命中項・回避項にも掛かる (wikiwiki 命中と回避について)。
+ */
+export type AccEvaMode = "auto" | "data" | "none" | "dmg" | "half" | "dmgHalf";
 
 export interface BuildBonusOptions {
   /** 推測値 (`unconfirmed: 1`) の項目も使う。既定 false。 */
   unconfirmed?: boolean;
-  /** 命中・回避の扱い。既定 "data"。 */
+  /** 命中・回避の扱い。既定 "auto"。 */
   accEva?: AccEvaMode;
   /** エンジンに渡す基地航空隊 (その順)。渡すと `lbasBonuses` を作る。 */
   lbas?: PresetAirBase[];
@@ -126,6 +132,8 @@ const withMode = (dmg: number, acc: number, eva: number, mode: AccEvaMode): Mods
       return { dmg, acc: dmg, eva: dmg };
     case "half":
       return { dmg, acc: 1 + (dmg - 1) / 2, eva: 1 + (dmg - 1) / 2 };
+    case "dmgHalf":
+      return { dmg, acc: dmg, eva: 1 + (dmg - 1) / 2 };
     default:
       return { dmg, acc, eva };
   }
@@ -284,9 +292,12 @@ const baseSetAt = (res: EventBonusResponse, eqs: Eq[], letter: string | undefine
  * 編成と特効データから、艦・基地ごとの特効 (`all` とマスごとの値) を作る。
  * `shipBase` の項目は、master に api_aftershipid が無いと評価できない (適用せず warnings に数える)。
  */
-export const buildBonuses = (preset: Preset, res: EventBonusResponse, master: MasterData, opts: BuildBonusOptions = {}): BonusBuild => {
+export const buildBonuses = (preset: Preset, res: EventBonusResponse, master: MasterData, options: BuildBonusOptions = {}): BonusBuild => {
   const warnings: string[] = [];
   const missingBase = { n: 0 };
+  const accEva = options.accEva ?? "auto";
+  const hasAccEva = [...res.bonuses, ...res.lbasBonuses].some((b) => num(b.acc) !== null || num(b.eva) !== null);
+  const opts: BuildBonusOptions = { ...options, accEva: accEva === "auto" ? (hasAccEva ? "data" : "dmgHalf") : accEva };
   const letters = lettersOf(res.bonuses);
   const ships = (list: PresetShip[]) => list.map((ship) => fold((l) => shipSetAt(res, ship, master, l, opts, missingBase), letters));
   const out: BonusBuild = { bonuses: ships(preset.ships), warnings };
@@ -296,7 +307,7 @@ export const buildBonuses = (preset: Preset, res: EventBonusResponse, master: Ma
     const lbLetters = lettersOf(res.lbasBonuses);
     out.lbasBonuses = opts.lbas.map((base) => {
       const eqs = baseEquips(base, master);
-      return fold((l) => baseSetAt(res, eqs, l, opts.accEva ?? "data"), lbLetters);
+      return fold((l) => baseSetAt(res, eqs, l, opts.accEva!), lbLetters);
     });
   }
   if (missingBase.n > 0) warnings.push("改装系列の初期艦 (shipBase) で決まる特効を評価できず未適用 (master に api_aftershipid がありません)");

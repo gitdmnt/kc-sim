@@ -858,8 +858,8 @@ pub fn air_terms(att: &Unit, def: &Unit) -> AccTerms {
     let a = att.core;
     let (crit_rate, crit_dmg, acc_plane) = a.proficiency(att.st);
     let ev = def.evasion(1.0, 0.0);
-    // kcsim `getBonusAcc(…, isAir)`: only the plane groups raise airstrike accuracy.
-    let acc = (0.95 + def.cf.air_acc) * att.bonus.map_or(1.0, |b| b.acc_air(&att.st.planes));
+    // Event bonus: ship × plane-group accuracy (kcsim takes the plane groups only; see `Bonus::acc`).
+    let acc = (0.95 + def.cf.air_acc) * att.bonus_acc(|| true);
     let hit = HitFn::new(0.0, 0.0, 0.0, &[], 0.0, HitTail::Fixed(acc));
     AccTerms {
         hit, luck: a.luck, hidden_acc: a.hidden_acc, ev, crit_mod: 0.0, plane: Some(PlaneBonus { acc: acc_plane, crit_rate }), crit_flat: 0.0,

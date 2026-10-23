@@ -95,13 +95,14 @@ fn accuracy_and_evasion_bonus() {
     let e1 = hit_probability(&ev).unwrap();
     assert!(e1.evasion >= (1.5 * e0.evasion).floor() && e1.evasion <= (1.5 * (e0.evasion + 1.0)).floor(), "{} {}", e0.evasion, e1.evasion);
     assert_eq!(e1.accuracy, e0.accuracy);
-    // Airstrikes take no untyped accuracy bonus (kcsim `getBonusAcc(…, isAir)`).
+    // Airstrikes take the ship's accuracy bonus too (event-62 packets; kcsim skips untyped entries).
     let cv = friend_cv();
     let mut air = query("air", &cv, &target);
     air.slot = Some(2);
     let a0 = hit_probability(&air).unwrap();
     air.attacker_bonus = Some(bonus(serde_json::json!({ "acc": 2.0 })));
-    assert_eq!(hit_probability(&air).unwrap().accuracy, a0.accuracy);
+    let a1 = hit_probability(&air).unwrap();
+    assert!(a1.accuracy == 2.0 * a0.accuracy || a1.accuracy == 2.0 * a0.accuracy + 1.0, "{} {}", a0.accuracy, a1.accuracy);
 }
 
 /// Plane groups apply while one of their slots has planes; for attacks without planes only

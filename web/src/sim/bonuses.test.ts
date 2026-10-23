@@ -62,7 +62,7 @@ describe("buildBonuses", () => {
 
   test("shipBase follows api_aftershipid; unknown remodel data is reported", () => {
     const res = response([entry(null, { dmg: 1.2, shipBase: [1] })]);
-    expect(buildBonuses(preset([ship(3)]), res, master).bonuses[0]).toEqual({ all: { dmg: 1.2 } });
+    expect(buildBonuses(preset([ship(3)]), res, master, { accEva: "data" }).bonuses[0]).toEqual({ all: { dmg: 1.2 } });
     const noRemodel: MasterData = { ...master, ships: Object.fromEntries(Object.entries(master.ships).map(([k, s]) => [k, { ...s!, api_aftershipid: undefined }])) };
     const out = buildBonuses(preset([ship(3)]), res, noRemodel);
     expect(out.bonuses[0]).toBeNull();
@@ -77,6 +77,19 @@ describe("buildBonuses", () => {
     expect(at({ accEva: "none" })).toEqual({ dmg: 1.2 });
     expect(at({ accEva: "dmg" })).toEqual({ dmg: 1.2, acc: 1.2, eva: 1.2 });
     expect(at({ accEva: "half" })).toEqual({ dmg: 1.2, acc: 1.1, eva: 1.1 });
+  });
+
+  test("auto: data when the file has acc/eva anywhere, else acc = dmg and eva = 1 + (dmg − 1)/2", () => {
+    const dmgOnly = response([entry(null, { dmg: 1.2, shipType: [2] })], [entry(null, { dmg: 1.1, requireEquipId: [168] })]);
+    const sq: PresetEquip = { masterId: 168, improvement: 0, proficiency: 7, slotSize: 18 };
+    const base: PresetAirBase = { mode: "sortie", squadrons: [sq], targets: ["Y", "Y"] };
+    const out = buildBonuses(preset([ship(3)]), dmgOnly, master, { lbas: [base] });
+    expect(out.bonuses[0]?.all).toEqual({ dmg: 1.2, acc: 1.2, eva: 1.1 });
+    expect(out.lbasBonuses![0]?.all).toEqual({ squadrons: [{ dmg: 1.1, acc: 1.1 }] });
+    expect(buildBonuses(preset([ship(3)]), dmgOnly, master, { accEva: "dmgHalf" }).bonuses[0]?.all).toEqual({ dmg: 1.2, acc: 1.2, eva: 1.1 });
+    // An acc / eva value anywhere in the file (here a land-base entry) means the file's own values.
+    const measured = response([entry(null, { dmg: 1.2, shipType: [2] })], [entry(null, { dmg: 1.1, acc: 1.05, requireEquipId: [168] })]);
+    expect(buildBonuses(preset([ship(3)]), measured, master).bonuses[0]?.all).toEqual({ dmg: 1.2 });
   });
 
   test("plane groups and kcsim HA-gun type 104", () => {
@@ -121,7 +134,7 @@ describe("buildBonuses", () => {
   test("friend fleet ships get the node's bonuses", () => {
     const res = response([entry(null, { dmg: 1.2, shipType: [2] }), entry(["Z"], { dmg: 1.5, shipType: [3] })]);
     const out = buildBonuses({ ...preset([ship(30)]), friendFleet: [ship(3), ship(20)] }, res, master);
-    expect(out.friendFleetBonuses).toEqual([{ all: { dmg: 1.2 } }, { nodes: { Z: { dmg: 1.5 } } }]);
+    expect(out.friendFleetBonuses).toEqual([{ all: { dmg: 1.2, acc: 1.2, eva: 1.1 } }, { nodes: { Z: { dmg: 1.5, acc: 1.5, eva: 1.25 } } }]);
     expect(buildBonuses(preset([ship(30)]), res, master).friendFleetBonuses).toBeUndefined();
   });
 
@@ -172,8 +185,8 @@ describe("buildSortieInput: event bonuses per node", () => {
     const res = response([entry(null, { dmg: 1.3, shipType: [2] }), entry(["B"], { dmg: 2, shipType: [2] })], [], [entry(["B"], { shipId: [1501], amount: 4 })]);
     const p = preset([dd()]);
     const b = buildSortieInput(p, master, data, settings, { eventBonus: { response: res, debuff: true } });
-    expect(b.input.map.nodes.A!.bonuses).toEqual([{ dmg: 1.3 }]);
-    expect(b.input.map.nodes.B!.bonuses).toEqual([{ dmg: 2.6 }]);
+    expect(b.input.map.nodes.A!.bonuses).toEqual([{ dmg: 1.3, acc: 1.3, eva: 1.15 }]);
+    expect(b.input.map.nodes.B!.bonuses).toEqual([{ dmg: 2.6, acc: 2.6, eva: 1.8 }]);
     expect(b.input.map.nodes.A!.debuffs).toBeUndefined();
     expect(b.input.map.nodes.B!.debuffs).toEqual([{ shipId: [1501], amount: 4 }]);
     expect(b.input.map.nodes.Start!.bonuses).toBeUndefined();
@@ -186,7 +199,7 @@ describe("buildSortieInput: event bonuses per node", () => {
     const res = response([entry(["B"], { dmg: 1.4, shipType: [3] })]);
     const p = { ...preset([dd()]), friendFleet: [{ ...ship(20), observed: { ...dd().observed!, maxHp: 40, nowHp: 40 } }] };
     const on = buildSortieInput(p, master, data, { ...settings, friendFleet: { chance: 1, nodes: [] } }, { eventBonus: { response: res, debuff: false } });
-    expect(on.input.map.nodes.B!.friendFleetBonuses).toEqual([{ dmg: 1.4 }]);
+    expect(on.input.map.nodes.B!.friendFleetBonuses).toEqual([{ dmg: 1.4, acc: 1.4, eva: 1.2 }]);
     expect(on.input.map.nodes.A!.friendFleetBonuses).toBeUndefined();
     const off = buildSortieInput(p, master, data, settings, { eventBonus: { response: res, debuff: false } });
     expect(off.input.map.nodes.B!.friendFleetBonuses).toBeUndefined();
