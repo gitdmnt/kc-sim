@@ -43,10 +43,12 @@ pub fn run_battle(input: &BattleInput, seed: u64) -> Result<RunBattleOutput, Str
         enemy: ship_results(&b, 1),
         events: b.events.take(),
         smoke: (o.smoke > 0).then_some(o.smoke),
+        air_defense: b.air_events.take(),
     };
     let mut state = BattleState { friend: input.friend.clone(), enemy: input.enemy.clone() };
     write_state(&mut state.friend, &p.fleets[0].ships, &b.st[0]);
     write_state(&mut state.enemy, &p.fleets[1].ships, &b.st[1]);
+    b.carry.write(&mut state.friend);
     Ok(RunBattleOutput { result, state })
 }
 

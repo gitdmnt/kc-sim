@@ -2,8 +2,10 @@
 //! per-battle state (`ShipState`). Derivations follow KC3Kai/kancolle-replay `js/kcships.js`
 //! (`Ship.loadEquips`, `NBtypes`, `AStype`, `ASWPower`, `weightedAntiAir`, ...), MIT © fourinone41.
 
-use crate::equipment::{f, Equip, Improves, ID_DAMECON_GODDESS, ID_DAMECON_TEAM, ID_DRUM, ID_SKILLED_LOOKOUTS, ID_TSLO};
+use crate::equipment::{f, Equip, Improves, ID_DAMECON_GODDESS, ID_DAMECON_TEAM, ID_DRUM, ID_NIGHT_ZUIUN, ID_SKILLED_LOOKOUTS, ID_TSLO};
 use crate::model::{EquipmentStats, ShipInput};
+
+pub use crate::aaci::{aaci_trigger_rate, AACI_TABLE};
 
 /// Maximum slots per ship: 5 regular + reinforcement expansion.
 pub const MAX_SLOTS: usize = 6;
@@ -104,6 +106,16 @@ pub enum DayCi {
     CvciBba,
     /// 73: dive + torpedo bomber
     CvciBa,
+    /// 74: jet fighter + 2 jet bombers
+    CvciJfJbJb,
+    /// 75: jet fighter + jet bomber
+    CvciJfJb,
+    /// 76: jet fighter + dive + torpedo bomber
+    CvciJfBa,
+    /// 200: 2 Zuiun seaplane bombers + main gun (瑞雲立体攻撃, Ise-class Kai Ni)
+    Zuiun,
+    /// 201: 2 Suisei (634 Air Group) + main gun (海空立体攻撃, Ise-class Kai Ni)
+    Bomber634,
 }
 
 pub struct DayCiData {
@@ -124,12 +136,17 @@ impl DayCi {
             DayCi::CvciFba => (1.25, 1.35, 1.25, false),
             DayCi::CvciBba => (1.2, 1.2, 1.4, false),
             DayCi::CvciBa => (1.15, 1.18, 1.55, false),
+            DayCi::CvciJfJbJb => (1.35, 1.35, 1.35, false),
+            DayCi::CvciJfJb => (1.3, 1.35, 1.25, false),
+            DayCi::CvciJfBa => (1.27, 1.35, 1.15, false),
+            DayCi::Zuiun => (1.35, 1.2, 1.2, false),
+            DayCi::Bomber634 => (1.3, 1.2, 1.3, false),
         };
         DayCiData { dmg, acc, chance, double }
     }
 
     pub fn is_cvci(self) -> bool {
-        matches!(self, DayCi::CvciFba | DayCi::CvciBba | DayCi::CvciBa)
+        matches!(self, DayCi::CvciFba | DayCi::CvciBba | DayCi::CvciBa | DayCi::CvciJfJbJb | DayCi::CvciJfJb | DayCi::CvciJfBa)
     }
 }
 
@@ -227,10 +244,11 @@ impl ShipCore {
         self.class.is_carrier() || self.air_ao
     }
 
-    /// Carrier night air attack possible now (kcsim `CV.canNBAirAttack`).
+    /// Carrier night air attack possible now (kcsim `CV.canNBAirAttack`; Ark Royal-class with a
+    /// Swordfish also without night aviation personnel).
     pub fn can_night_air(&self, st: &ShipState) -> bool {
         let limit = if self.class == ShipClass::CVB { 0.25 } else { 0.5 };
-        self.night_air_gear && st.hp_ratio(self.max_hp) > limit
+        (self.night_air_gear || self.ark_swordfish) && st.hp_ratio(self.max_hp) > limit
     }
 
     /// Carrier night cut-in kinds available with the current plane counts (kcsim `CV.NBtypes`).
@@ -272,33 +290,15 @@ impl ShipCore {
     }
 }
 
-/// AACI kinds in priority order: (id, extra fixed shot-down (friend total = 1 + this), K multiplier,
-/// trigger rate). Values: en.kancollewiki "Aerial Combat" AACI table (May 2025 update), priority
-/// order as listed there. Only generic kinds plus Akizuki-class (1–3) and Maya Kai Ni (10, 11).
-pub const AACI_TABLE: [(u8, i32, f64, f64); 13] = [
-    (10, 8, 1.65, 0.594),
-    (11, 6, 1.5, 0.544),
-    (1, 7, 1.7, 0.643),
-    (4, 6, 1.5, 0.514),
-    (2, 6, 1.7, 0.574),
-    (3, 4, 1.6, 0.495),
-    (5, 4, 1.5, 0.544),
-    (6, 4, 1.45, 0.396),
-    (8, 4, 1.4, 0.495),
-    (13, 4, 1.35, 0.346),
-    (7, 3, 1.35, 0.445),
-    (12, 3, 1.25, 0.445),
-    (9, 2, 1.3, 0.396),
+/// Abyssal carriers without carrier cut-ins (kcsim kcSHIPDATA `cannotCVCI`): Nu / Wo-class, 新量産空母棲姫.
+const CANNOT_CVCI_IDS: [u32; 26] = [
+    1510, 1512, 1523, 1525, 1528, 1560, 1565, 1579, 1614, 1615, 1762, 1763, 1764, 1765, 1766, 1776, 1777, 1778, 1779, 1780, 2222, 2223,
+    2224, 2225, 2226, 2227,
 ];
-
-/// Probability that at least one of `kinds` triggers (each kind is rolled independently).
-pub fn aaci_trigger_rate(kinds: &[u8]) -> f64 {
-    1.0 - kinds.iter().filter_map(|k| AACI_TABLE.iter().find(|t| t.0 == *k)).map(|t| 1.0 - t.3).product::<f64>()
-}
-
-/// `api_ctype` of the Akizuki class.
-const CLASS_AKIZUKI: u32 = 54;
-const ID_MAYA_K2: u32 = 428;
+/// Ise-class Kai Ni (kcSHIPDATA `canZuiunCI`): Zuiun / 634 Air Group day cut-ins.
+const ZUIUN_CI_IDS: [u32; 2] = [553, 554];
+/// Ark Royal class (api_ctype).
+const CLASS_ARK_ROYAL: u32 = 78;
 /// Abyssal submarines that never fire opening torpedoes (kcsim kcSHIPDATA `canOpTorp: false`):
 /// base Ka / Yo / So-class and 潜水棲姫.
 const NO_OPENING_TORPEDO_IDS: [u32; 6] = [1530, 1531, 1570, 1644, 1645, 1646];
@@ -428,6 +428,16 @@ pub struct ShipCore {
     pub target: crate::install::TargetTraits,
     /// This ship's modifiers against installations / special targets / PT imps.
     pub vs: crate::install::VsMods,
+    /// Surface radars (LoS ≥ 5): special-attack and night Zuiun radar bonuses.
+    pub surface_radars: u32,
+    /// Heavy cruiser night accuracy bonus in % (20.3cm guns, kcEQDATA `CANBbonus`).
+    pub ca_night_acc: f64,
+    /// Ark Royal-class with a Swordfish: night air attack without night personnel.
+    pub ark_swordfish: bool,
+    /// Night Zuiun cut-in capable (CL/CLT/CAV/BBV/AV with 2+ main guns and a Night Zuiun).
+    pub night_zuiun: bool,
+    /// Rocket barrage launchers (kcEQDATA `canBarrage`) on a CAV/BBV/carrier/AV.
+    pub rocket_barrage: u32,
 }
 
 /// Mutable per-battle state of one ship.
@@ -545,6 +555,11 @@ impl ShipCore {
             fit_fp: 0.0,
             target: Default::default(),
             vs: Default::default(),
+            surface_radars: 0,
+            ca_night_acc: 0.0,
+            ark_swordfish: false,
+            night_zuiun: false,
+            rocket_barrage: 0,
         };
         if is_player {
             let mut ids = [(0u32, 0u32); MAX_SLOTS];
@@ -711,7 +726,26 @@ impl ShipCore {
             ((2.0 * n.asw.max(0.0).sqrt() + 1.5 * (equip_asw_dmg + b.asw) + class_asw + imp.p_asw) * synergy).max(0.0);
 
         self.derive_aa(n, b, imp);
+        self.surface_radars = self.equips().filter(|(_, e)| e.has(f::SURFACE_RADAR)).count() as u32;
         self.derive_cutins();
+        // kcships `CANBbonus`: 15 (20.3cm No.2 / No.3 …), 10 (20.3cm twin) overrides 15.
+        if matches!(self.class, ShipClass::CA | ShipClass::CAV) {
+            self.ca_night_acc = self
+                .equips()
+                .filter_map(|(_, e)| match e.id {
+                    6 => Some(10.0),
+                    50 | 90 | 520 => Some(15.0),
+                    _ => None,
+                })
+                .fold(0.0, |m: f64, v| if m == 0.0 { v } else { m.min(v) });
+        }
+        self.ark_swordfish = self.class.is_carrier() && self.ship_class == CLASS_ARK_ROYAL && self.equips().any(|(_, e)| e.has(f::SWORDFISH));
+        self.night_zuiun = matches!(self.class, ShipClass::CL | ShipClass::CLT | ShipClass::CAV | ShipClass::BBV | ShipClass::AV)
+            && self.mguns >= 2
+            && self.equips().any(|(_, e)| e.id == ID_NIGHT_ZUIUN);
+        if matches!(self.class, ShipClass::CAV | ShipClass::BBV | ShipClass::CV | ShipClass::CVL | ShipClass::CVB | ShipClass::AV) {
+            self.rocket_barrage = self.equips().filter(|(_, e)| e.has(f::ROCKET_BARRAGE)).count() as u32;
+        }
 
         let mut nb = 0.0;
         if matches!(self.class, ShipClass::DD | ShipClass::CL | ShipClass::CLT) && self.equips().any(|(_, e)| e.id == ID_TSLO) {
@@ -767,74 +801,47 @@ impl ShipCore {
         self.weighted_aa = w;
         self.fleet_aa = (fleet + imp.aa_fleet).floor() + b.aa;
 
-        if !self.is_player {
+        // Every AACI kind needs one of these (HA gun, fire director, AA gun, radar, type 3 shell).
+        const AA_GEAR: u64 = f::HA_GUN | f::AAFD | f::AA_GUN | f::RADAR | f::TYPE3_SHELL;
+        if !self.slots.iter().flatten().any(|e| e.has(AA_GEAR)) {
             return;
         }
-        // AACI kinds (kcsim `getAACItype`, generic + Akizuki-class + Maya Kai Ni).
-        let count = |fl: u64| self.equips().filter(|(_, e)| e.has(fl)).count();
-        let hafd = count(f::HAFD);
-        let ha = count(f::HA_GUN);
-        let aafd = count(f::AAFD);
-        let air_radar = count(f::AIR_RADAR);
-        let radar = count(f::RADAR);
-        let large = count(f::LARGE_GUN);
-        let t3 = count(f::TYPE3_SHELL);
-        let conc = count(f::CONCENTRATED);
-        let aagun_other = self.equips().filter(|(_, e)| e.has(f::AA_GUN) && !e.has(f::CONCENTRATED) && e.aa >= 3.0).count();
-        let bb = self.class.is_bb_class();
-        let akizuki = self.ship_class == CLASS_AKIZUKI;
-        let maya = self.master_id == ID_MAYA_K2;
-        let mut kinds = Vec::new();
-        if maya && conc >= 1 && ha >= 1 {
-            if air_radar >= 1 {
-                kinds.push(10);
-            }
-            kinds.push(11);
-        }
-        if akizuki {
-            if ha >= 2 && radar >= 1 {
-                kinds.push(1);
-            }
-            if hafd >= 1 && radar >= 1 {
-                kinds.push(2);
-            }
-            if ha >= 2 {
-                kinds.push(3);
-            }
-        }
-        if bb && large >= 1 && t3 >= 1 && aafd >= 1 && air_radar >= 1 {
-            kinds.push(4);
-        }
-        if !akizuki && hafd >= 2 && air_radar >= 1 {
-            kinds.push(5);
-        }
-        if bb && large >= 1 && t3 >= 1 && aafd >= 1 {
-            kinds.push(6);
-        }
-        if !akizuki && hafd >= 1 && air_radar >= 1 {
-            kinds.push(8);
-        }
-        if !maya && conc >= 1 && hafd >= 1 && air_radar >= 1 {
-            kinds.push(13);
-        }
-        if !akizuki && ha >= 1 && aafd >= 1 && air_radar >= 1 {
-            kinds.push(7);
-        }
-        if conc >= 1 && (aagun_other >= 1 || conc >= 2) && air_radar >= 1 {
-            kinds.push(12);
-        }
-        if ha >= 1 && aafd >= 1 {
-            kinds.push(9);
-        }
-        self.aaci = kinds;
+        let eqs: Vec<&Equip> = self.slots.iter().flatten().collect();
+        self.aaci = crate::aaci::aaci_kinds(&crate::aaci::AaciShip {
+            master_id: self.master_id,
+            ship_class: self.ship_class,
+            class: self.class,
+            naked_aa: n.aa,
+            equips: &eqs,
+        });
     }
 
     fn derive_cutins(&mut self) {
         let (mg, sg, rad, ap, rec) = (self.mguns, self.sguns, self.radars, self.ap_shells, self.recons);
         let mut day = Vec::new();
-        if self.cv_like() {
+        // kcships `AStype`: Ise-class Kai Ni 634 Air Group / Zuiun cut-ins (planes checked per attack).
+        if ZUIUN_CI_IDS.contains(&self.master_id) && mg > 0 {
+            if self.equips().filter(|(_, e)| e.has(f::BOMBER_634)).count() >= 2 {
+                day.push(DayCi::Bomber634);
+            }
+            if self.equips().filter(|(_, e)| e.has(f::ZUIUN)).count() >= 2 {
+                day.push(DayCi::Zuiun);
+            }
+        }
+        if self.cv_like() && !CANNOT_CVCI_IDS.contains(&self.master_id) {
+            use crate::equipment::cat;
             let has = |c: u32| self.equips().filter(|(_, e)| e.cat == c).count();
-            let (fi, db, tb) = (has(crate::equipment::cat::FIGHTER), has(crate::equipment::cat::DIVE_BOMBER), has(crate::equipment::cat::TORP_BOMBER));
+            let (fi, db, tb) = (has(cat::FIGHTER), has(cat::DIVE_BOMBER), has(cat::TORP_BOMBER));
+            let (jf, jb) = (has(cat::JET_FIGHTER), has(cat::JET_BOMBER));
+            if jf >= 1 && jb >= 2 {
+                day.push(DayCi::CvciJfJbJb);
+            }
+            if jf >= 1 && jb >= 1 {
+                day.push(DayCi::CvciJfJb);
+            }
+            if jf >= 1 && db >= 1 && tb >= 1 {
+                day.push(DayCi::CvciJfBa);
+            }
             if db >= 1 && tb >= 1 && fi >= 1 {
                 day.push(DayCi::CvciFba);
             }

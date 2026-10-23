@@ -3,6 +3,7 @@
 //! Contract: `docs/SIM_INTERFACE.md` / `sim_core_types.d.ts`. Combat formulas are ported from
 //! KC3Kai/kancolle-replay (MIT, © 2016 fourinone41) and cross-checked with en.kancollewiki.net.
 
+pub mod aaci;
 pub mod battle;
 pub mod bonus;
 pub mod equipment;

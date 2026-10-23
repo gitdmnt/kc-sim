@@ -92,6 +92,13 @@ export type SpecialAttack =
   | "cvciFba"
   | "cvciBba"
   | "cvciBa"
+  // jet carrier cut-ins: jet fighter + 2 jet bombers / + jet bomber / + dive + torpedo bomber
+  | "cvciJfJbJb"
+  | "cvciJfJb"
+  | "cvciJfBa"
+  // Ise-class Kai Ni: 瑞雲立体攻撃 (2 Zuiun) / 海空立体攻撃 (2 Suisei 634)
+  | "zuiunCutin"
+  | "bomber634Cutin"
   // night (夜戦)
   | "nightDoubleAttack"
   | "nightCutinMixed"
@@ -111,7 +118,25 @@ export type SpecialAttack =
   | "nightCvciFfa"
   | "nightCvciFa"
   | "nightCvciBomber"
-  | "nightCvciFOther";
+  | "nightCvciFOther"
+  // night Zuiun cut-ins (夜間瑞雲): 2 Zuiun + surface radar, 2 Zuiun, Zuiun + radar, Zuiun
+  | "nightZuiunZzr"
+  | "nightZuiunZz"
+  | "nightZuiunZr"
+  | "nightZuiunZ"
+  // fleet special attacks (特殊砲撃), day or night; every attacker's events carry the kind
+  | "nelsonTouch"
+  | "nagatoCutin"
+  | "mutsuCutin"
+  | "coloradoCutin"
+  /** Kongou-class K2C 僚艦夜戦突撃 (night only). */
+  | "kongouCutin"
+  | "richelieuCutin"
+  | "queenElizabethCutin"
+  /** 潜水艦隊攻撃 (submarine tender flagship). */
+  | "subFleetAttack"
+  | "yamatoCutin3"
+  | "yamatoCutin2";
 
 export type HitResult = "miss" | "hit" | "critical";
 
@@ -172,8 +197,10 @@ export interface ShipInput {
   /** api_stype: 1 DE, 2 DD, 3 CL, 4 CLT, 5 CA, 6 CAV, 7 CVL, 8 FBB, 9 BB, 10 BBV, 11 CV,
    *  12 BB, 13 SS, 14 SSV, 15 AP, 16 AV, 17 LHA, 18 CVB, 19 AR, 20 AS, 21 CT, 22 AO. */
   shipType: number;
-  /** api_ctype (ship class). Optional; enables class-specific rules (Akizuki-class AACI 1–3,
-   *  class-specific main-gun fit). */
+  /** api_ctype (ship class). Optional; enables class-specific rules (AACI of the Akizuki (54),
+   *  Fletcher (91), Atlanta (99) and Ise (2) classes, Ark Royal (78) Swordfish night attacks,
+   *  Nelson-class (88) touch bonus, class-specific main-gun fit). Fleet special attacks, Zuiun
+   *  cut-ins and ship-specific AACI kinds also need `id`. */
   shipClass?: number;
   /** Default 1. Enemies: api_ship_lv (submarines need level ≥ 10 for opening torpedoes; base
    *  Ka/Yo/So-class (1530, 1531, 1570) and 潜水棲姫 (1644–1646) never fire them). */
@@ -262,6 +289,11 @@ export interface FleetInput {
   combined?: CombinedType;
   /** Friend fleet: a smoke screen was already deployed this sortie (once per sortie). */
   smokeUsed?: boolean;
+  /** Friend, sortie carry-over: a fleet special attack (Nelson / Nagato / … / Yamato / submarine
+   *  fleet; once per sortie) was already used. Written into `state.friend`. */
+  specialAttackUsed?: boolean;
+  /** Friend, sortie carry-over: Kongou-class night special attacks used (max 3 per sortie). */
+  kongouSpecialCount?: number;
 }
 
 export interface BattleOptions {
@@ -277,6 +309,24 @@ export interface BattleOptions {
   smoke?: boolean;
   /** Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect. Default false. */
   balloons?: boolean;
+  /** Trigger-rate overrides (percent) of the fleet special attacks; absent fields use the
+   *  defaults (level / luck formulas or kcsim's fixed rates, see SIM_INTERFACE.md). */
+  specialAttackRates?: SpecialAttackRates;
+}
+
+export interface SpecialAttackRates {
+  nelsonTouch?: number;
+  nagato?: number;
+  mutsu?: number;
+  colorado?: number;
+  kongou?: number;
+  richelieu?: number;
+  queenElizabeth?: number;
+  yamato3?: number;
+  yamato2?: number;
+  subFleet?: number;
+  /** Second attack of a level ≥ 75 submarine without a submarine radar (default 60). */
+  subFleetSecond?: number;
 }
 
 /** One land-base wave: one base's squadrons (1..4). Each squadron is an EquipmentInput whose
@@ -407,6 +457,21 @@ export interface BattleResult {
   events?: AttackEvent[];
   /** Smoke screen deployed by the friend fleet: 1..3 layers; absent = none. */
   smoke?: number;
+  /** Present when `options.log` is true: AACI activations and rocket barrages. */
+  airDefense?: AirDefenseEvent[];
+}
+
+/** Air defence of the defending side in one air-combat phase. */
+export interface AirDefenseEvent {
+  phase: Phase;
+  /** Side whose ship fires. */
+  side: Side;
+  /** Index of the ship in its fleet (friend combined: main ships first). */
+  ship: number;
+  /** AACI kind (api_kind); absent for a rocket barrage. */
+  aaci?: number;
+  /** 対空噴進弾幕: the ship evades every airstrike of this phase. */
+  rocketBarrage: boolean;
 }
 
 /** Fleets after the battle: same shape as the input (a combined friend fleet keeps `escort` /

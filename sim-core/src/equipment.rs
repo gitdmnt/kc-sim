@@ -89,6 +89,23 @@ const NIGHT_CREW_IDS: [u32; 2] = [258, 259];
 const NIGHT_DIVE_IDS: [u32; 3] = [552, 557, 558];
 /// Suisei Model 12 (w/ Type 31 Photoelectric Fuze Bombs) counts towards night CVCI 63.
 pub const ID_NIGHT_FUZE: u32 = 320;
+/// Swordfish family (kcEQDATA `isSwordfish`): Ark Royal-class night attack.
+const SWORDFISH_IDS: [u32; 3] = [242, 243, 244];
+/// Seaplane bombers named 瑞雲 / dive bombers named 六三四空 (kcships `canASZuiun`).
+const ZUIUN_IDS: [u32; 9] = [26, 79, 80, 81, 207, 237, 322, 323, 490];
+const BOMBER_634_IDS: [u32; 3] = [291, 292, 319];
+/// Prototype Night Zuiun (Attack Equipment): night Zuiun cut-ins.
+pub const ID_NIGHT_ZUIUN: u32 = 490;
+/// 12cm 30-tube Rocket Launcher Kai 2 (kcEQDATA `canBarrage`).
+const ID_ROCKET_BARRAGE: u32 = 274;
+/// Plane AA resistance (kcEQDATA `aaResistShip` / `aaResistFleet`).
+const AA_RESIST_SHIP_06: [u32; 46] = [
+    79, 80, 81, 93, 94, 99, 100, 143, 144, 154, 170, 208, 224, 237, 319, 320, 343, 374, 388, 404, 405, 406, 433, 444, 453, 454, 466, 474,
+    475, 476, 479, 481, 484, 487, 491, 504, 545, 557, 558, 559, 562, 570, 1582, 1583, 1620, 1621,
+];
+const AA_RESIST_SHIP_05: [u32; 6] = [199, 200, 322, 323, 490, 561];
+const AA_RESIST_FLEET_07: [u32; 17] = [81, 100, 154, 199, 224, 237, 322, 454, 479, 490, 558, 562, 570, 1582, 1583, 1620, 1621];
+const AA_RESIST_FLEET_05: [u32; 3] = [200, 323, 561];
 
 /// Equipment flag bits.
 pub mod f {
@@ -149,6 +166,11 @@ pub mod f {
     pub const NIGHT_CREW: u64 = 1 << 49;
     pub const NIGHT_DIVE: u64 = 1 << 50;
     pub const NIGHT_PLANE: u64 = NIGHT_FIGHTER | NIGHT_ATTACKER | NIGHT_BOMBER2 | NIGHT_DIVE;
+    // 51 and 55 are taken by installation / balloon flags.
+    pub const SWORDFISH: u64 = 1 << 52;
+    pub const ZUIUN: u64 = 1 << 53;
+    pub const BOMBER_634: u64 = 1 << 54;
+    pub const ROCKET_BARRAGE: u64 = 1 << 56;
 }
 
 /// Improvement (★) effects summed per ship. Field names follow kcsim's `improves` keys.
@@ -214,6 +236,9 @@ pub struct Equip {
     pub air_power_improve: f64,
     /// Fighter-power proficiency bonus.
     pub ap_bonus: f64,
+    /// Plane AA resistance against proportional / flat shoot-down (1 = none).
+    pub aa_resist_ship: f64,
+    pub aa_resist_fleet: f64,
 }
 
 impl Equip {
@@ -250,6 +275,20 @@ impl Equip {
             aa_improve: 0.0,
             air_power_improve: 0.0,
             ap_bonus: 0.0,
+            aa_resist_ship: if AA_RESIST_SHIP_05.contains(&id) {
+                0.5
+            } else if AA_RESIST_SHIP_06.contains(&id) {
+                0.6
+            } else {
+                1.0
+            },
+            aa_resist_fleet: if AA_RESIST_FLEET_05.contains(&id) {
+                0.5
+            } else if AA_RESIST_FLEET_07.contains(&id) {
+                0.7
+            } else {
+                1.0
+            },
         };
         e.flags = classify(c, icon, id, &e);
         e.apply_improvement();
@@ -494,7 +533,8 @@ fn classify(c: u32, icon: u32, id: u32, e: &Equip) -> u64 {
         SUB_EQUIP => fl |= f::SUB_RADAR,
         _ => {}
     }
-    if icon == ICON_HA_GUN {
+    // id 1578 (abyssal HA gun) is a high-angle gun with fire director in kcEQDATA (atype 3).
+    if icon == ICON_HA_GUN || id == 1578 {
         fl |= f::HA_GUN;
         if e.aa >= 8.0 {
             fl |= f::HAFD;
@@ -526,6 +566,18 @@ fn classify(c: u32, icon: u32, id: u32, e: &Equip) -> u64 {
     }
     if id == D_GUN_K3 {
         fl |= f::D_GUN_K3;
+    }
+    if SWORDFISH_IDS.contains(&id) {
+        fl |= f::SWORDFISH;
+    }
+    if ZUIUN_IDS.contains(&id) {
+        fl |= f::ZUIUN;
+    }
+    if BOMBER_634_IDS.contains(&id) {
+        fl |= f::BOMBER_634;
+    }
+    if id == ID_ROCKET_BARRAGE {
+        fl |= f::ROCKET_BARRAGE;
     }
     if NIGHT_FIGHTER_IDS.contains(&id) {
         fl |= f::NIGHT_FIGHTER;

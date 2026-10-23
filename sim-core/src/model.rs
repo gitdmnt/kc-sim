@@ -197,6 +197,30 @@ pub enum SpecialAttack {
     NightCvciFa,
     NightCvciBomber,
     NightCvciFOther,
+    // fleet special attacks (特殊砲撃), kcsim attackSpecial 100..106, 300..302, 400, 401
+    NelsonTouch,
+    NagatoCutin,
+    MutsuCutin,
+    ColoradoCutin,
+    KongouCutin,
+    RichelieuCutin,
+    QueenElizabethCutin,
+    SubFleetAttack,
+    YamatoCutin3,
+    YamatoCutin2,
+    // jet carrier cut-ins (kcsim AS types 74..76): jet fighter + 2 jet bombers / + jet bomber /
+    // + dive + torpedo bomber
+    CvciJfJbJb,
+    CvciJfJb,
+    CvciJfBa,
+    // Zuiun / 634 Air Group day cut-ins (kcsim AS types 200 / 201)
+    ZuiunCutin,
+    Bomber634Cutin,
+    // night Zuiun cut-ins (kcsim 2001..2004): 2 Zuiun + radar, 2 Zuiun, Zuiun + radar, Zuiun
+    NightZuiunZzr,
+    NightZuiunZz,
+    NightZuiunZr,
+    NightZuiunZ,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -352,6 +376,12 @@ pub struct FleetInput {
     /// Friend fleet: a smoke screen was already deployed this sortie (once per sortie).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub smoke_used: Option<bool>,
+    /// Sortie carry-over: a fleet special attack (once per sortie) was already used.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub special_attack_used: Option<bool>,
+    /// Kongou-class night special attacks used this sortie (max 3, counted separately).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kongou_special_count: Option<u32>,
 }
 
 impl FleetInput {
@@ -374,6 +404,39 @@ pub struct BattleOptions {
     /// Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub balloons: bool,
+    /// Trigger rates (percent) overriding the defaults of the fleet special attacks.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub special_attack_rates: Option<SpecialAttackRates>,
+}
+
+/// Trigger rates in percent of the fleet special attacks; absent = default (formula of the
+/// level / luck of the participants where one is known, else kcsim's fixed rate).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SpecialAttackRates {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nelson_touch: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nagato: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mutsu: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub colorado: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kongou: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub richelieu: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub queen_elizabeth: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub yamato3: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub yamato2: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sub_fleet: Option<f64>,
+    /// Chance of the second attack of a level ≥ 75 submarine without a submarine radar.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sub_fleet_second: Option<f64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -524,6 +587,25 @@ pub struct BattleResult {
     /// Smoke screen deployed by the friend fleet: 1..3 layers; absent = none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub smoke: Option<u8>,
+    /// Present when `options.log` is true: AACI activations and rocket barrages per air phase.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub air_defense: Option<Vec<AirDefenseEvent>>,
+}
+
+/// Air defence event of the defending side in one air-combat phase.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AirDefenseEvent {
+    pub phase: Phase,
+    /// Side that defends (whose ship fires).
+    pub side: Side,
+    /// Index of the ship in its fleet (combined friend: main ships first).
+    pub ship: usize,
+    /// AACI kind (`api_kind`), absent for a rocket barrage.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub aaci: Option<u8>,
+    /// Rocket barrage (対空噴進弾幕) triggered: the ship evades every airstrike of this phase.
+    pub rocket_barrage: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::rc::Rc;
 
 use crate::battle::lbas::{initial_planes, LandBaseCore, LbPlanes, MAX_SQUADRONS};
-use crate::battle::{validate_fleet, validate_friend, Battle, BattleSetup, FleetCore};
+use crate::battle::{validate_fleet, validate_friend, Battle, BattleSetup, FleetCarry, FleetCore};
 use crate::equipment::cat;
 use crate::bonus::{self, BaseBonus, Bonus};
 use crate::model::{ArmorDebuff, BattleKind, CombinedType, Formation, Rank, RankRates, ShipInput};
@@ -853,6 +853,8 @@ impl Sortie {
         let mut ships_ctx: Vec<&RouteShip> = Vec::with_capacity(self.route_ships.len());
         // Land-base squadron sizes: full at the start of every sortie, carried between nodes.
         let mut lb_planes = self.lb_init;
+        // Fleet special attacks used (once per sortie; Kongou-class up to 3).
+        let mut carry = FleetCarry::default();
         loop {
             let info = &self.nodes[node];
             let first_visit = !path[..path.len() - 1].contains(&node);
@@ -927,7 +929,9 @@ impl Sortie {
                 if !info.lb_waves.is_empty() {
                     b.set_lbas(&self.lbas, &info.lb_waves, lb_planes);
                 }
+                b.carry = carry;
                 let o = b.run();
+                carry = b.carry;
                 smoke_used |= o.smoke > 0;
                 if let Some(p) = b.lb_planes() {
                     lb_planes = p;

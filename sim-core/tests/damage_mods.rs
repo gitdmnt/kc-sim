@@ -151,8 +151,8 @@ fn pt_imp_modifiers() {
     let mut plain = pt_in.clone();
     plain.pt_imp = None;
     let dp = ShipCore::new(&plain, false);
-    let base = calc::shelling_power(&unit(&a, &sa), &unit(&dp, &sd), 1.0, None);
-    let vs_pt = calc::shelling_power(&unit(&a, &sa), &unit(&d, &sd), 1.0, None);
+    let base = calc::shelling_power(&unit(&a, &sa), &unit(&dp, &sd), 1.0, None, None);
+    let vs_pt = calc::shelling_power(&unit(&a, &sa), &unit(&d, &sd), 1.0, None, None);
     assert!(close(vs_pt, pt_pow(base) * 2.1), "{base} {vs_pt}");
 }
 
@@ -211,9 +211,9 @@ fn balloons_raise_shelling_power() {
     let d = ShipCore::new(&enemy_dd(), false);
     let (sa, sd) = (a.initial_state(&a_in), d.initial_state(&enemy_dd()));
     let mut u = unit(&a, &sa);
-    let p0 = calc::shelling_power(&u, &unit(&d, &sd), 1.0, None);
+    let p0 = calc::shelling_power(&u, &unit(&d, &sd), 1.0, None, None);
     u.balloons = 2;
-    let p2 = calc::shelling_power(&u, &unit(&d, &sd), 1.0, None);
+    let p2 = calc::shelling_power(&u, &unit(&d, &sd), 1.0, None, None);
     assert!(close(p2, p0 * 1.04), "{p0} {p2}");
 }
 
