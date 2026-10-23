@@ -33,7 +33,9 @@ jobs:
   jobs:
     if: (github.event_name == 'schedule' && github.event.schedule == '7 * * * *') || (github.event_name == 'workflow_dispatch' && inputs.task != 'routing')
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    # Private repo: Actions minutes are billed per job, rounded up (DEPLOY.md §5 "Cost"). An idle run takes ~1 min;
+    # the time caps below bound a busy one to ~22 min.
+    timeout-minutes: 30
     # One jobs run at a time (the D1 jobs lease would also refuse a second one); a newer run waits.
     concurrency:
       group: jobs-production-jobs
@@ -68,11 +70,11 @@ jobs:
 
       - name: Jobs (ingest, aggregation, estimator)
         working-directory: server
-        run: bun scripts/run-jobs.ts run --minutes 20
+        run: bun scripts/run-jobs.ts run --minutes 10
 
       - name: KCNav queue
         working-directory: server
-        run: bun scripts/run-jobs.ts kcnav --minutes 25
+        run: bun scripts/run-jobs.ts kcnav --minutes 10
 
   routing:
     if: (github.event_name == 'schedule' && github.event.schedule == '37 18 * * *') || (github.event_name == 'workflow_dispatch' && inputs.task != 'jobs')

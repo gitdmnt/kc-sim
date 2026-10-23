@@ -1,9 +1,9 @@
 // Background jobs outside the worker (docs/DEPLOY.md §5). GitHub Actions (.github/workflows/jobs.yml) runs this
 // against production D1 (D1_REMOTE=1: D1 HTTP API); without D1_REMOTE it works on the local wrangler D1 file.
-//   bun scripts/run-jobs.ts run [--minutes 20] [--no-estimator]
+//   bun scripts/run-jobs.ts run [--minutes 10] [--no-estimator]
 //       jobs runs (staged uploads → observations, aggregation, estimator; src/jobs.ts) until every queue is empty,
 //       a run makes no progress, or the time is up
-//   bun scripts/run-jobs.ts kcnav [--minutes 25]
+//   bun scripts/run-jobs.ts kcnav [--minutes 10]
 //       the KCNav queue (src/kcnav/tick.ts): one request per call, never sooner than the persisted gate allows
 //       (≥ KCNAV_MIN_INTERVAL_MS = 65 s after the previous request, longer after a 429), until the queue is empty or
 //       the next request would start after the time is up
@@ -27,7 +27,7 @@ const target = process.env.D1_REMOTE === "1" ? "production D1" : "local D1";
 
 switch (positionals[0]) {
   case "run": {
-    const deadline = Date.now() + Number(values.minutes ?? 20) * 60_000;
+    const deadline = Date.now() + Number(values.minutes ?? 10) * 60_000;
     const runs: JobsResult[] = [];
     while (Date.now() < deadline) {
       const r = await runJobs(db, { gridFn: bunGrid, now: () => Date.now() }, { estimator: !values["no-estimator"] });
@@ -55,7 +55,7 @@ switch (positionals[0]) {
     break;
   }
   case "kcnav": {
-    const deadline = Date.now() + Number(values.minutes ?? 25) * 60_000;
+    const deadline = Date.now() + Number(values.minutes ?? 10) * 60_000;
     const { vars } = productionConfig();
     const env = { DB: db, KCNAV_BASE: vars.KCNAV_BASE!, KCNAV_MIN_INTERVAL_MS: vars.KCNAV_MIN_INTERVAL_MS! };
     const done: string[] = [];
@@ -76,6 +76,6 @@ switch (positionals[0]) {
     break;
   }
   default:
-    console.error("usage: bun scripts/run-jobs.ts run [--minutes 20] [--no-estimator] | kcnav [--minutes 25]");
+    console.error("usage: bun scripts/run-jobs.ts run [--minutes 10] [--no-estimator] | kcnav [--minutes 10]");
     process.exit(2);
 }
