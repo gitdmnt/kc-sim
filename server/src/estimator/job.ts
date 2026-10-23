@@ -472,7 +472,7 @@ export async function runEstimator(db: D1Database, opts: EstimatorOptions): Prom
     prepare: async () => {
       if (stamp === null) {
         const s = await db.prepare(
-          "SELECT (SELECT fetched_at FROM sources WHERE key = 'eo-fit-bonuses') AS at, (SELECT COUNT(*) FROM fit_bonuses) AS n",
+          "SELECT (SELECT fetched_at FROM sources WHERE key = 'kcr-slotitem-bonus') AS at, (SELECT COUNT(*) FROM fit_bonuses) AS n",
         ).first<{ at: string | null; n: number }>();
         opts.budget.charge(COST.d1Call, 1);
         stamp = `${s?.at}|${s?.n}`;

@@ -1,19 +1,18 @@
 /**
- * 装備ボーナス (fit bonus) の計算。データは data API `/api/v1/fit-bonuses`
- * (ElectronicObserver FitBonuses.json 形式。kancolle-replay `mst_slotitem_bonus.json` も同形式) をそのまま使う。
+ * 装備ボーナス (fit bonus) の計算。データは data API `/api/v1/fit-bonuses` = kancolle-replay
+ * `js/data/mst_slotitem_bonus.json` (KC3Kai/kancolle-replay、MIT) をそのまま使い、意味も kancolle-replay
+ * `getBonusStats` (js/kcEQDATA.js) に合わせる。ElectronicObserver の FitBonuses.json は 2025-03 で更新が止まり、KCNav の
+ * 実戦 716 通りの艦 + 装備で、ゲームの装備ボーナス (表示値 − 装備 − api_fParam) と火力が 79% しか合わなかった
+ * (こちらは 98%、docs/VALIDATION.md §4)。
  *
- * 意味は EO `FitBonusExtensions.GetTheoreticalFitBonus` に合わせる:
- * - エントリは艦が ids/types のどれかの装備を載せていれば対象。bonuses の各定義は独立に判定し、成立したもの全てを加算する
- *   (level の段階ボーナスもそれぞれ加算される)。
- * - 艦条件: shipX (艦 ID)、shipS (改装系列の初期艦 ID)、shipClass、shipType、shipNationality (EO の国籍コード)。
- * - 対象装備 = ids/types に一致し改修値 ≥ level の装備。num も requires/requiresType も無ければ bonus × 対象装備数、
- *   どれかがあれば対象装備数 ≥ num (既定 1) のとき 1 回だけ。
- *   [EO と相違] EO は requires があると level を見ずに 1 回加算するが、北方迷彩 ★7 などの意図どおり level を満たす装備を要求する。
- * - requires: 全装備 (対象装備自身も含む) のうち ids に一致し改修値 ≥ requiresLevel のものが requiresNum (既定 1) 個以上。
- *   requiresType: 種別 (api_type[2]) が一致するものが requiresNumType (既定 1) 個以上。両方あれば両方必要。
- * - bonusSR/bonusAR/bonusAccR: 定義が成立し、艦が電探 (type 12/13/93) のうち索敵 ≥ 5 / 対空 ≥ 2 / 命中 ≥ 8 のものを
- *   1 つでも載せていれば、それぞれ 1 回加算する (装備数で倍にしない)。
- * 加算しなかった定義のうち、未知のキーを含むもの、または必要な艦情報 (ctype・初期艦 ID・国籍) が master に無いものは
+ * - エントリは艦が ids/types (api_type[2]) のどれかの装備を載せていれば対象。対象装備数 n、その改修値の一覧を集める。
+ * - bonuses の各定義は独立に判定し、成立したもの全てを加算する。
+ * - 艦条件: shipId、shipBase (改装系列の初期艦 ID)、shipClass (api_ctype)、shipType (api_stype)、shipCountry (国コード)。
+ * - requiresSR / requiresAR / requiresAccR: 電探 (type 12/13/93) のうち索敵 ≥ 5 / 対空 ≥ 2 / 命中 ≥ 8 のものを載せている。
+ * - requiresId (+ requiresIdNum 既定 1, requiresIdLevel): 全装備のうち ids に一致し (改修値 ≥ level の) ものの数。
+ *   requiresType (+ requiresTypeNum 既定 1): 種別の一致数。requiresEquipList はこの組の一覧で、全て満たす必要がある。
+ * - level があれば n = 対象装備のうち改修値 ≥ level の数 (0 なら不成立)。num があれば n ≥ num のとき 1 回、無ければ n 回。
+ * 加算しなかった定義のうち、未知のキーを含むもの、または必要な艦情報 (ctype・初期艦 ID・国) が無いものは
  * `unresolved` に数える。
  */
 import type { EquipmentStats } from "../../sim-core/pkg/sim_core";
@@ -22,23 +21,29 @@ import type { MasterData, PresetEquip } from "../fleet/types";
 export type FitKey = "houg" | "raig" | "tyku" | "souk" | "kaih" | "tais" | "saku" | "houm" | "baku" | "leng";
 export type FitStats = Partial<Record<FitKey, number>>;
 
-export interface FitBonusDef {
-  shipX?: number[];
-  shipS?: number[];
+/** 装備の必要条件 (定義そのもの、または requiresEquipList の 1 要素)。 */
+export interface FitRequirement {
+  requiresId?: number[];
+  requiresIdNum?: number;
+  requiresIdLevel?: number;
+  requiresType?: number[];
+  requiresTypeNum?: number;
+}
+
+export interface FitBonusDef extends FitRequirement {
+  shipId?: number[];
+  shipBase?: number[];
   shipClass?: number[];
   shipType?: number[];
-  shipNationality?: number[];
+  /** kancolle-replay `country_ctype.json` の国コード (JP, US, GB, …) */
+  shipCountry?: string[];
+  requiresSR?: boolean;
+  requiresAR?: boolean;
+  requiresAccR?: boolean;
+  requiresEquipList?: FitRequirement[];
   num?: number;
   level?: number;
-  requires?: number[];
-  requiresLevel?: number;
-  requiresNum?: number;
-  requiresType?: number[];
-  requiresNumType?: number;
   bonus?: FitStats;
-  bonusSR?: FitStats;
-  bonusAR?: FitStats;
-  bonusAccR?: FitStats;
 }
 
 export interface FitEntry {
@@ -52,10 +57,10 @@ export interface FitShip {
   masterId: number;
   stype: number;
   ctype?: number;
-  /** 改装系列の初期艦 ID (`shipS`)。 */
+  /** 改装系列の初期艦 ID (`shipBase`)。 */
   baseId?: number;
-  /** EO の国籍コード: 1 日 2 独 3 伊 4 米 5 英 6 仏 7 露 8 タイ 9 ノルウェー 10 スウェーデン 11 蘭 12 豪、0 不明 (深海棲艦)。 */
-  nationality?: number;
+  /** 国コード (`shipCountry`)。深海棲艦は ""。 */
+  country?: string;
 }
 
 export interface FitEquip {
@@ -63,7 +68,7 @@ export interface FitEquip {
   /** api_type[2] */
   type2: number;
   improvement: number;
-  /** 装備マスターの索敵・対空・命中 (bonusSR/AR/AccR の電探判定)。無ければ 0 扱い。 */
+  /** 装備マスターの索敵・対空・命中 (requiresSR/AR/AccR の電探判定)。無ければ 0 扱い。 */
   saku?: number;
   tyku?: number;
   houm?: number;
@@ -76,62 +81,62 @@ export interface FitResult {
 }
 
 const KNOWN_KEYS: Record<keyof FitBonusDef, true> = {
-  shipX: true, shipS: true, shipClass: true, shipType: true, shipNationality: true, num: true, level: true, requires: true,
-  requiresLevel: true, requiresNum: true, requiresType: true, requiresNumType: true, bonus: true, bonusSR: true, bonusAR: true,
-  bonusAccR: true,
+  shipId: true, shipBase: true, shipClass: true, shipType: true, shipCountry: true, requiresSR: true, requiresAR: true,
+  requiresAccR: true, requiresId: true, requiresIdNum: true, requiresIdLevel: true, requiresType: true, requiresTypeNum: true,
+  requiresEquipList: true, num: true, level: true, bonus: true,
 };
 /** 電探 (小型・大型・大型 II) の api_type[2] */
 const RADAR_TYPES = new Set([12, 13, 93]);
 /** 艦条件の判定: 条件なし/一致 → true、不一致 → false、艦側の値が不明 → null */
-const shipMatches = (list: number[] | undefined, v: number | undefined): boolean | null =>
+const shipMatches = <T>(list: T[] | undefined, v: T | undefined): boolean | null =>
   !list ? true : v === undefined ? null : list.includes(v);
 
 export const computeFitBonus = (ship: FitShip, equips: FitEquip[], entries: FitEntry[]): FitResult => {
   const total: FitStats = {};
   let unresolved = 0;
-  const add = (b: FitStats, times = 1) => {
-    for (const [k, v] of Object.entries(b)) total[k as FitKey] = (total[k as FitKey] ?? 0) + (v ?? 0) * times;
-  };
   const radars = equips.filter((e) => RADAR_TYPES.has(e.type2));
-  const surfaceRadar = radars.some((e) => (e.saku ?? 0) >= 5);
-  const airRadar = radars.some((e) => (e.tyku ?? 0) >= 2);
-  const accRadar = radars.some((e) => (e.houm ?? 0) >= 8);
+  const radar = {
+    requiresSR: radars.some((e) => (e.saku ?? 0) >= 5),
+    requiresAR: radars.some((e) => (e.tyku ?? 0) >= 2),
+    requiresAccR: radars.some((e) => (e.houm ?? 0) >= 8),
+  };
+  /** requiresId / requiresType の組を満たすか */
+  const meets = (r: FitRequirement): boolean => {
+    if (r.requiresId) {
+      const n = equips.filter((e) => r.requiresId!.includes(e.masterId) && e.improvement >= (r.requiresIdLevel ?? 0)).length;
+      if (n < (r.requiresIdNum ?? 1)) return false;
+    }
+    if (r.requiresType) {
+      const n = equips.filter((e) => r.requiresType!.includes(e.type2)).length;
+      if (n < (r.requiresTypeNum ?? 1)) return false;
+    }
+    return true;
+  };
 
   for (const entry of entries) {
     const matched = equips.filter((e) => !!entry.ids?.includes(e.masterId) || !!entry.types?.includes(e.type2));
     if (matched.length === 0) continue;
 
     for (const b of entry.bonuses) {
+      if ((b.requiresSR && !radar.requiresSR) || (b.requiresAR && !radar.requiresAR) || (b.requiresAccR && !radar.requiresAccR)) continue;
       const shipOk = [
-        shipMatches(b.shipX, ship.masterId),
-        shipMatches(b.shipS, ship.baseId),
         shipMatches(b.shipClass, ship.ctype),
+        shipMatches(b.shipCountry, ship.country),
+        shipMatches(b.shipId, ship.masterId),
+        shipMatches(b.shipBase, ship.baseId),
         shipMatches(b.shipType, ship.stype),
-        shipMatches(b.shipNationality, ship.nationality),
       ];
       if (shipOk.includes(false)) continue;
       if (shipOk.includes(null) || Object.keys(b).some((k) => !(k in KNOWN_KEYS))) {
         unresolved++;
         continue;
       }
+      if (!(b.requiresEquipList ?? [b]).every(meets)) continue;
 
-      if (b.requires) {
-        const n = equips.filter((e) => b.requires!.includes(e.masterId) && e.improvement >= (b.requiresLevel ?? 0)).length;
-        if (n < (b.requiresNum ?? 1)) continue;
-      }
-      if (b.requiresType) {
-        const n = equips.filter((e) => b.requiresType!.includes(e.type2)).length;
-        if (n < (b.requiresNumType ?? 1)) continue;
-      }
-      const count = matched.filter((e) => e.improvement >= (b.level ?? 0)).length;
-      const once = b.num !== undefined || !!b.requires || !!b.requiresType;
-      const times = once ? (count >= (b.num ?? 1) ? 1 : 0) : count;
-      if (times === 0) continue;
-
-      if (b.bonus) add(b.bonus, times);
-      if (b.bonusSR && surfaceRadar) add(b.bonusSR);
-      if (b.bonusAR && airRadar) add(b.bonusAR);
-      if (b.bonusAccR && accRadar) add(b.bonusAccR);
+      const n = b.level ? matched.filter((e) => e.improvement >= b.level!).length : matched.length;
+      if (n === 0 || (b.num && n < b.num)) continue;
+      const times = b.num ? 1 : n;
+      for (const [k, v] of Object.entries(b.bonus ?? {})) total[k as FitKey] = (total[k as FitKey] ?? 0) + (v ?? 0) * times;
     }
   }
   return { bonus: total, unresolved };
@@ -178,16 +183,24 @@ export const shipBaseId = (masterId: number, master: Pick<MasterData, "ships">):
   return table?.get(masterId);
 };
 
-/** api_sort_id の範囲から EO の国籍コード (EO `ShipDataExtensions.Nationality`)。 */
-export const shipNationality = (sortId: number | undefined, masterId: number): number | undefined => {
-  if (masterId > 1500) return 0;
+/**
+ * 艦の国コード (kancolle-replay `country_ctype.json` の JP / DE / IT / US / GB / FR / RU / TH / NO / SE / NL / AU)。
+ * api_sort_id の範囲 (EO `ShipDataExtensions.Nationality`) で決め、kancolle-replay が艦型 (api_ctype) で別の国に
+ * 置く艦型だけ上書きする。2026-10-23 の start2 で 866 隻中 861 隻が範囲どおり、残る 5 隻 (U-511改、伊504、
+ * UIT-25、UIT-24、伊503) が下の 3 艦型。深海棲艦は ""。
+ */
+export const shipCountry = (sortId: number | undefined, masterId: number, ctype?: number): string | undefined => {
+  if (masterId > 1500) return "";
+  if (ctype !== undefined && CTYPE_COUNTRY[ctype]) return CTYPE_COUNTRY[ctype];
   if (sortId === undefined) return undefined;
-  const upper: [number, number][] = [
-    [1000, 0], [30000, 1], [31000, 2], [32000, 3], [33000, 4], [34000, 5], [35000, 6], [36000, 7], [36060, 8], [36100, 9],
-    [37000, 10], [38000, 11], [39000, 12],
+  const upper: [number, string][] = [
+    [1000, ""], [30000, "JP"], [31000, "DE"], [32000, "IT"], [33000, "US"], [34000, "GB"], [35000, "FR"], [36000, "RU"],
+    [36060, "TH"], [36100, "NO"], [37000, "SE"], [38000, "NL"], [39000, "AU"],
   ];
-  return upper.find(([u]) => sortId < u)?.[1] ?? 0;
+  return upper.find(([u]) => sortId < u)?.[1] ?? "";
 };
+/** kancolle-replay が sort_id の範囲と違う国に置く艦型: 57 (U-511 / 呂500) → DE、80 と 124 (伊504、UIT-25、UIT-24、伊503) → IT */
+const CTYPE_COUNTRY: Record<number, string> = { 57: "DE", 80: "IT", 124: "IT" };
 
 /** master から computeFitBonus の艦。 */
 export const fitShipOf = (masterId: number, master: Pick<MasterData, "ships">): FitShip => {
@@ -197,7 +210,7 @@ export const fitShipOf = (masterId: number, master: Pick<MasterData, "ships">): 
     stype: m?.api_stype ?? 0,
     ctype: m?.api_ctype,
     baseId: shipBaseId(masterId, master),
-    nationality: shipNationality(m?.api_sort_id, masterId),
+    country: shipCountry(m?.api_sort_id, masterId, m?.api_ctype),
   };
 };
 

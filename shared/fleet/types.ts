@@ -133,7 +133,7 @@ export interface ShipMaster {
   api_slot_num?: number;
   api_yomi?: string;
   api_sort_id?: number;
-  /** 改装後の艦 ID (文字列、"0" はなし)。装備ボーナスの shipS (改装系列の初期艦) に使う。 */
+  /** 改装後の艦 ID (文字列、"0" はなし)。装備ボーナスの shipBase (改装系列の初期艦) に使う。 */
   api_aftershipid?: string | number;
 }
 

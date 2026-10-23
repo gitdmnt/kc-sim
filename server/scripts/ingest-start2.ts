@@ -39,7 +39,7 @@ export async function ingestStart2(): Promise<void> {
     id: s.api_id, code: codeById[s.api_id] ?? null, name: s.api_name,
   }));
 
-  // Remodel lineage for fit bonuses (shipS = first form of the line, shipNationality from api_sort_id).
+  // Remodel lineage for fit bonuses (shipBase = first form of the line, shipCountry from api_sort_id).
   const lineage: Record<number, ShipMaster> = {};
   for (const s of d.api_mst_ship as MstShip[]) {
     if (s.api_id <= 1500) lineage[s.api_id] = { api_id: s.api_id, api_aftershipid: s.api_aftershipid, api_sort_id: s.api_sort_id };
