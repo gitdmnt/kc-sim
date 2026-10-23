@@ -3,7 +3,7 @@
  * `bun run screenshots`。出力は SHOTS_DIR (既定 docs/screenshots)、ファイル名の頭に SHOTS_PREFIX を付ける。
  * データ API は vite が KCSIM_API (既定 127.0.0.1:8787) に中継し、落ちていれば静的バンドル (server/dist/maps) を使う。
  * ブラウザは playwright のキャッシュにある chromium_headless_shell を使う (CHROMIUM_PATH で上書き可)。
- * 出撃タブはページがスクロールしないこと (scrollHeight <= innerHeight) を 1280×800 と 1200×710 で確かめる。
+ * 出撃タブはページも main (タブの中身) もスクロールしないことを 1280×800・1200×710・1024×600 で確かめる。
  */
 import { chromium } from "playwright-core";
 import type { Page } from "playwright-core";
@@ -44,7 +44,7 @@ const shot = async (name: string, opts: { fullPage?: boolean } = {}) => {
   await page.screenshot({ path: join(OUT, `${PREFIX}${name}.png`), fullPage: opts.fullPage ?? false });
   console.log("saved", `${PREFIX}${name}.png`);
 };
-// 「出撃」はヘッダのタブとモード切り替えの両方にある。ヘッダが先
+// 「出撃」は左のタブ列とモード切り替えの両方にある。タブ列が先
 const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).first().click();
 
 /** 結果パネルの実行情報 (title = "seed … · 秒") が変わり、進捗バーが消えるまで待つ */
@@ -66,9 +66,12 @@ const waitResult = async (prev: string) => {
 };
 
 const checkNoScroll = async (label: string) => {
-  const [sh, ih] = await page.evaluate(() => [document.scrollingElement!.scrollHeight, innerHeight]);
-  console.log(`${label}: scrollHeight ${sh} <= innerHeight ${ih}: ${sh <= ih}`);
-  if (sh > ih) throw new Error(`${label}: page scrolls`);
+  const [sh, ih, mainSh, mainCh] = await page.evaluate(() => {
+    const main = document.querySelector("main")!;
+    return [document.scrollingElement!.scrollHeight, innerHeight, main.scrollHeight, main.clientHeight];
+  });
+  console.log(`${label}: page ${sh} <= ${ih}, main ${mainSh} <= ${mainCh}`);
+  if (sh > ih || mainSh > mainCh) throw new Error(`${label}: scrolls`);
 };
 
 try {
@@ -164,6 +167,20 @@ try {
   await tab("設定");
   await page.waitForTimeout(200);
   await shot("12-settings");
+
+  // 自動 (チェックボックス): 保存され、オフの間は入力を変えても計算せず、オンにすると計算する
+  await tab("出撃");
+  const auto = page.getByRole("checkbox", { name: "自動" });
+  await auto.uncheck();
+  await page.reload();
+  await auto.waitFor();
+  if (await auto.isChecked()) throw new Error("自動 was not persisted");
+  await page.getByLabel("海域").selectOption({ index: 0 });
+  await page.waitForTimeout(1000);
+  if (await meta(page)) throw new Error("ran while 自動 is off");
+  await auto.check();
+  await waitResult("");
+  console.log("自動 persisted; off: no run, on:", await meta(page));
 
   // 最悪の高さ: 装備 5 枠の艦 6 隻 (第1艦隊の 1〜4 番艦を並べる)。枠の中だけスクロールし、ページは動かない
   await tab("出撃");

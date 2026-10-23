@@ -12,7 +12,7 @@ import {
   parsePluginMessage,
   readEnvelope,
 } from "@shared/embed/protocol";
-import type { HostInfo, PoiState, WebMessage } from "@shared/embed/protocol";
+import type { PoiState, WebMessage } from "@shared/embed/protocol";
 import { getPresetStore, notifyPresetsChanged } from "./app/fleet/presets";
 
 export type PoiStatus =
@@ -31,8 +31,6 @@ export interface PoiConnection {
   state: PoiState | null;
   /** status が unsupported のときのプラグイン側の版 */
   pluginVersion?: number;
-  /** プラグインのビュー (観測ログ・送信設定)。プラグインは自分のタブ列を隠し、このページのヘッダに並べる */
-  host?: HostInfo;
 }
 
 /** 埋め込まれてから state が届くまで待つ時間 */
@@ -101,10 +99,6 @@ const onMessage = (e: MessageEvent) => {
   }
   const msg = parsePluginMessage(e.data);
   if (!msg) return;
-  if (msg.type === "host") {
-    set({ ...current, host: { views: msg.views, insetLeft: msg.insetLeft } });
-    return;
-  }
   if (msg.type === "presets") {
     importPresets(msg.json);
     return;
@@ -112,11 +106,8 @@ const onMessage = (e: MessageEvent) => {
   // const は変わったときだけ届く。前回の参照を使い続けるとカタログを作り直さずに済む
   const master = msg.const ?? current.state?.const;
   if (master === undefined) return;
-  set({ status: "connected", state: { info: msg.info, const: master }, host: current.host });
+  set({ status: "connected", state: { info: msg.info, const: master } });
 };
-
-/** ヘッダのプラグインのビューのタブ: プラグインにビューの切り替えを頼む (iframe は隠れる)。 */
-export const openHostView = (view: string) => postToParent({ src: EMBED_SOURCE, v: EMBED_VERSION, type: "open-view", view });
 
 /** エントリ (main.tsx) から 1 回だけ呼ぶ。 */
 export const startPoiBridge = async (): Promise<void> => {
@@ -130,7 +121,7 @@ export const startPoiBridge = async (): Promise<void> => {
   }
   set({ status: "waiting", state: null });
   window.addEventListener("message", onMessage);
-  postToParent({ src: EMBED_SOURCE, v: EMBED_VERSION, type: "ready", hostViews: true });
+  postToParent({ src: EMBED_SOURCE, v: EMBED_VERSION, type: "ready" });
   setTimeout(() => {
     if (current.status === "waiting") set({ ...current, status: "silent", state: null });
   }, SILENT_AFTER_MS);

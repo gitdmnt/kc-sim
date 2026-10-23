@@ -125,7 +125,7 @@ export const EstimateTab = () => {
   const detailRows = detail.data?.estimates.filter((r) => r.shipId === current);
 
   return (
-    <div className="flex flex-col gap-4 lg:h-[calc(100vh-3.75rem)]">
+    <div className="flex flex-col gap-4 lg:h-full">
       {list.error ? (
         <DataError error={list.error} onRetry={() => setReload((n) => n + 1)} />
       ) : list.loading && !all ? (

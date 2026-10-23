@@ -1,8 +1,8 @@
 import React, { useMemo, useRef, useState } from "react";
-import { Compass } from "lucide-react";
+import { Anchor, Compass, FlaskConical, Map, Settings, Swords } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { STORAGE_PREFIX } from "../fleet";
-import { Badge, S, Tabs, cx } from "../ui";
-import type { TabItem } from "../ui";
+import { Badge, S, cx } from "../ui";
 import { EnemyTab } from "./enemy/EnemyTab";
 import { MapTab } from "./map/MapTab";
 import { EstimateTab } from "./estimate/EstimateTab";
@@ -11,24 +11,63 @@ import { SettingsTab } from "./SettingsTab";
 import { NavProvider } from "./nav";
 import type { NavIntent, TabId } from "./nav";
 import { useApp } from "./context";
-import { openHostView } from "../poiBridge";
 import type { PoiConnection } from "../poiBridge";
 
-const TABS: TabItem<TabId>[] = [
-  { id: "sortie", label: S.tabs.sortie },
-  { id: "map", label: S.tabs.map },
-  { id: "enemy", label: S.tabs.enemy },
-  { id: "estimate", label: S.tabs.estimate },
-  { id: "settings", label: S.tabs.settings },
+const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
+  { id: "sortie", label: S.tabs.sortie, icon: Anchor },
+  { id: "map", label: S.tabs.map, icon: Map },
+  { id: "enemy", label: S.tabs.enemy, icon: Swords },
+  { id: "estimate", label: S.tabs.estimate, icon: FlaskConical },
+  { id: "settings", label: S.tabs.settings, icon: Settings },
 ];
+
+/** 画面いっぱいに使うタブ (中で区画ごとにスクロールする)。他のタブは内容の高さで、はみ出せば main がスクロールする */
+const FULL_HEIGHT: TabId[] = ["sortie", "map", "enemy", "estimate"];
 
 /** poi との接続で対処が要る状態だけ出す */
 const PoiBadge = ({ poi }: { poi: PoiConnection }) =>
   poi.status === "silent" ? (
-    <Badge tone="warn" className="shrink-0">poi 応答なし</Badge>
+    <Badge tone="warn" className="w-fit shrink-0">poi 応答なし</Badge>
   ) : poi.status === "unsupported" ? (
-    <Badge tone="danger" className="shrink-0" title={`プラグインのプロトコル v${poi.pluginVersion}`}>プラグインを更新してください</Badge>
+    <Badge tone="danger" className="w-fit shrink-0" title={`プラグインのプロトコル v${poi.pluginVersion}`}>プラグインを更新してください</Badge>
   ) : null;
+
+/** 左端の縦のタブ列 (VS Code のアクティビティバー): アイコンと短い名前 */
+const ActivityBar = ({ value, onChange }: { value: TabId; onChange: (id: TabId) => void }) => (
+  <nav role="tablist" aria-orientation="vertical" className="flex w-14 shrink-0 flex-col border-r border-ink-800 py-1">
+    {TABS.map((t, i) => {
+      const active = t.id === value;
+      const Icon = t.icon;
+      return (
+        <button
+          key={t.id}
+          role="tab"
+          type="button"
+          aria-selected={active}
+          title={t.label}
+          tabIndex={active ? 0 : -1}
+          onClick={() => onChange(t.id)}
+          onKeyDown={(e) => {
+            const step = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+            if (!step) return;
+            e.preventDefault();
+            onChange(TABS[(i + step + TABS.length) % TABS.length].id);
+            requestAnimationFrame(() => (e.currentTarget.parentElement?.querySelector('[aria-selected="true"]') as HTMLElement | null)?.focus());
+          }}
+          className={cx(
+            // 選択中の印は左端の縦線 (VS Code と同じ)
+            "relative flex h-14 cursor-pointer flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-400",
+            "before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full",
+            active ? "text-ink-50 before:bg-accent-500" : "text-ink-500 hover:text-ink-200"
+          )}
+        >
+          <Icon size={20} aria-hidden />
+          {t.label}
+        </button>
+      );
+    })}
+  </nav>
+);
 
 const TAB_KEY = `${STORAGE_PREFIX}tab`;
 
@@ -42,12 +81,14 @@ const initialTab = (): TabId => {
   return "sortie";
 };
 
+/**
+ * 画面の枠: 左にタブ列、右に選んだタブ。poi プラグインに埋め込まれているときはヘッダを描かない
+ * (プラグインが シミュレーション / 観測ログ / 送信設定 の 1 行を常に描く)。ブラウザで直接開いたときだけ題名の行を出す。
+ */
 export const Shell = () => {
   const [tab, setTab] = useState<TabId>(initialTab);
   const { poi } = useApp();
-  const host = poi.host;
-  // 出撃タブのツールバー (海域・モード・実行) はヘッダの右に置く
-  const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null);
+  const embedded = poi.status !== "standalone";
 
   const change = (id: TabId) => {
     setTab(id);
@@ -71,40 +112,39 @@ export const Shell = () => {
     [intent] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const sortie = tab === "sortie";
+  const pane = "lg:min-h-0 lg:flex-1";
 
   return (
     <NavProvider value={nav}>
-      <div className={cx("mx-auto flex max-w-[1600px] flex-col gap-2 px-2 pb-2", sortie ? "min-h-screen lg:h-screen lg:min-h-0" : "min-h-screen")}>
-        {/* poi プラグインに埋め込まれているときは、プラグインのビューもこの行に並べる (macOS は左に信号ボタンの余白) */}
-        <header className="flex shrink-0 items-center gap-x-2 border-b border-ink-800" style={host ? { paddingLeft: host.insetLeft } : undefined}>
-          <h1 className={cx("mr-2 shrink-0 items-center gap-2 text-base font-semibold text-ink-50", host ? "hidden" : "flex")} title={S.appTitle}>
+      <div className="flex h-screen flex-col">
+        {!embedded && (
+          <header className="flex h-10 shrink-0 items-center gap-2 border-b border-ink-800 px-3">
             <Compass size={18} className="text-ink-400" aria-hidden />
-            <span className="hidden 2xl:inline">{S.appTitle}</span>
-          </h1>
-          <Tabs tabs={TABS} value={tab} size="sm" onChange={(id) => { setIntent(null); change(id); }} className="shrink-0" />
-          {host && host.views.length > 0 && (
-            <Tabs
-              tabs={host.views}
-              value=""
-              size="sm"
-              onChange={openHostView}
-              className="ml-3 shrink-0"
-            />
-          )}
-          <div ref={setToolbar} className="ml-4 flex min-w-0 flex-1 py-1" />
-          <PoiBadge poi={poi} />
-        </header>
-
-        <main className="min-h-0 min-w-0 flex-1">
-          {/* 出撃タブは隠すだけで外さない (結果と計算を保つ) */}
-          <div className={sortie ? "lg:h-full" : "hidden"}>
-            <Workspace toolbar={sortie ? toolbar : null} />
-          </div>
-          {tab === "map" && <MapTab />}
-          {tab === "enemy" && <EnemyTab />}
-          {tab === "estimate" && <EstimateTab />}
-          {tab === "settings" && <SettingsTab />}
-        </main>
+            <h1 className="text-sm font-semibold text-ink-50">{S.appTitle}</h1>
+          </header>
+        )}
+        <div className="flex min-h-0 flex-1">
+          <ActivityBar
+            value={tab}
+            onChange={(id) => {
+              setIntent(null);
+              change(id);
+            }}
+          />
+          <main className="min-h-0 min-w-0 flex-1 overflow-auto">
+            <div className={cx("mx-auto flex max-w-[1600px] flex-col gap-2 p-2", FULL_HEIGHT.includes(tab) && "lg:h-full")}>
+              <PoiBadge poi={poi} />
+              {/* 出撃タブは隠すだけで外さない (結果と計算を保つ) */}
+              <div className={sortie ? pane : "hidden"}>
+                <Workspace />
+              </div>
+              {tab === "map" && <div className={pane}><MapTab /></div>}
+              {tab === "enemy" && <div className={pane}><EnemyTab /></div>}
+              {tab === "estimate" && <div className={pane}><EstimateTab /></div>}
+              {tab === "settings" && <SettingsTab />}
+            </div>
+          </main>
+        </div>
       </div>
     </NavProvider>
   );

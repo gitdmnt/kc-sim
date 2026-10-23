@@ -71,6 +71,14 @@ const shot = async (name: string) => {
   console.log("saved", join(OUT, `${name}.png`));
 };
 const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).click();
+/** ヘッダ (プラグインのタブ列) とタブの位置。どのビューでも同じであること */
+const headerBoxes = () =>
+  page.evaluate(() =>
+    [document.querySelector("[role=tablist]")!, ...document.querySelectorAll("[role=tablist] [role=tab]")].map((el) => {
+      const r = el.getBoundingClientRect();
+      return [r.x, r.y, r.width, r.height].join(",");
+    }).join(" ")
+  );
 
 try {
   // 埋め込んだ Web UI に poi の state (開発用ページではサンプル) が postMessage で届くと、poi の艦隊の取り込みボタンが有効になる。
@@ -92,6 +100,9 @@ try {
   await web.getByText("突破").first().waitFor();
   await page.waitForTimeout(300);
   await shot("19-plugin-embedded");
+  const header = await headerBoxes();
+  // 埋め込んだ Web UI はヘッダを描かない (タブ列は左の縦の 1 本だけ)
+  if (await web.locator("header").count()) throw new Error("the embedded web UI draws a header");
 
   // 観測ログ: 戦闘を流し込んでから表示
   await main.evaluate(async () => {
@@ -116,11 +127,11 @@ try {
     }
     await db.close();
   });
-  // poi の中ではプラグインのビューも Web UI のヘッダのタブに並ぶ
-  await web.getByRole("tab", { name: "観測ログ", exact: true }).click();
+  await tab("観測ログ");
   await page.getByText("昼戦").first().waitFor();
   await page.waitForTimeout(200);
   await shot("05-log-list");
+  if ((await headerBoxes()) !== header) throw new Error(`header moved on 観測ログ: ${header} → ${await headerBoxes()}`);
   await page.locator("tbody tr").first().click();
   await page.getByText("攻撃イベント").waitFor();
   await page.waitForTimeout(300);
@@ -131,6 +142,8 @@ try {
   await page.getByText("観測ログを自動送信").waitFor();
   await page.waitForTimeout(300);
   await shot("08-plugin-upload");
+  if ((await headerBoxes()) !== header) throw new Error(`header moved on 送信設定: ${header} → ${await headerBoxes()}`);
+  console.log("header identical in シミュレーション / 観測ログ / 送信設定:", header);
 } finally {
   await browser.close();
   servers.forEach((s) => s.kill());

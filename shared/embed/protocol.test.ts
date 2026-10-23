@@ -81,15 +81,9 @@ describe("parsePluginMessage", () => {
     expect(parsePluginMessage({ ...env, type: "presets", json: "[]" })).toEqual({ ...env, type: "presets", json: "[]" } as never);
   });
 
-  test("host: views and inset, validated", () => {
-    const views = [{ id: "log", label: "観測ログ", extra: 1 }];
-    expect(parsePluginMessage({ ...env, type: "host", views, insetLeft: 80 })).toEqual({
-      ...env, type: "host", views: [{ id: "log", label: "観測ログ" }], insetLeft: 80,
-    } as never);
-    expect(parsePluginMessage({ ...env, type: "host", views: [], insetLeft: -1 })).toBeNull();
-    expect(parsePluginMessage({ ...env, type: "host", views: [], insetLeft: 999 })).toBeNull();
-    expect(parsePluginMessage({ ...env, type: "host", views: [{ id: "", label: "x" }], insetLeft: 0 })).toBeNull();
-    expect(parsePluginMessage({ ...env, type: "host", views: Array(5).fill({ id: "a", label: "a" }), insetLeft: 0 })).toBeNull();
+  test("a v1 plugin's state is still accepted; its host message (merged header) is ignored", () => {
+    expect(parsePluginMessage({ src: "kcsim", v: 1, type: "state", info: {} })?.type).toBe("state");
+    expect(parsePluginMessage({ src: "kcsim", v: 1, type: "host", views: [], insetLeft: 80 })).toBeNull();
   });
 });
 
@@ -101,10 +95,8 @@ describe("parseWebMessage", () => {
     expect(parseWebMessage({ ...env, type: "presets-ack", imported: 2, skipped: 0 })).toBeNull();
     expect(parseWebMessage({ ...env, type: "presets-ack", imported: -1, skipped: 0, persisted: true })).toBeNull();
     expect(parseWebMessage({ ...env, type: "state", info: {} })).toBeNull();
-    expect(parseWebMessage({ ...env, type: "ready", hostViews: true })).toEqual({ ...env, type: "ready", hostViews: true } as never);
-    expect(parseWebMessage({ ...env, type: "ready", hostViews: "yes" })).toEqual({ ...env, type: "ready" } as never);
-    expect(parseWebMessage({ ...env, type: "open-view", view: "log" })).toEqual({ ...env, type: "open-view", view: "log" } as never);
-    expect(parseWebMessage({ ...env, type: "open-view", view: 3 })).toBeNull();
+    expect(parseWebMessage({ ...env, type: "ready", hostViews: true })).toEqual({ ...env, type: "ready" } as never);
+    expect(parseWebMessage({ ...env, type: "open-view", view: "log" })).toBeNull();
   });
 });
 

@@ -79,7 +79,7 @@ export const MapTab = () => {
   if (maps.loading && !maps.data) return <p className="text-sm text-ink-300">{S.common.loading}</p>;
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:h-[calc(100vh-3.75rem)] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-4 lg:h-full lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
       <Card
         className="flex min-h-0 flex-col"
         bodyClassName="min-h-0 flex-1"

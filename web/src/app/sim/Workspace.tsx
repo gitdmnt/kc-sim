@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
-import { Play, RefreshCw, SlidersHorizontal, Square } from "lucide-react";
+import { Play, SlidersHorizontal, Square } from "lucide-react";
 import type { FitEntry } from "@shared/sim/fit";
 import { STORAGE_PREFIX } from "../../fleet";
 import { abyssalName } from "../../data/names";
@@ -40,10 +39,10 @@ const readSelected = (): string | null => {
 };
 
 /**
- * 出撃タブ: 海域・編成・モード/条件・実行 (ヘッダのツールバー、操作順に左から)、艦隊 (左)、結果 (右) を 1 画面に置く。
+ * 出撃タブ: 艦隊 (左、上に編成の切り替え) と結果 (右、上に海域・モード・条件・自動・実行) を 1 画面に置く。
  * 入力が変わるたびに自動で計算し直す (useSimRun)。他のタブに移っても隠すだけで状態を保つ。
  */
-export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
+export const Workspace = () => {
   const { catalog, poi } = useApp();
   const settings = useSettings();
   const [prefs, setPrefs] = usePrefs();
@@ -192,104 +191,97 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
     />
   );
 
-  // 左から操作の順: 海域 → 編成 → モード・条件 → 実行
+  // 左から操作の順: 海域 → モード・条件 → 自動・実行。狭いときは左の操作だけが折り返し、実行は 1 行目の右端に残る
   const bar = (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
-      <div className="flex shrink-0 items-center gap-1">
-        <Select className="h-7! w-32" aria-label="海域" value={prefs.map} onChange={(e) => setPrefs({ map: e.target.value, node: null })}>
-          {mapOptions.map((m) => (
-            <option key={m.key} value={m.key}>
-              {m.name && m.name !== m.key ? `${m.key} ${m.name}` : m.key}
-            </option>
-          ))}
-          {mapOptions.length === 0 && <option value={prefs.map}>{prefs.map}</option>}
-        </Select>
-        {diffs.length > 1 && (
-          <Select className="h-7! w-16" aria-label="難易度" value={diff} onChange={(e) => setPrefs({ difficulty: Number(e.target.value) })}>
-            {diffs.map((d) => (
-              <option key={d} value={d}>
-                {DIFF[d] ?? d}
+    <div className="flex min-w-0 items-start gap-3">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+        <div className="flex shrink-0 items-center gap-1">
+          <Select className="h-7! w-32" aria-label="海域" value={prefs.map} onChange={(e) => setPrefs({ map: e.target.value, node: null })}>
+            {mapOptions.map((m) => (
+              <option key={m.key} value={m.key}>
+                {m.name && m.name !== m.key ? `${m.key} ${m.name}` : m.key}
               </option>
             ))}
+            {mapOptions.length === 0 && <option value={prefs.map}>{prefs.map}</option>}
           </Select>
-        )}
-      </div>
-      <PresetMenu store={store} preset={preset} select={select} />
-      <div className="flex min-w-0 items-center gap-1">
-        <Tabs<SimMode>
-          className="shrink-0"
-          variant="pill"
-          size="sm"
-          value={mode}
-          onChange={(m) => setPrefs({ mode: m })}
-          tabs={[
-            { id: "sortie", label: "出撃" },
-            { id: "battle", label: "単一戦闘" },
-          ]}
-        />
-        {mode === "battle" && (
-          <>
-            <Select className="h-7! w-14 shrink-0" aria-label="ノード" value={node ?? ""} disabled={compNodes.length === 0} onChange={(e) => setPrefs({ node: e.target.value })}>
-              {compNodes.map((n) => (
-                <option key={n} value={n}>
-                  {n}
+          {diffs.length > 1 && (
+            <Select className="h-7! w-16" aria-label="難易度" value={diff} onChange={(e) => setPrefs({ difficulty: Number(e.target.value) })}>
+              {diffs.map((d) => (
+                <option key={d} value={d}>
+                  {DIFF[d] ?? d}
                 </option>
               ))}
             </Select>
-            <Select
-              className="h-7! w-40 min-w-20 shrink"
-              aria-label="敵編成"
-              value={compId}
-              disabled={compList.length === 0}
-              onChange={(e) => setCfg({ compId: e.target.value, compNode: node ?? "" })}
-            >
-              <option value="all">全 {compList.length} 編成</option>
-              {compList.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {(c.weight * 100).toFixed(1)}% {c.main.slice(0, 3).map((s) => shipName(s.shipId)).join("、")}
-                  {c.main.length > 3 ? "…" : ""}
-                </option>
-              ))}
-            </Select>
-          </>
-        )}
-        <Popover
-          size="sm"
-          variant="ghost"
-          icon
-          label={<SlidersHorizontal size={16} aria-hidden />}
-          aria-label="条件"
-          align="end"
-          title="条件: 夜戦・撤退・ゲージ・陣形・回数"
-          panelClassName={mode === "sortie" ? "w-[34rem]" : "w-[28rem]"}
-        >
-          <Conditions
-            mode={mode}
-            prefs={prefs}
-            setPrefs={setPrefs}
-            routing={routing}
-            cfg={cfg}
-            setCfg={setCfg}
-            battleNodes={battleNodes}
-            bossSets={bossSets}
-            formation={preset?.formation ?? null}
-            setFormation={(formation) => preset && store.save({ ...preset, formation })}
+          )}
+        </div>
+        <div className="flex min-w-0 items-center gap-1">
+          <Tabs<SimMode>
+            className="shrink-0"
+            variant="pill"
+            size="sm"
+            value={mode}
+            onChange={(m) => setPrefs({ mode: m })}
+            tabs={[
+              { id: "sortie", label: "出撃" },
+              { id: "battle", label: "単一戦闘" },
+            ]}
           />
-        </Popover>
+          {mode === "battle" && (
+            <>
+              <Select className="h-7! w-14 shrink-0" aria-label="ノード" value={node ?? ""} disabled={compNodes.length === 0} onChange={(e) => setPrefs({ node: e.target.value })}>
+                {compNodes.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                className="h-7! w-40 min-w-20 shrink"
+                aria-label="敵編成"
+                value={compId}
+                disabled={compList.length === 0}
+                onChange={(e) => setCfg({ compId: e.target.value, compNode: node ?? "" })}
+              >
+                <option value="all">全 {compList.length} 編成</option>
+                {compList.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {(c.weight * 100).toFixed(1)}% {c.main.slice(0, 3).map((s) => shipName(s.shipId)).join("、")}
+                    {c.main.length > 3 ? "…" : ""}
+                  </option>
+                ))}
+              </Select>
+            </>
+          )}
+          <Popover
+            size="sm"
+            variant="ghost"
+            icon
+            label={<SlidersHorizontal size={16} aria-hidden />}
+            aria-label="条件"
+            align="end"
+            title="条件: 夜戦・撤退・ゲージ・陣形・回数"
+            panelClassName={mode === "sortie" ? "w-[34rem]" : "w-[28rem]"}
+          >
+            <Conditions
+              mode={mode}
+              prefs={prefs}
+              setPrefs={setPrefs}
+              routing={routing}
+              cfg={cfg}
+              setCfg={setCfg}
+              battleNodes={battleNodes}
+              bossSets={bossSets}
+              formation={preset?.formation ?? null}
+              setFormation={(formation) => preset && store.save({ ...preset, formation })}
+            />
+          </Popover>
+        </div>
       </div>
-      <div className="ml-auto flex shrink-0 items-center gap-1">
-        <Button
-          size="sm"
-          variant="ghost"
-          icon
-          aria-pressed={prefs.auto}
-          className={prefs.auto ? "text-accent-400!" : "text-ink-500!"}
-          title={prefs.auto ? `自動: 入力を変えるたびに ${AUTO_COUNT.toLocaleString()} 回で再計算 (オン)` : "自動再計算 (オフ)"}
-          aria-label="自動"
-          onClick={() => setPrefs({ auto: !prefs.auto })}
-        >
-          <RefreshCw size={16} aria-hidden />
-        </Button>
+      <div className="flex shrink-0 items-center gap-2">
+        <label className="flex cursor-pointer items-center gap-1 text-xs text-ink-300" title={`入力 (編成・装備・海域・条件) を変えるたびに ${AUTO_COUNT.toLocaleString()} 回で再計算`}>
+          <input type="checkbox" className="h-3.5 w-3.5 cursor-pointer accent-accent-500" checked={prefs.auto} onChange={(e) => setPrefs({ auto: e.target.checked })} />
+          自動
+        </label>
         {bigRun ? (
           <Button size="sm" variant="danger" className="relative w-24 overflow-hidden" onClick={sim.cancel}>
             {progress}
@@ -307,10 +299,13 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
     </div>
   );
 
+  // lg: 2 列 × (操作の行, 本体)。操作の行は列ごとに高さが違っても本体の上端が揃う。狭い画面は 編成 → 艦隊 → 操作 → 結果 の 1 列
   return (
-    <>
-      {toolbar && createPortal(bar, toolbar)}
-      <div className="grid grid-cols-1 gap-2 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,11fr)_minmax(0,10fr)] lg:grid-rows-[minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-2 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,11fr)_minmax(0,10fr)] lg:grid-rows-[auto_minmax(0,1fr)]">
+      <div className="flex min-w-0 items-start lg:col-start-1 lg:row-start-1">
+        <PresetMenu store={store} preset={preset} select={select} />
+      </div>
+      <div className="grid min-w-0 lg:col-start-1 lg:row-start-2 lg:min-h-0 lg:grid-rows-[minmax(0,1fr)]">
         {noMaster ? (
           poi.status === "waiting" ? (
             <EmptyState title={S.common.loading} />
@@ -327,23 +322,24 @@ export const Workspace = ({ toolbar }: { toolbar: HTMLElement | null }) => {
         ) : (
           <FleetPanel store={store} preset={preset} select={select} losCns={losCns} />
         )}
-
-        <section data-results className="flex min-h-0 flex-col rounded-md border border-ink-800 bg-ink-900">
-          <div className={cx("flex min-h-0 flex-1 flex-col gap-4 px-4 py-3 transition-opacity duration-200", (sim.stale || !out) && "opacity-45")}>
-            {loadError && <DataError error={loadError} />}
-            {error && <p className="text-xs text-danger-400">{error}</p>}
-            {out?.kind === "sortie" ? (
-              <SortieResults out={out} meta={meta} />
-            ) : out?.kind === "battle" ? (
-              <BattleResults out={out} meta={meta} shipName={shipName} />
-            ) : mode === "sortie" ? (
-              <SortieRates />
-            ) : (
-              <BattleRates />
-            )}
-          </div>
-        </section>
       </div>
-    </>
+
+      <div className="min-w-0 lg:col-start-2 lg:row-start-1">{bar}</div>
+      <section data-results className="flex min-h-0 flex-col rounded-md border border-ink-800 bg-ink-900 lg:col-start-2 lg:row-start-2">
+        <div className={cx("flex min-h-0 flex-1 flex-col gap-4 px-4 py-3 transition-opacity duration-200", (sim.stale || !out) && "opacity-45")}>
+          {loadError && <DataError error={loadError} />}
+          {error && <p className="text-xs text-danger-400">{error}</p>}
+          {out?.kind === "sortie" ? (
+            <SortieResults out={out} meta={meta} />
+          ) : out?.kind === "battle" ? (
+            <BattleResults out={out} meta={meta} shipName={shipName} />
+          ) : mode === "sortie" ? (
+            <SortieRates />
+          ) : (
+            <BattleRates />
+          )}
+        </div>
+      </section>
+    </div>
   );
 };

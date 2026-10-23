@@ -26,14 +26,16 @@ when `/api` fails). Deploying: `cd ../server && bun run deploy` builds this firs
 
 Scripts: `bun run sample` (regenerate `src/sampleState.json` from `@kancolle/data`), `bun run screenshots`
 (`docs/screenshots/` or `SHOTS_DIR`, file prefix `SHOTS_PREFIX`; with the API down, e.g. `KCSIM_API=http://127.0.0.1:9`,
-it uses the static bundles; it fails if the 出撃 tab scrolls at 1280×800 or 1200×710),
+it uses the static bundles; it fails if the 出撃 tab scrolls, page or tab content, at 1280×800, 1200×710 or 1024×600),
 `bun scripts/screenshot-estimate.ts`, `bun run audit [--offline]`.
 
 ## 出撃 workspace
 
-Header: tabs, then the workspace toolbar in the order of use, left to right: 海域 (+ 難易度 for event maps), 編成 (preset
-selector + ⋯: name, HQ level, poi import, new / duplicate / IO / delete), 出撃 / 単一戦闘 (with node and enemy comp),
-条件 (sliders icon), then 自動 (refresh icon) and 実行 (play icon + count, fills with progress). Left: a one-line fleet
+Layout: no header inside poi (the plugin draws the one header: シミュレーション / 観測ログ / 送信設定); a title row when
+opened directly. The tabs 出撃 / 海域 / 敵艦 / 推定 / 設定 are a vertical bar (icon + name) on the left. Left column:
+編成 (preset selector + ⋯: name, HQ level, poi import, new / duplicate / IO / delete) above the fleet. Right column: the
+simulator toolbar in the order of use, left to right: 海域 (+ 難易度 for event maps), 出撃 / 単一戦闘 (with node and enemy
+comp), 条件 (sliders icon), then 自動 (checkbox) and 実行 (play icon + count, fills with progress), above the results. Left: a one-line fleet
 summary (icons: 制空, 速力, 索敵 Cn1–4, ドラム缶, 電探) and the six ships in a 2 × 3 grid like the game; each ship is a
 header (number, ship type, name, Lv) over one column of slots (equipment icon, name, ★, 熟練, 搭載); mods, morale and
 stats behind ⋯. Right: the key rates as bars on one 0–100% scale (ボス到達 colored by boss rank, 突破 = boss A+ per

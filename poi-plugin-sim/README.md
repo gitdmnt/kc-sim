@@ -85,17 +85,16 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
 
 | Direction | `type` | Fields | When |
 |---|---|---|---|
-| web → plugin | `ready` | `v` = the web UI's protocol version; `hostViews?: true` = it can show the plugin's views as tabs | once the web UI listens |
+| web → plugin | `ready` | `v` = the web UI's protocol version | once the web UI listens |
 | plugin → web | `state` | `info`, `const?` | after every `ready` (with `const`), then when the parts below change (coalesced, 250 ms); `const` only when it changes |
 | plugin → web | `presets` | `json` (`kcsim-presets` export) | after `ready`, until acknowledged once for that origin |
 | web → plugin | `presets-ack` | `imported`, `skipped`, `persisted` | after the import |
-| plugin → web | `host` | `views` (`{id, label}[]`: 観測ログ, 送信設定), `insetLeft` (px, 80 on macOS) | after a `ready` with `hostViews` |
-| web → plugin | `open-view` | `view` | a host view's tab was clicked in the web UI's header |
 
-- **One header row:** after a `ready` with `hostViews` the plugin hides its own tab bar while the simulator is shown;
-  the web UI puts 観測ログ / 送信設定 next to its own tabs and keeps `insetLeft` free for the macOS window buttons.
-  Clicking one switches the plugin to that view, which shows the plugin's tab bar (シミュレータ / 観測ログ / 送信設定,
-  inset on macOS) to go back. A web UI without `hostViews` (older deployment) keeps the plugin's tab bar.
+- **One header row:** the plugin always draws the only header (シミュレーション / 観測ログ / 送信設定, inset 80 px on
+  macOS for the window buttons), in the same place for every view. The embedded web UI draws no header: its own tabs
+  (出撃 / 海域 / 敵艦 / 推定 / 設定) are a vertical bar on its left. Protocol v2 removed v1's `hostViews` / `host` /
+  `open-view` (the web UI merging the plugin's views into its header); the web UI still accepts v1 plugins, which keep
+  their own tab bar when no `ready` asks for the merge.
 
 - **Data:** the plugin sends only what the web UI reads (shared/fleet/poiImport.ts, the catalog, the map tab):
   `info.basic.api_level`; `info.fleets[]` as `{api_id, api_name, api_ship}`; per ship instance `api_id, api_ship_id,

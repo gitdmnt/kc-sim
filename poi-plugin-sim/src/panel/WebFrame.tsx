@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { EMBED_VERSION, serverOrigin } from "@shared/embed/protocol";
-import type { HostInfo, PoiState } from "@shared/embed/protocol";
+import type { PoiState } from "@shared/embed/protocol";
 import { PresetStore } from "@web/fleet/presetStore";
 import { Button, EmptyState } from "@web/ui";
 import { STORAGE_PREFIX } from "../settings";
@@ -31,21 +31,13 @@ interface Props {
   serverUrl: string;
   poiState: PoiState;
   onOpenSettings: () => void;
-  /** Web UI のヘッダにタブとして出すプラグインのビュー */
-  host: HostInfo;
-  /** Web UI がビューのタブを出しているか (iframe を読み込み直すたびに届く) */
-  onHostViews: (shown: boolean) => void;
-  onOpenView: (view: string) => void;
 }
 
 /**
  * Web UI を iframe で開き、poi の state を postMessage で渡す。送り先は iframe のオリジンに固定し、
  * 受け取るのはその iframe から・そのオリジンのメッセージだけ。
  */
-export const WebFrame = ({ serverUrl, poiState, onOpenSettings, host: hostInfo, onHostViews, onOpenView }: Props) => {
-  // bridge は iframe のオリジンごとに作るので、コールバックは最新のものを参照する
-  const callbacks = useRef({ onHostViews, onOpenView });
-  callbacks.current = { onHostViews, onOpenView };
+export const WebFrame = ({ serverUrl, poiState, onOpenSettings }: Props) => {
   const origin = serverOrigin(serverUrl);
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const bridgeRef = useRef<EmbedBridge | null>(null);
@@ -65,9 +57,6 @@ export const WebFrame = ({ serverUrl, poiState, onOpenSettings, host: hostInfo, 
       presetsDone: () => localStorage.getItem(presetsKey) !== null,
       markPresetsDone: () => localStorage.setItem(presetsKey, String(Date.now())),
       onWebVersion: setWebVersion,
-      host: hostInfo,
-      onHostViews: (shown) => callbacks.current.onHostViews(shown),
-      onOpenView: (view) => callbacks.current.onOpenView(view),
     });
     bridgeRef.current = bridge;
     const onMessage = (e: MessageEvent) => {
@@ -78,8 +67,6 @@ export const WebFrame = ({ serverUrl, poiState, onOpenSettings, host: hostInfo, 
     return () => {
       host.removeEventListener("message", onMessage);
       bridgeRef.current = null;
-      // 別のオリジン (または埋め込みなし) では、タブを出してくれる Web UI かどうか分からない
-      callbacks.current.onHostViews(false);
     };
   }, [embeddable, host, origin]);
 

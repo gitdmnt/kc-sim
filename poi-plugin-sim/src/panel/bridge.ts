@@ -3,7 +3,7 @@
  * (iframe・postMessage・オリジン確認は WebFrame.tsx)。
  */
 import { EMBED_SOURCE, EMBED_VERSION, parseWebMessage, projectConst, projectInfo } from "@shared/embed/protocol";
-import type { HostInfo, PluginMessage, PoiState } from "@shared/embed/protocol";
+import type { PluginMessage, PoiState } from "@shared/embed/protocol";
 
 export interface BridgeDeps {
   /** iframe へ送る (WebFrame が iframe のオリジン宛てに postMessage する) */
@@ -15,12 +15,6 @@ export interface BridgeDeps {
   markPresetsDone: () => void;
   /** Web UI のプロトコルの版 (ready で届く) */
   onWebVersion?: (v: number) => void;
-  /** Web UI のヘッダにタブとして出してもらうビュー (観測ログ・送信設定) と左の余白 */
-  host?: HostInfo;
-  /** ready ごと: Web UI がビューのタブを出すか (出すならプラグインは自分のタブ列を隠す) */
-  onHostViews?: (shown: boolean) => void;
-  /** Web UI でビューのタブが押された */
-  onOpenView?: (view: string) => void;
 }
 
 const field = (v: unknown, key: string): unknown =>
@@ -64,14 +58,9 @@ export class EmbedBridge {
       this.deps.onWebVersion?.(m.v);
       this.flush();
       this.sendPresets();
-      const shown = !!m.hostViews && !!this.deps.host;
-      if (shown) this.deps.post({ src: EMBED_SOURCE, v: EMBED_VERSION, type: "host", ...this.deps.host! });
-      this.deps.onHostViews?.(shown);
     } else if (m.type === "presets-ack" && m.persisted) {
       // Web UI がメモリにしか置けなかったとき (persisted: false) は移行済みにせず、次の ready でまた送る
       this.deps.markPresetsDone();
-    } else if (m.type === "open-view" && this.deps.host?.views.some((v) => v.id === m.view)) {
-      this.deps.onOpenView?.(m.view);
     }
   }
 
