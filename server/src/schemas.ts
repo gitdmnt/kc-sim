@@ -16,6 +16,44 @@ const json = z.json();
 const cellNo = z.int().min(0).max(999);
 const clientObsId = z.string().min(1).max(100);
 
+const shipId = z.int().min(1).max(9999);
+/** Position in the sortie fleet (main 1-6, escort 7-12). */
+const fleetIdx = z.int().min(1).max(12);
+const label = z.string().max(64);
+
+/** shared/capture/types CapturedEscape: FCF retreat offered by a battle result (api_escape). */
+const escape = z.object({
+  idx: z.array(fleetIdx).max(12),
+  towIdx: z.array(fleetIdx).max(12),
+  shipIds: z.array(shipId).max(12),               // masterIds of idx / towIdx in the sortie's fleet snapshot
+  towShipIds: z.array(shipId).max(12),
+  type: z.int().min(0).max(9).nullish(),          // api_escape_type
+  retreated: z.boolean(),                         // goback_port seen: the ships left after this cell
+}).strict();
+
+/** shared/capture/types CapturedCellResult: the battleresult of a cell. */
+export const cellResult = z.object({
+  rank: z.enum(["S", "A", "B", "C", "D", "E"]).nullable(),   // api_win_rank
+  drop: z.object({ shipId, name: label.optional() }).strict().nullable(),   // api_get_ship
+  useItem: z.object({ id: z.int().min(0).max(99999), name: label.optional() }).strict().optional(),   // api_get_useitem
+  eventItems: z.array(z.object({ type: z.int().min(0).max(99), id: z.int().min(0).max(99999), value: z.int().min(0).max(1_000_000) }).strict()).max(8).optional(),
+  escapeFlag: z.int().min(0).max(9),
+  escape: escape.optional(),
+}).strict();
+export type CellResult = z.infer<typeof cellResult>;
+
+/** shared/capture/types CapturedGauge: the sortied map's mapinfo entry at the start, game values as they are. */
+const gauge = z.object({
+  gaugeNum: z.int().min(0).max(99).nullish(),
+  gaugeType: z.int().min(0).max(99).nullish(),
+  nowHp: z.int().min(0).max(9_999_999).nullish(),
+  maxHp: z.int().min(0).max(9_999_999).nullish(),
+  state: z.int().min(0).max(99).nullish(),
+  rank: z.int().min(0).max(4).nullish(),
+  cleared: z.int().min(0).max(9).nullish(),
+  defeatCount: z.int().min(0).max(99999).nullish(),
+}).strict();
+
 /** One visited cell of a sortie (api_req_map/start or next). */
 const sortieCell = z.object({
   no: cellNo,                                          // api_no
@@ -27,10 +65,16 @@ const sortieCell = z.object({
   next: z.int().min(0).nullish(),                      // api_next: 0 = terminal cell
   selectCells: z.array(cellNo).max(16).nullish(),      // api_select_route.api_select_cells
   battles: z.array(clientObsId).max(8).default([]),    // battle observations at this cell, in order
+  result: cellResult.nullish(),                        // battleresult: rank, drop, FCF escape (optional: older plugins)
 }).strict();
 
 export const sortieRecord = z.object({
   deckId: z.int().min(1).max(4).nullish(),
+  fleetSize: z.int().min(1).max(7).nullish(),          // main fleet ships; 7 in fleet 3 = striking force
+  escortSize: z.int().min(0).max(6).nullish(),
+  gauge: gauge.nullish(),
+  // Derived by the server from the fleet snapshot (a client value is replaced).
+  fleetType: z.enum(["single", "ctf", "stf", "tcf", "striking"]).nullish(),
   combined: z.int().min(0).max(3).nullish(),
   endKind: z.enum(["boss", "end_node", "retreat", "unknown"]),
   endedAt: z.iso.datetime({ offset: true }).nullish(),

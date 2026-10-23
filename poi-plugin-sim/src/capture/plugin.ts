@@ -5,6 +5,7 @@
  * プラグインウィンドウを開かなくても動く (poi の plugin-manager がロード時に呼ぶ)。
  * プラグインウィンドウ側 (別 BrowserWindow) では呼ばない。二重登録は window 上のフラグで防ぐ。
  */
+import { extractGauge } from "@shared/capture/parser";
 import { summarizeFleet } from "@shared/fleet/calc";
 import { importFromPoi, masterFromPoi } from "@shared/fleet/poiImport";
 import { startAutoUpload } from "./autoUpload";
@@ -80,7 +81,7 @@ export const fleetFeatures = (state: unknown, fleet: CapturedFleet): SortieFleet
   const master = masterFromPoi(state);
   const hq = at(state, "info", "basic", "api_level");
   const hqLevel = typeof hq === "number" ? hq : null;
-  const summary = summarizeFleet([...fleet.ships, ...(fleet.escort ?? [])], master, hqLevel ?? 120);
+  const summary = summarizeFleet([...fleet.ships, ...(fleet.escort ?? [])], master, hqLevel ?? 120, !!fleet.escort?.length);
   const stypes = (ships: CapturedFleet["ships"]) => ships.map((s) => master.ships[s.masterId]?.api_stype ?? 0);
   return {
     stypes: stypes(fleet.ships),
@@ -120,6 +121,14 @@ export const startCapture = (opts: StartCaptureOptions = {}): ObservationDb => {
     getDifficulty: (area, mapNo) => {
       const rank = at(getState(), "info", "maps", area * 10 + mapNo, "api_eventmap", "api_selected_rank");
       return typeof rank === "number" && rank > 0 ? rank : null;
+    },
+    getGauge: (area, mapNo) => {
+      try {
+        return extractGauge(at(getState(), "info", "maps", area * 10 + mapNo));
+      } catch (e) {
+        console.error("[kcsim] gauge failed", e);
+        return null;
+      }
     },
   });
 

@@ -154,6 +154,79 @@ export const battleResult = {
   api_get_ship: { api_ship_id: 77, api_ship_name: "x" },
 };
 
+// ---- 戦闘結果 (battleresult) ----
+// 実パケット形式 (api_data) に合わせて組んだもの。ドロップ・離脱・イベント報酬の有無だけが異なる。
+
+const resultBase = {
+  api_ship_id: [-1, 131, 132, 133, 134, 135, 136],
+  api_win_rank: "S",
+  api_get_exp: 120,
+  api_mvp: 2,
+  api_member_lv: 120,
+  api_member_exp: 1000000,
+  api_get_base_exp: 110,
+  api_get_ship_exp: [-1, 90, 90, 90, 90, 90, 90],
+  api_get_exp_lvup: [[-1], [100, 200], [100, 200], [100, 200], [100, 200], [100, 200], [100, 200]],
+  api_dests: 0,
+  api_destsf: 0,
+  api_quest_name: "南西諸島防衛線",
+  api_quest_level: 1,
+  api_enemy_info: { api_level: "", api_rank: "", api_deck_name: "敵主力艦隊" },
+  api_first_clear: 0,
+  api_mapcell_incentive: 0,
+  api_get_flag: [0, 0, 0],
+  api_escape_flag: 0,
+};
+
+/** ドロップ艦あり (A 勝利)。 */
+export const resultWithDrop = {
+  ...resultBase,
+  api_win_rank: "A",
+  api_get_flag: [0, 1, 0],
+  api_get_ship: { api_ship_id: 230, api_ship_type: "駆逐艦", api_ship_name: "朝潮", api_ship_getmes: "駆逐艦、朝潮です。" },
+};
+/** ドロップ無し。 */
+export const resultNoDrop = { ...resultBase, api_win_rank: "B" };
+/** 大破艦 (第 2 艦隊の 1 番艦 = 全体の 7 番目) と付き添いの護衛艦 (本隊 4 番目) が艦隊司令部施設で離脱できる。 */
+export const resultWithEscape = {
+  ...resultBase,
+  api_win_rank: "S",
+  api_escape_flag: 1,
+  api_escape: { api_escape_idx: [7], api_tow_idx: [4] },
+};
+/** イベント海域: 使用アイテムとイベントアイテム (ボス戦)。 */
+export const resultWithEventItems = {
+  ...resultBase,
+  api_win_rank: "S",
+  api_first_clear: 1,
+  api_get_flag: [1, 0, 0],
+  api_get_useitem: { api_useitem_id: 44, api_useitem_name: "勲章" },
+  api_get_eventitem: [{ api_type: 1, api_id: 123, api_value: 1 }],
+  api_get_ship: { api_ship_id: 401, api_ship_type: "戦艦", api_ship_name: "大和改二", api_ship_getmes: "…" },
+};
+
+// ---- ゲージ (api_get_member/mapinfo の api_map_info の要素) ----
+
+/** イベント海域 (2 本目のゲージの HP ゲージ、乙)。poi の info.maps[api_id] と同じ形。 */
+export const mapinfoEvent = {
+  api_id: 621,
+  api_cleared: 0,
+  api_gauge_type: 2,
+  api_gauge_num: 2,
+  api_defeat_count: 0,
+  api_eventmap: {
+    api_now_maphp: 1200,
+    api_max_maphp: 1800,
+    api_state: 2,
+    api_selected_rank: 3,
+    api_gauge_type: 2,
+    api_gauge_num: 2,
+    api_sally_flag: [1, 1, 1, 1],
+  },
+};
+/** 通常海域 (1-5): 撃破回数のゲージ。api_eventmap は無い。 */
+export const mapinfoNormal = { api_id: 15, api_cleared: 1, api_defeat_count: 1, api_exboss_flag: 0 };
+
 // ---- 海域 (api_req_map/start・next) ----
 // 1-5 の実パケット形式に合わせて組んだもの。マス番号は KC3 edges と同じ (edge_id = 行き先の api_no):
 // 0 Start, 1 A, 2 B, 3 C, 4 D, 5 E, 6 F, 7 G, 8 H, 9 I, 10/11/12 J (ボス、経路ごとに別番号)。

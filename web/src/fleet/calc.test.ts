@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   fleetFighterPower,
   losEquipScore,
+  losFullSize,
   mapLos33,
   slotFighterPower,
   summarizeFleet,
@@ -91,6 +92,17 @@ describe("mapLos33", () => {
     expect(mapLos33(ships, 120, 1)).toBeCloseTo(12.9 + 8 - 48 + 8, 10);
     expect(mapLos33(ships, 120, 4)).toBeCloseTo(12.9 * 4 + 8 - 48 + 8, 10);
   });
+  test("floors to 2 decimals", () => {
+    // sqrt(18) = 4.2426…: 4.24 - 48 + 10 (one ship) + 2*5
+    expect(mapLos33([{ bareLos: 18, equips: [] }], 120)).toBe(Math.floor((Math.sqrt(18) - 48 + 10) * 100) / 100);
+    expect(mapLos33([{ bareLos: 18, equips: [] }], 120)).toBe(-33.76);
+  });
+  test("combined fleet: both fleets, last term uses 12 (ROUTING_DSL §5)", () => {
+    const ships = Array.from({ length: 12 }, () => ({ bareLos: 16, equips: [] }));
+    expect(mapLos33(ships, 120, 1, losFullSize(true))).toBe(12 * 4 - 48);
+    expect(mapLos33(ships.slice(0, 11), 120, 1, losFullSize(true))).toBe(11 * 4 - 48 + 2);
+    expect(mapLos33(ships.slice(0, 5), 120, 1, losFullSize(true))).toBe(5 * 4 - 48 + 14);
+  });
   test("per-type scores", () => {
     expect(losEquipScore({ type2: 8, los: 5, improvement: 0 })).toBeCloseTo(4);
     expect(losEquipScore({ type2: 9, los: 9, improvement: 0 })).toBeCloseTo(9);
@@ -104,7 +116,7 @@ describe("mapLos33 shared vectors (sim-core)", () => {
   for (const v of losVectors.vectors) {
     test(v.name, () => {
       const ships = v.ships.map((s) => ({ bareLos: s.nakedLos, equips: s.equips.map((e) => ({ type2: e.cat, los: e.los, improvement: e.improvement })) }));
-      for (const cn of [1, 2, 3, 4] as const) expect(mapLos33(ships, v.hq, cn)).toBeCloseTo(v.expected[`cn${cn}`], 9);
+      for (const cn of [1, 2, 3, 4] as const) expect(mapLos33(ships, v.hq, cn)).toBeCloseTo(Math.floor(v.expected[`cn${cn}`] * 100) / 100, 9);
     });
   }
   test("dive bombers count 0.6, carrier recon gets 1.2√★", () => {
@@ -137,10 +149,17 @@ describe("summarizeFleet", () => {
     expect(s.drums).toEqual({ total: 2, ships: 1 });
     expect(s.radars).toBe(1);
     // bare: 30-12=18, 20 ; equip: 1.2*7 + 0.6*5 = 11.4
-    const expected = 11.4 + Math.sqrt(18) + Math.sqrt(20) - 48 + 8;
-    expect(s.los!.cn1).toBeCloseTo(expected, 8);
-    expect(s.los!.cn3).toBeCloseTo(11.4 * 3 + Math.sqrt(18) + Math.sqrt(20) - 48 + 8, 8);
+    const floor2 = (v: number) => Math.floor(v * 100) / 100;
+    expect(s.los!.cn1).toBe(floor2(11.4 + Math.sqrt(18) + Math.sqrt(20) - 48 + 8));
+    expect(s.los!.cn3).toBe(floor2(11.4 * 3 + Math.sqrt(18) + Math.sqrt(20) - 48 + 8));
     expect(s.fighterPower).toBe(0);
+  });
+
+  test("combined fleet uses 12 in the last term", () => {
+    const ships = [ship(1, { speed: 10, los: 30 }, []), ship(2, { speed: 10, los: 20 }, [])];
+    const single = summarizeFleet(ships, master, 120).los!.cn1;
+    const combined = summarizeFleet(ships, master, 120, true).los!.cn1;
+    expect(combined).toBeCloseTo(single + 12, 8);
   });
 
   test("unknown LoS gives null", () => {

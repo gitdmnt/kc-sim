@@ -128,15 +128,23 @@ export const losEquipScore = (e: LosEquip): number => {
   return coef * (e.los + starBonus);
 };
 
-/** 判定式(33)。`cn` は分岐点係数 (1-4)。 */
-export const mapLos33 = (ships: LosShip[], hqLevel: number, cn = 1): number => {
+/**
+ * 判定式(33) (docs/ROUTING_DSL.md §5)。`cn` は分岐点係数 (1-4)。連合艦隊は両艦隊の艦を渡し、
+ * 末尾の項の定数 (`fullSize`) を 12 にする。小数第 2 位で切り捨てる (sim-core routing::los33 と同じ)。
+ */
+export const mapLos33 = (ships: LosShip[], hqLevel: number, cn = 1, fullSize = 6): number => {
   const equipTerm = ships.reduce(
     (sum, s) => sum + s.equips.reduce((a, e) => a + losEquipScore(e), 0),
     0
   );
   const shipTerm = ships.reduce((sum, s) => sum + Math.sqrt(Math.max(0, s.bareLos)), 0);
-  return equipTerm * cn + shipTerm - Math.ceil(0.4 * hqLevel) + 2 * (6 - ships.length);
+  const v = equipTerm * cn + shipTerm - Math.ceil(0.4 * hqLevel) + 2 * (fullSize - ships.length);
+  // 加算順の浮動小数点誤差を epsilon で吸収する (routing.rs と同じ)
+  return Math.floor(v * 100 + 1e-7) / 100;
 };
+
+/** 判定式(33) の末尾の項の定数: 通常艦隊 6、連合艦隊 12。 */
+export const losFullSize = (combined: boolean): number => (combined ? 12 : 6);
 
 // ---- 艦隊サマリ ----
 
@@ -162,15 +170,18 @@ const bareLosOf = (ship: PresetShip, master: MasterData): number | null => {
   return value === null ? null : value - sumEquipStats(ship, master).los;
 };
 
+/** `ships` は連合艦隊なら両艦隊を連結したもの。`combined` で判定式(33) の定数が 12 になる。 */
 export const summarizeFleet = (
   ships: PresetShip[],
   master: MasterData,
-  hqLevel = 120
+  hqLevel = 120,
+  combined = false
 ): FleetSummary => {
   const speeds = ships
     .map((s) => resolveShipStats(s, master).speed.value)
     .filter((v): v is number => v !== null);
 
+  const fullSize = losFullSize(combined);
   let los: FleetSummary["los"] = null;
   const bare = ships.map((s) => bareLosOf(s, master));
   if (ships.length > 0 && bare.every((v) => v !== null)) {
@@ -184,10 +195,10 @@ export const summarizeFleet = (
       }),
     }));
     los = {
-      cn1: mapLos33(losShips, hqLevel, 1),
-      cn2: mapLos33(losShips, hqLevel, 2),
-      cn3: mapLos33(losShips, hqLevel, 3),
-      cn4: mapLos33(losShips, hqLevel, 4),
+      cn1: mapLos33(losShips, hqLevel, 1, fullSize),
+      cn2: mapLos33(losShips, hqLevel, 2, fullSize),
+      cn3: mapLos33(losShips, hqLevel, 3, fullSize),
+      cn4: mapLos33(losShips, hqLevel, 4, fullSize),
     };
   }
 

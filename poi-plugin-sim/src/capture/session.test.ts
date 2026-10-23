@@ -3,9 +3,10 @@ import { IDBFactory } from "fake-indexeddb";
 import { beforeEach, describe, expect, test } from "bun:test";
 import { ObservationDb, STALE_SORTIE_MS } from "./db";
 import {
-  battle15, battleResult, dayBattle, mapNext, mapNext15D, mapNext15F, mapNext15G, mapNext15I, mapNext15J, mapStart,
-  mapStart15, midnightBattle,
+  battle15, battleResult, dayBattle, mapinfoEvent, mapNext, mapNext15D, mapNext15F, mapNext15G, mapNext15I, mapNext15J, mapStart,
+  mapStart15, mapinfoNormal, midnightBattle, resultNoDrop, resultWithDrop, resultWithEscape, resultWithEventItems,
 } from "./fixtures";
+import { extractGauge } from "@shared/capture/parser";
 import { CaptureSession, isBattlePath, isResultPath } from "./session";
 import type { CapturedFleet } from "@shared/capture/types";
 import { fleetSnapshot, startCapture, stopCapture } from "./plugin";
@@ -254,12 +255,126 @@ describe("CaptureSession + ObservationDb", () => {
     expect(sortie.sortie.cells[4]).toEqual({
       no: 12, from: 7, colorNo: 5, eventId: 5, eventKind: 1, bossCellNo: 12, next: 0, selectCells: null,
       battles: [obs[3].clientObsId, obs[4].clientObsId],
+      result: { rank: "S", drop: { shipId: 77, name: "x" }, escapeFlag: 0 },
     });
     expect(await db.countPending(t)).toBe(0);
     expect(await db.countPending(t + STALE_SORTIE_MS)).toBe(1);
     bodies.length = 0;
     expect(await db.uploadPending("http://x", { fetch: fakeFetch, token: "c", now: () => t + STALE_SORTIE_MS })).toEqual({ sent: 1, remaining: 0 });
     expect(bodies[0].observations[0].sortie).toMatchObject({ endKind: "unknown", endedAt: null });
+  });
+});
+
+describe("sortie gauge, drops, FCF retreats, striking force", () => {
+  const ship = (masterId: number) => ({ masterId, level: 99, luckMod: 0, hpMod: 0, aswMod: 0, morale: 49, equips: [] });
+  const fleet7 = (deckId: number, n: number): CapturedFleet => ({ deckId, ships: Array.from({ length: n }, (_, i) => ship(100 + i)) });
+  let t = 5000;
+  const setup = (f: CapturedFleet, getGauge?: (a: number, m: number) => any) => {
+    const db = new ObservationDb(new IDBFactory());
+    const session = new CaptureSession({
+      sink: db,
+      getFleet: (deckId, combined) => ({ ...f, deckId, ...(combined ? { escort: [ship(200), ship(201)] } : {}) }),
+      getGauge,
+      now: () => ++t,
+      onError: (e) => { throw e; },
+    });
+    return { db, session };
+  };
+  const eventStart = { ...mapStart15, api_maparea_id: 62, api_mapinfo_no: 1 };
+  const eventNext = { ...mapNext15D, api_maparea_id: 62, api_mapinfo_no: 1 };
+
+  test("gauge state of the sortied map and the fleet size are recorded at the start", async () => {
+    const asked: [number, number][] = [];
+    const { db, session } = setup(fleet7(1, 6), (a, m) => (asked.push([a, m]), extractGauge(mapinfoEvent)));
+    await session.handle("api_req_map/start", eventStart, { api_deck_id: "1" });
+    await session.handle("api_req_map/next", eventNext, {});
+    const [s] = await db.listSorties();
+    expect(asked).toEqual([[62, 1]]);
+    expect(s.gauge).toEqual({ gaugeNum: 2, gaugeType: 2, nowHp: 1200, maxHp: 1800, state: 2, rank: 3, cleared: 0, defeatCount: 0 });
+    expect([s.deckId, s.fleetSize, s.escortSize]).toEqual([1, 6, 0]);
+  });
+
+  test("no gauge source: gauge null", async () => {
+    const { db, session } = setup(fleet7(1, 6));
+    await session.handle("api_req_map/start", mapStart15, { api_deck_id: "1" });
+    expect((await db.listSorties())[0].gauge).toBeNull();
+  });
+
+  test("striking force: 7 ships in fleet 3", async () => {
+    const { db, session } = setup(fleet7(3, 7));
+    await session.handle("api_req_map/start", mapStart15, { api_deck_id: "3" });
+    await session.handle("api_req_map/next", mapNext15D, {});
+    const [s] = await db.listSorties();
+    expect([s.deckId, s.fleetSize, s.escortSize, s.fleet?.ships.length]).toEqual([3, 7, 0, 7]);
+  });
+
+  test("battle results land on the cell: rank, drop, no drop, event items", async () => {
+    const { db, session } = setup(fleet7(1, 6));
+    await session.handle("api_req_map/start", mapStart15, { api_deck_id: "1" });
+    await session.handle("api_req_sortie/battle", battle15([1501]), {});
+    await session.handle("api_req_sortie/battleresult", resultWithDrop);
+    await session.handle("api_req_map/next", mapNext15D, {});
+    await session.handle("api_req_sortie/battle", battle15([1501]), {});
+    await session.handle("api_req_sortie/battleresult", resultNoDrop);
+    await session.handle("api_req_map/next", mapNext15F, {});
+    await session.handle("api_req_sortie/battle", battle15([1501]), {});
+    await session.handle("api_req_sortie/battleresult", resultWithEventItems);
+    const [s] = await db.listSorties();
+    expect(s.cells.map((c) => c.result)).toEqual([
+      { rank: "A", drop: { shipId: 230, name: "朝潮" }, escapeFlag: 0 },
+      { rank: "B", drop: null, escapeFlag: 0 },
+      { rank: "S", drop: { shipId: 401, name: "大和改二" }, escapeFlag: 0, useItem: { id: 44, name: "勲章" }, eventItems: [{ type: 1, id: 123, value: 1 }] },
+    ]);
+  });
+
+  test("FCF escape: ships resolved from the sortie fleet (main 1-6, escort 7-12); goback_port confirms the retreat", async () => {
+    const { db, session } = setup(fleet7(1, 6));
+    await session.handle("api_port/port", { api_combined_flag: 2 });
+    await session.handle("api_req_map/start", mapStart15, { api_deck_id: "1" });
+    await session.handle("api_req_combined_battle/battle", dayBattle, {});
+    await session.handle("api_req_combined_battle/battleresult", resultWithEscape);
+    let [s] = await db.listSorties();
+    expect(s.cells[0]!.result!.escape).toEqual({ idx: [7], towIdx: [4], shipIds: [200], towShipIds: [103], type: null, retreated: false });
+    await session.handle("api_req_combined_battle/goback_port", {});
+    await session.handle("api_req_map/next", mapNext15D, {});
+    await session.handle("api_req_combined_battle/battle", dayBattle, {});
+    await session.handle("api_req_combined_battle/battleresult", { ...resultNoDrop, api_escape_flag: 1, api_escape: { api_escape_idx: [2], api_tow_idx: [] } });
+    [s] = await db.listSorties();
+    expect(s.cells[0]!.result!.escape!.retreated).toBe(true);
+    // offered at the second cell but never confirmed
+    expect(s.cells[1]!.result!.escape).toEqual({ idx: [2], towIdx: [], shipIds: [101], towShipIds: [], type: null, retreated: false });
+    expect(s.cells[1]!.battles).toHaveLength(1);
+  });
+
+  test("goback_port without an offered escape changes nothing", async () => {
+    const { db, session } = setup(fleet7(1, 6));
+    await session.handle("api_req_map/start", mapStart15, { api_deck_id: "1" });
+    await session.handle("api_req_sortie/battle", battle15([1501]), {});
+    await session.handle("api_req_sortie/battleresult", resultNoDrop);
+    await session.handle("api_req_sortie/goback_port", {});
+    expect((await db.listSorties())[0].cells[0]!.result).toEqual({ rank: "B", drop: null, escapeFlag: 0 });
+  });
+
+  test("the upload carries gauge, fleet sizes and cell results; old sorties without them still upload", async () => {
+    const { db, session } = setup(fleet7(3, 7), () => extractGauge(mapinfoEvent));
+    await session.handle("api_req_map/start", eventStart, { api_deck_id: "3" });
+    await session.handle("api_req_sortie/battle", battle15([1501]), {});
+    await session.handle("api_req_sortie/battleresult", resultWithDrop);
+    await session.handle("api_port/port", {});
+    const old = { ...(await db.listSorties())[0]!, id: "s-old" } as any;
+    delete old.gauge; delete old.fleetSize; delete old.escortSize;
+    old.cells = old.cells.map(({ result, ...c }: any) => c);
+    await db.saveSortie(old);
+    const bodies: any[] = [];
+    const fakeFetch = (async (_u: string, init: any) => (bodies.push(JSON.parse(init.body)), { ok: true, status: 200, statusText: "OK" })) as unknown as typeof fetch;
+    await db.uploadPending("http://x", { fetch: fakeFetch, token: "c", now: () => t });
+    const sorties = bodies.flatMap((b) => b.observations).filter((o: any) => o.kind === "sortie");
+    const fresh = sorties.find((o: any) => o.clientObsId !== "s-old");
+    expect(fresh.sortie).toMatchObject({ deckId: 3, fleetSize: 7, escortSize: 0, gauge: { gaugeNum: 2, gaugeType: 2, nowHp: 1200, maxHp: 1800 } });
+    expect(fresh.sortie.cells[0].result).toEqual({ rank: "A", drop: { shipId: 230, name: "朝潮" }, escapeFlag: 0 });
+    const legacy = sorties.find((o: any) => o.clientObsId === "s-old");
+    expect(legacy.sortie).toMatchObject({ fleetSize: 7, escortSize: 0, gauge: null });
+    expect(legacy.sortie.cells[0].result).toBeUndefined();
   });
 });
 
@@ -287,8 +402,29 @@ describe("startCapture", () => {
     await new Promise((r) => setTimeout(r, 50));
     const [b] = await db.listBattles();
     expect(b.fleet?.ships[0].masterId).toBe(131);
+    // the gauge comes from poi's info.maps entry of the sortied map (mapStart is 1-2: no entry there)
+    expect((await db.listSorties())[0].gauge).toBeNull();
     stopCapture();
     expect(listeners.size).toBe(0);
+  });
+
+  test("the sortie gauge is read from poi's info.maps (api_eventmap) of the sortied map", async () => {
+    const listeners = new Map<string, (e: Event) => void>();
+    const target = { addEventListener: (n: string, f: any) => listeners.set(n, f), removeEventListener: (n: string) => listeners.delete(n) };
+    const db = new ObservationDb(new IDBFactory());
+    const state = { info: { maps: { 621: mapinfoEvent, 15: mapinfoNormal } } };
+    startCapture({ db, getState: () => state, target });
+    const fire = (path: string, body: any, postBody?: any) => listeners.get("game.response")!({ detail: { path, body, postBody } } as any);
+    fire("/kcsapi/api_req_map/start", { ...mapStart15, api_maparea_id: 62, api_mapinfo_no: 1 }, { api_deck_id: "1" });
+    fire("/kcsapi/api_port/port", {});
+    fire("/kcsapi/api_req_map/start", mapStart15, { api_deck_id: "1" });
+    await new Promise((r) => setTimeout(r, 50));
+    const sorties = await db.listSorties();
+    expect(sorties.map((s) => s.gauge)).toEqual([
+      { gaugeNum: 2, gaugeType: 2, nowHp: 1200, maxHp: 1800, state: 2, rank: 3, cleared: 0, defeatCount: 0 },
+      { gaugeNum: null, gaugeType: null, nowHp: null, maxHp: null, state: null, rank: null, cleared: 1, defeatCount: 1 },
+    ]);
+    stopCapture();
   });
 
   test("fleetSnapshot guards missing state", () => {

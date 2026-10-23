@@ -7,6 +7,7 @@
 // only when it is significant after a Bonferroni correction over every candidate tested. The tree is
 // then written as an ordered DSL rule list (nested `rules` for subtrees, `los` actions for pure LoS
 // bands, `random` + `uncertain` for mixed leaves) and checked with validateRoutingDoc.
+import { mapLos33 } from "../../../shared/fleet/calc";
 import { SHIP_GROUPS, SHIP_TYPES, SPEEDS, type Predicate, type Rule, type RoutingDoc, type ShipTypeCode } from "../../src/routing/schema";
 import { validateRoutingDoc, type Edge } from "../../src/routing/validate";
 import * as z from "zod";
@@ -67,34 +68,12 @@ export interface InferResult { doc: RoutingDoc; report: NodeReport[]; dropped: n
 
 // ------------------------------------------------------------- LoS (§5) ----
 
-/** Category coefficient and improvement multiplier of formula 33 (same table as sim-core routing.rs). */
-function losCoef(cat: number): [number, number] | null {
-  switch (cat) {
-    case 8: return [0.8, 0];
-    case 9: case 94: return [1.0, 1.2];
-    case 10: return [1.2, 1.2];
-    case 11: return [1.1, 1.15];
-    case 41: return [0.6, 1.2];
-    case 12: return [0.6, 1.25];
-    case 13: case 93: return [0.6, 1.4];
-    default: return null;
-  }
-}
-
-/** LoS formula 33 floored to 2 decimals; `full` is 6 (single) or 12 (combined, both fleets). */
+/** LoS formula 33 floored to 2 decimals (the shared implementation); `full` is 6 (single) or 12 (combined, both fleets). */
 export function los33(ships: RouteShip[], cn: number, hq: number, full = 6): number {
-  let v = 0;
-  for (const s of ships) {
-    v += Math.sqrt(Math.max(0, s.nakedLos));
-    for (const e of s.equips) {
-      const c = losCoef(e.cat) ?? (e.los > 0 ? [0.6, 0] as [number, number] : null);
-      if (!c) continue;
-      v += cn * c[0] * (e.los + c[1] * Math.sqrt(Math.max(0, e.level)));
-    }
-  }
-  v -= Math.ceil(0.4 * hq);
-  v += 2 * (full - ships.length);
-  return Math.floor(v * 100 + 1e-7) / 100;
+  return mapLos33(
+    ships.map((s) => ({ bareLos: s.nakedLos, equips: s.equips.map((e) => ({ type2: e.cat, los: e.los, improvement: e.level })) })),
+    hq, cn, full,
+  );
 }
 
 // -------------------------------------------------------------- features ----
@@ -663,6 +642,77 @@ export function nextDistribution(doc: RoutingDoc, node: string, s: SortieSample,
   const def = node === START ? doc.start : doc.nodes[node];
   if (!def || !("rules" in def)) return {};
   return evalRules(def.rules);
+}
+
+// ------------------------------------------------------- hand-rule check ----
+
+export interface HandRuleCheck {
+  /** Branching decisions checked (player selects and single-exit nodes excluded). */
+  decisions: number;
+  /** Observed moves the rules give probability 0 for that fleet. `example`: ship types of one such fleet. */
+  impossible: { node: string; to: string; count: number; example: string }[];
+  /** Fleets the rules treat alike at a node (same next-node distribution) whose observed shares differ. */
+  divergent: { node: string; expected: Record<string, number>; observed: Record<string, number>; n: number; tv: number; p: number }[];
+}
+
+const STYPE_CODE = Object.fromEntries(Object.entries(SHIP_TYPES).map(([k, v]) => [v, k])) as Record<number, string>;
+
+/**
+ * Compares observed sorties with a routing document. Divergence is judged per (node, expected distribution):
+ * groups with ≥ `minSamples` decisions whose observed shares differ by ≥ `minTv` (total variation) and fail a
+ * G goodness-of-fit test at `alpha` after a Bonferroni correction over the groups tested.
+ */
+export function checkHandRules(
+  doc: RoutingDoc, edges: Edge[], sorties: SortieSample[], { minSamples = 30, minTv = 0.15, alpha = 0.01 } = {},
+): HandRuleCheck {
+  const exits = new Map<string, number>();
+  for (const e of edges) exits.set(e.from, (exits.get(e.from) ?? 0) + 1);
+  const impossible = new Map<string, HandRuleCheck["impossible"][number]>();
+  const groups = new Map<string, { node: string; expected: Record<string, number>; observed: Record<string, number>; n: number }>();
+  let decisions = 0;
+  const judge = (s: SortieSample, node: string, visited: Set<string>, to: string) => {
+    decisions++;
+    const expected = nextDistribution(doc, node, s, visited);
+    if (!expected[to]) {
+      const key = `${node}>${to}`;
+      const hit = impossible.get(key);
+      if (hit) hit.count++;
+      else impossible.set(key, { node, to, count: 1, example: [...s.main, ...(s.escort ?? [])].map((x) => STYPE_CODE[x.stype] ?? x.stype).join(" ") });
+      return;
+    }
+    const sorted = Object.fromEntries(Object.entries(expected).sort(([a], [b]) => a.localeCompare(b)));
+    const key = `${node}|${JSON.stringify(sorted)}`;
+    let g = groups.get(key);
+    if (!g) groups.set(key, (g = { node, expected: sorted, observed: {}, n: 0 }));
+    g.observed[to] = (g.observed[to] ?? 0) + 1;
+    g.n++;
+  };
+  for (const s of sorties) {
+    if (doc.start) judge(s, START, new Set(), s.path[0]!);
+    const visited = new Set<string>();
+    for (let j = 0; j + 1 < s.path.length; j++) {
+      const node = s.path[j]!;
+      visited.add(node);
+      if (!s.selects?.[node] && (exits.get(node) ?? 0) > 1) judge(s, node, new Set(visited), s.path[j + 1]!);
+    }
+  }
+  const tested = [...groups.values()].filter((g) => g.n >= minSamples && Object.keys(g.expected).length > 0);
+  const divergent = tested.flatMap((g) => {
+    const keys = new Set([...Object.keys(g.expected), ...Object.keys(g.observed)]);
+    let tv = 0;
+    let stat = 0;
+    for (const k of keys) {
+      const o = g.observed[k] ?? 0;
+      const e = (g.expected[k] ?? 0) * g.n;
+      tv += Math.abs(o / g.n - (g.expected[k] ?? 0));
+      if (o > 0) stat += o * Math.log(o / e);
+    }
+    tv /= 2;
+    const df = Object.keys(g.expected).length - 1;
+    const p = df > 0 ? chi2sf(2 * stat, df) : 1;
+    return tv >= minTv && p * tested.length < alpha ? [{ ...g, tv: Math.round(tv * 1000) / 1000, p }] : [];
+  });
+  return { decisions, impossible: [...impossible.values()].sort((a, b) => b.count - a.count), divergent: divergent.sort((a, b) => b.tv - a.tv) };
 }
 
 // ------------------------------------------------------ poi observations ----

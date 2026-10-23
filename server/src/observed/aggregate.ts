@@ -125,6 +125,17 @@ export function observationStatements(db: D1Database, o: ObservationRow): D1Prep
     ).bind(o.map_id, layout, difficulty ?? -1, c.from ?? prev ?? 0, c.no, o.id));
     prev = c.no;
   }
+  // One row per battle result: the dropped ship, or ship 0 for no drop (the denominator of the drop rate).
+  const drops = difficulty === null ? [] : s.cells.flatMap((c) => (c.result?.rank ? [{ cell: c.no, rank: c.result.rank, ship: c.result.drop?.shipId ?? 0 }] : []));
+  if (drops.length) {
+    out.push(db.prepare(
+      `INSERT INTO poi_drop_counts (map_id, layout, difficulty, cell_no, rank, ship_id, count, first_seen, last_seen)
+       SELECT ?1, ?2, ?3, json_extract(j.value, '$.cell'), json_extract(j.value, '$.rank'), json_extract(j.value, '$.ship'), 1, ?4, ?4
+       FROM json_each(?5) j WHERE ${GUARD.replace("?", "?6")}
+       ON CONFLICT (map_id, layout, difficulty, cell_no, rank, ship_id) DO UPDATE SET count = poi_drop_counts.count + 1,
+         first_seen = MIN(poi_drop_counts.first_seen, excluded.first_seen), last_seen = MAX(poi_drop_counts.last_seen, excluded.last_seen)`,
+    ).bind(o.map_id, layout, difficulty, at, JSON.stringify(drops), o.id));
+  }
   out.push(db.prepare(
     `INSERT INTO poi_sorties (observation_id, client_id, map_id, difficulty, layout, observed_at, end_kind, cells, battles, features)
      SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10 WHERE ${GUARD.replace("?", "?1")}
@@ -246,7 +257,7 @@ export function resetStatements(db: D1Database, mapIds?: number[]): D1PreparedSt
   const inMaps = (col: string) => `(?1 IS NULL OR ${col} IN (SELECT value FROM json_each(?1)))`;
   const sets = `SELECT id FROM enemy_comp_sets WHERE source_id = ${SRC} AND ${inMaps("map_id")}`;
   return [
-    ...["poi_layouts", "poi_cells", "poi_edge_counts", "poi_comp_counts", "poi_sorties", "poi_graph_mismatches"]
+    ...["poi_layouts", "poi_cells", "poi_edge_counts", "poi_comp_counts", "poi_drop_counts", "poi_sorties", "poi_graph_mismatches"]
       .map((t) => db.prepare(`DELETE FROM ${t} WHERE ${inMaps("map_id")}`).bind(ids)),
     db.prepare(`DELETE FROM enemy_comp_ships WHERE comp_id IN (SELECT id FROM enemy_comps WHERE set_id IN (${sets}))`).bind(ids),
     db.prepare(`DELETE FROM enemy_comps WHERE set_id IN (${sets})`).bind(ids),

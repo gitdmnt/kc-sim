@@ -13,7 +13,7 @@ export type Action = "reject" | "quarantine" | "flag";
 export type Rule =
   | "schema" | "too_large" | "timestamp" | "map_unknown" | "difficulty" | "cell_unknown" | "edge_unknown" | "map_graph_unknown"
   | "raw_invalid" | "raw_mismatch" | "formation" | "enemy_ship_unknown" | "enemy_stats" | "equipment_unknown" | "friend_ship"
-  | "fleet_mismatch" | "hp_progression" | "client_mismatch" | "sortie_no_raw";
+  | "fleet_mismatch" | "hp_progression" | "client_mismatch" | "sortie_no_raw" | "drop_unknown" | "drop_no_battle" | "drop_rank";
 export interface Finding { rule: Rule; action: Action; detail: string }
 
 export const MAX_AGE_MS = 30 * 24 * 60 * 60_000;
@@ -276,7 +276,7 @@ function sortieFeatures(fleet: FleetInput | null | undefined, client: unknown, c
   if (!fleet) return null;
   const hq = client && typeof client === "object" ? Reflect.get(client, "hqLevel") : null;
   const hqLevel = Number.isInteger(hq) && Number(hq) >= 1 && Number(hq) <= 120 ? Number(hq) : null;
-  const summary = summarizeFleet([...fleet.ships, ...(fleet.escort ?? [])], ctx.master.data, hqLevel ?? 120);
+  const summary = summarizeFleet([...fleet.ships, ...(fleet.escort ?? [])], ctx.master.data, hqLevel ?? 120, !!fleet.escort?.length);
   const stypes = (ships: FleetInput["ships"]) => ships.map((s) => ctx.master.ships.get(s.masterId)?.stype ?? 0);
   return {
     stypes: stypes(fleet.ships),
@@ -285,6 +285,36 @@ function sortieFeatures(fleet: FleetInput | null | undefined, client: unknown, c
     los: summary.los && { ...summary.los },
     hqLevel,
   };
+}
+
+/** Fleet type of a sortie: combined flag, else a 7-ship single fleet = striking force (遊撃部隊, fleet 3). */
+export const sortieFleetType = (combined: number | null | undefined, fleetSize: number, escortSize: number): NonNullable<SortieRecord["fleetType"]> =>
+  escortSize > 0 ? ({ 1: "ctf", 2: "stf", 3: "tcf" } as const)[combined as 1 | 2 | 3] ?? "single" : fleetSize >= 7 ? "striking" : "single";
+
+/**
+ * Battle results are the client's own report (the battleresult packet is not uploaded with the sortie), so they
+ * are plausibility-checked: a drop must be a real friend ship, at a cell that had a battle, and only B or better
+ * drops ships. Escape positions and ship ids must fit the sortie fleet.
+ */
+function checkResults(cells: SortieRecord["cells"], fleet: FleetInput | null | undefined, ctx: ValidationContext, out: Finding[]) {
+  const flat = fleet ? [...fleet.ships, ...(fleet.escort ?? [])].map((s) => s.masterId) : null;
+  for (const c of cells) {
+    const r = c.result;
+    if (!r) continue;
+    if (r.drop) {
+      const ship = ctx.master.ships.get(r.drop.shipId);
+      if (!ship || ship.is_abyssal) out.push({ rule: "drop_unknown", action: "quarantine", detail: `cell ${c.no}: dropped ship ${r.drop.shipId} is not a friend ship` });
+      if (!c.battles.length) out.push({ rule: "drop_no_battle", action: "quarantine", detail: `cell ${c.no}: a drop without a battle at the cell` });
+      if (r.rank && !["S", "A", "B"].includes(r.rank)) out.push({ rule: "drop_rank", action: "flag", detail: `cell ${c.no}: ship drop with rank ${r.rank}` });
+    }
+    const e = r.escape;
+    if (e && flat) {
+      const bad = [...e.idx, ...e.towIdx].some((i) => i > flat.length)
+        || JSON.stringify(e.shipIds) !== JSON.stringify(e.idx.map((i) => flat[i - 1]))
+        || JSON.stringify(e.towShipIds) !== JSON.stringify(e.towIdx.map((i) => flat[i - 1]));
+      if (bad) out.push({ rule: "client_mismatch", action: "flag", detail: `cell ${c.no}: escape ships do not match the fleet snapshot` });
+    }
+  }
 }
 
 function validateSortie(o: SortieObservationInput, ctx: ValidationContext): Verdict {
@@ -329,9 +359,21 @@ function validateSortie(o: SortieObservationInput, ctx: ValidationContext): Verd
   if (features && clientStypes !== undefined && JSON.stringify(clientStypes) !== JSON.stringify(features.stypes)) {
     out.push({ rule: "client_mismatch", action: "flag", detail: "client fleet features differ from the fleet snapshot" });
   }
+  const withResults: SortieRecord["cells"] = cells.map(({ result: _unused, ...c }, i) => {
+    const result = o.sortie.cells[i]?.result;
+    return result ? { ...c, result } : c;
+  });
+  checkResults(withResults, o.fleet, ctx, out);
+  const fleetSize = o.fleet?.ships.length ?? o.sortie.fleetSize ?? null;
+  const escortSize = o.fleet ? o.fleet.escort?.length ?? 0 : o.sortie.escortSize ?? 0;
+  if (o.fleet && ((o.sortie.fleetSize != null && o.sortie.fleetSize !== fleetSize) || (o.sortie.escortSize != null && o.sortie.escortSize !== escortSize))) {
+    out.push({ rule: "client_mismatch", action: "flag", detail: "client fleet sizes differ from the fleet snapshot" });
+  }
   derived.sortie = {
-    deckId: o.sortie.deckId, combined: o.sortie.combined, endKind, endedAt: o.sortie.endedAt,
-    cells, cellData: cellData ?? null, features,
+    deckId: o.sortie.deckId, fleetSize, escortSize, gauge: o.sortie.gauge ?? null,
+    fleetType: fleetSize === null ? null : sortieFleetType(o.sortie.combined, fleetSize, escortSize),
+    combined: o.sortie.combined, endKind, endedAt: o.sortie.endedAt,
+    cells: withResults, cellData: cellData ?? null, features,
   };
   return { findings: out, derived };
 }
@@ -349,6 +391,9 @@ export function referencedIds(obs: ObservationInput[]): { ships: Set<number>; eq
     for (const s of [...(o.fleet?.ships ?? []), ...(o.fleet?.escort ?? [])]) {
       ships.add(s.masterId);
       for (const e of [...s.equips, s.exSlot ?? null]) if (e) equips.add(e.masterId);
+    }
+    if (o.kind === "sortie") {
+      for (const c of o.sortie.cells) if (c.result?.drop) ships.add(c.result.drop.shipId);
     }
     if (o.kind === "battle") {
       const e = extractEnemy(o.raw.raw);

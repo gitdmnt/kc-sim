@@ -91,6 +91,7 @@ const snapshot = async () => ({
   edges: await rows("SELECT * FROM poi_edge_counts ORDER BY map_id, layout, difficulty, from_cell, to_cell"),
   comps: await rows("SELECT * FROM poi_comp_counts ORDER BY map_id, layout, cell_no, difficulty, signature"),
   sorties: await rows("SELECT map_id, layout, end_kind, cells, battles, features FROM poi_sorties ORDER BY observed_at"),
+  drops: await rows("SELECT * FROM poi_drop_counts ORDER BY map_id, layout, difficulty, cell_no, rank, ship_id"),
   sets: await rows(`SELECT s.node_letter, s.difficulty, s.period_start, s.period_end, s.total_count, s.layout, s.cell_nos, c.signature, c.count, c.weight,
     (SELECT json_group_array(ship_id) FROM (SELECT ship_id FROM enemy_comp_ships WHERE comp_id = c.id ORDER BY fleet, position)) AS ships
     FROM enemy_comp_sets s JOIN enemy_comps c ON c.set_id = s.id WHERE s.source_id = (SELECT id FROM sources WHERE key = 'poi-observed') ORDER BY 1, 2, 6, 8`),
@@ -288,6 +289,125 @@ describe("aggregation", () => {
   });
 });
 
+describe("gauge, drops, FCF retreats, striking force", () => {
+  type Result = { rank: string; drop: { shipId: number; name?: string } | null; escapeFlag: number; [k: string]: unknown };
+  const res = (rank: string, shipId: number | null, extra: Record<string, unknown> = {}): Result => ({ rank, drop: shipId === null ? null : { shipId, name: `ship${shipId}` }, escapeFlag: 0, ...extra });
+  const GAUGE = { gaugeNum: 2, gaugeType: 2, nowHp: 1200, maxHp: 1800, state: 2, rank: 3, cleared: 0, defeatCount: 0 };
+  /** Start → A(1) → D(4) → F(6): a battle with a result at every cell; the drops/results are the caller's. */
+  const withResults = (results: (Result | null)[], extra: Record<string, unknown> = {}, sortieExtra: Record<string, unknown> = {}) => {
+    const s = sortie([], extra);
+    const cells = [cell(1, null, 4, 1, ["x1"]), cell(4, 1, 4, 2, ["x2"]), cell(6, 4, 4, 2, ["x3"])];
+    s.sortie.cells = cells.map((c, i) => (results[i] ? { ...c, result: results[i] } : c)) as typeof s.sortie.cells;
+    Object.assign(s.sortie, sortieExtra);
+    return s;
+  };
+  /** Findings besides the `sortie_no_raw` flag of these packet-less test sorties. */
+  const findings = () => rows("SELECT rule, action FROM observation_rejections WHERE rule <> 'sortie_no_raw' ORDER BY id");
+  const storedSortie = async () => JSON.parse((await rows("SELECT sortie FROM observations WHERE kind = 'sortie' ORDER BY id DESC LIMIT 1"))[0]!.sortie as string);
+
+  test("an upload with drops lands in poi_drop_counts keyed by map, layout, difficulty, cell and rank", async () => {
+    const up = [
+      withResults([res("A", 10), res("B", null), res("S", 11)]),
+      withResults([res("A", 10), res("B", 12), null]),
+      withResults([res("A", null), res("B", null), res("S", 11)]),
+    ];
+    expect(await post("poi-a", up)).toMatchObject({ json: { accepted: 3, quarantined: 0, rejected: [] } });
+    const layout = LAYOUT.join(",");
+    const key = (cell_no: number, rank: string, ship_id: number, count: number) => ({ map_id: 15, layout, difficulty: 0, cell_no, rank, ship_id, count });
+    expect((await snapshot()).drops.map(({ first_seen, last_seen, ...d }) => d)).toEqual([
+      key(1, "A", 0, 1), key(1, "A", 10, 2),
+      key(4, "B", 0, 2), key(4, "B", 12, 1),
+      key(6, "S", 11, 2),
+    ]);
+    // first/last seen follow the observation times
+    expect((await rows("SELECT first_seen, last_seen FROM poi_drop_counts WHERE cell_no = 1 AND ship_id = 10"))[0]).toEqual({ first_seen: at(1), last_seen: at(2) });
+    // drop rate of (1-5, cell 1, A): 2 ships of 3 results
+    const rate = (await rows("SELECT SUM(CASE WHEN ship_id = 10 THEN count END) * 1.0 / SUM(count) AS n FROM poi_drop_counts WHERE cell_no = 1 AND rank = 'A'"))[0]!.n as number;
+    expect(rate).toBeCloseTo(2 / 3, 10);
+  });
+
+  test("drops are re-counted exactly by a rebuild, and removed with a deleted client", async () => {
+    await post("poi-a", [withResults([res("A", 10), null, null])]);
+    await post("poi-b", [withResults([res("A", 10), res("S", 11), null])]);
+    const before = await snapshot();
+    expect(before.drops.find((d) => d.cell_no === 1 && d.ship_id === 10)).toMatchObject({ count: 2 });
+    await db.batch(resetStatements(db));
+    expect((await snapshot()).drops).toEqual([]);
+    await drainJobs(h);
+    expect(await snapshot()).toEqual(before);
+    await deleteClientObservations(db, clients.get("poi-b")!.clientId);
+    await drainJobs(h);
+    expect((await snapshot()).drops.map((d) => [d.cell_no, d.ship_id, d.count])).toEqual([[1, 10, 1]]);
+  });
+
+  test("event maps count drops per difficulty; an unknown rank is not counted", async () => {
+    const ev = (difficulty: number | null) => ({ ...withResults([res("S", 10), null, null]), map: "60-1", difficulty, layout: null });
+    await post("poi-a", [ev(2), ev(2), ev(4), ev(null)]);
+    expect((await snapshot()).drops.map((d) => [d.map_id, d.layout, d.difficulty, d.ship_id, d.count])).toEqual([[601, "", 2, 10, 2], [601, "", 4, 10, 1]]);
+  });
+
+  test("implausible drops are quarantined and never counted: abyssal or unknown ship, no battle at the cell", async () => {
+    const noBattle = withResults([res("A", 10), null, null]);
+    noBattle.sortie.cells[0]!.battles = [];
+    const r = await post("poi-a", [withResults([res("A", 1501), null, null]), withResults([res("A", 9999), null, null]), noBattle]);
+    expect(r.json).toMatchObject({ accepted: 3, quarantined: 3 });
+    expect((await rows("SELECT rule FROM observation_rejections WHERE action = 'quarantine' ORDER BY id")).map((x) => x.rule)).toEqual(["drop_unknown", "drop_unknown", "drop_no_battle"]);
+    expect((await snapshot()).drops).toEqual([]);
+    expect((await snapshot()).sorties).toEqual([]);
+  });
+
+  test("a ship drop at rank C-E is flagged but used", async () => {
+    const r = await post("poi-a", [withResults([res("C", 10), null, null])]);
+    expect(r.json).toMatchObject({ accepted: 1, quarantined: 0 });
+    expect((await findings())).toEqual([{ rule: "drop_rank", action: "flag" }]);
+    expect((await snapshot()).drops).toHaveLength(1);
+  });
+
+  test("gauge, deck and fleet size, FCF escape and results are kept on the stored sortie", async () => {
+    const escape = { idx: [2], towIdx: [1], shipIds: [11], towShipIds: [10], type: null, retreated: true };
+    const s = withResults([res("S", null, { escapeFlag: 1, escape, useItem: { id: 44, name: "勲章" }, eventItems: [{ type: 1, id: 123, value: 1 }] }), null, null],
+      {}, { gauge: GAUGE, fleetSize: 3, escortSize: 0 });
+    expect(await post("poi-a", [s])).toMatchObject({ json: { accepted: 1, quarantined: 0, rejected: [] } });
+    const stored = await storedSortie();
+    expect(stored).toMatchObject({ deckId: 1, fleetSize: 3, escortSize: 0, fleetType: "single", gauge: GAUGE });
+    expect(stored.cells[0].result).toEqual({ rank: "S", drop: null, escapeFlag: 1, escape, useItem: { id: 44, name: "勲章" }, eventItems: [{ type: 1, id: 123, value: 1 }] });
+    expect(stored.cells[1].result).toBeUndefined();
+    expect((await findings())).toEqual([]);
+  });
+
+  test("an escape that does not fit the fleet snapshot is flagged", async () => {
+    const wrong = { idx: [2], towIdx: [], shipIds: [12], towShipIds: [], type: null, retreated: false };
+    const r = await post("poi-a", [withResults([res("S", null, { escapeFlag: 1, escape: wrong }), null, null])]);
+    expect(r.json).toMatchObject({ accepted: 1, quarantined: 0 });
+    expect((await findings())).toEqual([{ rule: "client_mismatch", action: "flag" }]);
+  });
+
+  test("striking force: a 7-ship single fleet is derived as fleetType striking; combined flags map to ctf/stf/tcf", async () => {
+    const seven = { ...fleet(3), deckId: 3 };
+    seven.ships = Array.from({ length: 7 }, (_, i) => ({ ...seven.ships[i % 3]! }));
+    seven.supply = seven.ships.map(() => ({ fuel: 15, fuelMax: 15, ammo: 20, ammoMax: 20 }));
+    const striking = withResults([null, null, null], { fleet: seven }, { deckId: 3, fleetSize: 7, escortSize: 0, features: { stypes: Array(7).fill(2), speed: 10, los: null, hqLevel: 120 } });
+    const ctf = withResults([null, null, null], { fleet: { ...fleet(3), escort: fleet(2).ships } }, { combined: 1, fleetSize: 3, escortSize: 2 });
+    const single = withResults([null, null, null], {}, { fleetSize: 6 }); // client's size is wrong: flagged, the server value wins
+    expect(await post("poi-a", [striking, ctf, single])).toMatchObject({ json: { accepted: 3, rejected: [] } });
+    const types = (await rows("SELECT sortie FROM observations WHERE kind = 'sortie' ORDER BY id")).map((r) => JSON.parse(r.sortie as string));
+    expect(types.map((t) => [t.deckId, t.fleetSize, t.escortSize, t.fleetType])).toEqual([[3, 7, 0, "striking"], [1, 3, 2, "ctf"], [1, 3, 0, "single"]]);
+    expect((await findings())).toEqual([{ rule: "client_mismatch", action: "flag" }]);
+    // LoS (ROUTING_DSL §5): floored to 2 decimals; a combined fleet sums both fleets and uses 12 in the last term
+    // (naked LoS 10 per ship: 5·√10 − 48 + 2·(12−5) = −18.1886…; single fleet of 3: 3·√10 − 48 + 2·(6−3) = −32.5132…)
+    const los = (await rows("SELECT features FROM poi_sorties ORDER BY observation_id")).map((r) => JSON.parse(r.features as string).los.cn1);
+    expect(los).toEqual([expect.any(Number), -18.19, -32.52]);
+  });
+
+  test("older plugins (no gauge, sizes or results) are still accepted and counted", async () => {
+    expect(await post("poi-a", [sortie([])])).toMatchObject({ json: { accepted: 1, quarantined: 0, rejected: [] } });
+    const stored = await storedSortie();
+    expect(stored).toMatchObject({ deckId: 1, fleetSize: 3, escortSize: 0, fleetType: "single", gauge: null });
+    expect((await snapshot()).drops).toEqual([]);
+    expect((await snapshot()).sorties).toHaveLength(1);
+  });
+});
+
 describe("API", () => {
   test("validation: sortie record required for kind sortie, strict cells (per observation)", async () => {
     const bad = sortie();
@@ -429,4 +549,31 @@ test("end to end: captured sorties -> uploadPending -> GET enemy-comps returns o
   expect(detail.observed.mismatches).toEqual([]);
   // sorties carried their map packets: cells were re-derived on the server, nothing flagged for them
   expect(await db.prepare("SELECT COUNT(*) AS n FROM observation_rejections WHERE rule = 'sortie_no_raw'").first()).toEqual({ n: 0 });
+});
+
+test("end to end: a captured sortie with a drop, an FCF escape and a gauge is accepted and counted", async () => {
+  const m = await loadCapture();
+  const f = m.fixtures as Record<string, any>;
+  const idb = new m.ObservationDb(new m.IDBFactory());
+  let now = Date.UTC(2026, 9, 1);
+  const session = new m.CaptureSession({
+    sink: idb, getFleet: () => fleet(FRIENDS.length), now: () => (now += 1000), getGauge: () => ({ gaugeNum: 1, gaugeType: 2, nowHp: 10, maxHp: 20, state: 2, rank: null, cleared: 0, defeatCount: 0 }),
+    onError: (e: unknown) => { throw e; },
+  });
+  await session.handle("/kcsapi/api_port/port", { api_combined_flag: 0 });
+  await session.handle("/kcsapi/api_req_map/start", f.mapStart15, { api_deck_id: "1" });
+  await session.handle("/kcsapi/api_req_sortie/battle", withMasterStats(f.battle15([1501, 1502, 1503]), [1501, 1502, 1503]), {});
+  // master ship 11 is a friend ship in the test master; escape position 2 = ship 11
+  await session.handle("/kcsapi/api_req_sortie/battleresult", { ...f.resultWithDrop, api_get_ship: { api_ship_id: 11, api_ship_name: "x" }, api_escape_flag: 1, api_escape: { api_escape_idx: [2], api_tow_idx: [] } });
+  await session.handle("/kcsapi/api_req_sortie/goback_port", {});
+  await session.handle("/kcsapi/api_port/port", { api_combined_flag: 0 });
+  const { token } = await h.register();
+  h.clock.t += 61_000;
+  await idb.uploadPending("http://localhost", { token, fetch: h.fetch as typeof fetch });
+  await drainJobs(h);
+  const stored = JSON.parse((await rows("SELECT sortie FROM observations WHERE kind = 'sortie'"))[0]!.sortie as string);
+  expect(stored).toMatchObject({ deckId: 1, fleetSize: 3, escortSize: 0, fleetType: "single", gauge: { gaugeNum: 1, gaugeType: 2 } });
+  expect(stored.cells[0].result).toMatchObject({ rank: "A", drop: { shipId: 11 }, escape: { idx: [2], shipIds: [11], retreated: true } });
+  expect((await snapshot()).drops.map((d) => [d.map_id, d.difficulty, d.cell_no, d.rank, d.ship_id, d.count])).toEqual([[15, 0, 1, "A", 11, 1]]);
+  expect((await rows("SELECT COUNT(*) AS n FROM observations WHERE quarantine IS NOT NULL"))[0]!.n).toBe(0);
 });

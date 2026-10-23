@@ -6,7 +6,8 @@
  * 海域マス (api_req_map/start・next の api_no・api_cell_data) も取り出す (extractMapCell / extractCellData)。
  */
 import type {
-  AttackEvent, AttackPhase, CapturedCell, CapturedCellData, CapturedEnemy, CapturedEnemyShip, HitKind, Side,
+  AttackEvent, AttackPhase, CapturedCell, CapturedCellData, CapturedCellResult, CapturedEnemy, CapturedEnemyShip,
+  CapturedGauge, HitKind, Side,
 } from "./types";
 
 type RawEvent = Omit<AttackEvent, "seq">;
@@ -251,4 +252,65 @@ export const extractCellData = (body: unknown): CapturedCellData[] | null => {
     const no = num(c?.api_no);
     return !c || no === null ? [] : [{ no, colorNo: num(c.api_color_no), passed: num(c.api_passed), distance: num(c.api_distance) }];
   });
+};
+
+const str = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
+const numList = (v: unknown): number[] => (Array.isArray(v) ? v.filter((x): x is number => typeof x === "number") : []);
+
+/**
+ * api_get_member/mapinfo の api_map_info の 1 要素 (poi の info.maps[api_id]) からゲージ状態を取り出す。
+ * ゲージ番号・種別・HP・ランクはイベント海域の api_eventmap に入っている (無ければ要素直下を見る)。
+ * 何も読めなければ null。
+ */
+export const extractGauge = (entry: unknown): CapturedGauge | null => {
+  const m = packet(entry);
+  if (!m) return null;
+  const ev = packet(m.api_eventmap);
+  const pick = (key: string) => num(ev?.[key]) ?? num(m[key]);
+  const gauge: CapturedGauge = {
+    gaugeNum: pick("api_gauge_num"),
+    gaugeType: pick("api_gauge_type"),
+    nowHp: num(ev?.api_now_maphp),
+    maxHp: num(ev?.api_max_maphp),
+    state: num(ev?.api_state),
+    rank: num(ev?.api_selected_rank),
+    cleared: num(m.api_cleared),
+    defeatCount: num(m.api_defeat_count),
+  };
+  return Object.values(gauge).every((v) => v === null) ? null : gauge;
+};
+
+/** battleresult の api_escape (艦隊司令部施設)。`idx` は 1 始まりの位置のまま (艦への解決は呼び出し側)。 */
+export interface RawEscape { idx: number[]; towIdx: number[]; type: number | null }
+
+/**
+ * battleresult の応答から勝敗・ドロップ・離脱を取り出す。`escape` は api_escape があるときだけ。
+ * api_win_rank が無ければ null (戦闘結果ではない)。
+ */
+export const extractBattleResult = (body: unknown): (Omit<CapturedCellResult, "escape"> & { escape?: RawEscape }) | null => {
+  const b = packet(body);
+  const rank = str(b?.api_win_rank);
+  if (!b || !rank) return null;
+  const ship = packet(b.api_get_ship);
+  const shipId = num(ship?.api_ship_id);
+  const item = packet(b.api_get_useitem);
+  const itemId = num(item?.api_useitem_id);
+  const eventItems = (Array.isArray(b.api_get_eventitem) ? b.api_get_eventitem : []).flatMap((v: unknown) => {
+    const e = packet(v);
+    const [type, id, value] = [num(e?.api_type), num(e?.api_id), num(e?.api_value)];
+    return type === null || id === null || value === null ? [] : [{ type, id, value }];
+  });
+  const esc = packet(b.api_escape);
+  const idx = numList(esc?.api_escape_idx);
+  const towIdx = numList(esc?.api_tow_idx);
+  const name = str(ship?.api_ship_name);
+  const itemName = str(item?.api_useitem_name);
+  return {
+    rank,
+    drop: shipId === null ? null : { shipId, ...(name ? { name } : {}) },
+    ...(itemId === null ? {} : { useItem: { id: itemId, ...(itemName ? { name: itemName } : {}) } }),
+    ...(eventItems.length ? { eventItems } : {}),
+    escapeFlag: num(b.api_escape_flag) ?? 0,
+    ...(idx.length || towIdx.length ? { escape: { idx, towIdx, type: num(b.api_escape_type) } } : {}),
+  };
 };

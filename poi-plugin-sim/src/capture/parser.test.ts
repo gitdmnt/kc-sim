@@ -7,9 +7,67 @@ import {
   mapNext15J,
   mapNextSelect,
   mapStart15,
+  mapinfoEvent,
+  mapinfoNormal,
   midnightBattle,
+  resultNoDrop,
+  resultWithDrop,
+  resultWithEscape,
+  resultWithEventItems,
 } from "./fixtures";
-import { extractAttackEvents, extractCellData, extractEnemy, extractMapCell, splitDamage } from "@shared/capture/parser";
+import {
+  extractAttackEvents, extractBattleResult, extractCellData, extractEnemy, extractGauge, extractMapCell, splitDamage,
+} from "@shared/capture/parser";
+
+describe("extractGauge (mapinfo entry)", () => {
+  test("event map: gauge number / type / HP / rank / state from api_eventmap", () => {
+    expect(extractGauge(mapinfoEvent)).toEqual({
+      gaugeNum: 2, gaugeType: 2, nowHp: 1200, maxHp: 1800, state: 2, rank: 3, cleared: 0, defeatCount: 0,
+    });
+  });
+  test("normal map: cleared flag and defeat count only", () => {
+    expect(extractGauge(mapinfoNormal)).toEqual({
+      gaugeNum: null, gaugeType: null, nowHp: null, maxHp: null, state: null, rank: null, cleared: 1, defeatCount: 1,
+    });
+  });
+  test("gauge fields directly on the entry are used when api_eventmap lacks them", () => {
+    expect(extractGauge({ api_id: 571, api_gauge_num: 3, api_gauge_type: 3, api_eventmap: { api_now_maphp: 5, api_max_maphp: 50 } }))
+      .toMatchObject({ gaugeNum: 3, gaugeType: 3, nowHp: 5, maxHp: 50 });
+  });
+  test("nothing readable", () => {
+    expect(extractGauge(undefined)).toBeNull();
+    expect(extractGauge({ api_id: 11 })).toBeNull();
+  });
+});
+
+describe("extractBattleResult (battleresult)", () => {
+  test("ship drop with rank and name", () => {
+    expect(extractBattleResult(resultWithDrop)).toEqual({
+      rank: "A", drop: { shipId: 230, name: "朝潮" }, escapeFlag: 0,
+    });
+  });
+  test("no drop", () => {
+    expect(extractBattleResult(resultNoDrop)).toEqual({ rank: "B", drop: null, escapeFlag: 0 });
+  });
+  test("FCF escape: api_escape_flag and api_escape idx / tow idx", () => {
+    expect(extractBattleResult(resultWithEscape)).toEqual({
+      rank: "S", drop: null, escapeFlag: 1, escape: { idx: [7], towIdx: [4], type: null },
+    });
+    expect(extractBattleResult({ ...resultWithEscape, api_escape_type: 1 })!.escape!.type).toBe(1);
+  });
+  test("use items and event items", () => {
+    expect(extractBattleResult(resultWithEventItems)).toEqual({
+      rank: "S", drop: { shipId: 401, name: "大和改二" }, escapeFlag: 0,
+      useItem: { id: 44, name: "勲章" }, eventItems: [{ type: 1, id: 123, value: 1 }],
+    });
+  });
+  test("not a battle result", () => {
+    expect(extractBattleResult({})).toBeNull();
+    expect(extractBattleResult(undefined)).toBeNull();
+    expect(extractBattleResult({ api_win_rank: "S", api_get_ship: {}, api_get_eventitem: [null, { api_type: 1 }] }))
+      .toEqual({ rank: "S", drop: null, escapeFlag: 0 });
+  });
+});
 
 describe("map packets (api_req_map/start, next)", () => {
   test("start: first cell without api_from_no", () => {

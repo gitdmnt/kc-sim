@@ -219,7 +219,7 @@ export class ObservationDb implements ObservationSink {
       req(tx.objectStore(EVENTS).getAll()),
       req(tx.objectStore(SORTIES).getAll()),
     ]);
-    return JSON.stringify({ format: "kcsim-observations", version: 2, battles, events, sorties });
+    return JSON.stringify({ format: "kcsim-observations", version: 3, battles, events, sorties });
   }
 
   /**
@@ -333,12 +333,16 @@ export const sortieObservation = (s: CapturedSortie) => ({
   fleet: s.fleet,
   sortie: {
     deckId: s.deckId,
+    fleetSize: s.fleetSize ?? s.fleet?.ships.length ?? null,
+    escortSize: s.escortSize ?? s.fleet?.escort?.length ?? 0,
+    gauge: s.gauge ?? null,
     combined: s.combined,
     endKind: s.endKind ?? "unknown",
     endedAt: s.endedAt === null ? null : new Date(s.endedAt).toISOString(),
     cells: s.cells.map((c) => ({
       no: c.no, from: c.from, colorNo: c.colorNo, eventId: c.eventId, eventKind: c.eventKind,
       bossCellNo: c.bossCellNo, next: c.next, selectCells: c.selectCells, battles: c.battles,
+      ...(c.result ? { result: c.result } : {}),
     })),
     cellData: s.cellData,
     features: s.features,

@@ -3,12 +3,13 @@
  * 艦隊スナップショットの取得 (getFleet) と保存先 (sink) は外から注入する。
  * マス番号 (api_no) からノード名への変換はしない (サーバが edges から引く。docs/API.md §3)。
  */
-import { extractAttackEvents, extractCellData, extractEnemy, extractMapCell } from "@shared/capture/parser";
+import { extractAttackEvents, extractBattleResult, extractCellData, extractEnemy, extractMapCell } from "@shared/capture/parser";
 import type {
   BattleResultInfo,
   CapturedBattle,
   CapturedCell,
   CapturedFleet,
+  CapturedGauge,
   CapturedMapInfo,
   CapturedSortie,
   SortieEnd,
@@ -32,6 +33,8 @@ export interface CaptureDeps {
   fleetFeatures?: (fleet: CapturedFleet) => SortieFleetFeatures | null;
   /** select_eventmap_rank を見ていないときの難易度 (poi の state から)。任意。 */
   getDifficulty?: (area: number, mapNo: number) => number | null;
+  /** 出撃時のそのマップのゲージ状態 (poi の info.maps[area*10+mapNo] から)。任意。 */
+  getGauge?: (area: number, mapNo: number) => CapturedGauge | null;
   now?: () => number;
   onError?: (error: unknown) => void;
 }
@@ -50,6 +53,10 @@ const isFriendCombined = (path: string): boolean =>
 
 export const isResultPath = (path: string): boolean =>
   /^api_req_(sortie|combined_battle)\/battleresult$/.test(path);
+
+/** 艦隊司令部施設で離脱艦を帰投させる要求 (api_req_sortie / api_req_combined_battle の goback_port)。 */
+export const isGobackPath = (path: string): boolean =>
+  /^api_req_(sortie|combined_battle)\/goback_port$/.test(path);
 
 const toNum = (v: unknown): number | null => {
   const n = typeof v === "string" && v !== "" ? Number(v) : v;
@@ -106,6 +113,8 @@ export class CaptureSession {
       await this.endSortie();
     } else if (isResultPath(path)) {
       await this.onResult(body);
+    } else if (isGobackPath(path)) {
+      await this.onGobackPort();
     } else if (isBattlePath(path)) {
       await this.onBattle(path, body, postBody);
     }
@@ -145,6 +154,9 @@ export class CaptureSession {
         mapNo,
         difficulty: this.difficultyByMap.get(key) ?? this.deps.getDifficulty?.(area, mapNo) ?? null,
         deckId: this.deckId,
+        fleetSize: fleet?.ships.length ?? null,
+        escortSize: fleet?.escort?.length ?? 0,
+        gauge: this.deps.getGauge?.(area, mapNo) ?? null,
         combined: this.combinedFlag,
         cellData,
         cells: [],
@@ -206,7 +218,7 @@ export class CaptureSession {
     }));
     this.lastBattleId = id;
     await this.deps.sink.saveBattle(battle, events);
-    const cell = this.sortie && this.map?.sortieId === this.sortie.id ? this.sortie.cells.at(-1) : undefined;
+    const cell = this.currentCell();
     if (cell && cell.battles.length < 8) {
       cell.battles.push(id);
       this.sortie!.updatedAt = capturedAt;
@@ -214,14 +226,46 @@ export class CaptureSession {
     }
   }
 
+  /** 今の出撃の最後に到達したマス (この出撃の中のマスにいるときだけ)。 */
+  private currentCell(): CapturedCell | undefined {
+    return this.sortie && this.map?.sortieId === this.sortie.id ? this.sortie.cells.at(-1) : undefined;
+  }
+
   private async onResult(body: any) {
-    if (!this.lastBattleId || !body) return;
-    const result: BattleResultInfo = {
-      rank: typeof body.api_win_rank === "string" ? body.api_win_rank : null,
-      mvp: toNum(body.api_mvp),
-      dropShipId: toNum(body.api_get_ship?.api_ship_id),
-      raw: body,
+    if (!body) return;
+    if (this.lastBattleId) {
+      const result: BattleResultInfo = {
+        rank: typeof body.api_win_rank === "string" ? body.api_win_rank : null,
+        mvp: toNum(body.api_mvp),
+        dropShipId: toNum(body.api_get_ship?.api_ship_id),
+        raw: body,
+      };
+      await this.deps.sink.saveResult(this.lastBattleId, result);
+    }
+    const cell = this.currentCell();
+    const parsed = extractBattleResult(body);
+    if (!cell || !parsed) return;
+    const { escape, ...result } = parsed;
+    // idx は出撃時の並び (本隊 → 随伴) の 1 始まりの位置。KC3 も撤退後に詰めずに同じ位置で引いている
+    const fleet = this.sortie!.fleet;
+    const flat = fleet ? [...fleet.ships, ...(fleet.escort ?? [])] : [];
+    const shipIds = (idx: number[]) => idx.flatMap((i) => (flat[i - 1] ? [flat[i - 1]!.masterId] : []));
+    cell.result = {
+      ...result,
+      ...(escape
+        ? { escape: { idx: escape.idx, towIdx: escape.towIdx, shipIds: shipIds(escape.idx), towShipIds: shipIds(escape.towIdx), type: escape.type, retreated: false } }
+        : {}),
     };
-    await this.deps.sink.saveResult(this.lastBattleId, result);
+    this.sortie!.updatedAt = this.now();
+    await this.deps.sink.saveSortie(this.sortie!);
+  }
+
+  /** goback_port: 直前のマスで離脱可能だった艦が、そのマスの後で実際に撤退した。 */
+  private async onGobackPort() {
+    const escape = this.currentCell()?.result?.escape;
+    if (!escape || escape.retreated) return;
+    escape.retreated = true;
+    this.sortie!.updatedAt = this.now();
+    await this.deps.sink.saveSortie(this.sortie!);
   }
 }

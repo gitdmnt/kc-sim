@@ -95,6 +95,65 @@ export interface CapturedCell {
   selectCells: number[] | null;
   /** このマスの戦闘 (CapturedBattle.id、記録順) */
   battles: string[];
+  /** このマスの戦闘結果 (api_req_sortie|combined_battle/battleresult)。結果を見ていなければ無い */
+  result?: CapturedCellResult;
+}
+
+/** ドロップ艦 (battleresult の api_get_ship)。 */
+export interface CapturedDrop {
+  /** api_ship_id (艦の master id) */
+  shipId: number;
+  /** api_ship_name */
+  name?: string;
+}
+
+/**
+ * 艦隊司令部施設 (FCF) による離脱: battleresult の api_escape。idx は出撃時の艦隊の並び (本隊 1-6 → 護衛 7-12) の
+ * 1 始まりの位置。shipIds はそれを出撃時の艦隊スナップショットで引いた master id。
+ */
+export interface CapturedEscape {
+  /** api_escape_idx: 撤退できる (大破した) 艦 */
+  idx: number[];
+  /** api_tow_idx: 付き添う護衛艦 */
+  towIdx: number[];
+  shipIds: number[];
+  towShipIds: number[];
+  /** api_escape_type (単艦: 1 遊撃部隊 FCF, 2 ETS-CF)。無ければ null */
+  type: number | null;
+  /** goback_port まで見た = 実際にこのマスの後で撤退した */
+  retreated: boolean;
+}
+
+export interface CapturedCellResult {
+  /** api_win_rank ("S" "A" "B" "C" "D" "E") */
+  rank: string | null;
+  drop: CapturedDrop | null;
+  /** api_get_useitem */
+  useItem?: { id: number; name?: string };
+  /** api_get_eventitem */
+  eventItems?: { type: number; id: number; value: number }[];
+  /** api_escape_flag (1 なら離脱可能) */
+  escapeFlag: number;
+  escape?: CapturedEscape;
+}
+
+/** 出撃時のマップのゲージ状態 (poi の info.maps / api_get_member/mapinfo の 1 要素)。値はゲームの値のまま。 */
+export interface CapturedGauge {
+  /** api_gauge_num: 多段ゲージの何本目か */
+  gaugeNum: number | null;
+  /** api_gauge_type */
+  gaugeType: number | null;
+  /** api_now_maphp / api_max_maphp (イベント海域) */
+  nowHp: number | null;
+  maxHp: number | null;
+  /** api_eventmap.api_state */
+  state: number | null;
+  /** api_eventmap.api_selected_rank */
+  rank: number | null;
+  /** api_cleared (通常海域) */
+  cleared: number | null;
+  /** api_defeat_count (撃破回数が要る通常海域) */
+  defeatCount: number | null;
 }
 
 /** api_req_map/start の api_cell_data の 1 要素。 */
@@ -131,7 +190,14 @@ export interface CapturedSortie {
   area: number;
   mapNo: number;
   difficulty: number | null;
+  /** api_req_map/start の api_deck_id */
   deckId: number;
+  /** 本隊の艦数。7 隻の第 3 艦隊 = 遊撃部隊。古い記録には無い */
+  fleetSize?: number | null;
+  /** 随伴艦隊の艦数 (連合艦隊でなければ 0)。古い記録には無い */
+  escortSize?: number;
+  /** 出撃時のゲージ状態。取れなければ null、古い記録には無い */
+  gauge?: CapturedGauge | null;
   /** 母港の api_combined_flag (0 通常, 1 機動, 2 水上, 3 輸送)。不明なら null */
   combined: number | null;
   cellData: CapturedCellData[] | null;
