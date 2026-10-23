@@ -38,13 +38,10 @@ export const PluginPanel = ({ poiState }: { poiState: PoiState }) => {
     <div className="kcsim">
       <div className="flex h-screen flex-col">
         <ToastProvider>
-          <Tabs
-            tabs={TABS}
-            value={tab}
-            onChange={setTab}
-            size="sm"
-            className={cx(IS_MAC ? "shrink-0 border-b border-ink-800 pr-3 pl-20" : "shrink-0 border-b border-ink-800 px-3", NO_DRAG_TABS)}
-          />
+          <div className={cx("flex shrink-0 items-center border-b border-ink-800", IS_MAC ? "pr-3 pl-20" : "px-3")}>
+            <Tabs tabs={TABS} value={tab} onChange={setTab} size="sm" className={cx("min-w-0 flex-1", NO_DRAG_TABS)} />
+            <span className="shrink-0 pl-3 text-xs text-ink-500 tabular-nums">v{__APP_VERSION__}</span>
+          </div>
           {/* iframe は隠すだけで外さない (Web UI の状態と読み込みを保つ) */}
           <div className={tab === "sim" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
             <WebFrame serverUrl={serverUrl} poiState={poiState} onOpenSettings={() => setTab("upload")} />

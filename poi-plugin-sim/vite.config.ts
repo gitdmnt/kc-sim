@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import path from "path";
+import pkg from "./package.json";
 
 // ビルド成果物の出力先 (poi のプラグインディレクトリとして使う)。
 const DIST_DIR = path.resolve(__dirname, "../poi-plugin-sim-build");
@@ -14,8 +15,9 @@ const alias = [
 ];
 
 // `vite` (serve) は dev/ の開発用ページ (poi 無しでビューと iframe の橋渡しを動かす)、`vite build` は poi 向けのビルド。
-export default defineConfig(({ command }) =>
-  command === "serve"
+export default defineConfig(({ command }) => ({
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
+  ...(command === "serve"
     ? {
         root: path.join(__dirname, "dev"),
         plugins: [react({ jsxRuntime: "classic" })],
@@ -55,5 +57,5 @@ export default defineConfig(({ command }) =>
             },
           },
         },
-      }
-);
+      }),
+}));

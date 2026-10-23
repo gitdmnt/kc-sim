@@ -4,6 +4,7 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 import path from "path";
 import fs from "fs";
 import { execSync } from "child_process";
+import pkg from "./package.json";
 
 const ROOT = path.resolve(__dirname, "..");
 // Rust (wasm-pack) のクレート。pkg/ に wasm-pack の出力が生成される。
@@ -57,6 +58,7 @@ export default defineConfig({
     devState(),
     ...(fs.existsSync(MAPS_DIR) ? viteStaticCopy({ targets: [{ src: MAPS_DIR, dest: "." }] }) : []),
   ],
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   resolve: { alias },
   worker: { format: "es" },
   build: { outDir: "dist", emptyOutDir: true },

@@ -121,6 +121,7 @@ export const Shell = () => {
           <header className="flex h-10 shrink-0 items-center gap-2 border-b border-ink-800 px-3">
             <Compass size={18} className="text-ink-400" aria-hidden />
             <h1 className="text-sm font-semibold text-ink-50">{S.appTitle}</h1>
+            <span className="ml-auto text-xs text-ink-500 tabular-nums">v{__APP_VERSION__}</span>
           </header>
         )}
         <div className="flex min-h-0 flex-1">
