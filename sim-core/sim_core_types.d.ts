@@ -54,7 +54,7 @@ export type DamageState = "healthy" | "light" | "moderate" | "heavy" | "sunk";
  * - `airRaid`: air raid node (空襲マス): enemy air attack only; rank from friend HP loss
  *   (0% SS, <10% A, <20% B, <50% C, <80% D, else E).
  */
-export type BattleKind = "day" | "dayNight" | "nightOnly" | "airBattle" | "airRaid";
+export type BattleKind = "day" | "dayNight" | "nightOnly" | "airBattle" | "airRaid" | "nightToDay";
 
 /** Detection (索敵) result of the friend fleet (enemies always detect). On failure
  *  ("failure" | "failureLost" | "notFound") the friend fleet takes no part in air combat. */
@@ -72,7 +72,16 @@ export type Phase =
   | "shelling2"
   | "shelling3"
   | "closingTorpedo"
-  | "night";
+  | "night"
+  /** Jet assault (噴式強襲) of land-base jets, before the land-base waves. `attacker` = base. */
+  | "jetLandBase"
+  /** Jet assault of the fleet's carrier jets, before the air phase. */
+  | "jetAirStrike"
+  /** Support expedition (支援艦隊). `attacker` = support fleet ship index. */
+  | "support"
+  /** Friend fleet (友軍艦隊) at night, before the player's night battle. Friend-side `attacker` and
+   *  enemy-side `defender` index the friend fleet's ships. */
+  | "friendFleet";
 
 export type AttackKind = "air" | "shelling" | "asw" | "torpedo" | "night";
 
@@ -169,6 +178,8 @@ export interface EquipmentInput {
   proficiency?: number;
   /** Current plane count in this slot (api_onslot). Default 0. Ignored for non-aircraft. */
   planes?: number;
+  /** Aircraft combat radius (master api_distance). Land-base reach checks only. */
+  radius?: number;
 }
 
 /** Naked ship stats: WITHOUT equipment stats and WITHOUT equipment fit bonuses.
@@ -282,8 +293,8 @@ export interface FleetInput {
   /** Default "lineAhead"; combined friend fleet: one of the `combined*` formations, default
    *  "combinedBattle". */
   formation?: Formation;
-  /** Friend combined fleet only: escort fleet (随伴), 1..6 ships. Requires `combined`. An enemy
-   *  escort is a validation error (enemy combined fleets are not supported). */
+  /** Escort fleet (随伴), 1..6 ships. Friend: requires `combined`. Enemy: an enemy combined fleet
+   *  (6 vs 12 or 12 vs 12; `formation` one of `combined*`, default "combinedBattle"). */
   escort?: ShipInput[];
   /** Friend combined fleet type. Requires `escort`. */
   combined?: CombinedType;
@@ -352,6 +363,12 @@ export interface BattleInput {
   lbasBonuses?: (BaseBonusSet | null)[];
   /** Armor debuffs of the enemy ships (main and escort). */
   debuffs?: ArmorDebuff[];
+  /** Support expedition (支援艦隊) arriving at this battle. */
+  support?: SupportInput;
+  /** Friend fleet (友軍艦隊): fights at night before the player's night battle. */
+  friendFleet?: FriendFleetInput;
+  /** Enemy air raid on the land bases (基地空襲), resolved before the battle. */
+  baseRaid?: BaseRaidInput;
 }
 
 /**
@@ -395,6 +412,61 @@ export interface BaseBonusSet {
 export interface ArmorDebuff {
   shipId?: number[];
   amount: number;
+}
+
+/** Support type; omitted = derived from the support fleet (fewer than 2 destroyers = no support). */
+export type SupportType = "air" | "shelling" | "torpedo" | "asw";
+
+export interface SupportInput {
+  fleet: FleetInput;
+  type?: SupportType;
+  /** Arrival chance override in [0,1]. Default: kcsim `supportChance` (sparkle bonuses). */
+  chance?: number;
+  /** Boss support (決戦支援). Single battle only; sorties use `SortieInput.support.boss`. */
+  boss?: boolean;
+}
+
+export interface FriendFleetInput {
+  fleet: FleetInput;
+  /** Arrival chance in [0,1]. Default 1. */
+  chance?: number;
+  /** Sortie only: node letters where the friend fleet can arrive. Default: the goal (boss or
+   *  `config.target`) node. */
+  nodes?: string[];
+}
+
+/** A land base under an enemy air raid. Only `defense` bases send planes up. */
+export interface RaidBase {
+  squadrons: EquipmentInput[];
+  /** 防空 (air defence). Default false. */
+  defense?: boolean;
+  /** Current base HP. Default 200. */
+  hp?: number;
+}
+
+export interface BaseRaidInput {
+  /** Raiding enemy fleet (its planes attack the bases). */
+  enemy: FleetInput;
+  bases: RaidBase[];
+}
+
+export interface BaseRaidResult {
+  airState: AirState;
+  /** HP lost per base (index as `bases`). */
+  hpLost: number[];
+}
+
+export interface BaseRaidSummary {
+  /** Sorties only: fraction of sorties in which a raid happened. */
+  rate?: number;
+  airStateRates: Record<AirState, number>;
+  /** Mean HP lost per base, over the raids. */
+  hpLostMean: number[];
+}
+
+export interface SupportResult {
+  arrived: boolean;
+  type?: SupportType;
 }
 
 // --------------------------------------------------------------- output ----
@@ -459,6 +531,12 @@ export interface BattleResult {
   smoke?: number;
   /** Present when `options.log` is true: AACI activations and rocket barrages. */
   airDefense?: AirDefenseEvent[];
+  /** Present when `support` was given and the battle reached the support phase. */
+  support?: SupportResult;
+  /** Present when `friendFleet` was given: true if it fought. */
+  friendFleet?: boolean;
+  /** Present when `baseRaid` was given. */
+  baseRaid?: BaseRaidResult;
 }
 
 /** Air defence of the defending side in one air-combat phase. */
@@ -517,6 +595,12 @@ export interface SimulationSummary {
   /** Main ships, then escort ships. */
   friend: ShipSummary[];
   enemy: ShipSummary[];
+  /** Present with `support`: fraction of battles in which support arrived. */
+  supportRate?: number;
+  /** Present with `friendFleet`: fraction of battles in which the friend fleet fought. */
+  friendFleetRate?: number;
+  /** Present with `baseRaid`. */
+  baseRaid?: BaseRaidSummary;
 }
 
 // -------------------------------------------------------- forward model ----
@@ -642,7 +726,9 @@ export type NodeKind =
   | "landing"
   | "escortSuccess"
   | "airRecon"
-  | "anchorageRepair";
+  | "anchorageRepair"
+  /** 夜昼戦: night battle first, then (optionally) the day battle. Alias `night_to_day`. */
+  | "nightToDay";
 
 export interface EnemyComp {
   /** Relative weight (API `weight`); normalised over the node's comps. */
@@ -666,6 +752,9 @@ export interface SortieNode {
   lbasBonuses?: (BaseBonusSet | null)[];
   /** Armor debuffs of the enemy ships here (at the goal node also `gauge.finalComps`). */
   debuffs?: ArmorDebuff[];
+  /** Land-base distance of the node (api_distance). Waves to a node beyond a base's radius are
+   *  dropped (warning). */
+  lbasDistance?: number;
 }
 
 export interface SortieMap {
@@ -745,6 +834,16 @@ export interface GaugeInput {
 export interface LandBase {
   squadrons: EquipmentInput[];
   targets: string[];
+  /** 防空: the base never sorties and defends against `baseRaids`. Default false. */
+  defense?: boolean;
+}
+
+/** Enemy air raid on the land bases on arrival at `node`, before its battle. */
+export interface SortieBaseRaid {
+  node: string;
+  /** Default 1. */
+  chance?: number;
+  comps: EnemyComp[];
 }
 
 export interface SortieInput {
@@ -766,6 +865,11 @@ export interface SortieInput {
   /** Land bases (max 3; max 4 squadrons, max 2 targets each). At a node, waves run in base
    *  order, then each base's targets in order. Unknown target letters are warned about. */
   lbas?: LandBase[];
+  /** Support expeditions: `node` at every non-goal battle node, `boss` at the goal node. */
+  support?: { node?: SupportInput; boss?: SupportInput };
+  /** Friend fleet (友軍艦隊) at night battles of `friendFleet.nodes`. */
+  friendFleet?: FriendFleetInput;
+  baseRaids?: SortieBaseRaid[];
 }
 
 export interface PathRate {
@@ -787,6 +891,10 @@ export interface NodeSummary {
   retreatModerateRate: number;
   /** Fraction of the node's battles that went to night. */
   nightRate: number;
+  /** Present with `support`: fraction of the node's battles in which support arrived. */
+  supportRate?: number;
+  /** Present with `friendFleet`: fraction of the node's battles in which the friend fleet fought. */
+  friendFleetRate?: number;
 }
 
 export interface SortieShipSummary {
@@ -843,6 +951,8 @@ export interface SortieSummary {
   /** Main ships, then escort ships. */
   friend: SortieShipSummary[];
   gauge?: GaugeSummary;
+  /** Present with `baseRaids`. */
+  baseRaid?: BaseRaidSummary;
   /** Deduplicated input/data problems met during the simulation (unknown node kinds, …). */
   warnings: string[];
 }
