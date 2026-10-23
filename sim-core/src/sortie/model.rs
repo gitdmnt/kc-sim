@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::model::{ArmorDebuff, BaseBonusSet, EquipmentInput, FleetInput, Formation, RankRates, ShipBonusSet};
+use crate::model::{ArmorDebuff, BaseBonusSet, EquipmentInput, FleetInput, Formation, FriendFleetInput, RankRates, ShipBonusSet, SupportInput};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -174,6 +174,23 @@ pub struct SortieInput {
     /// Land bases (up to 3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lbas: Option<Vec<LandBase>>,
+    /// Support expeditions: `node` at every non-goal battle node, `boss` at the goal node.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub support: Option<SortieSupport>,
+    /// Friend fleet (友軍艦隊) at the night battles of `friendFleet.nodes` (default: goal node).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub friend_fleet: Option<FriendFleetInput>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SortieSupport {
+    /// 前衛支援 (non-goal battle nodes).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub node: Option<SupportInput>,
+    /// 決戦支援 (the goal node).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub boss: Option<SupportInput>,
 }
 
 // ---------------------------------------------------------------- output ----
@@ -194,6 +211,12 @@ pub struct NodeSummary {
     pub retreat_heavy_rate: f64,
     pub retreat_moderate_rate: f64,
     pub night_rate: f64,
+    /// Present with `support`: fraction of the node's battles in which support arrived.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub support_rate: Option<f64>,
+    /// Present with `friendFleet`: fraction of the node's battles in which the friend fleet fought.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub friend_fleet_rate: Option<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

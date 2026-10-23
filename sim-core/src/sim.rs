@@ -44,6 +44,8 @@ pub fn run_battle(input: &BattleInput, seed: u64) -> Result<RunBattleOutput, Str
         events: b.events.take(),
         smoke: (o.smoke > 0).then_some(o.smoke),
         air_defense: b.air_events.take(),
+        support: b.support_result(),
+        friend_fleet: b.friend_fleet_fought(),
     };
     let mut state = BattleState { friend: input.friend.clone(), enemy: input.enemy.clone() };
     write_state(&mut state.friend, &p.fleets[0].ships, &b.st[0]);
@@ -109,6 +111,7 @@ pub fn simulate(input: &BattleInput, count: u32, seed: u64) -> Result<Simulation
     let mut ranks = [0u32; 7];
     let mut airs = [0u32; 6];
     let (mut nights, mut flag_sunk, mut heavy_any, mut sunk_any) = (0u32, 0u32, 0u32, 0u32);
+    let (mut supports, mut friend_fleets) = (0u32, 0u32);
     for _ in 0..count {
         let mut b = p.battle(&mut rng);
         let o = b.run();
@@ -122,6 +125,8 @@ pub fn simulate(input: &BattleInput, count: u32, seed: u64) -> Result<Simulation
             AirState::Incapability => 5,
         }] += 1;
         nights += o.night as u32;
+        supports += b.support_result().is_some_and(|s| s.arrived) as u32;
+        friend_fleets += b.friend_fleet_fought().unwrap_or(false) as u32;
         if b.len(1) > 0 && b.hp_start[1][0] > 0 && b.st[1][0].hp <= 0 {
             flag_sunk += 1;
         }
@@ -174,5 +179,7 @@ pub fn simulate(input: &BattleInput, count: u32, seed: u64) -> Result<Simulation
         friend_sunk_any_rate: r(sunk_any),
         friend: fa.into_iter().map(|a| a.summary(n)).collect(),
         enemy: ea.into_iter().map(|a| a.summary(n)).collect(),
+        support_rate: p.support.as_ref().map(|_| r(supports)),
+        friend_fleet_rate: p.friend_fleet.as_ref().map(|_| r(friend_fleets)),
     })
 }

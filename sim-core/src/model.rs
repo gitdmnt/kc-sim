@@ -158,6 +158,11 @@ pub enum Phase {
     Shelling3,
     ClosingTorpedo,
     Night,
+    /// Support expedition (支援艦隊); `attacker` = support fleet ship index.
+    Support,
+    /// Friend fleet (友軍艦隊) at night; friend-side `attacker` / enemy-side `defender` index the
+    /// friend fleet's ships.
+    FriendFleet,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -466,6 +471,12 @@ pub struct BattleInput {
     /// Armor debuffs of the enemy ships.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub debuffs: Option<Vec<ArmorDebuff>>,
+    /// Support expedition (支援艦隊) arriving at this battle.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub support: Option<SupportInput>,
+    /// Friend fleet (友軍艦隊): fights at night before the player's night battle.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub friend_fleet: Option<FriendFleetInput>,
 }
 
 /// Event historical bonus multipliers (kancolle-replay `bonusDmg` / `bonusAcc` / `bonusEva`); each
@@ -525,6 +536,50 @@ pub struct ArmorDebuff {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ship_id: Option<Vec<u32>>,
     pub amount: f64,
+}
+
+/// Support type; omitted = derived from the support fleet's composition.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SupportType {
+    Air,
+    Shelling,
+    Torpedo,
+    Asw,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupportInput {
+    pub fleet: FleetInput,
+    #[serde(default, rename = "type", skip_serializing_if = "Option::is_none")]
+    pub kind: Option<SupportType>,
+    /// Arrival chance override in [0,1].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chance: Option<f64>,
+    /// Boss support (決戦支援). Single battles only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub boss: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FriendFleetInput {
+    pub fleet: FleetInput,
+    /// Arrival chance in [0,1]. Default 1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chance: Option<f64>,
+    /// Sortie only: node letters where the friend fleet can arrive (default: the goal node).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nodes: Option<Vec<String>>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupportResult {
+    pub arrived: bool,
+    #[serde(default, rename = "type", skip_serializing_if = "Option::is_none")]
+    pub kind: Option<SupportType>,
 }
 
 /// One land-base wave: one base's squadrons (1..4). `planes` is the squadron size (default 18,
@@ -595,6 +650,12 @@ pub struct BattleResult {
     /// Present when `options.log` is true: AACI activations and rocket barrages per air phase.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub air_defense: Option<Vec<AirDefenseEvent>>,
+    /// Present when `support` was given and the battle reached the support phase.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub support: Option<SupportResult>,
+    /// Present when `friendFleet` was given: true if it fought.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub friend_fleet: Option<bool>,
 }
 
 /// Air defence event of the defending side in one air-combat phase.
@@ -683,6 +744,12 @@ pub struct SimulationSummary {
     pub friend_sunk_any_rate: f64,
     pub friend: Vec<ShipSummary>,
     pub enemy: Vec<ShipSummary>,
+    /// Present with `support`: fraction of battles in which support arrived.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub support_rate: Option<f64>,
+    /// Present with `friendFleet`: fraction of battles in which the friend fleet fought.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub friend_fleet_rate: Option<f64>,
 }
 
 // --------------------------------------------------------- forward model ----

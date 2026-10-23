@@ -15,9 +15,11 @@ mod air;
 pub mod calc;
 mod combined;
 mod day;
+pub mod friend;
 pub mod lbas;
 mod night;
 pub mod special;
+pub mod support;
 mod torpedo;
 
 
@@ -32,7 +34,9 @@ use crate::model::*;
 use crate::rng::Rng;
 use crate::ship::{ShipCore, ShipState, EX_SLOT, MAX_SLOTS};
 use calc::{Cf, Unit, CF_NONE};
+use friend::{FriendCore, FriendRun};
 use lbas::{LandBaseCore, LbPlanes, MAX_SQUADRONS};
+use support::{SupportCore, SupportRun};
 
 /// Ships per fleet (main, or a single fleet).
 pub const MAX_SHIPS: usize = 7;
@@ -130,6 +134,8 @@ pub struct Prepared {
     /// Friend sortie carry-over at the start of the battle and special-attack trigger rates.
     pub carry: FleetCarry,
     pub rates: Rates,
+    pub support: Option<SupportCore>,
+    pub friend_fleet: Option<FriendCore>,
 }
 
 fn validate_ships(name: &str, ships: &[ShipInput], max: usize) -> Result<(), String> {
@@ -242,6 +248,8 @@ impl Prepared {
             lb_bonus,
             carry: FleetCarry::of(&input.friend),
             rates: Rates::new(input.options.special_attack_rates.as_ref()),
+            support: input.support.as_ref().map(|s| SupportCore::new(s, s.boss.unwrap_or(false))).transpose()?,
+            friend_fleet: input.friend_fleet.as_ref().map(FriendCore::new).transpose()?,
         })
     }
 
@@ -253,6 +261,12 @@ impl Prepared {
         }
         b.carry = self.carry;
         b.special_rates = self.rates;
+        if let Some(s) = &self.support {
+            b.set_support(s, s.init.clone());
+        }
+        if let Some(f) = &self.friend_fleet {
+            b.set_friend_fleet(f);
+        }
         b
     }
 }
@@ -331,6 +345,12 @@ pub struct Battle<'a> {
     /// (kcsim `shellPhaseC` / `doShellC`).
     pools: bool,
     lbas: Option<LbRun<'a>>,
+    support: Option<SupportRun<'a>>,
+    friend_fleet: Option<FriendRun<'a>>,
+    /// The friend fleet phase is running (side 0 = the friend fleet): a first pick of the enemy
+    /// surface flagship is re-rolled (kcsim `nightPhaseTargetFF`, `MECHANICS.ffReroll`), and no
+    /// fleet special attack may fire (wikiwiki 友軍艦隊 「特殊砲撃(Nelson Touch等)は…発動しない」).
+    ff_phase: bool,
     pub events: Option<Vec<AttackEvent>>,
     /// Smoke screen layers deployed by the friend fleet this battle (0 = none).
     smoke: u8,
@@ -400,6 +420,9 @@ impl<'a> Battle<'a> {
             ecombined: has_escort(1),
             pools: false,
             lbas: None,
+            support: None,
+            friend_fleet: None,
+            ff_phase: false,
             events: if setup.log { Some(Vec::new()) } else { None },
             smoke: 0,
             bonus: &[],
@@ -600,25 +623,27 @@ impl<'a> Battle<'a> {
     /// only in airstrikes and opening ASW (kcsim `includeEscort`); at night the flagship of the
     /// fleet fighting is protected.
     pub fn choose_target(&mut self, def_side: usize, cands: &[usize], sl_rerolls: u8) -> (usize, bool) {
-        let n = cands.len();
-        let mut t = cands[self.rng.below(n)];
-        for _ in 0..sl_rerolls {
-            if self.core(def_side, t).searchlight > 0 {
-                break;
-            }
-            t = cands[self.rng.below(n)];
+        self.choose_target_ex(def_side, cands, sl_rerolls, true, None)
+    }
+
+    /// [`Battle::choose_target`]; `vanguard: false` skips the vanguard re-roll (kcsim
+    /// `choiceWProtect(…, ignoreVanguard)`, support shelling); `include_escort` overrides the
+    /// phase rule for escort covering ships (air support: kcsim `choiceWProtect(…, true)`).
+    pub fn choose_target_ex(&mut self, def_side: usize, cands: &[usize], sl_rerolls: u8, vanguard: bool, include_escort: Option<bool>) -> (usize, bool) {
+        let mut t = self.pick_target(def_side, cands, sl_rerolls, vanguard);
+        if self.ff_phase && t == 0 && def_side == 1 && !self.core(1, 0).class.is_sub() {
+            t = self.pick_target(def_side, cands, sl_rerolls, vanguard);
         }
         let form = self.setup.formations[def_side];
-        if form == Formation::Vanguard && formation::vanguard_front(t, self.len(def_side)) {
-            t = cands[self.rng.below(n)];
-        }
-        let night = self.phase == Phase::Night;
+        // The friend fleet phase engages the whole enemy: its flagship is the main flagship and
+        // escorts cover it (kcsim `friendFleetPhase` → `nightPhaseTarget(…, includeEscort)`).
+        let night = matches!(self.phase, Phase::Night | Phase::FriendFleet);
         let flag = if night { self.engaged[def_side].0 } else { 0 };
         if t != flag || self.core(def_side, t).is_installation {
             return (t, false);
         }
         let es = self.escort_start(def_side);
-        let include_escort = night || matches!(self.phase, Phase::AirStrike | Phase::OpeningAsw);
+        let include_escort = include_escort.unwrap_or(night || matches!(self.phase, Phase::AirStrike | Phase::OpeningAsw));
         let rate = formation::protection_rate(form);
         if self.rng.chance(rate) {
             let mut defenders = List::default();
@@ -690,6 +715,22 @@ impl<'a> Battle<'a> {
         self.choose_target(def, targets, sl_rerolls)
     }
 
+    /// Random target with searchlight re-rolls and the vanguard re-roll (no flagship protection).
+    fn pick_target(&mut self, def_side: usize, cands: &[usize], sl_rerolls: u8, vanguard: bool) -> usize {
+        let n = cands.len();
+        let mut t = cands[self.rng.below(n)];
+        for _ in 0..sl_rerolls {
+            if self.core(def_side, t).searchlight > 0 {
+                break;
+            }
+            t = cands[self.rng.below(n)];
+        }
+        if vanguard && self.setup.formations[def_side] == Formation::Vanguard && formation::vanguard_front(t, self.len(def_side)) {
+            t = cands[self.rng.below(n)];
+        }
+        t
+    }
+
     /// Apply damage (sinking protection, damage control). Returns the HP actually removed.
     pub fn take_damage(&mut self, side: usize, i: usize, dmg: i32) -> i32 {
         let flagship = self.is_flagship(side, i);
@@ -699,8 +740,13 @@ impl<'a> Battle<'a> {
         if st.protected {
             // wikiwiki 戦闘について (轟沈ストッパー): a red-morale escort of a single fleet is left at
             // 1 HP; combined-fleet ships keep the proportional replacement whatever their morale.
-            let red = !flagship && st.morale < 20 && self.fleets[side].combined.is_none();
-            dmg = formulas::protect(self.rng, dmg, st.hp, red);
+            // An enemy ship is protected only as the last one in the friend fleet phase.
+            dmg = if core.is_player {
+                let red = !flagship && st.morale < 20 && self.fleets[side].combined.is_none();
+                formulas::protect(self.rng, dmg, st.hp, red)
+            } else {
+                friend::last_enemy_protect(self.rng, dmg, st.hp)
+            };
         }
         st.hp -= dmg;
         if st.hp <= 0 {
@@ -822,7 +868,11 @@ impl<'a> Battle<'a> {
         match kind {
             BattleKind::NightOnly => {
                 if self.night_ready() {
-                    self.night_phase(true);
+                    self.support_phase(false, true);
+                    self.friend_fleet_phase();
+                    if self.night_ready() {
+                        self.night_phase(true);
+                    }
                     did_night = true;
                 }
             }
@@ -836,9 +886,13 @@ impl<'a> Battle<'a> {
                 detection = self.detection();
                 let failed = matches!(detection, Detection::Failure | Detection::FailureLost | Detection::NotFound);
                 self.lbas_phase();
-                for _ in 0..2 {
+                for k in 0..2 {
                     if self.both_alive() {
                         self.air_phase(failed, true);
+                    }
+                    // Air support between the two air phases (api_kouku, api_support_info, api_kouku2).
+                    if k == 0 {
+                        self.support_phase(true, false);
                     }
                 }
             }
@@ -854,7 +908,10 @@ impl<'a> Battle<'a> {
                             st.morale = (st.morale - 2).max(0);
                         }
                     }
-                    self.night_phase(false);
+                    self.friend_fleet_phase();
+                    if self.night_ready() {
+                        self.night_phase(false);
+                    }
                     did_night = true;
                 }
             }
@@ -868,7 +925,11 @@ impl<'a> Battle<'a> {
                     // Single enemy: a night-battle node, then the day battle while both sides are
                     // afloat (kcsim chplayer `nightToDay`: NB-only `sim`, then a day `sim`).
                     if self.night_ready() {
-                        self.night_phase(true);
+                        self.support_phase(false, true);
+                        self.friend_fleet_phase();
+                        if self.night_ready() {
+                            self.night_phase(true);
+                        }
                         did_night = true;
                     }
                     if self.both_alive() {
@@ -902,8 +963,16 @@ impl<'a> Battle<'a> {
         let detection = self.detection();
         let failed = matches!(detection, Detection::Failure | Detection::FailureLost | Detection::NotFound);
         self.lbas_phase();
+        // Night-to-day: air support before the air phase (shelling / torpedo support came at night).
+        let night_first = self.setup.kind == BattleKind::NightToDay;
+        if night_first {
+            self.support_phase(true, false);
+        }
         if self.both_alive() {
             self.air_phase(failed, true);
+        }
+        if !night_first {
+            self.support_phase(true, true);
         }
         match self.combined {
             _ if self.ecombined => self.ecombined_day(),

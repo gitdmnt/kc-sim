@@ -154,7 +154,13 @@ impl<'a> Battle<'a> {
     /// Returns the day battle's detection.
     pub(super) fn night_to_day_combined(&mut self) -> Option<Detection> {
         if self.both_alive() {
-            self.night_first_combined();
+            // kcsim: shelling / torpedo support before the night rounds; the friend fleet as at other
+            // night battles [unverified for 払暁戦].
+            self.support_phase(false, true);
+            self.friend_fleet_phase();
+            if self.both_alive() {
+                self.night_first_combined();
+            }
         }
         let (es, n) = (self.fleets[1].escort_start, self.len(1));
         let main_afloat = (0..es).any(|i| self.alive(1, i));

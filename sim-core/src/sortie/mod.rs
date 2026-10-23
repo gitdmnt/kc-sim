@@ -8,7 +8,9 @@ pub mod model;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
+use crate::battle::friend::FriendCore;
 use crate::battle::lbas::{initial_planes, LandBaseCore, LbPlanes, MAX_SQUADRONS};
+use crate::battle::support::SupportCore;
 use crate::battle::{enemy_formation, validate_fleet, validate_friend, Battle, BattleSetup, FleetCarry, FleetCore, NIGHT_TO_DAY_COMBINED};
 use crate::bonus::{self, BaseBonus, Bonus};
 use crate::model::{ArmorDebuff, BattleKind, CombinedType, Formation, Rank, RankRates};
@@ -91,6 +93,8 @@ struct NodeInfo {
     /// (base order; empty = none).
     bonus: Vec<Option<Bonus>>,
     lb_bonus: Vec<Option<BaseBonus>>,
+    /// The friend fleet can arrive here (`friendFleet.nodes`, default the goal node).
+    friend_fleet: bool,
 }
 
 /// Prepared sortie (static derivations done once).
@@ -113,6 +117,9 @@ pub struct Sortie {
     warnings: Vec<String>,
     /// Armor debuffs of the goal node (also applied to `gauge.finalComps`).
     goal_debuffs: Vec<ArmorDebuff>,
+    /// Support fleets: [node support (non-goal nodes), boss support (goal node)].
+    support: [Option<SupportCore>; 2],
+    friend_fleet: Option<FriendCore>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -145,6 +152,8 @@ struct Rec {
     retreat_heavy: Vec<u32>,
     retreat_moderate: Vec<u32>,
     night: Vec<u32>,
+    support: Vec<u32>,
+    friend_fleet: Vec<u32>,
     paths: HashMap<Vec<u16>, u32>,
     boss_reach: u32,
     boss_ranks: [u32; 7],
@@ -304,13 +313,34 @@ impl Sortie {
             let (main_len, esc_len) = (input.friend.ships.len(), input.friend.escort_ships().len());
             let ship_bonus = bonus::build_fleet(n.and_then(|n| n.bonuses.as_deref()), n.and_then(|n| n.escort_bonuses.as_deref()), main_len, esc_len, &format!("node {letter} "))?;
             let lb_bonus = bonus::build_bases(&format!("node {letter} lbasBonuses"), n.and_then(|n| n.lbas_bonuses.as_deref()), bases.len(), MAX_SQUADRONS)?;
-            nodes.push(NodeInfo { battle, boss, goal, formation, warning, lb_waves, bonus: ship_bonus, lb_bonus });
+            nodes.push(NodeInfo { battle, boss, goal, formation, warning, lb_waves, bonus: ship_bonus, lb_bonus, friend_fleet: false });
         }
         for (i, b) in bases.iter().enumerate() {
             for t in &b.targets {
                 if router.index(t).is_none() {
                     warnings.push(format!("lbas #{i}: target node {t} is not in the routing document; ignored"));
                 }
+            }
+        }
+        let support = match &input.support {
+            Some(s) => [
+                s.node.as_ref().map(|i| SupportCore::new(i, false)).transpose()?,
+                s.boss.as_ref().map(|i| SupportCore::new(i, true)).transpose()?,
+            ],
+            None => [None, None],
+        };
+        let friend_fleet = input.friend_fleet.as_ref().map(FriendCore::new).transpose()?;
+        if let Some(ff) = &input.friend_fleet {
+            match &ff.nodes {
+                Some(letters) => {
+                    for t in letters {
+                        match router.index(t) {
+                            Some(i) => nodes[i].friend_fleet = true,
+                            None => warnings.push(format!("friendFleet: node {t} is not in the routing document; ignored")),
+                        }
+                    }
+                }
+                None => nodes.iter_mut().for_each(|n| n.friend_fleet = n.goal),
             }
         }
 
@@ -336,6 +366,8 @@ impl Sortie {
             lbas,
             warnings,
             goal_debuffs,
+            support,
+            friend_fleet,
         })
     }
 
@@ -420,6 +452,8 @@ impl Sortie {
         let mut lb_planes = self.lb_init;
         // Fleet special attacks used (once per sortie; Kongou-class up to 3).
         let mut carry = FleetCarry::default();
+        // Support fleets: plane counts carry from node to node within the sortie.
+        let mut sup_st = [0, 1].map(|k| self.support[k].as_ref().map_or_else(Vec::new, |s| s.init.clone()));
         loop {
             let info = &self.nodes[node];
             let first_visit = !path[..path.len() - 1].contains(&node);
@@ -454,11 +488,23 @@ impl Sortie {
                     b.set_lbas(&self.lbas, &info.lb_waves, lb_planes);
                 }
                 b.carry = carry;
+                let si = info.goal as usize;
+                if let Some(sc) = &self.support[si] {
+                    b.set_support(sc, std::mem::take(&mut sup_st[si]));
+                }
+                if let (true, Some(ff)) = (info.friend_fleet, &self.friend_fleet) {
+                    b.set_friend_fleet(ff);
+                }
                 let o = b.run();
                 carry = b.carry;
                 if let Some(p) = b.lb_planes() {
                     lb_planes = p;
                 }
+                if let Some(s) = b.take_support_st() {
+                    sup_st[si] = s;
+                }
+                let support = b.support_result().is_some_and(|s| s.arrived);
+                let friend_fleet = b.friend_fleet_fought() == Some(true);
                 st = std::mem::take(&mut b.st[0]);
                 fought = true;
                 battles += 1;
@@ -473,6 +519,8 @@ impl Sortie {
                     if o.night {
                         r.night[node] += 1;
                     }
+                    r.support[node] += support as u32;
+                    r.friend_fleet[node] += friend_fleet as u32;
                 }
             }
             if self.target == Some(node) {
@@ -574,6 +622,8 @@ impl Sortie {
             .map(|(p, c)| PathRate { path: p.iter().map(|&i| self.router.name(i as usize).to_string()).collect(), rate: rate(*c) })
             .collect();
         let mut nodes = BTreeMap::new();
+        let has_support = self.support.iter().any(Option::is_some);
+        let per_battle = |x: &[u32], i: usize| if rec.battle[i] > 0 { x[i] as f64 / rec.battle[i] as f64 } else { 0.0 };
         for i in 0..self.router.len() {
             let battles = rec.battle[i];
             nodes.insert(
@@ -585,7 +635,9 @@ impl Sortie {
                     retreat_rate: rate(rec.retreat[i]),
                     retreat_heavy_rate: rate(rec.retreat_heavy[i]),
                     retreat_moderate_rate: rate(rec.retreat_moderate[i]),
-                    night_rate: if battles > 0 { rec.night[i] as f64 / battles as f64 } else { 0.0 },
+                    night_rate: per_battle(&rec.night, i),
+                    support_rate: has_support.then(|| per_battle(&rec.support, i)),
+                    friend_fleet_rate: self.friend_fleet.as_ref().map(|_| per_battle(&rec.friend_fleet, i)),
                 },
             );
         }
@@ -639,6 +691,8 @@ impl Sortie {
             retreat_heavy: vec![0; n],
             retreat_moderate: vec![0; n],
             night: vec![0; n],
+            support: vec![0; n],
+            friend_fleet: vec![0; n],
             ships: (0..self.friend.ships.len()).map(|_| ShipRec::default()).collect(),
             ..Rec::default()
         }

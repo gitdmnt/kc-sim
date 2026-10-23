@@ -66,10 +66,10 @@ pub fn special_night(s: SpecialAttack) -> NightAttack {
 }
 
 #[derive(Clone, Copy, Default)]
-struct SideNight {
-    starshell: bool,
-    searchlight: u8,
-    contact: Option<f64>,
+pub(super) struct SideNight {
+    pub(super) starshell: bool,
+    pub(super) searchlight: u8,
+    pub(super) contact: Option<f64>,
 }
 
 fn env(sides: &[SideNight; 2], side: usize) -> NightEnv {
@@ -83,7 +83,7 @@ fn env(sides: &[SideNight; 2], side: usize) -> NightEnv {
 }
 
 impl<'a> Battle<'a> {
-    fn night_setup(&mut self, side: usize, night_only: bool) -> SideNight {
+    pub(super) fn night_setup(&mut self, side: usize, night_only: bool) -> SideNight {
         let mut s = SideNight::default();
         // Star shell: each equipping ship in order, 71% unless HP ≤ 4 (wikiwiki 照明弾; kcsim 70%).
         for i in self.engaged(side) {
@@ -239,7 +239,7 @@ impl<'a> Battle<'a> {
         }
     }
 
-    fn night_turn(&mut self, side: usize, a: usize, env: &NightEnv, sl_rerolls: u8, night_only: bool) {
+    pub(super) fn night_turn(&mut self, side: usize, a: usize, env: &NightEnv, sl_rerolls: u8, night_only: bool) {
         let def = 1 - side;
         let subs = self.subs(def);
         let surface = self.surface(def);

@@ -370,9 +370,13 @@ export interface BattleInput {
   lbasBonuses?: (BaseBonusSet | null)[];
   /** Armor debuffs of the enemy ships (main and escort). */
   debuffs?: ArmorDebuff[];
-  /** Support expedition (支援艦隊) arriving at this battle. */
+  /** Support expedition (支援艦隊) arriving at this battle: after the air phase (day battles), before
+   *  the night battle (`nightOnly`: shelling / torpedo support only), between the two air phases
+   *  (`airBattle`: air support only); `nightToDay`: shelling / torpedo before the night battle, air
+   *  before the day air phase; none at `airRaid` nodes. A single fleet. */
   support?: SupportInput;
-  /** Friend fleet (友軍艦隊): fights at night before the player's night battle. */
+  /** Friend fleet (友軍艦隊): fights at night before the player's night battle (`dayNight` when
+   *  the night battle happens, `nightOnly`, the night part of `nightToDay`). A single fleet. */
   friendFleet?: FriendFleetInput;
   /** Enemy air raid on the land bases (基地空襲), resolved before the battle. */
   baseRaid?: BaseRaidInput;
@@ -421,18 +425,24 @@ export interface ArmorDebuff {
   amount: number;
 }
 
-/** Support type; omitted = derived from the support fleet (fewer than 2 destroyers = no support). */
+/** Support type; omitted = derived from the support fleet (fewer than 2 destroyers = no support).
+ *  "air" switches to anti-submarine support against submarines when the fleet qualifies (a light
+ *  carrier plus an ASW plane carrier or two escorts); "asw" = air support that always switches. */
 export type SupportType = "air" | "shelling" | "torpedo" | "asw";
 
+/** A support fleet (1..6 ships, single fleet). Its damage is not credited to the friend ships. */
 export interface SupportInput {
   fleet: FleetInput;
   type?: SupportType;
-  /** Arrival chance override in [0,1]. Default: kcsim `supportChance` (sparkle bonuses). */
+  /** Arrival chance override in [0,1]. Default: kcsim `supportChance`: 50% (boss 85%), +15% for a
+   *  sparkled (morale ≥ 50) flagship, +5% per other sparkled ship. */
   chance?: number;
   /** Boss support (決戦支援). Single battle only; sorties use `SortieInput.support.boss`. */
   boss?: boolean;
 }
 
+/** A friend fleet (1..7 ships, single fleet). Ships start every battle as given (fresh). Its
+ *  formation is the player's when the player's fleet is single, else `fleet.formation`. */
 export interface FriendFleetInput {
   fleet: FleetInput;
   /** Arrival chance in [0,1]. Default 1. */
@@ -472,7 +482,9 @@ export interface BaseRaidSummary {
 }
 
 export interface SupportResult {
+  /** Support arrived (always false for a fleet without a support type). */
   arrived: boolean;
+  /** The attack performed; omitted when air support had no attack planes. */
   type?: SupportType;
 }
 

@@ -58,6 +58,8 @@ fn input(routing: Value, ships: Vec<ShipInput>) -> SortieInput {
         max_nodes: None,
         top_paths: None,
         lbas: None,
+        support: None,
+        friend_fleet: None,
     }
 }
 
