@@ -1,10 +1,13 @@
 import React, { useMemo, useState } from "react";
 import type { PoiQuestGoal, PoiQuestEntry, PoiQuests } from "@shared/embed/protocol";
 import {
-  OwnershipIndex, aggregateNeeds, buildQuestGraph, descendants, describeRequirement, questKind, questStatuses, resolvePrerequisites,
+  OwnershipIndex, aggregateNeeds, buildQuestGraph, descendants, describeRequirement, questStatuses, resolvePrerequisites,
   rosterFromPoi, visibleQuests,
 } from "@shared/quest/tree";
 import type { EquipNeedRow, QuestGraph, QuestStatus, ShipNeedRow } from "@shared/quest/tree";
+import { CATEGORY_LABEL, FREQUENCY_LABEL, filterQuests, parseQuestFilter, questCategory, questFrequency } from "@shared/quest/filter";
+import type { QuestFilter } from "@shared/quest/filter";
+import { rewardSummary, sumRewards } from "@shared/quest/rewards";
 import type { QuestEntry } from "@shared/quest/types";
 import { Badge, Card, S, TextInput, cx } from "../../ui";
 import type { BadgeTone } from "../../ui";
@@ -14,6 +17,8 @@ import { getDataApi } from "../../data/api";
 import { useAsync } from "../../data/useAsync";
 import { useApp } from "../context";
 import { DataError, StaleBadge } from "../DataState";
+import { QuestFilters } from "./QuestFilters";
+import { QuestRewardsView, RewardTotalLine } from "./QuestRewards";
 
 const STATUS: Record<QuestStatus, { label: string; tone: BadgeTone; dot: string; title: string }> = {
   done: { label: "達成", tone: "ok", dot: "bg-ok-400", title: "条件達成 (報酬未受取)" },
@@ -27,6 +32,7 @@ const STATUS: Record<QuestStatus, { label: string; tone: BadgeTone; dot: string;
 const FINISHED: QuestStatus[] = ["cleared", "done"];
 const MAX_LIST = 400;
 const SELECTED_KEY = `${STORAGE_PREFIX}quest`;
+const FILTER_KEY = `${STORAGE_PREFIX}questFilter`;
 
 const Dot = ({ status }: { status: QuestStatus }) => (
   <span role="img" aria-label={STATUS[status].label} title={STATUS[status].title} className={cx("size-2 shrink-0 rounded-full", STATUS[status].dot)} />
@@ -44,20 +50,6 @@ const progressText = (entry: PoiQuestEntry | undefined, goals: PoiQuestGoal[] | 
 const progressSource = (goals: PoiQuestGoal[] | undefined) =>
   goals?.some((g) => g.source === "kcsim") ? "kc-sim プラグインが数えた進捗 (手入力の達成条件から)" : "poi の任務トラッカー / ゲームの進捗表示";
 
-const REWARD_RESOURCES = ["燃料", "弾薬", "鋼材", "ボーキ"];
-
-/** 報酬 (手入力データのみ): 資源と、選択報酬は「n: A / B」にまとめる */
-const rewardsText = (r: QuestEntry["rewards"]): string | null => {
-  if (!r) return null;
-  const res = (r.resources ?? []).map((x, i) => (x > 0 ? `${REWARD_RESOURCES[i]}${x}` : "")).filter(Boolean);
-  const item = (i: { name: string; amount?: number }) => `${i.name}${i.amount && i.amount > 1 ? `×${i.amount}` : ""}`;
-  const fixed = (r.items ?? []).filter((i) => !i.choice).map(item);
-  const choices = [...new Set((r.items ?? []).flatMap((i) => i.choice ?? []))].map(
-    (c) => `選択${c}: ${(r.items ?? []).filter((i) => i.choice === c).map(item).join(" / ")}`,
-  );
-  const parts = [...res, ...fixed, ...choices];
-  return parts.length ? parts.join("、") : null;
-};
 
 const sourceHost = (url: string) => {
   try {
@@ -87,7 +79,7 @@ const QuestRow = ({
       <button
         type="button"
         onClick={() => q && onSelect(id)}
-        title={q ? [q.detail, ...describeRequirement(q.requirements)].filter(Boolean).join("\n") : "データに無い任務"}
+        title={q ? [q.detail, ...describeRequirement(q.requirements), rewardSummary(q.rewards) && `報酬: ${rewardSummary(q.rewards)}`].filter(Boolean).join("\n") : "データに無い任務"}
         style={depth ? { paddingLeft: `${0.5 + Math.min(depth, 12) * 0.75}rem` } : undefined}
         className={cx(
           "flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-0.5 text-left text-sm",
@@ -141,6 +133,14 @@ const initialSelected = (): number | null => {
   }
 };
 
+const initialFilter = (): QuestFilter => {
+  try {
+    return parseQuestFilter(JSON.parse(localStorage.getItem(FILTER_KEY) ?? "null"));
+  } catch {
+    return parseQuestFilter(null);
+  }
+};
+
 /**
  * 任務タブ: 任務を選ぶと、開放に要る前提任務すべて (前提が先の順) と、経路で要る艦娘・装備 (所持/不足)、この任務で
  * 開放される任務を出す。達成状況・進捗は poi (プラグイン経由) の任務一覧と poi の進捗カウンタから。
@@ -149,6 +149,15 @@ export const QuestTab = () => {
   const { state, poi } = useApp();
   const res = useAsync(() => getDataApi().quests(), []);
   const [query, setQuery] = useState("");
+  const [filter, setFilterState] = useState<QuestFilter>(initialFilter);
+  const setFilter = (f: QuestFilter) => {
+    setFilterState(f);
+    try {
+      localStorage.setItem(FILTER_KEY, JSON.stringify(f));
+    } catch {
+      // ignore
+    }
+  };
   const [selected, setSelectedState] = useState<number | null>(initialSelected);
   const select = (id: number) => {
     setSelectedState(id);
@@ -158,7 +167,6 @@ export const QuestTab = () => {
       // ignore
     }
   };
-
   const quests = res.data?.quests;
   const graph = useMemo(() => buildQuestGraph(quests ?? []), [quests]);
   const poiQuests: PoiQuests | undefined = state?.quests;
@@ -171,12 +179,16 @@ export const QuestTab = () => {
     return roster ? new OwnershipIndex(roster) : null;
   }, [state]);
 
-  const filtered = useMemo(() => {
-    const all = quests ?? [];
+  const { list: filtered, counts } = useMemo(() => {
     const needle = normalizeForSearch(query);
-    return needle ? all.filter((q) => normalizeForSearch(`${q.code ?? ""}${q.name ?? ""}${q.id}`).includes(needle)) : all;
-  }, [quests, query]);
-
+    return filterQuests(
+      quests ?? [],
+      filter,
+      (id) => player.statuses.get(id) ?? "unknown",
+      needle ? (q) => normalizeForSearch(`${q.code ?? ""}${q.name ?? ""}${q.id}`).includes(needle) : undefined,
+      !!poiQuests,
+    );
+  }, [quests, query, filter, player, poiQuests]);
   // 既定: 遂行中の任務、無ければ最初の任務
   const fallback = [...player.visible.values()].find((e) => e.state === 2)?.id ?? quests?.[0]?.id ?? null;
   const current = selected !== null && graph.byId.has(selected) ? selected : fallback;
@@ -187,15 +199,22 @@ export const QuestTab = () => {
     const open = tree.order.filter((id) => !FINISHED.includes(player.statuses.get(id) ?? "unknown"));
     return aggregateNeeds(graph, open, owned);
   }, [graph, tree, player, owned]);
+  // 前提の経路 (未達成・不明の前提とこの任務) で受け取る報酬
+  const pathRewards = useMemo(() => {
+    if (!tree || tree.order.length < 2) return null;
+    const open = tree.order.filter((id) => id === current || !FINISHED.includes(player.statuses.get(id) ?? "unknown"));
+    return open.length > 1 ? { total: sumRewards(open.map((id) => graph.byId.get(id)?.rewards)), quests: open.length } : null;
+  }, [graph, tree, player, current]);
 
   if (res.error && !quests) return <DataError error={res.error} />;
   if (!quests) return <p className="text-sm text-ink-300">{S.common.loading}</p>;
 
   const q = current === null ? undefined : graph.byId.get(current);
+  // 報酬は構造化して出すので、メモの「[獲]」以降は省く
+  const memo = q?.memo && q.rewards ? q.memo.split("[獲]")[0]!.trim() : q?.memo;
   const status = current === null ? "unknown" : (player.statuses.get(current) ?? "unknown");
   const goals = current === null ? undefined : player.records[current];
   const progress = current === null ? null : progressText(player.visible.get(current), goals);
-  const rewards = q ? rewardsText(q.rewards) : null;
   const unlocks = current === null ? [] : (graph.unlocks.get(current) ?? []);
   const allAfter = current === null ? 0 : descendants(graph, current).length;
   const pending = tree ? tree.order.filter((id) => id !== current && !FINISHED.includes(player.statuses.get(id) ?? "unknown")).length : 0;
@@ -212,12 +231,18 @@ export const QuestTab = () => {
   return (
     <div className="grid grid-cols-1 gap-2 lg:h-full lg:grid-cols-[17rem_minmax(0,1fr)_19rem] lg:grid-rows-[minmax(0,1fr)]">
       <Card
-        title={<span className="tabular-nums">{S.common.count(filtered.length)}</span>}
+        title={
+          <span className="tabular-nums">
+            {S.common.count(filtered.length)}
+            {filtered.length < quests.length && <span className="ml-1 text-xs font-normal text-ink-400">/ {quests.length}</span>}
+          </span>
+        }
         actions={res.stale ? <StaleBadge /> : undefined}
         className="flex min-h-0 flex-col"
         bodyClassName="flex min-h-0 flex-1 flex-col gap-2"
       >
         <TextInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="コード・名前で検索" aria-label="任務を検索" />
+        <QuestFilters filter={filter} counts={counts} showStatus={!!poiQuests} onChange={setFilter} />
         {poiNote && <p className="text-xs text-ink-400">{poiNote}</p>}
         <ul className="-mx-2 flex min-h-0 flex-1 flex-col overflow-auto px-2" aria-label="任務の一覧">
           {filtered.slice(0, MAX_LIST).map((x) => (
@@ -237,7 +262,7 @@ export const QuestTab = () => {
         actions={
           q && (
             <>
-              {questKind(q.code) && <Badge>{questKind(q.code)}</Badge>}
+              <Badge title={`${FREQUENCY_LABEL[questFrequency(q.code)]}・${CATEGORY_LABEL[questCategory(q.code)]} (任務コードから)`}>{FREQUENCY_LABEL[questFrequency(q.code)]}</Badge>
               <Badge tone={STATUS[status].tone} title={STATUS[status].title}>{STATUS[status].label}</Badge>
             </>
           )
@@ -249,13 +274,14 @@ export const QuestTab = () => {
           <>
             <div className="flex flex-col gap-1 text-sm">
               {q.detail && <p className="whitespace-pre-line text-ink-200">{q.detail}</p>}
-              {q.memo && <p className="text-xs text-ink-400">{q.memo}</p>}
+              {memo && <p className="text-xs text-ink-400">{memo}</p>}
               {q.requirements ? (
                 <pre className="font-sans text-xs whitespace-pre-wrap text-ink-300">{describeRequirement(q.requirements).join("\n")}</pre>
               ) : (
                 <p className="text-xs text-ink-500">構造化された達成条件なし (kcwiki-quest-data・手入力データに未収録)</p>
               )}
-              {rewards && <p className="text-xs text-ink-400">報酬: {rewards}</p>}
+              <QuestRewardsView rewards={q.rewards} />
+              {pathRewards && <RewardTotalLine total={pathRewards.total} quests={pathRewards.quests} />}
               {q.override && (
                 <p className="text-xs text-ink-500">
                   {q.override.fields.filter((f) => ["requirements", "pre", "rewards"].includes(f)).map((f) => ({ requirements: "達成条件", pre: "前提", rewards: "報酬" })[f]).join("・") || "内容"}

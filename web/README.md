@@ -104,12 +104,19 @@ random stream. Map, mode, conditions and 自動 persist in `kcsim:workspace`, th
 
 `src/app/quests/QuestTab.tsx`, over `GET /api/v1/quests` (cached 24 h, docs/DATA_SOURCES.md §14) and `shared/quest/tree.ts`.
 Three full-height cards that scroll inside (no page scroll at 1280×800 / 1200×710 / 1024×600, checked by
-`bun scripts/screenshot-quests.ts`, which also writes `docs/screenshots/17-quests.png` and `18-quest-progress.png`, a
-one-time quest with counts from the plugin):
+`bun scripts/screenshot-quests.ts`, which also writes `docs/screenshots/17-quests.png`, `18-quest-progress.png`, a
+one-time quest with counts from the plugin, and `19-quest-filters.png`, a filtered list and a quest with 選択報酬 at 1024×600):
 
-- **List:** search by code / name / id; a status dot per quest. The selection persists in `kcsim:quest`.
+- **List:** search by code / name / id, combined with three dropdown filters (`QuestFilters.tsx` over
+  `shared/quest/filter.ts`): 頻度 (単発 / デイリー / ウィークリー / マンスリー / クォータリー / イヤリー / 期間限定) and 種別
+  (A 編成 … G 改装, その他), both from the wiki code (`Bq3`, `2610B3`, `L2610F2`, `Cs8` 季節限定 → 期間限定), and 状況
+  (未達成 = 受注可・未開放, 遂行中 = 遂行中・達成, 達成済, 不明; only shown with poi's quest state). Each option shows how
+  many quests it would leave given the other filters and the search. Filters persist in `kcsim:questFilter`, the
+  selection in `kcsim:quest`. A status dot per quest; the row tooltip has the description, conditions and a reward summary.
 - **Quest:** description, the structured clear conditions (the hand-authored override, else kcwiki-quest-data), rewards
-  and the override's reference link (marked 「LLM 作成・未検証」 for LLM-authored entries), the progress, and
+  (`QuestRewards.tsx`: coloured resources, items, one boxed row per 選択報酬 group; the KC3 memo's `[獲]` part is hidden
+  then) with the sum of the fixed rewards along the open prerequisite path (`sumRewards`), the override's reference
+  link (marked 「LLM 作成・未検証」 for LLM-authored entries), the progress, and
   the prerequisite tree: every ancestor quest, prerequisites first (by depth, then id), indented by depth. Cycles are cut at
   the closing edge and unknown ids shown as such (both noted under the tree). Clicking a row selects that quest.
 - **必要なもの:** ships and equipment named by the conditions of the tree's quests that are not yet cleared, merged (a ship

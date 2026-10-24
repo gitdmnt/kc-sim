@@ -1,7 +1,8 @@
 // Quest master data served at GET /api/v1/quests (docs/API.md "Quests", docs/DATA_SOURCES.md §14).
 // Merged by the server's ingest (server/src/quests.ts) from KC3Kai quests_meta.json (prerequisite edges),
-// kc3-translations data/jp/quests.json (code, name, description) and kcwiki-quest-data (structured requirements),
-// then the hand-authored overrides (./overrides.json, docs/QUEST_OVERRIDES.md) on top.
+// kc3-translations data/jp/quests.json (code, name, description, memo), kcwiki-quest-data (structured requirements)
+// and kcanotify-gamedata quests-jp.json (rewards), then the hand-authored overrides (./overrides.json,
+// docs/QUEST_OVERRIDES.md) on top.
 
 /** Which file asserts a prerequisite edge. */
 export type QuestEdgeSource = "kc3" | "kcwiki" | "override";
@@ -105,10 +106,24 @@ export interface QuestRequirement {
   [key: string]: unknown;
 }
 
-/** Rewards of a quest as the overrides record them (resources fuel/ammo/steel/bauxite, then items). */
+/** Where a quest's rewards came from (first that has the quest wins): overrides, kcanotify-gamedata, kcwiki-quest-data, the KC3 memo "[獲]" line. */
+export type QuestRewardSource = "override" | "kcanotify" | "kcwiki" | "kc3-memo";
+
+/**
+ * One reward item. Items sharing a `choice` number are one 選択報酬 group (pick one of them); a quest with
+ * 二回選択報酬 has two groups (1 and 2). `amount` is omitted when 1.
+ */
+export interface QuestRewardItem {
+  name: string;
+  amount?: number;
+  choice?: number;
+}
+
+/** Rewards of a quest: resources fuel/ammo/steel/bauxite (absent when the source does not say), then items. */
 export interface QuestRewards {
   resources?: number[];
-  items?: { name: string; amount?: number; choice?: number }[];
+  items?: QuestRewardItem[];
+  src?: QuestRewardSource;
 }
 
 /** Provenance of a hand-authored override (./overrides.json). */
@@ -135,7 +150,7 @@ export interface QuestEntry {
   pre: QuestPrerequisite[];
   /** Structured clear conditions (override, else kcwiki-quest-data); null when neither has this quest */
   requirements: QuestRequirement | null;
-  /** Rewards (overrides only); absent / null when unknown */
+  /** Rewards (override, else kcanotify-gamedata, else kcwiki-quest-data, else the KC3 memo); null when none says */
   rewards?: QuestRewards | null;
   /** Set when a hand-authored override changed this entry */
   override?: QuestOverrideInfo | null;

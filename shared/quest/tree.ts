@@ -491,14 +491,6 @@ export const aggregateNeeds = (
 
 // ---- Text ----
 
-/** One-time / periodic / limited from the wiki code (Bd1 daily, Bw1 weekly, Bm1 monthly, Bq1 quarterly, By1 yearly, 2610B3 limited). */
-export const questKind = (code: string | null): string => {
-  if (!code) return "";
-  if (/^\d{4}/.test(code)) return "期間限定";
-  const m = /^[A-Z]([dwmqy])\d/.exec(code);
-  return m ? { d: "デイリー", w: "ウィークリー", m: "マンスリー", q: "クォータリー", y: "イヤリー" }[m[1] as "d"] : "単発";
-};
-
 const SIMPLE: Record<string, string> = {
   equipment: "装備開発", ship: "艦娘建造", scrapequipment: "装備廃棄", scrapship: "艦娘解体", modernization: "近代化改修",
   improvement: "装備改修", resupply: "補給", repair: "入渠", battle: "出撃", remodel: "改装",

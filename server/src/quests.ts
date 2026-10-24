@@ -1,14 +1,16 @@
 // Quest master data (docs/DATA_SOURCES.md §14) -> `quests` rows for GET /api/v1/quests (docs/API.md "Quests").
 //   KC3Kai src/data/quests_meta.json        `unlock` lists (MIT): the maintained prerequisite graph
-//   KC3Kai/kc3-translations data/jp/quests  code, name, description, memo (MIT)
-//   kcwikizh/kcwiki-quest-data data.json    structured requirements and its own `prerequisite` lists (MIT, stale)
+//   KC3Kai/kc3-translations data/jp/quests  code, name, description, memo (MIT; the memo's "[獲]" line: last-resort rewards)
+//   kcwikizh/kcwiki-quest-data data.json    structured requirements, rewards and its own `prerequisite` lists (MIT, stale)
+//   antest1/kcanotify-gamedata quests-jp    resources and reward text (MIT, maintained; ./questRewards.ts)
 //   shared/quest/overrides.json             hand-authored conditions / prerequisites / rewards (ours; ./questOverrides.ts)
 import * as z from "zod";
-import type { QuestEdgeSource, QuestEntry, QuestRequirement } from "../../shared/quest/types";
+import type { QuestEdgeSource, QuestEntry, QuestRequirement, QuestRewards } from "../../shared/quest/types";
 import type { QuestOverride } from "./questOverrides";
+import { kcanotifyEntry, kcanotifyQuests, kcanotifyRewards, kcwikiRewards, parseKc3MemoRewards } from "./questRewards";
 
-/** `sources.key` of the three files in the order above, then the overrides (scripts/ingest-quests.ts, GET /quests). */
-export const QUEST_SOURCE_KEYS = ["kc3kai-quests-meta", "kc3-translations-quests", "kcwiki-quest-data", "quest-overrides"] as const;
+/** `sources.key` of the four files in the order above (minus the overrides), then the overrides (scripts/ingest-quests.ts, GET /quests). */
+export const QUEST_SOURCE_KEYS = ["kc3kai-quests-meta", "kc3-translations-quests", "kcwiki-quest-data", "kcanotify-quests", "quest-overrides"] as const;
 
 /** `{"101": {"unlock": [102], ...}}`; non-numeric keys (the trailing "EoF&RemarksOfDataFormat") are skipped. */
 export const kc3QuestMeta = z.record(z.string(), z.unknown());
@@ -39,7 +41,9 @@ export interface QuestMergeInput {
   kc3Meta: z.infer<typeof kc3QuestMeta>;
   kc3Jp: z.infer<typeof kc3QuestTranslations>;
   kcwiki: z.infer<typeof kcwikiQuestData>;
-  /** Validated hand-authored overrides (parseQuestOverrides); they win over the three files */
+  /** kcanotify-gamedata quests-jp.json: rewards only (its ids are a subset of the three files') */
+  kcanotify?: z.infer<typeof kcanotifyQuests>;
+  /** Validated hand-authored overrides (parseQuestOverrides); they win over the files */
   overrides?: QuestOverride[];
 }
 
@@ -59,14 +63,22 @@ export interface QuestMergeStats {
   overriddenRewards: number;
   /** Overrides for quests none of the three files has */
   overrideOnly: number;
+  /** Quests with rewards, and how many came from kcanotify / kcwiki / the KC3 memo (the rest: overriddenRewards) */
+  withRewards: number;
+  rewardsKcanotify: number;
+  rewardsKcwiki: number;
+  rewardsKc3Memo: number;
+  /** Ids of quests no source has rewards for */
+  noRewards: number[];
 }
 
 /**
  * Union of the three files keyed by api_no. A prerequisite edge is kept when either source asserts it, with the
  * sources listed (KC3 is maintained but sometimes names only the last unlocking quest; kcwiki has more AND-edges for
- * quests up to 2022 but stopped there). Text comes from kc3-translations, else kcwiki. An override then replaces the
- * fields it sets: `pre` is the complete edge list (edges it omits are dropped), `requirements` / `rewards` / text
- * replace wholesale; `override` records the source page and the replaced fields.
+ * quests up to 2022 but stopped there). Text comes from kc3-translations, else kcwiki. Rewards come wholesale from the
+ * first source that has them: override, kcanotify (maintained), kcwiki (structured, stale), the KC3 memo's "[獲]" items.
+ * An override then replaces the fields it sets: `pre` is the complete edge list (edges it omits are dropped),
+ * `requirements` / `rewards` / text replace wholesale; `override` records the source page and the replaced fields.
  */
 export function mergeQuests(input: QuestMergeInput): { quests: QuestEntry[]; stats: QuestMergeStats } {
   const meta = new Map<number, z.infer<typeof kc3MetaEntry>>();
@@ -82,6 +94,12 @@ export function mergeQuests(input: QuestMergeInput): { quests: QuestEntry[]; sta
     if (e.success) tl.set(Number(k), e.data);
   }
   const kw = new Map(input.kcwiki.map((q) => [q.game_id, q]));
+  const kca = new Map<number, z.infer<typeof kcanotifyEntry>>();
+  for (const [k, v] of Object.entries(input.kcanotify ?? {})) {
+    if (!API_NO.test(k)) continue;
+    const e = kcanotifyEntry.safeParse(v);
+    if (e.success) kca.set(Number(k), e.data);
+  }
 
   const ids = new Set<number>([...meta.keys(), ...tl.keys(), ...kw.keys()]);
   const pre = new Map<number, Map<number, Set<QuestEdgeSource>>>();
@@ -103,6 +121,7 @@ export function mergeQuests(input: QuestMergeInput): { quests: QuestEntry[]; sta
   const stats: QuestMergeStats = {
     quests: 0, edges: 0, kc3Edges: 0, kcwikiEdges: 0, bothEdges: 0, withRequirements: 0, danglingEdges: 0,
     overridden: 0, overriddenRequirements: 0, overriddenPre: 0, overriddenRewards: 0, overrideOnly: 0,
+    withRewards: 0, rewardsKcanotify: 0, rewardsKcwiki: 0, rewardsKc3Memo: 0, noRewards: [],
   };
   const quests = [...ids].sort((a, b) => a - b).map((id): QuestEntry => {
     const t = tl.get(id);
@@ -126,6 +145,18 @@ export function mergeQuests(input: QuestMergeInput): { quests: QuestEntry[]; sta
     }
     const requirements = (o?.requirements as QuestRequirement | undefined) ?? (k?.requirements as QuestRequirement | undefined) ?? null;
     if (requirements) stats.withRequirements++;
+    const memoItems = parseKc3MemoRewards(t?.memo);
+    const rewards: QuestRewards | null =
+      (o?.rewards ? { ...o.rewards, src: "override" } : null) ??
+      (kca.has(id) ? kcanotifyRewards(kca.get(id)!) : null) ??
+      (k ? kcwikiRewards(k) : null) ??
+      (memoItems ? { items: memoItems, src: "kc3-memo" } : null);
+    if (rewards) {
+      stats.withRewards++;
+      if (rewards.src === "kcanotify") stats.rewardsKcanotify++;
+      else if (rewards.src === "kcwiki") stats.rewardsKcwiki++;
+      else if (rewards.src === "kc3-memo") stats.rewardsKc3Memo++;
+    } else stats.noRewards.push(id);
     const entry: QuestEntry = {
       id,
       // the override's code is for readers of the file; it only fills in quests the upstream lacks a code for
@@ -135,7 +166,7 @@ export function mergeQuests(input: QuestMergeInput): { quests: QuestEntry[]; sta
       memo: text(t?.memo),
       pre: edges,
       requirements,
-      rewards: o?.rewards ?? null,
+      rewards,
       override: null,
     };
     if (o) {

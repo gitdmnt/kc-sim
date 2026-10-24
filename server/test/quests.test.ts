@@ -45,7 +45,10 @@ test("merge unions KC3 unlock edges and kcwiki prerequisites, with their sources
   expect(stats).toEqual({
     quests: 7, edges: 6, kc3Edges: 3, kcwikiEdges: 5, bothEdges: 2, withRequirements: 2, danglingEdges: 2,
     overridden: 0, overriddenRequirements: 0, overriddenPre: 0, overriddenRewards: 0, overrideOnly: 0,
+    // 101's memo "[獲]駆逐艦白雪"; the kcwiki entries here carry no reward fields
+    withRewards: 1, rewardsKcanotify: 0, rewardsKcwiki: 0, rewardsKc3Memo: 1, noRewards: [102, 103, 107, 113, 153, 274],
   });
+  expect(by.get(101)!.rewards).toEqual({ items: [{ name: "駆逐艦白雪" }], src: "kc3-memo" });
 });
 
 const SORTIE = {
@@ -103,7 +106,7 @@ test("GET /quests serves every row with its sources", async () => {
   const { quests } = mergeQuests({ kc3Meta, kc3Jp, kcwiki });
   for (const q of quests) {
     await h.db.prepare("INSERT INTO quests (id, code, name, detail, memo, pre, requirements, rewards, override) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)")
-      .bind(q.id, q.code, q.name, q.detail, q.memo, JSON.stringify(q.pre), q.requirements && JSON.stringify(q.requirements), null, null).run();
+      .bind(q.id, q.code, q.name, q.detail, q.memo, JSON.stringify(q.pre), q.requirements && JSON.stringify(q.requirements), q.rewards && JSON.stringify(q.rewards), null).run();
   }
   await h.db.prepare("INSERT INTO sources (key, name, url, licence, revision, fetched_at) VALUES ('kc3kai-quests-meta', 'x', 'u', 'MIT', 'abc', '2026-10-24T00:00:00Z')").run();
   const r = await h.call<{ sources: unknown[]; quests: unknown[] }>("GET", "/api/v1/quests");

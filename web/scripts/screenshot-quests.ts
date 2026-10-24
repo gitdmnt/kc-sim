@@ -1,7 +1,9 @@
 /**
  * 任務タブのスクリーンショット (docs/screenshots/17-quests.png, 1024×600) と、1280×800・1200×710・1024×600 で
  * ページも main もスクロールしないことの確認。続けて、手入力の達成条件を kc-sim プラグインが数えた単発任務の例
- * (docs/screenshots/18-quest-progress.png: COUNTED_QUEST、既定 B182 を遂行中、サブ目標の途中まで数えた状態)。
+ * (docs/screenshots/18-quest-progress.png: COUNTED_QUEST、既定 B182 を遂行中、サブ目標の途中まで数えた状態)。最後に
+ * 一覧の絞り込み (単発・出撃 + 検索語) と選択報酬つきの任務 (docs/screenshots/19-quest-filters.png: FILTER_QUEST、既定 B117、
+ * 種別のドロップダウンを開いた状態) を 1024×600 で撮る。
  * `bun scripts/screenshot-quests.ts`
  * 任務データは /api (中継先 127.0.0.1:8787、KCSIM_API で上書き) の GET /api/v1/quests: ローカル D1 に
  * `cd server && bun run ingest:quests` 済みであること。poi の代わりの state は同梱サンプルに、マスター全体
@@ -20,12 +22,15 @@ import { questGoals } from "@shared/quest/progress";
 
 const OUT = resolve(import.meta.dir, "../../docs/screenshots/17-quests.png");
 const OUT_COUNTED = resolve(import.meta.dir, "../../docs/screenshots/18-quest-progress.png");
+const OUT_FILTERED = resolve(import.meta.dir, "../../docs/screenshots/19-quest-filters.png");
 const PORT = 5213;
 const API = process.env.KCSIM_API ?? "http://127.0.0.1:8787";
 /** A88 最精鋭甲型駆逐艦、集結せよ！ (前提 40 件余り、艦娘・装備の条件つき) */
 const TARGET = Number(process.env.QUEST ?? 193);
 /** B182 見敵必殺！最精鋭大和型「第一戦隊」抜錨！ (手入力: 4 海域のボス S 勝利) */
 const COUNTED = Number(process.env.COUNTED_QUEST ?? 977);
+/** B117 最精鋭甲型駆逐艦、突入！敵中突破！ (二回選択報酬、前提の経路あり) */
+const FILTER_QUEST = Number(process.env.FILTER_QUEST ?? 884);
 
 const findChromium = (): string => {
   if (process.env.CHROMIUM_PATH) return process.env.CHROMIUM_PATH;
@@ -126,6 +131,26 @@ try {
   console.log(`${COUNTED}: ${goals.length} counted goals`);
   await page.screenshot({ path: OUT_COUNTED });
   console.log("saved", OUT_COUNTED);
+
+  // 絞り込み (単発・出撃、検索語つき) と選択報酬の表示。ドロップダウンを開いて件数も写す
+  served = devState;
+  await page.setViewportSize({ width: 1024, height: 600 });
+  await page.evaluate((id) => {
+    localStorage.setItem("kcsim:quest", String(id));
+    localStorage.setItem("kcsim:questFilter", JSON.stringify({ freq: ["once"], cat: ["B"], status: [] }));
+  }, FILTER_QUEST);
+  await page.reload();
+  await page.getByRole("list", { name: "前提任務" }).waitFor({ timeout: 30_000 });
+  await page.getByRole("textbox", { name: "任務を検索" }).fill("最精鋭");
+  const listed = await page.getByRole("list", { name: "任務の一覧" }).getByRole("listitem").count();
+  const rewardText = await page.getByLabel("報酬", { exact: true }).innerText();
+  console.log(`${FILTER_QUEST}: ${listed} listed; 報酬 ${rewardText.replace(/\n/g, " ")}`);
+  if ((await page.getByLabel(/^選択報酬/).count()) === 0) throw new Error(`${FILTER_QUEST}: no 選択報酬 shown`);
+  await page.getByRole("button", { name: /^種別で絞り込み/ }).click();
+  const [sh, ih] = await page.evaluate(() => [document.scrollingElement!.scrollHeight, innerHeight]);
+  if (sh > ih) throw new Error(`1024x600 filtered: page scrolls (${sh} > ${ih})`);
+  await page.screenshot({ path: OUT_FILTERED });
+  console.log("saved", OUT_FILTERED);
 } finally {
   await browser.close();
   server.kill();

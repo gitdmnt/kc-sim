@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { PoiQuests } from "../embed/protocol";
 import type { QuestEntry, QuestRequirement } from "./types";
 import {
-  OwnershipIndex, aggregateNeeds, buildQuestGraph, descendants, describeRequirement, questKind, questNeeds, questStatuses,
+  OwnershipIndex, aggregateNeeds, buildQuestGraph, descendants, describeRequirement, questNeeds, questStatuses,
   resolvePrerequisites, rosterFromPoi,
 } from "./tree";
 
@@ -185,9 +185,4 @@ test("text helpers", () => {
     "  機種転換 九六式艦戦",
     "    廃棄: 12cm単装砲×1",
   ]);
-  expect(questKind("Bd1")).toBe("デイリー");
-  expect(questKind("By3")).toBe("イヤリー");
-  expect(questKind("2610B3")).toBe("期間限定");
-  expect(questKind("A1")).toBe("単発");
-  expect(questKind(null)).toBe("");
 });
