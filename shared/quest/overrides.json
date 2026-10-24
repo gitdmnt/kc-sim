@@ -16420,5 +16420,6641 @@
         }
       ]
     }
+  },
+  {
+    "id": 831,
+    "code": "SB43",
+    "source": "https://zekamashi.net/kancolle-kouryaku/haru-kaizyoukeibi/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-1",
+        "1-2",
+        "1-3",
+        "1-4"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": "軽巡級・軽空母・水母",
+          "flagship": true,
+          "stypes": [
+            3,
+            4,
+            21,
+            7,
+            16
+          ]
+        },
+        {
+          "ship": "駆逐・海防",
+          "amount": 4,
+          "stypes": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        250,
+        250,
+        0,
+        250
+      ],
+      "items": [
+        {
+          "name": "給糧艦「伊良湖」",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "高速修復材",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "特注家具職人",
+          "choice": 2
+        },
+        {
+          "name": "給糧艦「間宮」",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 832,
+    "code": "SB44",
+    "source": "https://zekamashi.net/kancolle-kouryaku/haru-naganami/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-1",
+            "2-2"
+          ],
+          "times": 2,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "長波"
+              ],
+              "flagship": true,
+              "shipIds": [
+                135,
+                304,
+                543,
+                743
+              ]
+            },
+            {
+              "ship": [
+                "高波",
+                "沖波",
+                "岸波",
+                "朝霜"
+              ],
+              "amount": 3,
+              "shipIds": [
+                424,
+                345,
+                649,
+                452,
+                359,
+                569,
+                527,
+                686,
+                425,
+                344,
+                578,
+                744
+              ]
+            }
+          ],
+          "fleetid": 1
+        },
+        {
+          "category": "sortie",
+          "map": "5-4",
+          "times": 1,
+          "boss": true,
+          "result": "A",
+          "groups": [
+            {
+              "ship": [
+                "長波"
+              ],
+              "flagship": true,
+              "shipIds": [
+                135,
+                304,
+                543,
+                743
+              ]
+            },
+            {
+              "ship": [
+                "高波",
+                "沖波",
+                "岸波",
+                "朝霜"
+              ],
+              "amount": 3,
+              "shipIds": [
+                424,
+                345,
+                649,
+                452,
+                359,
+                569,
+                527,
+                686,
+                425,
+                344,
+                578,
+                744
+              ]
+            }
+          ],
+          "fleetid": 1
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        310,
+        310,
+        2019,
+        0
+      ],
+      "items": [
+        {
+          "name": "プレゼント箱",
+          "choice": 1
+        },
+        {
+          "name": "家具箱(大)",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "新型砲熕兵装資材",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "勲章",
+          "choice": 2
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 847,
+    "code": "B163",
+    "source": "https://zekamashi.net/kancolle-kouryaku/kuma-syutugeki/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-2",
+            "3-2"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "球磨改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                652,
+                657
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-3",
+          "times": 1,
+          "cells": [
+            18,
+            23,
+            24,
+            25
+          ],
+          "node": "P",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "球磨改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                652,
+                657
+              ]
+            }
+          ]
+        },
+        {
+          "category": "other",
+          "note": "1-6 goal reached once, fleet flagship 球磨改二/丁"
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        550,
+        550,
+        550,
+        0
+      ],
+      "items": [
+        {
+          "name": "補強増設"
+        },
+        {
+          "name": "25mm三連装機銃",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "大発動艇",
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 3,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 898,
+    "code": "B162",
+    "source": "https://zekamashi.net/kancolle-kouryaku/kitanoumikara/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "3-1",
+        "3-2",
+        "3-3",
+        "3-4",
+        "3-5"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "A"
+    },
+    "rewards": {
+      "resources": [
+        0,
+        1200,
+        0,
+        1200
+      ],
+      "items": [
+        {
+          "name": "特注二〇式鎮守府暖炉"
+        },
+        {
+          "name": "高速修復材",
+          "amount": 5,
+          "choice": 1
+        },
+        {
+          "name": "特注家具職人",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 909,
+    "code": "L21B14",
+    "source": "https://zekamashi.net/kancolle-kouryaku/2021hisimoti-kakutyou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "3-5",
+        "4-5",
+        "6-4"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S"
+    },
+    "rewards": {
+      "resources": [
+        880,
+        880,
+        880,
+        880
+      ],
+      "items": [
+        {
+          "name": "菱餅",
+          "amount": 4
+        },
+        {
+          "name": "海防艦松輪",
+          "choice": 1
+        },
+        {
+          "name": "海防艦佐渡",
+          "choice": 1
+        },
+        {
+          "name": "海防艦対馬",
+          "choice": 1
+        },
+        {
+          "name": "海防艦福江",
+          "choice": 1
+        },
+        {
+          "name": "海防艦平戸",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 910,
+    "code": "L23B33",
+    "source": "https://zekamashi.net/kancolle-kouryaku/2023nenmatu-syutugeki1/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-1",
+        "1-2",
+        "1-3"
+      ],
+      "times": 2,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": "軽巡",
+          "stypes": [
+            3
+          ]
+        },
+        {
+          "ship": "駆逐・海防",
+          "amount": 3,
+          "stypes": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        280,
+        280,
+        280,
+        280
+      ],
+      "items": [
+        {
+          "name": "開発資材",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "高速修復材",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "戦闘糧食",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "戦闘糧食",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "九七式艦攻",
+          "amount": 4,
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 913,
+    "code": "B143",
+    "source": "https://zekamashi.net/kancolle-kouryaku/daigo-zyuuou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "3-5",
+            "5-2",
+            "6-5"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "翔鶴"
+              ],
+              "shipIds": [
+                110,
+                288,
+                461,
+                466
+              ]
+            },
+            {
+              "ship": [
+                "瑞鶴"
+              ],
+              "shipIds": [
+                111,
+                112,
+                462,
+                467
+              ]
+            },
+            {
+              "ship": [
+                "朧"
+              ],
+              "shipIds": [
+                93,
+                230
+              ]
+            },
+            {
+              "ship": [
+                "秋雲"
+              ],
+              "shipIds": [
+                132,
+                301,
+                648
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "翔鶴"
+              ],
+              "shipIds": [
+                110,
+                288,
+                461,
+                466
+              ]
+            },
+            {
+              "ship": [
+                "瑞鶴"
+              ],
+              "shipIds": [
+                111,
+                112,
+                462,
+                467
+              ]
+            },
+            {
+              "ship": [
+                "朧"
+              ],
+              "shipIds": [
+                93,
+                230
+              ]
+            },
+            {
+              "ship": [
+                "秋雲"
+              ],
+              "shipIds": [
+                132,
+                301,
+                648
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        1000
+      ],
+      "items": [
+        {
+          "name": "洋上補給",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "高速修復材",
+          "amount": 6,
+          "choice": 1
+        },
+        {
+          "name": "25mm三連装機銃",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "試製東海",
+          "choice": 2
+        },
+        {
+          "name": "試製景雲(艦偵型)",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 917,
+    "code": "B145",
+    "source": "https://zekamashi.net/kancolle-kouryaku/gotlandandra1/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-4",
+        "4-2",
+        "4-4",
+        "4-5"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": "Gotland andra",
+          "flagship": true,
+          "shipIds": [
+            630
+          ]
+        },
+        {
+          "ship": "駆逐",
+          "amount": 1,
+          "stypes": [
+            2
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        700,
+        700,
+        700,
+        1000
+      ],
+      "items": [
+        {
+          "name": "Swordfish(水上機型)",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "S9 Osprey ",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "Swordfish Mk.III改(水上機型)",
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 4,
+          "choice": 2
+        },
+        {
+          "name": "新型航空兵装資材",
+          "choice": 2
+        },
+        {
+          "name": "補強増設",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 918,
+    "code": "B146",
+    "source": "https://zekamashi.net/kancolle-kouryaku/gotlandandra2/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-5",
+        "6-3",
+        "6-4",
+        "6-5"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": "Gotland andra",
+          "flagship": true,
+          "shipIds": [
+            630
+          ]
+        },
+        {
+          "ship": "駆逐",
+          "amount": 1,
+          "stypes": [
+            2
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1000,
+        1000,
+        1000,
+        2020
+      ],
+      "items": [
+        {
+          "name": "北欧ソファー家具"
+        },
+        {
+          "name": "新型航空兵装資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "Fairey Seafox改",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 919,
+    "code": "B147",
+    "source": "https://zekamashi.net/kancolle-kouryaku/nansei-goudou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-2",
+        "2-3",
+        "2-4"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": "米出身艦",
+          "amount": 2,
+          "shipIds": [
+            924,
+            929,
+            936,
+            601,
+            1496,
+            913,
+            918,
+            654,
+            659,
+            602,
+            697,
+            933,
+            938,
+            440,
+            360,
+            932,
+            937,
+            433,
+            438,
+            545,
+            550,
+            931,
+            723,
+            603,
+            704,
+            549,
+            397,
+            1025,
+            1030,
+            966,
+            735,
+            925,
+            930,
+            544,
+            396,
+            707,
+            1023,
+            1028,
+            1036,
+            655,
+            660,
+            595,
+            600,
+            923,
+            928,
+            1005,
+            1010,
+            896,
+            722,
+            598,
+            711,
+            615,
+            620,
+            952,
+            734,
+            957,
+            597,
+            696,
+            991,
+            747,
+            596,
+            692,
+            628,
+            629,
+            562,
+            689,
+            941,
+            726,
+            942,
+            737,
+            561,
+            681,
+            920,
+            299,
+            715,
+            891,
+            897,
+            892,
+            732,
+            984,
+            989
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        400,
+        400,
+        0,
+        400
+      ],
+      "items": [
+        {
+          "name": "改修資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "緊急修理資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "高速修復材",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "天山",
+          "amount": 3,
+          "choice": 2
+        },
+        {
+          "name": "OS2U",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 920,
+    "code": "B148",
+    "source": "https://zekamashi.net/kancolle-kouryaku/goudou-fletcher-mod2/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-4",
+        "2-5",
+        "3-5"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": "Fletcher改 Mod.2",
+          "flagship": true,
+          "shipIds": [
+            628
+          ]
+        },
+        {
+          "ship": "米英豪蘭出身艦",
+          "amount": 3,
+          "shipIds": [
+            924,
+            929,
+            936,
+            601,
+            1496,
+            913,
+            918,
+            654,
+            659,
+            602,
+            697,
+            933,
+            938,
+            440,
+            360,
+            932,
+            937,
+            433,
+            438,
+            545,
+            550,
+            931,
+            723,
+            603,
+            704,
+            549,
+            397,
+            1025,
+            1030,
+            966,
+            735,
+            925,
+            930,
+            544,
+            396,
+            707,
+            1023,
+            1028,
+            1036,
+            655,
+            660,
+            595,
+            600,
+            923,
+            928,
+            1005,
+            1010,
+            896,
+            722,
+            598,
+            711,
+            615,
+            620,
+            952,
+            734,
+            957,
+            597,
+            696,
+            991,
+            747,
+            596,
+            692,
+            628,
+            629,
+            562,
+            689,
+            941,
+            726,
+            942,
+            737,
+            561,
+            681,
+            920,
+            299,
+            715,
+            891,
+            897,
+            892,
+            732,
+            984,
+            989,
+            439,
+            364,
+            927,
+            733,
+            571,
+            576,
+            572,
+            577,
+            1022,
+            1027,
+            741,
+            740,
+            515,
+            393,
+            885,
+            713,
+            514,
+            705,
+            519,
+            394,
+            520,
+            893,
+            901,
+            906,
+            613,
+            618,
+            604,
+            609
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        600,
+        600,
+        600,
+        0
+      ],
+      "items": [
+        {
+          "name": "533mm五連装魚雷(後期型)"
+        },
+        {
+          "name": "F4F-3★3 ",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "TBD★3 ",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 6,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 921,
+    "code": "B149",
+    "source": "https://zekamashi.net/kancolle-kouryaku/kaisou-fletcher-mk2/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-5",
+        "7-1",
+        "6-2",
+        "6-5"
+      ],
+      "times": 2,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": "Fletcher Mk.II",
+          "flagship": true,
+          "shipIds": [
+            629
+          ]
+        },
+        {
+          "ship": "米英豪蘭出身艦",
+          "amount": 3,
+          "shipIds": [
+            924,
+            929,
+            936,
+            601,
+            1496,
+            913,
+            918,
+            654,
+            659,
+            602,
+            697,
+            933,
+            938,
+            440,
+            360,
+            932,
+            937,
+            433,
+            438,
+            545,
+            550,
+            931,
+            723,
+            603,
+            704,
+            549,
+            397,
+            1025,
+            1030,
+            966,
+            735,
+            925,
+            930,
+            544,
+            396,
+            707,
+            1023,
+            1028,
+            1036,
+            655,
+            660,
+            595,
+            600,
+            923,
+            928,
+            1005,
+            1010,
+            896,
+            722,
+            598,
+            711,
+            615,
+            620,
+            952,
+            734,
+            957,
+            597,
+            696,
+            991,
+            747,
+            596,
+            692,
+            628,
+            629,
+            562,
+            689,
+            941,
+            726,
+            942,
+            737,
+            561,
+            681,
+            920,
+            299,
+            715,
+            891,
+            897,
+            892,
+            732,
+            984,
+            989,
+            439,
+            364,
+            927,
+            733,
+            571,
+            576,
+            572,
+            577,
+            1022,
+            1027,
+            741,
+            740,
+            515,
+            393,
+            885,
+            713,
+            514,
+            705,
+            519,
+            394,
+            520,
+            893,
+            901,
+            906,
+            613,
+            618,
+            604,
+            609
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        700,
+        700,
+        700,
+        700
+      ],
+      "items": [
+        {
+          "name": "RUR-4A Weapon Alpha改"
+        },
+        {
+          "name": "改修資材",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "熟練搭乗員",
+          "choice": 1
+        },
+        {
+          "name": "洋上補給",
+          "amount": 3,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 922,
+    "code": "B150",
+    "source": "https://zekamashi.net/kancolle-kouryaku/goudoukantai-sakusen/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "4-5",
+        "5-5",
+        "6-4"
+      ],
+      "times": 2,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": "Fletcher Mk.II",
+          "shipIds": [
+            629
+          ]
+        },
+        {
+          "ship": "米英豪蘭出身艦",
+          "amount": 4,
+          "shipIds": [
+            924,
+            929,
+            936,
+            601,
+            1496,
+            913,
+            918,
+            654,
+            659,
+            602,
+            697,
+            933,
+            938,
+            440,
+            360,
+            932,
+            937,
+            433,
+            438,
+            545,
+            550,
+            931,
+            723,
+            603,
+            704,
+            549,
+            397,
+            1025,
+            1030,
+            966,
+            735,
+            925,
+            930,
+            544,
+            396,
+            707,
+            1023,
+            1028,
+            1036,
+            655,
+            660,
+            595,
+            600,
+            923,
+            928,
+            1005,
+            1010,
+            896,
+            722,
+            598,
+            711,
+            615,
+            620,
+            952,
+            734,
+            957,
+            597,
+            696,
+            991,
+            747,
+            596,
+            692,
+            628,
+            629,
+            562,
+            689,
+            941,
+            726,
+            942,
+            737,
+            561,
+            681,
+            920,
+            299,
+            715,
+            891,
+            897,
+            892,
+            732,
+            984,
+            989,
+            439,
+            364,
+            927,
+            733,
+            571,
+            576,
+            572,
+            577,
+            1022,
+            1027,
+            741,
+            740,
+            515,
+            393,
+            885,
+            713,
+            514,
+            705,
+            519,
+            394,
+            520,
+            893,
+            901,
+            906,
+            613,
+            618,
+            604,
+            609
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1000,
+        1000,
+        1000,
+        0
+      ],
+      "items": [
+        {
+          "name": "勲章"
+        },
+        {
+          "name": "試製甲板カタパルト",
+          "choice": 1
+        },
+        {
+          "name": "対潜短魚雷(試作初期型)",
+          "choice": 1
+        },
+        {
+          "name": "改装設計図",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 923,
+    "code": "B151",
+    "source": "https://zekamashi.net/kancolle-kouryaku/goudou-kidou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "3-4",
+            "4-3",
+            "5-2"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": "米英出身空母",
+              "shipIds": [
+                433,
+                438,
+                545,
+                550,
+                549,
+                397,
+                603,
+                704,
+                931,
+                723,
+                966,
+                735,
+                925,
+                930,
+                544,
+                396,
+                707,
+                1025,
+                1030,
+                1023,
+                1028,
+                1036,
+                515,
+                393,
+                885,
+                713
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "S",
+          "groups": [
+            {
+              "ship": "米英出身空母",
+              "shipIds": [
+                433,
+                438,
+                545,
+                550,
+                549,
+                397,
+                603,
+                704,
+                931,
+                723,
+                966,
+                735,
+                925,
+                930,
+                544,
+                396,
+                707,
+                1025,
+                1030,
+                1023,
+                1028,
+                1036,
+                515,
+                393,
+                885,
+                713
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        500,
+        1000
+      ],
+      "items": [
+        {
+          "name": "高速修復材",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 5,
+          "choice": 1
+        },
+        {
+          "name": "SKレーダー",
+          "choice": 2
+        },
+        {
+          "name": "新型航空兵装資材",
+          "amount": 2,
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 924,
+    "code": "B152",
+    "source": "https://zekamashi.net/kancolle-kouryaku/koukuusenta-seieimuhi/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-4",
+        "2-5",
+        "4-3"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": "正規空母",
+          "amount": 2,
+          "stypes": [
+            11,
+            18
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        880,
+        880
+      ],
+      "items": [
+        {
+          "name": "勲章"
+        },
+        {
+          "name": "開発資材",
+          "amount": 88,
+          "choice": 1
+        },
+        {
+          "name": "試製甲板カタパルト",
+          "choice": 1
+        },
+        {
+          "name": "TBF★4",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 925,
+    "code": "B153",
+    "source": "https://zekamashi.net/kancolle-kouryaku/kagakaini-batubyou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "3-4",
+        "4-4",
+        "4-5",
+        "5-2"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "加賀改二"
+          ],
+          "flagship": true,
+          "shipIds": [
+            698,
+            610,
+            646
+          ]
+        },
+        {
+          "ship": "正規空母",
+          "stypes": [
+            11,
+            18
+          ],
+          "escort": true
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1942,
+        2020,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "流星改(一航戦)"
+        },
+        {
+          "name": "試製 秋水",
+          "choice": 1
+        },
+        {
+          "name": "一式陸攻 二二型甲★2",
+          "choice": 1
+        },
+        {
+          "name": "カ号観測機★3 ",
+          "amount": 3,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 926,
+    "code": "B154",
+    "source": "https://zekamashi.net/kancolle-kouryaku/saiseiei-daiitikoukuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "5-5",
+            "6-2",
+            "6-5"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "加賀改二"
+              ],
+              "shipIds": [
+                698,
+                610,
+                646
+              ]
+            },
+            {
+              "ship": [
+                "赤城改二"
+              ],
+              "shipIds": [
+                594,
+                599
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "加賀改二"
+              ],
+              "shipIds": [
+                698,
+                610,
+                646
+              ]
+            },
+            {
+              "ship": [
+                "赤城改二"
+              ],
+              "shipIds": [
+                594,
+                599
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        1830,
+        1840
+      ],
+      "items": [
+        {
+          "name": "試製甲板カタパルト",
+          "choice": 1
+        },
+        {
+          "name": "天山一二型甲改(空六号電探改装備機)",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "一式陸攻 三四型★2",
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "改装設計図",
+          "choice": 2
+        },
+        {
+          "name": "流星改(一航戦/熟練)★2",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 927,
+    "code": "B155",
+    "source": "https://zekamashi.net/kancolle-kouryaku/haguro-penang/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": "7-3",
+      "times": 4,
+      "cells": [
+        5,
+        8
+      ],
+      "node": "E",
+      "result": "A",
+      "groups": [
+        {
+          "ship": [
+            "羽黒"
+          ],
+          "flagship": true,
+          "shipIds": [
+            65,
+            268,
+            194
+          ]
+        }
+      ],
+      "maxShips": 5
+    },
+    "rewards": {
+      "resources": [
+        0,
+        2020,
+        1945,
+        0
+      ],
+      "items": [
+        {
+          "name": "20.3cm(3号)連装砲★6"
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 1
+        },
+        {
+          "name": "新型兵装資材",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 929,
+    "code": "B156",
+    "source": "https://zekamashi.net/kancolle-kouryaku/sizukanaumi-kuzira/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-2",
+        "1-3",
+        "2-1",
+        "2-3"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "大鯨",
+            "迅鯨",
+            "長鯨"
+          ],
+          "flagship": true,
+          "shipIds": [
+            184,
+            634,
+            639,
+            635,
+            640
+          ]
+        },
+        {
+          "ship": "潜水艦・潜水空母",
+          "amount": 2,
+          "stypes": [
+            13,
+            14
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        513,
+        513,
+        513,
+        0
+      ],
+      "items": [
+        {
+          "name": "「鯨」の掛け軸"
+        },
+        {
+          "name": "新型兵装資材",
+          "choice": 1
+        },
+        {
+          "name": "後期型艦首魚雷(6門)★2",
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 930,
+    "code": "B157",
+    "source": "https://zekamashi.net/kancolle-kouryaku/syuryoku-zyuuoumuzin/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "1-4",
+            "2-2",
+            "3-2",
+            "4-1"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "秋雲改二"
+              ],
+              "shipIds": [
+                648
+              ]
+            },
+            {
+              "ship": [
+                "夕雲改二"
+              ],
+              "shipIds": [
+                542
+              ]
+            },
+            {
+              "ship": [
+                "巻雲改二"
+              ],
+              "shipIds": [
+                563
+              ]
+            },
+            {
+              "ship": [
+                "風雲改二"
+              ],
+              "shipIds": [
+                564
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-3",
+          "times": 1,
+          "cells": [
+            18,
+            23,
+            24,
+            25
+          ],
+          "node": "P",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "秋雲改二"
+              ],
+              "shipIds": [
+                648
+              ]
+            },
+            {
+              "ship": [
+                "夕雲改二"
+              ],
+              "shipIds": [
+                542
+              ]
+            },
+            {
+              "ship": [
+                "巻雲改二"
+              ],
+              "shipIds": [
+                563
+              ]
+            },
+            {
+              "ship": [
+                "風雲改二"
+              ],
+              "shipIds": [
+                564
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        800,
+        800,
+        400,
+        400
+      ],
+      "items": [
+        {
+          "name": "61cm四連装(酸素)魚雷後期型★5"
+        },
+        {
+          "name": "開発資材",
+          "amount": 10,
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 5,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 931,
+    "code": "B158",
+    "source": "https://zekamashi.net/kancolle-kouryaku/seiei-nizyuunana-kaihi/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-5",
+        "2-5",
+        "7-1",
+        "5-5",
+        "6-3"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "白露改二"
+          ],
+          "shipIds": [
+            497
+          ]
+        },
+        {
+          "ship": [
+            "時雨改二"
+          ],
+          "shipIds": [
+            145,
+            961
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1270,
+        270,
+        270,
+        270
+      ],
+      "items": [
+        {
+          "name": "焼き芋と読書の時間"
+        },
+        {
+          "name": "洋上補給",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "応急修理女神",
+          "choice": 1
+        },
+        {
+          "name": "秋刀魚の缶詰",
+          "amount": 2,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 932,
+    "code": "L22B11",
+    "source": "https://zekamashi.net/kancolle-kouryaku/haru-amatukaze/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-2",
+            "2-3"
+          ],
+          "times": 2,
+          "boss": true,
+          "result": "A",
+          "groups": [
+            {
+              "ship": [
+                "天津風"
+              ],
+              "flagship": true,
+              "shipIds": [
+                181,
+                316,
+                951
+              ]
+            },
+            {
+              "ship": [
+                "雪風",
+                "時津風",
+                "初風",
+                "丹陽"
+              ],
+              "place": 2,
+              "shipIds": [
+                20,
+                228,
+                651,
+                656,
+                186,
+                322,
+                190,
+                300
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-3",
+          "times": 2,
+          "cells": [
+            18,
+            23,
+            24,
+            25
+          ],
+          "node": "P",
+          "result": "A",
+          "groups": [
+            {
+              "ship": [
+                "天津風"
+              ],
+              "flagship": true,
+              "shipIds": [
+                181,
+                316,
+                951
+              ]
+            },
+            {
+              "ship": [
+                "雪風",
+                "時津風",
+                "初風",
+                "丹陽"
+              ],
+              "place": 2,
+              "shipIds": [
+                20,
+                228,
+                651,
+                656,
+                186,
+                322,
+                190,
+                300
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1945,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "特注家具職人"
+        },
+        {
+          "name": "高速修復材",
+          "amount": 6,
+          "choice": 1
+        },
+        {
+          "name": "三式爆雷投射機",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "洋上補給",
+          "amount": 3,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 933,
+    "code": "B159",
+    "source": "https://zekamashi.net/kancolle-kouryaku/sireibukyouka-syutugeki/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-3",
+        "1-4",
+        "2-1",
+        "2-2"
+      ],
+      "times": 2,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "大淀",
+            "丹陽"
+          ],
+          "flagship": true,
+          "shipIds": [
+            183,
+            321,
+            651
+          ]
+        },
+        {
+          "ship": "駆逐・海防",
+          "amount": 3,
+          "stypes": [
+            1,
+            2
+          ],
+          "escort": true
+        }
+      ],
+      "fleetid": 1
+    },
+    "rewards": {
+      "resources": [
+        0,
+        1200,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "司令部要員"
+        },
+        {
+          "name": "応急修理女神",
+          "choice": 1
+        },
+        {
+          "name": "新型兵装資材",
+          "choice": 1
+        },
+        {
+          "name": "洋上補給",
+          "amount": 2,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 934,
+    "code": "B160",
+    "source": "https://zekamashi.net/kancolle-kouryaku/kiseki-yukikaze/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-3",
+            "2-4",
+            "2-5",
+            "3-3"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "丹陽",
+                "雪風改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                651,
+                656
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-3",
+          "times": 1,
+          "cells": [
+            18,
+            23,
+            24,
+            25
+          ],
+          "node": "P",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "丹陽",
+                "雪風改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                651,
+                656
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1971,
+        0,
+        1939,
+        0
+      ],
+      "items": [
+        {
+          "name": "勲章",
+          "choice": 1
+        },
+        {
+          "name": "補強増設",
+          "choice": 1
+        },
+        {
+          "name": "現地改装12.7cm連装高角砲★4",
+          "choice": 2
+        },
+        {
+          "name": "現地改装10cm連装高角砲★4",
+          "choice": 2
+        },
+        {
+          "name": "新型兵装資材",
+          "amount": 2,
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 935,
+    "code": "B161",
+    "source": "https://zekamashi.net/kancolle-kouryaku/yukikaze-sigure/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "4-5",
+        "5-3",
+        "5-5",
+        "6-4",
+        "6-5"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "雪風改二"
+          ],
+          "shipIds": [
+            656
+          ]
+        },
+        {
+          "ship": [
+            "時雨改二"
+          ],
+          "shipIds": [
+            145,
+            961
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1945,
+        2020,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "戦闘詳報",
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 6,
+          "choice": 1
+        },
+        {
+          "name": "5inch単装砲 Mk.30改★4",
+          "choice": 2
+        },
+        {
+          "name": "22号対水上電探改四(後期調整型)★4",
+          "choice": 2
+        },
+        {
+          "name": "61cm四連装(酸素)魚雷後期型★4",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 936,
+    "code": "B164",
+    "source": "https://zekamashi.net/kancolle-kouryaku/noshirokaini-syutugeki/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-4",
+            "3-2",
+            "5-3",
+            "7-1"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "能代改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                662
+              ]
+            },
+            {
+              "ship": "駆逐",
+              "amount": 3,
+              "stypes": [
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "能代改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                662
+              ]
+            },
+            {
+              "ship": "駆逐",
+              "amount": 3,
+              "stypes": [
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1026,
+        1944,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "15.2cm連装砲改二"
+        },
+        {
+          "name": "15.2cm連装砲",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "8cm高角砲",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "25mm三連装機銃",
+          "amount": 2,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 937,
+    "code": "B165",
+    "source": "https://zekamashi.net/kancolle-kouryaku/seiei-dainana-syutugeki/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-3",
+        "3-2",
+        "4-4",
+        "5-4"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "曙改二"
+          ],
+          "shipIds": [
+            665
+          ]
+        },
+        {
+          "ship": [
+            "潮改二"
+          ],
+          "shipIds": [
+            407
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        1944,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "12.7cm連装高角砲改二"
+        },
+        {
+          "name": "補強増設",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "爆装一式戦 隼III型改(65戦隊)",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 938,
+    "code": "B166",
+    "source": "https://zekamashi.net/kancolle-kouryaku/kaisou-mogami-batubyou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-2",
+        "2-4",
+        "4-5",
+        "5-1"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "最上改二"
+          ],
+          "flagship": true,
+          "shipIds": [
+            501,
+            506
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        880,
+        880,
+        0,
+        880
+      ],
+      "items": [
+        {
+          "name": "勲章",
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 8,
+          "choice": 1
+        },
+        {
+          "name": "瑞雲12型",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "特注家具職人",
+          "choice": 2
+        },
+        {
+          "name": "給糧艦「間宮」",
+          "choice": 2
+        },
+        {
+          "name": "熟練搭乗員",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 939,
+    "code": "B167",
+    "source": "https://zekamashi.net/kancolle-kouryaku/nisimura-seieisenkou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-3",
+            "6-4"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "最上改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                501,
+                506
+              ]
+            },
+            {
+              "ship": [
+                "時雨",
+                "満潮",
+                "朝雲",
+                "山雲"
+              ],
+              "amount": 2,
+              "shipIds": [
+                43,
+                243,
+                145,
+                961,
+                97,
+                250,
+                489,
+                413,
+                327,
+                414,
+                328
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "最上改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                501,
+                506
+              ]
+            },
+            {
+              "ship": [
+                "時雨",
+                "満潮",
+                "朝雲",
+                "山雲"
+              ],
+              "amount": 2,
+              "shipIds": [
+                43,
+                243,
+                145,
+                961,
+                97,
+                250,
+                489,
+                413,
+                327,
+                414,
+                328
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-3",
+          "times": 1,
+          "cells": [
+            18,
+            23,
+            24,
+            25
+          ],
+          "node": "P",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "最上改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                501,
+                506
+              ]
+            },
+            {
+              "ship": [
+                "時雨",
+                "満潮",
+                "朝雲",
+                "山雲"
+              ],
+              "amount": 2,
+              "shipIds": [
+                43,
+                243,
+                145,
+                961,
+                97,
+                250,
+                489,
+                413,
+                327,
+                414,
+                328
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        2021,
+        0,
+        1944,
+        0
+      ],
+      "items": [
+        {
+          "name": "8cm高角砲改+増設機銃",
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 1
+        },
+        {
+          "name": "応急修理女神",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "勲章",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "甲標的 丙型",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "強風改",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 940,
+    "code": "B168",
+    "source": "https://zekamashi.net/kancolle-kouryaku/nisuisen-yahagi/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-4",
+        "2-5",
+        "5-3",
+        "5-5"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "矢矧改二"
+          ],
+          "flagship": true,
+          "shipIds": [
+            663,
+            668
+          ]
+        },
+        {
+          "ship": "駆逐",
+          "amount": 2,
+          "stypes": [
+            2
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1945,
+        2021,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "15.2cm連装砲改二★2"
+        },
+        {
+          "name": "「矢矧の掛け軸」"
+        }
+      ]
+    }
+  },
+  {
+    "id": 943,
+    "code": "B169",
+    "source": "https://zekamashi.net/kancolle-kouryaku/tubasa-ryuuhou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-2",
+            "2-3",
+            "2-4",
+            "2-5"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "龍鳳改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                888,
+                883
+              ]
+            },
+            {
+              "ship": [
+                "時雨改二"
+              ],
+              "shipIds": [
+                145,
+                961
+              ]
+            }
+          ],
+          "fleetid": 1
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "龍鳳改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                888,
+                883
+              ]
+            },
+            {
+              "ship": [
+                "時雨改二"
+              ],
+              "shipIds": [
+                145,
+                961
+              ]
+            }
+          ],
+          "fleetid": 1
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        1946,
+        2021
+      ],
+      "items": [
+        {
+          "name": "高速修復材",
+          "amount": 8,
+          "choice": 1
+        },
+        {
+          "name": "天山一二型甲",
+          "choice": 1
+        },
+        {
+          "name": "応急修理女神",
+          "choice": 1
+        },
+        {
+          "name": "8cm高角砲改+増設機銃★2",
+          "choice": 2
+        },
+        {
+          "name": "零式艦戦63型(爆戦)",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "天山一二型甲改(空六号電探改装備機)",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 949,
+    "code": "B170",
+    "source": "https://zekamashi.net/kancolle-kouryaku/bay-batubyou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-4",
+            "3-5"
+          ],
+          "times": 2,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": "Gambier Bay Mk.II",
+              "flagship": true,
+              "shipIds": [
+                707
+              ]
+            },
+            {
+              "ship": "Fletcher級駆逐艦",
+              "ctypes": [
+                91
+              ]
+            }
+          ],
+          "fleetid": 1
+        },
+        {
+          "category": "sortie",
+          "map": "6-4",
+          "times": 2,
+          "boss": true,
+          "result": "A",
+          "groups": [
+            {
+              "ship": "Gambier Bay Mk.II",
+              "flagship": true,
+              "shipIds": [
+                707
+              ]
+            },
+            {
+              "ship": "Fletcher級駆逐艦",
+              "ctypes": [
+                91
+              ]
+            }
+          ],
+          "fleetid": 1
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        730,
+        730,
+        730,
+        730
+      ],
+      "items": [
+        {
+          "name": "TBF★4 ",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 7,
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 1
+        },
+        {
+          "name": "戦果",
+          "amount": 800,
+          "choice": 2
+        },
+        {
+          "name": "FR-1 Fireball",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 950,
+    "code": "L21B17",
+    "source": "https://zekamashi.net/kancolle-kouryaku/nagisa-mermaid/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "or",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "1-4",
+            "2-3",
+            "3-2"
+          ],
+          "times": 2,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "朧"
+              ],
+              "shipIds": [
+                93,
+                230
+              ]
+            },
+            {
+              "ship": [
+                "曙"
+              ],
+              "shipIds": [
+                15,
+                231,
+                665
+              ]
+            },
+            {
+              "ship": [
+                "漣"
+              ],
+              "shipIds": [
+                94,
+                232
+              ]
+            },
+            {
+              "ship": [
+                "潮"
+              ],
+              "shipIds": [
+                16,
+                233,
+                407
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": [
+            "1-4",
+            "2-3",
+            "3-2"
+          ],
+          "times": 2,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "白露改二"
+              ],
+              "shipIds": [
+                497
+              ]
+            },
+            {
+              "ship": [
+                "時雨改二"
+              ],
+              "shipIds": [
+                145,
+                961
+              ]
+            },
+            {
+              "ship": [
+                "村雨改二"
+              ],
+              "shipIds": [
+                498
+              ]
+            },
+            {
+              "ship": [
+                "夕立改二"
+              ],
+              "shipIds": [
+                144
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        2000,
+        2000,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "開発資材",
+          "amount": 10,
+          "choice": 1
+        },
+        {
+          "name": "高速修復材",
+          "amount": 8,
+          "choice": 1
+        },
+        {
+          "name": "勲章",
+          "choice": 2
+        },
+        {
+          "name": "給糧艦「間宮」",
+          "choice": 2
+        },
+        {
+          "name": "補強増設",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 951,
+    "code": "L21B18",
+    "source": "https://zekamashi.net/kancolle-kouryaku/nagisa-sirena/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "4-1",
+        "4-3",
+        "4-4"
+      ],
+      "times": 2,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "Maestrale",
+            "Grecale",
+            "Libeccio",
+            "Scirocco",
+            "Z1",
+            "Z3",
+            "Fletcher",
+            "Johnston",
+            "Samuel B.Roberts",
+            "Richelieu",
+            "Commandant Teste",
+            "Littorio",
+            "U-511",
+            "Houston",
+            "Gotland"
+          ],
+          "amount": 5,
+          "shipIds": [
+            575,
+            580,
+            614,
+            619,
+            443,
+            347,
+            653,
+            658,
+            174,
+            310,
+            179,
+            175,
+            311,
+            180,
+            596,
+            692,
+            628,
+            629,
+            562,
+            689,
+            561,
+            681,
+            920,
+            492,
+            392,
+            969,
+            491,
+            372,
+            441,
+            446,
+            431,
+            334,
+            436,
+            595,
+            600,
+            574,
+            579,
+            630
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        2000,
+        2000
+      ],
+      "items": [
+        {
+          "name": "特注家具職人",
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 5,
+          "choice": 1
+        },
+        {
+          "name": "勲章",
+          "choice": 1
+        },
+        {
+          "name": "改装設計図",
+          "choice": 2
+        },
+        {
+          "name": "試製甲板カタパルト",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 952,
+    "code": "B171",
+    "source": "https://zekamashi.net/kancolle-kouryaku/zyunbi-daini-taititaikuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-3",
+        "1-4",
+        "2-1",
+        "2-2"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": "駆逐",
+          "amount": 3,
+          "stypes": [
+            2
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        750,
+        750,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "三式弾",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "12cm30連装噴進砲",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "艦載型 四式20cm対地噴進砲",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "大発動艇",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "25mm三連装機銃",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "応急修理女神",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 956,
+    "code": "E51B4",
+    "source": "https://github.com/KC3Kai/kc3-translations/blob/master/data/jp/quests.json",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "other",
+      "note": "event map E3: node F and node W each S rank twice; high difficulty only, cancelled on difficulty change"
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "大発動艇(II号戦車/北アフリカ仕様)"
+        },
+        {
+          "name": "25mm単装機銃",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 10,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 957,
+    "code": "B172",
+    "source": "https://zekamashi.net/kancolle-kouryaku/yamakaze-batubyou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-2",
+        "1-3",
+        "1-4",
+        "1-5"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "山風改二"
+          ],
+          "flagship": true,
+          "shipIds": [
+            588,
+            667
+          ]
+        },
+        {
+          "ship": "駆逐・海防",
+          "amount": 3,
+          "stypes": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        500,
+        500,
+        500,
+        0
+      ],
+      "items": [
+        {
+          "name": "三式水中探信儀改"
+        },
+        {
+          "name": "開発資材",
+          "amount": 8,
+          "choice": 1
+        },
+        {
+          "name": "高速修復材",
+          "amount": 6,
+          "choice": 1
+        },
+        {
+          "name": "補強増設",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 958,
+    "code": "B173",
+    "source": "https://zekamashi.net/kancolle-kouryaku/yamakaze-hunsen/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-2",
+            "5-1",
+            "6-4"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "山風改二",
+                "江風改二",
+                "海風改二"
+              ],
+              "amount": 2,
+              "shipIds": [
+                588,
+                667,
+                469,
+                587
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "山風改二",
+                "江風改二",
+                "海風改二"
+              ],
+              "amount": 2,
+              "shipIds": [
+                588,
+                667,
+                469,
+                587
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        880,
+        880,
+        0,
+        880
+      ],
+      "items": [
+        {
+          "name": "改修資材",
+          "amount": 5,
+          "choice": 1
+        },
+        {
+          "name": "大発動艇",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "新型兵装資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 2
+        },
+        {
+          "name": "12.7cm連装砲C型改二",
+          "choice": 2
+        },
+        {
+          "name": "61cm四連装(酸素)魚雷後期型",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 961,
+    "code": "B174",
+    "source": "https://zekamashi.net/kancolle-kouryaku/seiei-daizyuugo/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-4",
+            "5-4"
+          ],
+          "times": 2,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "親潮改二"
+              ],
+              "shipIds": [
+                670
+              ]
+            },
+            {
+              "ship": [
+                "黒潮改二"
+              ],
+              "shipIds": [
+                568
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 2,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "親潮改二"
+              ],
+              "shipIds": [
+                670
+              ]
+            },
+            {
+              "ship": [
+                "黒潮改二"
+              ],
+              "shipIds": [
+                568
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        550,
+        550,
+        0,
+        550
+      ],
+      "items": [
+        {
+          "name": "特注家具職人",
+          "choice": 1
+        },
+        {
+          "name": "新型砲熕兵装資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 5,
+          "choice": 1
+        },
+        {
+          "name": "61cm四連装(酸素)魚雷後期型",
+          "choice": 2
+        },
+        {
+          "name": "新型兵装資材",
+          "amount": 4,
+          "choice": 2
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 966,
+    "code": "B175",
+    "source": "https://zekamashi.net/kancolle-kouryaku/nansei-kiti/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "note": "grants the south-west base air corps slot",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-1",
+            "2-2",
+            "2-3"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S"
+        },
+        {
+          "category": "sortie",
+          "map": "7-3",
+          "times": 1,
+          "cells": [
+            18,
+            23,
+            24,
+            25
+          ],
+          "node": "P",
+          "result": "S"
+        },
+        {
+          "category": "sortie",
+          "map": "7-4",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "O"
+        },
+        {
+          "category": "other",
+          "note": "prepare 設営隊 x1 (owned at completion)"
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        300,
+        300
+      ],
+      "items": [
+        {
+          "name": "一式陸攻",
+          "choice": 1
+        },
+        {
+          "name": "三式戦 飛燕",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 5,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 967,
+    "code": "B176",
+    "source": "https://zekamashi.net/kancolle-kouryaku/hisendan-yawatamaru/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "other",
+      "note": "destroy the 7-4 gauge once; auto-complete when accepted after the gauge is gone"
+    },
+    "rewards": {
+      "resources": [
+        600,
+        0,
+        0,
+        400
+      ],
+      "items": [
+        {
+          "name": "軽空母「八幡丸」"
+        },
+        {
+          "name": "開発資材",
+          "amount": 8,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "応急修理女神",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 968,
+    "code": "B177",
+    "source": "https://zekamashi.net/kancolle-kouryaku/unnyou-batubyou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-5",
+            "6-4",
+            "7-4"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "A",
+          "groups": [
+            {
+              "ship": [
+                "雲鷹",
+                "八幡丸"
+              ],
+              "flagship": true,
+              "shipIds": [
+                522,
+                884,
+                382,
+                889
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "A",
+          "groups": [
+            {
+              "ship": [
+                "雲鷹",
+                "八幡丸"
+              ],
+              "flagship": true,
+              "shipIds": [
+                522,
+                884,
+                382,
+                889
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        500,
+        500,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "九七式艦攻(九三一空)",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 6,
+          "choice": 1
+        },
+        {
+          "name": "新型航空兵装資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "九七式艦攻改 試製三号戊型(空六号電探改装備機)",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "試製甲板カタパルト",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 969,
+    "code": "B178",
+    "source": "https://zekamashi.net/kancolle-kouryaku/amagiri-syutugeki/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-2",
+            "5-1",
+            "5-4",
+            "6-4"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "天霧改二"
+              ],
+              "shipIds": [
+                903,
+                908
+              ]
+            },
+            {
+              "ship": [
+                "青葉",
+                "大井",
+                "狭霧"
+              ],
+              "amount": 2,
+              "shipIds": [
+                61,
+                264,
+                24,
+                57,
+                118,
+                480,
+                391,
+                902
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-3",
+          "times": 1,
+          "cells": [
+            18,
+            23,
+            24,
+            25
+          ],
+          "node": "P",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "天霧改二"
+              ],
+              "shipIds": [
+                903,
+                908
+              ]
+            },
+            {
+              "ship": [
+                "青葉",
+                "大井",
+                "狭霧"
+              ],
+              "amount": 2,
+              "shipIds": [
+                61,
+                264,
+                24,
+                57,
+                118,
+                480,
+                391,
+                902
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1944,
+        2022,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "勲章",
+          "choice": 1
+        },
+        {
+          "name": "補強増設",
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 2
+        },
+        {
+          "name": "12.7cm連装砲B型改四(戦時改修)+高射装置★4",
+          "choice": 2
+        },
+        {
+          "name": "61cm三連装(酸素)魚雷後期型★4",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 970,
+    "code": "B179",
+    "source": "https://zekamashi.net/kancolle-kouryaku/daizyuuroku-uranamikaini/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "1-4",
+            "2-3",
+            "2-5",
+            "7-4"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "浦波改二"
+              ],
+              "shipIds": [
+                647
+              ]
+            },
+            {
+              "ship": [
+                "青葉"
+              ],
+              "shipIds": [
+                61,
+                264
+              ]
+            },
+            {
+              "ship": [
+                "鬼怒"
+              ],
+              "shipIds": [
+                113,
+                289,
+                487
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "浦波改二"
+              ],
+              "shipIds": [
+                647
+              ]
+            },
+            {
+              "ship": [
+                "青葉"
+              ],
+              "shipIds": [
+                61,
+                264
+              ]
+            },
+            {
+              "ship": [
+                "鬼怒"
+              ],
+              "shipIds": [
+                113,
+                289,
+                487
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        2022,
+        1944,
+        0
+      ],
+      "items": [
+        {
+          "name": "新型砲熕兵装資材",
+          "choice": 1
+        },
+        {
+          "name": "新型航空兵装資材",
+          "choice": 1
+        },
+        {
+          "name": "補強増設",
+          "choice": 1
+        },
+        {
+          "name": "試製 長12.7cm連装砲A型改四",
+          "choice": 2
+        },
+        {
+          "name": "新型航空兵装資材",
+          "amount": 3,
+          "choice": 2
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 974,
+    "code": "B180",
+    "source": "https://zekamashi.net/kancolle-kouryaku/isonamikaini-batubyou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-2",
+        "1-3",
+        "5-1"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "磯波改二"
+          ],
+          "shipIds": [
+            666
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        190,
+        190,
+        190,
+        0
+      ],
+      "items": [
+        {
+          "name": "高速修復材",
+          "amount": 9,
+          "choice": 1
+        },
+        {
+          "name": "新型砲熕兵装資材",
+          "choice": 1
+        },
+        {
+          "name": "補強増設",
+          "choice": 1
+        },
+        {
+          "name": "12.7cm連装砲A型改二",
+          "choice": 2
+        },
+        {
+          "name": "61cm三連装(酸素)魚雷",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "開発資材",
+          "amount": 9,
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 980,
+    "code": "B184",
+    "source": "https://zekamashi.net/kancolle-kouryaku/seikyou-daizyuugo/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-4",
+        "5-4",
+        "5-5",
+        "6-4"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "早潮改二",
+            "親潮改二",
+            "黒潮改二"
+          ],
+          "amount": 2,
+          "shipIds": [
+            915,
+            670,
+            568
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        500,
+        500,
+        150,
+        150
+      ],
+      "items": [
+        {
+          "name": "特注家具職人",
+          "choice": 1
+        },
+        {
+          "name": "補強増設",
+          "choice": 1
+        },
+        {
+          "name": "勲章",
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 2
+        },
+        {
+          "name": "12.7cm連装砲C型改三",
+          "choice": 2
+        },
+        {
+          "name": "61cm四連装(酸素)魚雷後期型",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 981,
+    "code": "B185",
+    "source": "https://zekamashi.net/kancolle-kouryaku/beiku-hunsen/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-3",
+            "6-4",
+            "7-4"
+          ],
+          "times": 2,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "Fletcher",
+                "Johnston",
+                "Heywood L.E.",
+                "Richard P.Leary",
+                "Samuel B.Roberts"
+              ],
+              "amount": 2,
+              "shipIds": [
+                596,
+                692,
+                628,
+                629,
+                562,
+                689,
+                941,
+                726,
+                942,
+                737,
+                561,
+                681,
+                920
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-3",
+          "times": 2,
+          "cells": [
+            18,
+            23,
+            24,
+            25
+          ],
+          "node": "P",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "Fletcher",
+                "Johnston",
+                "Heywood L.E.",
+                "Richard P.Leary",
+                "Samuel B.Roberts"
+              ],
+              "amount": 2,
+              "shipIds": [
+                596,
+                692,
+                628,
+                629,
+                562,
+                689,
+                941,
+                726,
+                942,
+                737,
+                561,
+                681,
+                920
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        557,
+        533,
+        413,
+        0
+      ],
+      "items": [
+        {
+          "name": "特注家具職人",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "給糧艦「間宮」",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 7,
+          "choice": 1
+        },
+        {
+          "name": "5inch単装砲 Mk.30",
+          "amount": 4,
+          "choice": 2
+        },
+        {
+          "name": "GFCS Mk.37",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 982,
+    "code": "B186",
+    "source": "https://zekamashi.net/kancolle-kouryaku/samuel-mk2-batubyou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "1-5",
+            "2-2",
+            "3-5"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": "Samuel B.Roberts Mk.II",
+              "flagship": true,
+              "shipIds": [
+                920
+              ]
+            }
+          ]
+        },
+        {
+          "category": "other",
+          "note": "1-6 goal reached once"
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        413,
+        413,
+        413,
+        413
+      ],
+      "items": [
+        {
+          "name": "高速修復材",
+          "amount": 6,
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 7,
+          "choice": 1
+        },
+        {
+          "name": "新型兵装資材",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "5inch単装砲 Mk.30",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "勲章",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 983,
+    "code": "B187",
+    "source": "https://zekamashi.net/kancolle-kouryaku/hutouhukutu-taffyiii/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-3",
+        "2-5",
+        "4-5",
+        "5-5"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "Gambier Bay"
+          ],
+          "shipIds": [
+            544,
+            396,
+            707
+          ]
+        },
+        {
+          "ship": [
+            "Johnston"
+          ],
+          "shipIds": [
+            562,
+            689
+          ]
+        },
+        {
+          "ship": [
+            "Samuel B.Roberts"
+          ],
+          "shipIds": [
+            561,
+            681,
+            920
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1500,
+        1500,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "Mk.32 対潜魚雷(Mk.2落射機)"
+        },
+        {
+          "name": "補強増設",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "FM-2★7",
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 7,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 988,
+    "code": "L22B25",
+    "source": "https://zekamashi.net/kancolle-kouryaku/2022seiya-syoukai/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-2",
+        "1-3",
+        "1-5",
+        "2-1"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": "軽巡級",
+          "flagship": true,
+          "stypes": [
+            3,
+            4,
+            21
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        480,
+        0,
+        480
+      ],
+      "items": [
+        {
+          "name": "高速修復材",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 5,
+          "choice": 1
+        },
+        {
+          "name": "燃料",
+          "amount": 600,
+          "choice": 1
+        },
+        {
+          "name": "給糧艦「伊良湖」",
+          "choice": 2
+        },
+        {
+          "name": "鋼材",
+          "amount": 800,
+          "choice": 2
+        },
+        {
+          "name": "改修資材",
+          "amount": 3,
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 989,
+    "code": "B188",
+    "source": "https://zekamashi.net/kancolle-kouryaku/housyou-zensen/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-5",
+        "3-5",
+        "4-5",
+        "5-2",
+        "6-4",
+        "7-4"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "鳳翔改二"
+          ],
+          "flagship": true,
+          "shipIds": [
+            894,
+            899
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1921,
+        1947,
+        0,
+        2022
+      ],
+      "items": [
+        {
+          "name": "零式艦戦64型(制空戦闘機仕様)"
+        },
+        {
+          "name": "熟練搭乗員",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "勲章",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 10,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 991,
+    "code": "L23B10",
+    "source": "https://zekamashi.net/kancolle-kouryaku/sousyun2023-yuugeki/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "or",
+      "list": [
+        {
+          "category": "and",
+          "list": [
+            {
+              "category": "sortie",
+              "map": [
+                "5-5",
+                "7-4"
+              ],
+              "times": 1,
+              "boss": true,
+              "result": "S",
+              "groups": [
+                {
+                  "ship": "軽巡",
+                  "flagship": true,
+                  "stypes": [
+                    3
+                  ]
+                },
+                {
+                  "ship": [
+                    "Gotland",
+                    "航巡"
+                  ],
+                  "shipIds": [
+                    574,
+                    579,
+                    630
+                  ],
+                  "stypes": [
+                    6
+                  ],
+                  "escort": true
+                },
+                {
+                  "ship": "駆逐",
+                  "amount": 1,
+                  "stypes": [
+                    2
+                  ]
+                }
+              ]
+            },
+            {
+              "category": "sortie",
+              "map": "7-2",
+              "times": 1,
+              "cells": [
+                15
+              ],
+              "node": "M",
+              "result": "S",
+              "groups": [
+                {
+                  "ship": "軽巡",
+                  "flagship": true,
+                  "stypes": [
+                    3
+                  ]
+                },
+                {
+                  "ship": [
+                    "Gotland",
+                    "航巡"
+                  ],
+                  "shipIds": [
+                    574,
+                    579,
+                    630
+                  ],
+                  "stypes": [
+                    6
+                  ],
+                  "escort": true
+                },
+                {
+                  "ship": "駆逐",
+                  "amount": 1,
+                  "stypes": [
+                    2
+                  ]
+                }
+              ]
+            },
+            {
+              "category": "sortie",
+              "map": "7-3",
+              "times": 1,
+              "cells": [
+                18,
+                23,
+                24,
+                25
+              ],
+              "node": "P",
+              "result": "S",
+              "groups": [
+                {
+                  "ship": "軽巡",
+                  "flagship": true,
+                  "stypes": [
+                    3
+                  ]
+                },
+                {
+                  "ship": [
+                    "Gotland",
+                    "航巡"
+                  ],
+                  "shipIds": [
+                    574,
+                    579,
+                    630
+                  ],
+                  "stypes": [
+                    6
+                  ],
+                  "escort": true
+                },
+                {
+                  "ship": "駆逐",
+                  "amount": 1,
+                  "stypes": [
+                    2
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "category": "and",
+          "list": [
+            {
+              "category": "sortie",
+              "map": [
+                "5-5",
+                "7-4"
+              ],
+              "times": 1,
+              "boss": true,
+              "result": "S",
+              "groups": [
+                {
+                  "ship": "Gotland",
+                  "flagship": true,
+                  "shipIds": [
+                    574,
+                    579,
+                    630
+                  ]
+                },
+                {
+                  "ship": "駆逐",
+                  "amount": 1,
+                  "stypes": [
+                    2
+                  ]
+                }
+              ]
+            },
+            {
+              "category": "sortie",
+              "map": "7-2",
+              "times": 1,
+              "cells": [
+                15
+              ],
+              "node": "M",
+              "result": "S",
+              "groups": [
+                {
+                  "ship": "Gotland",
+                  "flagship": true,
+                  "shipIds": [
+                    574,
+                    579,
+                    630
+                  ]
+                },
+                {
+                  "ship": "駆逐",
+                  "amount": 1,
+                  "stypes": [
+                    2
+                  ]
+                }
+              ]
+            },
+            {
+              "category": "sortie",
+              "map": "7-3",
+              "times": 1,
+              "cells": [
+                18,
+                23,
+                24,
+                25
+              ],
+              "node": "P",
+              "result": "S",
+              "groups": [
+                {
+                  "ship": "Gotland",
+                  "flagship": true,
+                  "shipIds": [
+                    574,
+                    579,
+                    630
+                  ]
+                },
+                {
+                  "ship": "駆逐",
+                  "amount": 1,
+                  "stypes": [
+                    2
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        720,
+        720,
+        720,
+        1000
+      ],
+      "items": [
+        {
+          "name": "戦闘詳報",
+          "choice": 1
+        },
+        {
+          "name": "補強増設",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "新型航空兵装資材",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "熟練搭乗員",
+          "amount": 4,
+          "choice": 2
+        },
+        {
+          "name": "一式陸攻 三四型",
+          "choice": 2
+        },
+        {
+          "name": "瑞雲改二(六三四空)",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 997,
+    "code": "B191",
+    "source": "https://zekamashi.net/kancolle-kouryaku/kaizyouhokyuusen-kakuho/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "or",
+          "list": [
+            {
+              "category": "sortie",
+              "map": [
+                "1-3",
+                "1-5",
+                "2-2"
+              ],
+              "times": 2,
+              "boss": true,
+              "result": "S",
+              "groups": [
+                {
+                  "ship": "海防艦",
+                  "amount": 3,
+                  "stypes": [
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "category": "sortie",
+              "map": [
+                "1-3",
+                "1-5",
+                "2-2"
+              ],
+              "times": 2,
+              "boss": true,
+              "result": "S",
+              "groups": [
+                {
+                  "ship": "駆逐艦",
+                  "amount": 4,
+                  "stypes": [
+                    2
+                  ]
+                }
+              ]
+            },
+            {
+              "category": "sortie",
+              "map": [
+                "1-3",
+                "1-5",
+                "2-2"
+              ],
+              "times": 2,
+              "boss": true,
+              "result": "S",
+              "groups": [
+                {
+                  "ship": "水上機母艦",
+                  "amount": 2,
+                  "stypes": [
+                    16
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "category": "other",
+          "note": "1-6 goal reached twice"
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        500,
+        0,
+        500,
+        0
+      ],
+      "items": [
+        {
+          "name": "高速修復材",
+          "amount": 7,
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 10,
+          "choice": 1
+        },
+        {
+          "name": "給糧艦「伊良湖」",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "二式爆雷",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "一式陸攻",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1003,
+    "code": "B195",
+    "source": "https://zekamashi.net/kancolle-kouryaku/sensui-sentousyoukai/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-2",
+        "1-3",
+        "2-3",
+        "3-1"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "Salmon",
+            "Scamp"
+          ],
+          "flagship": true,
+          "shipIds": [
+            891,
+            897,
+            299,
+            715
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        400,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "燃料",
+          "amount": 800,
+          "choice": 1
+        },
+        {
+          "name": "21inch艦首魚雷発射管4門(後期型)",
+          "choice": 1
+        },
+        {
+          "name": "弾薬",
+          "amount": 800,
+          "choice": 1
+        },
+        {
+          "name": "SJレーダー+潜水艦司令塔装備",
+          "choice": 2
+        },
+        {
+          "name": "勲章",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1004,
+    "code": "B196",
+    "source": "https://zekamashi.net/kancolle-kouryaku/mikuma-sinpatu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-3",
+        "2-4",
+        "4-5",
+        "6-4"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "三隈改二"
+          ],
+          "flagship": true,
+          "shipIds": [
+            502,
+            507
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        880,
+        880,
+        0,
+        880
+      ],
+      "items": [
+        {
+          "name": "特注家具職人",
+          "choice": 1
+        },
+        {
+          "name": "給糧艦「間宮」",
+          "choice": 1
+        },
+        {
+          "name": "熟練搭乗員",
+          "choice": 1
+        },
+        {
+          "name": "紫雲★2",
+          "choice": 2
+        },
+        {
+          "name": "勲章",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "試製20.3cm(4号)連装砲★2",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1006,
+    "code": "B197",
+    "source": "https://zekamashi.net/kancolle-kouryaku/dainikutikutai-batubyou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-2",
+        "1-3",
+        "1-4",
+        "1-5"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "A",
+      "groups": [
+        {
+          "ship": [
+            "春雨",
+            "夕立",
+            "村雨",
+            "五月雨"
+          ],
+          "amount": 3,
+          "shipIds": [
+            405,
+            323,
+            975,
+            45,
+            245,
+            144,
+            44,
+            244,
+            498,
+            46,
+            246
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "items": [
+        {
+          "name": "燃料",
+          "amount": 200,
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "高速修復材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "給糧艦「間宮」",
+          "choice": 2
+        },
+        {
+          "name": "特注家具職人",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1007,
+    "code": "B198",
+    "source": "https://zekamashi.net/kancolle-kouryaku/harusamekaini-syutugeki/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-2",
+        "2-3",
+        "5-1"
+      ],
+      "times": 2,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "春雨改二"
+          ],
+          "flagship": true,
+          "shipIds": [
+            975
+          ]
+        },
+        {
+          "ship": "軽巡",
+          "stypes": [
+            3
+          ]
+        },
+        {
+          "ship": "駆逐",
+          "amount": 1,
+          "stypes": [
+            2
+          ],
+          "escort": true
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        400,
+        400,
+        400,
+        400
+      ],
+      "items": [
+        {
+          "name": "12.7cm連装砲C型改二",
+          "choice": 1
+        },
+        {
+          "name": "25mm三連装機銃",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "新型兵装資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 15,
+          "choice": 2
+        },
+        {
+          "name": "改修資材",
+          "amount": 5,
+          "choice": 2
+        },
+        {
+          "name": "勲章",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1008,
+    "code": "B199",
+    "source": "https://zekamashi.net/kancolle-kouryaku/yuudati-harusame/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "4-5",
+        "5-3",
+        "5-4",
+        "5-5"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "夕立改二"
+          ],
+          "shipIds": [
+            144
+          ]
+        },
+        {
+          "ship": [
+            "春雨改二"
+          ],
+          "shipIds": [
+            975
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        880,
+        880,
+        880,
+        880
+      ],
+      "items": [
+        {
+          "name": "12.7cm連装砲C型改三H★2"
+        },
+        {
+          "name": "開発資材",
+          "amount": 20,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 7,
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 1015,
+    "code": "B202",
+    "source": "https://zekamashi.net/kancolle-kouryaku/boukuusuizyoukan-syutugeki/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-3",
+        "1-4",
+        "2-2",
+        "2-3",
+        "5-1"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "秋月型",
+            "摩耶改/改二",
+            "天龍改二",
+            "龍田改二",
+            "五十鈴改二"
+          ],
+          "amount": 3,
+          "shipIds": [
+            271,
+            428,
+            477,
+            478,
+            141
+          ],
+          "ctypes": [
+            54
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        250,
+        0,
+        250,
+        250
+      ],
+      "items": [
+        {
+          "name": "開発資材",
+          "amount": 8,
+          "choice": 1
+        },
+        {
+          "name": "12.7cm連装高角砲",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "10cm連装高角砲",
+          "amount": 4,
+          "choice": 2
+        },
+        {
+          "name": "勲章",
+          "choice": 2
+        },
+        {
+          "name": "補強増設",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1016,
+    "code": "B203",
+    "source": "https://zekamashi.net/kancolle-kouryaku/hatsudukikaini-ositemairu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-4",
+        "3-5",
+        "5-4",
+        "5-5",
+        "7-4"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "初月改二"
+          ],
+          "flagship": true,
+          "shipIds": [
+            968
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        610,
+        610,
+        610,
+        610
+      ],
+      "items": [
+        {
+          "name": "10cm連装高角砲改+高射装置改"
+        },
+        {
+          "name": "94式高射装置",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "勲章",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 1017,
+    "code": "B204",
+    "source": "https://zekamashi.net/kancolle-kouryaku/dainikutikutai-syutugeki/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-2",
+        "1-5",
+        "2-3"
+      ],
+      "times": 2,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "早霜",
+            "秋霜",
+            "朝霜",
+            "清霜"
+          ],
+          "flagship": true,
+          "shipIds": [
+            409,
+            324,
+            956,
+            625,
+            695,
+            425,
+            344,
+            578,
+            744,
+            410,
+            325,
+            955,
+            960
+          ]
+        },
+        {
+          "ship": [
+            "早霜",
+            "秋霜",
+            "朝霜",
+            "清霜"
+          ],
+          "amount": 3,
+          "shipIds": [
+            409,
+            324,
+            956,
+            625,
+            695,
+            425,
+            344,
+            578,
+            744,
+            410,
+            325,
+            955,
+            960
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        200,
+        0,
+        200,
+        0
+      ],
+      "items": [
+        {
+          "name": "燃料",
+          "amount": 2000,
+          "choice": 1
+        },
+        {
+          "name": "特注家具職人",
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 10,
+          "choice": 1
+        },
+        {
+          "name": "給糧艦「間宮」",
+          "amount": 4,
+          "choice": 2
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1019,
+    "code": "B205",
+    "source": "https://zekamashi.net/kancolle-kouryaku/daisansentai-dainisyoutai-gekitou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "or",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "4-5",
+            "5-5",
+            "6-5"
+          ],
+          "times": 2,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "比叡改二丙"
+              ],
+              "shipIds": [
+                592
+              ]
+            },
+            {
+              "ship": [
+                "霧島改二丙"
+              ],
+              "shipIds": [
+                694
+              ]
+            },
+            {
+              "ship": "夕雲型",
+              "amount": 2,
+              "ctypes": [
+                38
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": [
+            "4-5",
+            "5-5",
+            "6-5"
+          ],
+          "times": 2,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "比叡改二丙"
+              ],
+              "shipIds": [
+                592
+              ]
+            },
+            {
+              "ship": [
+                "霧島改二丙"
+              ],
+              "shipIds": [
+                694
+              ]
+            },
+            {
+              "ship": "白露型",
+              "amount": 2,
+              "ctypes": [
+                23
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1300,
+        1300,
+        1300,
+        1300
+      ],
+      "items": [
+        {
+          "name": "35.6cm連装砲改二",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "35.6cm連装砲改三丙",
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 2
+        },
+        {
+          "name": "新型砲熕兵装資材",
+          "amount": 6,
+          "choice": 2
+        },
+        {
+          "name": "改修資材",
+          "amount": 10,
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1021,
+    "code": "B206",
+    "source": "https://zekamashi.net/kancolle-kouryaku/hayasimokaini-syutugeki/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-5",
+            "5-4",
+            "7-4"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "早霜改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                956
+              ]
+            },
+            {
+              "ship": [
+                "清霜",
+                "秋霜"
+              ],
+              "shipIds": [
+                410,
+                325,
+                955,
+                960,
+                625,
+                695
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "早霜改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                956
+              ]
+            },
+            {
+              "ship": [
+                "清霜",
+                "秋霜"
+              ],
+              "shipIds": [
+                410,
+                325,
+                955,
+                960,
+                625,
+                695
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1944,
+        1026,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "開発資材",
+          "amount": 30,
+          "choice": 1
+        },
+        {
+          "name": "13号対空電探改★3",
+          "choice": 1
+        },
+        {
+          "name": "新型砲熕兵装資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 2
+        },
+        {
+          "name": "12.7cm連装砲D型改二★3",
+          "choice": 2
+        },
+        {
+          "name": "水雷戦隊 熟練見張員",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1023,
+    "code": "B207",
+    "source": "https://zekamashi.net/kancolle-kouryaku/huzinamikaini-tyoukaigoei/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-4",
+            "2-5",
+            "5-5"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "藤波改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                981
+              ]
+            },
+            {
+              "ship": [
+                "鳥海"
+              ],
+              "shipIds": [
+                69,
+                272,
+                427
+              ]
+            },
+            {
+              "ship": [
+                "玉波",
+                "涼波",
+                "早波",
+                "浜波"
+              ],
+              "shipIds": [
+                674,
+                718,
+                1033,
+                675,
+                710,
+                1034,
+                745,
+                528,
+                688,
+                982,
+                484,
+                680,
+                983
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "藤波改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                981
+              ]
+            },
+            {
+              "ship": [
+                "鳥海"
+              ],
+              "shipIds": [
+                69,
+                272,
+                427
+              ]
+            },
+            {
+              "ship": [
+                "玉波",
+                "涼波",
+                "早波",
+                "浜波"
+              ],
+              "shipIds": [
+                674,
+                718,
+                1033,
+                675,
+                710,
+                1034,
+                745,
+                528,
+                688,
+                982,
+                484,
+                680,
+                983
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1944,
+        1025,
+        1026,
+        0
+      ],
+      "items": [
+        {
+          "name": "改修資材",
+          "amount": 9,
+          "choice": 1
+        },
+        {
+          "name": "新型兵装資材",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 1
+        },
+        {
+          "name": "13号対空電探改(後期型)★3 ",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "逆探(E27)+22号対水上電探改四(後期調整型)",
+          "choice": 2
+        },
+        {
+          "name": "12.7cm連装砲D型改三",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1029,
+    "code": "B209",
+    "source": "https://zekamashi.net/kancolle-kouryaku/hamanami-tekityuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-2",
+            "2-3",
+            "2-4"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "浜波改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                983
+              ]
+            },
+            {
+              "ship": [
+                "玉波",
+                "涼波",
+                "藤波",
+                "早波",
+                "朝霜"
+              ],
+              "amount": 2,
+              "shipIds": [
+                674,
+                718,
+                1033,
+                675,
+                710,
+                1034,
+                745,
+                485,
+                373,
+                981,
+                528,
+                688,
+                982,
+                425,
+                344,
+                578,
+                744
+              ]
+            }
+          ]
+        },
+        {
+          "category": "other",
+          "note": "1-6 goal reached once"
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1944,
+        1111,
+        2025,
+        512
+      ],
+      "items": [
+        {
+          "name": "開発資材",
+          "amount": 13,
+          "choice": 1
+        },
+        {
+          "name": "新型砲熕兵装資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 5,
+          "choice": 1
+        },
+        {
+          "name": "25mm三連装機銃★9 ",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "13号対空電探改(後期型)★8",
+          "choice": 2
+        },
+        {
+          "name": "12.7cm連装砲D型改二★7",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1033,
+    "code": "B210",
+    "source": "https://zekamashi.net/kancolle-kouryaku/nitouyusoukan-unnyou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-1",
+        "1-2",
+        "1-3",
+        "1-4"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "第百一号輸送艦"
+          ],
+          "flagship": true,
+          "shipIds": [
+            945,
+            727
+          ]
+        },
+        {
+          "ship": "軽巡級",
+          "stypes": [
+            3,
+            4,
+            21
+          ]
+        },
+        {
+          "ship": "駆逐",
+          "amount": 2,
+          "stypes": [
+            2
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        300,
+        300,
+        300,
+        0
+      ],
+      "items": [
+        {
+          "name": "12.7mm単装機銃",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "25mm単装機銃",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "戦闘糧食",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "7.7mm機銃",
+          "amount": 4,
+          "choice": 2
+        },
+        {
+          "name": "陸軍歩兵部隊",
+          "choice": 2
+        },
+        {
+          "name": "新型噴進装備開発資材",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1036,
+    "code": "B211",
+    "source": "https://zekamashi.net/kancolle-kouryaku/yusousendangoeibutai-syutugeki/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "1-2",
+        "1-3",
+        "1-4",
+        "1-5"
+      ],
+      "times": 2,
+      "boss": true,
+      "result": "A",
+      "groups": [
+        {
+          "ship": "揚陸艦・補給艦",
+          "amount": 2,
+          "shipIds": [
+            621,
+            626,
+            161,
+            166,
+            943,
+            948,
+            945,
+            727,
+            162,
+            499,
+            500,
+            460,
+            352,
+            645,
+            650,
+            699,
+            995,
+            1000,
+            1003,
+            1008,
+            900,
+            717
+          ]
+        },
+        {
+          "ship": "海防艦",
+          "amount": 2,
+          "stypes": [
+            1
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        400,
+        400,
+        400,
+        0
+      ],
+      "items": [
+        {
+          "name": "装備運用枠+2",
+          "choice": 1
+        },
+        {
+          "name": "燃料",
+          "amount": 2000,
+          "choice": 1
+        },
+        {
+          "name": "新型噴進装備開発資材",
+          "choice": 1
+        },
+        {
+          "name": "勲章",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "改修資材",
+          "amount": 9,
+          "choice": 2
+        },
+        {
+          "name": "ボーキサイト",
+          "amount": 3600,
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1044,
+    "code": "B215",
+    "source": "https://zekamashi.net/kancolle-kouryaku/tamanami-syutugeki/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "sortie",
+      "map": [
+        "2-3",
+        "2-5",
+        "4-5",
+        "5-5",
+        "6-3"
+      ],
+      "times": 1,
+      "boss": true,
+      "result": "S",
+      "groups": [
+        {
+          "ship": [
+            "玉波改二"
+          ],
+          "flagship": true,
+          "shipIds": [
+            1033
+          ]
+        },
+        {
+          "ship": [
+            "藤波"
+          ],
+          "shipIds": [
+            485,
+            373,
+            981
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1944,
+        2026,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "新型兵装資材",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 88,
+          "choice": 1
+        },
+        {
+          "name": "試製甲板カタパルト",
+          "choice": 1
+        },
+        {
+          "name": "水雷戦隊 熟練見張員",
+          "choice": 2
+        },
+        {
+          "name": "12.7cm連装砲D型改三",
+          "choice": 2
+        },
+        {
+          "name": "三式爆雷投射機改",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 1047,
+    "code": "B216",
+    "source": "https://zekamashi.net/kancolle-kouryaku/suzunami-batubyou/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "5-4",
+            "5-5"
+          ],
+          "times": 2,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "涼波改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                1034,
+                745
+              ]
+            },
+            {
+              "ship": [
+                "鳥海",
+                "鈴谷",
+                "最上",
+                "能代",
+                "玉波",
+                "藤波",
+                "早波"
+              ],
+              "amount": 2,
+              "shipIds": [
+                69,
+                272,
+                427,
+                124,
+                129,
+                503,
+                508,
+                70,
+                73,
+                501,
+                506,
+                138,
+                306,
+                662,
+                674,
+                718,
+                1033,
+                485,
+                373,
+                981,
+                528,
+                688,
+                982
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "5-6",
+          "times": 2,
+          "cells": [
+            43
+          ],
+          "node": "Z",
+          "result": "S",
+          "groups": [
+            {
+              "ship": [
+                "涼波改二"
+              ],
+              "flagship": true,
+              "shipIds": [
+                1034,
+                745
+              ]
+            },
+            {
+              "ship": [
+                "鳥海",
+                "鈴谷",
+                "最上",
+                "能代",
+                "玉波",
+                "藤波",
+                "早波"
+              ],
+              "amount": 2,
+              "shipIds": [
+                69,
+                272,
+                427,
+                124,
+                129,
+                503,
+                508,
+                70,
+                73,
+                501,
+                506,
+                138,
+                306,
+                662,
+                674,
+                718,
+                1033,
+                485,
+                373,
+                981,
+                528,
+                688,
+                982
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        1943,
+        0,
+        2026,
+        0
+      ],
+      "items": [
+        {
+          "name": "補強増設",
+          "choice": 1
+        },
+        {
+          "name": "装備運用枠+4",
+          "choice": 1
+        },
+        {
+          "name": "工廠資源",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "新型兵装資材",
+          "amount": 4,
+          "choice": 2
+        },
+        {
+          "name": "25mm連装機銃(熟練機銃員分隊)",
+          "choice": 2
+        },
+        {
+          "name": "戦闘詳報",
+          "amount": 2,
+          "choice": 2
+        }
+      ]
+    }
   }
 ]
