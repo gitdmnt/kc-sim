@@ -63,13 +63,16 @@ export interface BattleOutcome {
 export type SimOutcome = SortieOutcome | BattleOutcome;
 
 let fitPromise: Promise<FitEntry[] | null> | undefined;
-/** 装備ボーナスの定義。取得できなければ null (このページを開いている間は再取得しない)。 */
+/** 装備ボーナスの定義。取得できなければ null (その計算は未適用で回し、次の計算でまた取りに行く)。 */
 export const loadFitBonuses = (): Promise<FitEntry[] | null> =>
   (fitPromise ??= getDataApi()
     .fitBonuses()
     .then(
       (r) => r.data,
-      () => null
+      () => {
+        fitPromise = undefined;
+        return null;
+      }
     ));
 
 const FIT_MISSING = "装備ボーナスを取得できず未適用";

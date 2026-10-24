@@ -105,6 +105,24 @@ describe("ships / equipments", () => {
     await seed();
     expect(await (await h.fetch("http://localhost/api/v1/ships")).text()).toContain('"maxStats":{"hp":31,"fp":29.50,"luck":49}');
   });
+
+  test("ship-details: GET /ships/{id} for many ids, unknown ids left out; bad ids 400", async () => {
+    await seed();
+    await h.db.prepare("INSERT INTO sources (key, name, fetched_at) VALUES ('kancolle-replay-shipdata', 'kcr', ?1)").bind(NOW).run();
+    await h.db.prepare(
+      `INSERT INTO estimates (ship_id, stat, value, confidence, sd, n, note, source_id, updated_at)
+       VALUES (1501, 'ev', 14, 'datamined', NULL, NULL, NULL, (SELECT id FROM sources WHERE key = 'kancolle-replay-shipdata'), ?1),
+              (1502, 'luck', 3, 'placeholder', NULL, NULL, NULL, (SELECT id FROM sources WHERE key = 'kancolle-replay-shipdata'), ?1)`,
+    ).bind(NOW).run();
+    const r = await h.call<{ ships: Row[] }>("GET", "/api/v1/ship-details?ids=1502,1501,99999");
+    expect(r.status).toBe(200);
+    const single = async (id: number) => (await h.call<Row>("GET", `/api/v1/ships/${id}`)).json;
+    expect(r.json.ships).toEqual([await single(1501), await single(1502)]);
+    expect(r.json.ships[0]).toMatchObject({ estimates: [{ stat: "ev", value: 14 }], best: { ev: { value: 14 } } });
+    for (const q of ["", "?ids=", "?ids=1,x", "?ids=0", `?ids=${Array.from({ length: 201 }, (_, i) => i + 1).join(",")}`]) {
+      expect((await h.call("GET", `/api/v1/ship-details${q}`)).status).toBe(400);
+    }
+  });
 });
 
 describe("estimates", () => {

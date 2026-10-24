@@ -442,6 +442,15 @@ describe("API", () => {
     for (const q of ["minObserved=-1", "minObserved=x", "source=foo", "since=yesterday"]) {
       expect((await comps(`?${q}`)).status).toBe(400);
     }
+    // map-wide: every node in one response, each as the per-node route answers it
+    for (const q of ["", "?minObserved=3", "?source=all"]) {
+      const all = await call<{ nodes: Record<string, Pick<CompsJson, "selection" | "sets">>; minObserved: number }>("GET", `/api/v1/maps/1-5/enemy-comps${q}`);
+      const one = (await comps(q)).json;
+      expect(Object.keys(all.json.nodes)).toEqual(["J"]);
+      expect(all.json.nodes.J).toEqual({ selection: one.selection, sets: one.sets });
+      expect(all.json.minObserved).toBe(q === "?minObserved=3" ? 3 : 30);
+    }
+    expect((await call("GET", "/api/v1/maps/1-5/enemy-comps?source=foo")).status).toBe(400);
 
     const detail = (await call<DetailJson>("GET", "/api/v1/maps/1-5")).json;
     expect(detail.enemyCompNodes).toEqual(["J"]);

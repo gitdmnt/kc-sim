@@ -26,9 +26,10 @@ const normalizeBundleShip = (raw: unknown): ShipDetail => {
   return { ship: ship as ShipDetail["ship"], estimates: estimates ?? [], best: best ?? {} };
 };
 
+/** API が使えないとき (オフライン・5xx・取り直しても続くレート制限) は静的バンドルで続ける */
 const shouldFallback = (e: unknown) => {
   const err = e as { kind?: string; status?: number };
-  return err.kind === "offline" || (err.status ?? 0) >= 500;
+  return err.kind === "offline" || err.status === 429 || (err.status ?? 0) >= 500;
 };
 
 export const loadMapData = async (
@@ -37,31 +38,17 @@ export const loadMapData = async (
 ): Promise<MapData> => {
   const api = opts.api ?? getDataApi();
   try {
-    const d = await api.map(key);
-    const nodes = d.data.enemyCompNodes;
+    // 海域・全マスの敵編成・深海装備を並べて取り、編成に出る艦をまとめて 1 リクエスト (マスや艦ごとに分けるとレート制限にかかる)
+    const [d, c, eq] = await Promise.all([api.map(key), api.enemyComps(key, opts.minObserved), api.abyssalEquipments()]);
     const comps: Record<string, EnemyCompSet[]> = {};
     const compSelection: Record<string, CompSelection[]> = {};
-    let stale = d.stale;
-    const loaded = await Promise.all(nodes.map((n) => api.enemyComps(key, n, opts.minObserved)));
-    nodes.forEach((n, i) => {
-      comps[n] = loaded[i].data.sets;
-      compSelection[n] = loaded[i].data.selection ?? [];
-      stale ||= loaded[i].stale;
-    });
-    const ids = [...new Set(Object.values(comps).flatMap((sets) => sets.flatMap((s) => s.comps.flatMap((c) => [...c.main, ...c.escort].map((x) => x.shipId)))))];
-    const ships = new Map<number, ShipDetail>();
-    await Promise.all(
-      ids.map(async (id) => {
-        try {
-          const r = await api.ship(id);
-          ships.set(id, r.data);
-          stale ||= r.stale;
-        } catch {
-          // 取得できない艦は警告つきで扱われる
-        }
-      })
-    );
-    const eq = await api.abyssalEquipments();
+    for (const [n, picked] of Object.entries(c.data.nodes)) {
+      comps[n] = picked.sets;
+      compSelection[n] = picked.selection;
+    }
+    const ids = [...new Set(Object.values(comps).flatMap((sets) => sets.flatMap((s) => s.comps.flatMap((x) => [...x.main, ...x.escort].map((m) => m.shipId)))))];
+    const shipRes = await api.shipDetails(ids.sort((a, b) => a - b));
+    const ships = new Map<number, ShipDetail>(shipRes.data.map((s) => [s.ship.id, s]));
     return {
       key,
       detail: d.data,
@@ -70,7 +57,7 @@ export const loadMapData = async (
       ships,
       equips: new Map(eq.data.map((e) => [e.id, e])),
       source: "api",
-      stale: stale || eq.stale,
+      stale: d.stale || c.stale || eq.stale || shipRes.stale,
     };
   } catch (e) {
     if (!shouldFallback(e)) throw e;

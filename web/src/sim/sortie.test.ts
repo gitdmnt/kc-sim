@@ -108,22 +108,35 @@ describe("loadMapData fallback", () => {
     const api404 = new DataApi({ baseUrl: () => "http://x", storage: new MemoryStorage(), fetch: (async () => new Response("{}", { status: 404 })) as any });
     await expect(loadMapData("9-9", { api: api404, bundle: { loadMap: async () => bundle } })).rejects.toMatchObject({ status: 404 });
   });
-  test("API: passes minObserved and keeps the per-node source selection", async () => {
+  test("a rate limit that outlasts the retries falls back to the bundle", async () => {
+    const limited = new DataApi({
+      baseUrl: () => "http://x", storage: new MemoryStorage(), sleep: async () => {},
+      fetch: (async () => new Response("error code: 1015", { status: 429, headers: { "Retry-After": "4" } })) as unknown as typeof fetch,
+    });
+    expect((await loadMapData("9-9", { api: limited, bundle: { loadMap: async () => bundle } })).source).toBe("bundle");
+  });
+  test("API: one request each for the map, every node's comps (minObserved), the equipment and the ships", async () => {
     const urls: string[] = [];
     const selection = [{ difficulty: 0, source: "poi-observed", observedCount: 42, minObserved: 40 }];
     const json = (url: string): unknown =>
-      url.includes("/enemy-comps") ? { map: "9-9", node: "A", minObserved: 40, selection, sets: bundle.enemyComps.A.map((s) => ({ ...s, source: "poi-observed", totalCount: 42 })) }
+      url.includes("/enemy-comps") ? { map: "9-9", minObserved: 40, nodes: { A: { selection, sets: bundle.enemyComps.A.map((s) => ({ ...s, source: "poi-observed", totalCount: 42 })) } } }
       : url.endsWith("/maps/9-9") ? { map: bundle.map, nodes: bundle.nodes, edges: [], routing, enemyCompNodes: ["A"] }
-      : url.includes("/ships/") ? { ship: bundle.ships["1501"], estimates: [], best: {} }
+      : url.includes("/ship-details") ? { ships: [{ ship: bundle.ships["1501"], estimates: [], best: {} }] }
       : { equipments: [] };
     const api = new DataApi({
       baseUrl: () => "http://x", storage: new MemoryStorage(),
       fetch: (async (url: string) => (urls.push(url), new Response(JSON.stringify(json(url))))) as unknown as typeof fetch,
     });
     const d = await loadMapData("9-9", { api, minObserved: 40 });
-    expect(urls).toContain("http://x/api/v1/maps/9-9/nodes/A/enemy-comps?minObserved=40");
+    expect(urls.sort()).toEqual([
+      "http://x/api/v1/equipments?abyssal=1",
+      "http://x/api/v1/maps/9-9",
+      "http://x/api/v1/maps/9-9/enemy-comps?minObserved=40",
+      "http://x/api/v1/ship-details?ids=1501",
+    ]);
     expect(d.compSelection).toEqual({ A: selection });
     expect(d.comps.A[0].source).toBe("poi-observed");
+    expect(d.ships.get(1501)?.ship.id).toBe(1501);
   });
 });
 

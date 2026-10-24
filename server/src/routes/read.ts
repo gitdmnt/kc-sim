@@ -94,31 +94,54 @@ read.get("/maps/:map/routing", async (c) => {
   return c.json(routing.doc);
 });
 
-read.get("/maps/:map/nodes/:node/enemy-comps", async (c) => {
-  const key = parseMapKey(c.req.param("map"));
-  if (!key) return c.json({ error: "bad map key" }, 400);
-  const node = c.req.param("node");
-  const difficulty = c.req.query("difficulty");
-  const minObserved = Number(c.req.query("minObserved") ?? DEFAULT_MIN_OBSERVED);
-  const prefer = (c.req.query("source") ?? "auto") as SourcePref;
-  const since = c.req.query("since") ?? null;
-  if (!Number.isInteger(minObserved) || minObserved < 0) return c.json({ error: "minObserved must be a non-negative integer" }, 400);
-  if (!SOURCE_PREFS.includes(prefer)) return c.json({ error: `source must be one of ${SOURCE_PREFS.join(", ")}` }, 400);
-  if (since !== null && !/^\d{4}-\d{2}-\d{2}/.test(since)) return c.json({ error: "since must be an ISO date" }, 400);
-  const db = c.env.DB;
+type CompOpts = { minObserved: number; prefer: SourcePref; since: string | null; difficulty: number | null };
+
+/** The enemy-comps query parameters (shared by the per-node and the map-wide route); a string is the 400 message. */
+function compOpts(q: (name: string) => string | undefined): CompOpts | string {
+  const difficulty = q("difficulty");
+  const minObserved = Number(q("minObserved") ?? DEFAULT_MIN_OBSERVED);
+  const prefer = (q("source") ?? "auto") as SourcePref;
+  const since = q("since") ?? null;
+  if (!Number.isInteger(minObserved) || minObserved < 0) return "minObserved must be a non-negative integer";
+  if (!SOURCE_PREFS.includes(prefer)) return `source must be one of ${SOURCE_PREFS.join(", ")}`;
+  if (since !== null && !/^\d{4}-\d{2}-\d{2}/.test(since)) return "since must be an ISO date";
+  return { minObserved, prefer, since, difficulty: difficulty === undefined ? null : Number(difficulty) };
+}
+
+/** The comp sets of one node (`node`) or of every node of the map (null), picked per node by the source policy. */
+async function compsByNode(db: D1Database, mapId: number, node: string | null, o: CompOpts) {
   const sets = await db.prepare(
     `SELECT ${COMP_SET_COLS} FROM enemy_comp_sets s LEFT JOIN sources src ON src.id = s.source_id
-     WHERE s.map_id = ?1 AND s.node_letter = ?2 AND (?3 IS NULL OR s.difficulty = ?3)
-     ORDER BY s.difficulty, s.retrieved_at DESC`,
-  ).bind(key.id, node, difficulty === undefined ? null : Number(difficulty)).all();
+     WHERE s.map_id = ?1 AND (?2 IS NULL OR s.node_letter = ?2) AND (?3 IS NULL OR s.difficulty = ?3)
+     ORDER BY s.node_letter, s.difficulty, s.retrieved_at DESC`,
+  ).bind(mapId, node, o.difficulty).all();
   const setIds = sets.results.map((s) => s.id as number);
   const inSets = `(${setIds.map(() => "?").join(", ") || "NULL"})`;
   const [comps, ships] = await Promise.all([
     db.prepare(`SELECT ${COMP_COLS} FROM enemy_comps WHERE set_id IN ${inSets}`).bind(...setIds).all(),
     db.prepare(`SELECT ${COMP_SHIP_COLS} FROM enemy_comp_ships WHERE comp_id IN (SELECT id FROM enemy_comps WHERE set_id IN ${inSets})`).bind(...setIds).all(),
   ]);
-  const picked = selectCompSets(compSetsJson(sets.results, comps.results, ships.results), { minObserved, prefer, since });
-  return c.json({ map: mapName(key.id), node, minObserved, source: prefer, selection: picked.selection, sets: picked.sets });
+  const nodes = [...new Set(sets.results.map((s) => s.node_letter as string))];
+  return Object.fromEntries(nodes.map((n) => [n, selectCompSets(compSetsJson(sets.results.filter((s) => s.node_letter === n), comps.results, ships.results), o)]));
+}
+
+read.get("/maps/:map/nodes/:node/enemy-comps", async (c) => {
+  const key = parseMapKey(c.req.param("map"));
+  if (!key) return c.json({ error: "bad map key" }, 400);
+  const o = compOpts((name) => c.req.query(name));
+  if (typeof o === "string") return c.json({ error: o }, 400);
+  const node = c.req.param("node");
+  const picked = (await compsByNode(c.env.DB, key.id, node, o))[node] ?? { selection: [], sets: [] };
+  return c.json({ map: mapName(key.id), node, minObserved: o.minObserved, source: o.prefer, selection: picked.selection, sets: picked.sets });
+});
+
+// Every node at once (the web UI loads a map with this, not one request per node).
+read.get("/maps/:map/enemy-comps", async (c) => {
+  const key = parseMapKey(c.req.param("map"));
+  if (!key) return c.json({ error: "bad map key" }, 400);
+  const o = compOpts((name) => c.req.query(name));
+  if (typeof o === "string") return c.json({ error: o }, 400);
+  return c.json({ map: mapName(key.id), minObserved: o.minObserved, source: o.prefer, nodes: await compsByNode(c.env.DB, key.id, null, o) });
 });
 
 // List endpoints get their JSON array from D1 as one TEXT value (jsonArraySql): the worker only concatenates it
@@ -132,6 +155,12 @@ read.get("/ships", async (c) => {
   return c.body(`{"ships":${row!.body}}`, 200, JSON_HEADERS);
 });
 
+/** One ship with its estimates and the best per stat (the shape of GET /ships/{id}). */
+const shipDetailJson = (ship: Record<string, unknown>, rows: Record<string, unknown>[]) => {
+  const estimates = rows.map(estimateJson);
+  return { ship: shipJson(ship), estimates, best: bestEstimates(estimates) };
+};
+
 read.get("/ships/:id", async (c) => {
   const id = Number(c.req.param("id"));
   const db = c.env.DB;
@@ -140,8 +169,26 @@ read.get("/ships/:id", async (c) => {
   const { results } = await db.prepare(
     `SELECT ${ESTIMATE_COLS} FROM estimates e JOIN sources s ON s.id = e.source_id WHERE e.ship_id = ?1 ORDER BY e.stat, s.key`,
   ).bind(id).all();
-  const estimates = results.map(estimateJson);
-  return c.json({ ship: shipJson(ship), estimates, best: bestEstimates(estimates) });
+  return c.json(shipDetailJson(ship, results));
+});
+
+// GET /ships/{id} for many ids in one request (the web UI loads a map's enemy ships with this). Unknown ids are left out.
+const MAX_SHIP_DETAILS = 200;
+read.get("/ship-details", async (c) => {
+  const ids = c.req.query("ids")?.split(",").map((s) => Number(s.trim())) ?? [];
+  if (ids.length === 0 || ids.length > MAX_SHIP_DETAILS || ids.some((n) => !Number.isInteger(n) || n <= 0)) {
+    return c.json({ error: `ids must be 1 to ${MAX_SHIP_DETAILS} positive integers` }, 400);
+  }
+  const db = c.env.DB;
+  const json = JSON.stringify(ids);
+  const [ships, estimates] = await Promise.all([
+    db.prepare(`SELECT ${SHIP_COLS} FROM ships WHERE id IN (SELECT value FROM json_each(?1)) ORDER BY id`).bind(json).all(),
+    db.prepare(
+      `SELECT ${ESTIMATE_COLS} FROM estimates e JOIN sources s ON s.id = e.source_id
+       WHERE e.ship_id IN (SELECT value FROM json_each(?1)) ORDER BY e.stat, s.key`,
+    ).bind(json).all(),
+  ]);
+  return c.json({ ships: ships.results.map((s) => shipDetailJson(s, estimates.results.filter((e) => e.ship_id === s.id))) });
 });
 
 read.get("/equipments", async (c) => {

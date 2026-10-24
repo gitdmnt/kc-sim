@@ -68,8 +68,12 @@ describe("DataApi cache", () => {
       calls.push(url);
       return (responses.shift() ?? (() => new Response("{}")))();
     }) as unknown as typeof fetch;
-    const api = new DataApi({ baseUrl: () => "http://x/", fetch: fetchFn, storage, ttlMs: 1000, now: () => t });
-    return { api, calls, storage, advance: (ms: number) => (t += ms) };
+    const waits: number[] = [];
+    const api = new DataApi({
+      baseUrl: () => "http://x/", fetch: fetchFn, storage, ttlMs: 1000, now: () => t,
+      sleep: async (ms) => void waits.push(ms),
+    });
+    return { api, calls, storage, waits, advance: (ms: number) => (t += ms) };
   };
   const json = (o: unknown) => () => new Response(JSON.stringify(o));
 
@@ -144,5 +148,34 @@ describe("DataApi cache", () => {
     expect(storage.length).toBe(0);
     await api.maps();
     expect(calls).toHaveLength(2);
+  });
+
+  const limited = (retryAfter?: string) => () =>
+    new Response("error code: 1015", { status: 429, headers: retryAfter ? { "Retry-After": retryAfter } : {} });
+
+  test("429: waits Retry-After (capped at 10 s, default 2 s) and retries", async () => {
+    const { api, calls, waits } = mk([limited("4"), limited("60"), limited(), json({ maps: [1] })]);
+    expect((await api.maps()).data).toEqual([1] as never);
+    expect(calls).toHaveLength(4);
+    expect(waits).toEqual([4000, 10_000, 2000]);
+  });
+
+  test("429 after 3 retries: an http error, or the stale cache when there is one", async () => {
+    const { api, advance } = mk([json({ maps: [1] }), limited("1"), limited("1"), limited("1"), limited("1"), limited("1"), limited("1"), limited("1"), limited("1")]);
+    await api.maps();
+    advance(5000);
+    expect(await api.maps()).toMatchObject({ stale: true, data: [1] });
+    const fresh = mk([limited("1"), limited("1"), limited("1"), limited("1")]);
+    await expect(fresh.api.maps()).rejects.toMatchObject({ kind: "http", status: 429 });
+  });
+
+  test("shipDetails: 200 ids per request, results joined", async () => {
+    const ids = Array.from({ length: 250 }, (_, i) => 1501 + i);
+    const detail = (id: number) => ({ ship: { id }, estimates: [], best: {} });
+    const { api, calls } = mk([json({ ships: ids.slice(0, 200).map(detail) }), json({ ships: ids.slice(200).map(detail) })]);
+    const r = await api.shipDetails(ids);
+    expect(calls).toEqual([`http://x/api/v1/ship-details?ids=${ids.slice(0, 200).join(",")}`, `http://x/api/v1/ship-details?ids=${ids.slice(200).join(",")}`]);
+    expect(r.data.map((s) => s.ship.id)).toEqual(ids);
+    expect((await mk([]).api.shipDetails([])).data).toEqual([]);
   });
 });

@@ -163,12 +163,11 @@ export interface CompSelection {
   minObserved: number;
 }
 
+/** `GET /api/v1/maps/{map}/enemy-comps`: every node's picked sets. */
 export interface EnemyCompsResponse {
   map: string;
-  node: string;
-  sets: EnemyCompSet[];
-  minObserved?: number;
-  selection?: CompSelection[];
+  minObserved: number;
+  nodes: Record<string, { sets: EnemyCompSet[]; selection: CompSelection[] }>;
 }
 
 // ---- ships / equipment ----

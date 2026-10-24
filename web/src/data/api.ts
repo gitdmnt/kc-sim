@@ -39,12 +39,19 @@ export interface DataApiOptions {
   storage?: KeyValueStorage;
   ttlMs?: number;
   now?: () => number;
+  /** 429 の後の待ち (テストで差し替える) */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 const CACHE_PREFIX = `${STORAGE_PREFIX}cache:`;
 const DEFAULT_TTL = 10 * 60 * 1000;
 /** 任務データ (サーバの取り込みは 1 日 1 回) */
 const QUEST_TTL = 24 * 60 * 60 * 1000;
+/** 429 を取り直す回数と、Retry-After の上限 (秒) */
+const RATE_LIMIT_RETRIES = 3;
+const MAX_RETRY_AFTER_S = 10;
+/** GET /ship-details の 1 リクエストの id 数の上限 (サーバと同じ) */
+const SHIP_DETAILS_MAX = 200;
 
 interface Entry {
   t: number;
@@ -57,11 +64,19 @@ export class DataApi {
   private storage: KeyValueStorage;
   private ttl: number;
   private now: () => number;
+  private sleep: (ms: number) => Promise<void>;
 
   constructor(private opts: DataApiOptions) {
     this.storage = opts.storage ?? defaultStorage();
     this.ttl = opts.ttlMs ?? DEFAULT_TTL;
     this.now = opts.now ?? Date.now;
+    this.sleep =
+      opts.sleep ??
+      ((ms) => {
+        const { promise, resolve } = Promise.withResolvers<void>();
+        setTimeout(resolve, ms);
+        return promise;
+      });
   }
 
   private readEntry(key: string): Entry | undefined {
@@ -106,11 +121,18 @@ export class DataApi {
 
     const p = (async (): Promise<Loaded<T>> => {
       try {
-        let res: Response;
-        try {
-          res = await (this.opts.fetch ?? globalThis.fetch)(key);
-        } catch (e) {
-          throw new DataApiError("offline", `データサーバに接続できません (${(e as Error).message})`);
+        const fetchOnce = async () => {
+          try {
+            return await (this.opts.fetch ?? globalThis.fetch)(key);
+          } catch (e) {
+            throw new DataApiError("offline", `データサーバに接続できません (${(e as Error).message})`);
+          }
+        };
+        let res = await fetchOnce();
+        // Cloudflare のレート制限 (429, error 1015) は数秒で解ける: Retry-After だけ待って取り直す
+        for (let i = 0; res.status === 429 && i < RATE_LIMIT_RETRIES; i++) {
+          await this.sleep(Math.min(MAX_RETRY_AFTER_S, Number(res.headers.get("Retry-After")) || 2) * 1000);
+          res = await fetchOnce();
         }
         if (!res.ok) throw new DataApiError("http", `HTTP ${res.status}`, res.status);
         let data: T;
@@ -124,7 +146,7 @@ export class DataApi {
       } catch (e) {
         // 404 など「無い」ことが確定した応答は古いキャッシュで隠さない
         const err = e as DataApiError;
-        if (cached && (err.kind === "offline" || (err.status ?? 0) >= 500)) {
+        if (cached && (err.kind === "offline" || err.status === 429 || (err.status ?? 0) >= 500)) {
           return { data: cached.data as T, stale: true };
         }
         throw e;
@@ -143,12 +165,10 @@ export class DataApi {
   map(key: string) {
     return this.get<MapDetail>(`/api/v1/maps/${encodeURIComponent(key)}`);
   }
-  /** 出典は API の既定ポリシー: 観測 (poi-observed) が minObserved 件以上なら観測、でなければ KCNav (API.md §2)。 */
-  enemyComps(map: string, node: string, minObserved?: number) {
+  /** 海域の全マスの敵編成 (1 リクエスト)。出典は API の既定ポリシー: 観測 (poi-observed) が minObserved 件以上なら観測、でなければ KCNav (API.md §2)。 */
+  enemyComps(map: string, minObserved?: number) {
     const q = minObserved === undefined ? "" : `?minObserved=${minObserved}`;
-    return this.get<EnemyCompsResponse>(
-      `/api/v1/maps/${encodeURIComponent(map)}/nodes/${encodeURIComponent(node)}/enemy-comps${q}`
-    );
+    return this.get<EnemyCompsResponse>(`/api/v1/maps/${encodeURIComponent(map)}/enemy-comps${q}`);
   }
   async abyssalShips() {
     const r = await this.get<{ ships: ApiShip[] }>("/api/v1/ships?abyssal=1");
@@ -156,6 +176,12 @@ export class DataApi {
   }
   ship(id: number) {
     return this.get<ShipDetail>(`/api/v1/ships/${id}`);
+  }
+  /** 複数の艦の ship() を SHIP_DETAILS_MAX 件ずつ 1 リクエストで。サーバに無い id は結果に入らない。 */
+  async shipDetails(ids: number[]) {
+    const chunks = Array.from({ length: Math.ceil(ids.length / SHIP_DETAILS_MAX) }, (_, i) => ids.slice(i * SHIP_DETAILS_MAX, (i + 1) * SHIP_DETAILS_MAX));
+    const parts = await Promise.all(chunks.map((c) => this.get<{ ships: ShipDetail[] }>(`/api/v1/ship-details?ids=${c.join(",")}`)));
+    return { data: parts.flatMap((r) => r.data.ships), stale: parts.some((r) => r.stale) };
   }
   /** サーバの推定値 (docs/API.md)。`density` は shipId 指定のときだけ事前・事後分布を含める。`fresh` はキャッシュを使わず取り直す。 */
   estimates(q: { shipId?: number; stat?: EstimatedStat; minN?: number; density?: boolean } = {}, fresh = false) {

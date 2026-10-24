@@ -7,7 +7,7 @@ import { useAsync } from "../../data/useAsync";
 import { normalizeForSearch } from "../../fleet/catalog";
 import { Calculator, Check, CircleHelp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Card, EquipIcon, ProgressBar, Select, TextInput, cx, S } from "../../ui";
+import { Button, Card, EquipIcon, ProgressBar, Select, TextInput, cx, S } from "../../ui";
 import { useApp } from "../context";
 import { DataError, StaleBadge } from "../DataState";
 import { CONFIDENCE as CONF } from "./confidence";
@@ -97,12 +97,15 @@ const ShipDetailView = ({
   equipById: (id: number) => ApiEquipment | undefined;
   max: Record<MainKey, number>;
 }) => {
-  const res = useAsync(() => getDataApi().ship(id), [id]);
+  // 失敗した取得は「再試行」で取り直す (DataApi は 429 を自分で数回取り直してから失敗にする)
+  const [retry, setRetry] = useState(0);
+  const [densRetry, setDensRetry] = useState(0);
+  const res = useAsync(() => getDataApi().ship(id), [id, retry]);
   // 分布 (事前・事後) は 1 隻ずつ取る。一覧で推定が無いと分かっている艦は取らない
-  const dens = useAsync(rows?.length === 0 ? null : () => getDataApi().estimates({ shipId: id, density: true }), [id]);
+  const dens = useAsync(rows?.length === 0 ? null : () => getDataApi().estimates({ shipId: id, density: true }), [id, densRetry]);
   const { catalog } = useApp();
   if (res.loading) return <p className="p-4 text-sm text-ink-300">{S.common.loading}</p>;
-  if (res.error) return <DataError error={res.error} />;
+  if (res.error) return <DataError error={res.error} onRetry={() => setRetry((n) => n + 1)} />;
   const { ship, estimates, best } = res.data!;
   const stype = catalog.shipTypes[ship.stype] ?? "—";
   const isBest = (e: ShipEstimate) => best[e.stat]?.source === e.source && best[e.stat]?.value === e.value;
@@ -165,9 +168,20 @@ const ShipDetailView = ({
 
       {!!ship.equips?.length && <EquipList ids={ship.equips} equipById={equipById} />}
       {server.length > 0 ? (
-        <ServerEstimates rows={server} label={(st) => STAT_LABEL[st]} updatedAt={dens.data?.updatedAt} loading={dens.loading} />
+        <ServerEstimates
+          rows={server}
+          label={(st) => STAT_LABEL[st]}
+          updatedAt={dens.data?.updatedAt}
+          loading={dens.loading}
+          onRetry={dens.error ? () => setDensRetry((n) => n + 1) : undefined}
+        />
       ) : dens.loading ? null : dens.error ? (
-        <p className="text-xs text-ink-400">推定を取得できませんでした</p>
+        <p className="flex items-center gap-2 text-xs text-ink-400">
+          推定を取得できませんでした
+          <Button size="sm" variant="ghost" onClick={() => setDensRetry((n) => n + 1)}>
+            再試行
+          </Button>
+        </p>
       ) : (
         <p className="text-xs text-ink-400" title="サーバの推定器にこの艦の観測がまだない">推定なし</p>
       )}
