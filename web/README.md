@@ -37,7 +37,7 @@ it uses the static bundles; it fails if the 出撃 tab scrolls, page or tab cont
 
 ## 出撃 workspace
 
-Layout: no header inside poi (the plugin draws the one header: シミュレーション / 観測ログ / 送信設定); a title row when
+Layout: no header inside poi (the plugin draws the one header: シミュレーション / 観測ログ / 資源 / 送信設定); a title row when
 opened directly. The tabs 出撃 / 海域 / 敵艦 / 設定 are a vertical bar (icon + name) on the left. Left column:
 編成 (preset selector + ⋯: name, HQ level, poi import of fleet 1–4 or 連合 = fleets 1 + 2, new / duplicate / IO / delete),
 艦隊 (通常艦隊 / 機動部隊 / 水上部隊 / 輸送護衛部隊 / 遊撃部隊) and the 主力 / 随伴 / 支援 / 友軍 / 基地 tabs above the fleet. Right column: the

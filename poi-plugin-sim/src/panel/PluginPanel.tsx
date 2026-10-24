@@ -3,17 +3,20 @@ import type { PoiState } from "@shared/embed/protocol";
 import { buildCatalog } from "@web/fleet/catalog";
 import { Tabs, ToastProvider, cx } from "@web/ui";
 import type { TabItem } from "@web/ui";
+import { resourcesFromPoi } from "../resources";
 import { usePluginSettings } from "../settings";
 import { LogTab } from "./log/LogTab";
+import { ResourcesTab } from "./resources/ResourcesTab";
 import { L } from "./strings";
 import { UploadSettings } from "./UploadSettings";
 import { WebFrame } from "./WebFrame";
 
-type PanelTab = "sim" | "log" | "upload";
+type PanelTab = "sim" | "log" | "resources" | "upload";
 
 const TABS: TabItem<PanelTab>[] = [
   { id: "sim", label: L.tabs.sim },
   { id: "log", label: L.tabs.log },
+  { id: "resources", label: L.tabs.resources },
   { id: "upload", label: L.tabs.upload },
 ];
 
@@ -23,8 +26,8 @@ const IS_MAC = typeof navigator !== "undefined" && /Mac/.test(navigator.platform
 const NO_DRAG_TABS = "[&>[role=tab]]:[-webkit-app-region:no-drag]";
 
 /**
- * プラグインのビュー。シミュレータ本体はサーバの Web UI を iframe で開き (WebFrame)、観測ログと送信設定は
- * キャプチャと同じ場所 (このプラグインの IndexedDB / localStorage) にあるのでここで描く。
+ * プラグインのビュー。シミュレータ本体はサーバの Web UI を iframe で開き (WebFrame)、観測ログ・資源・送信設定は
+ * キャプチャと同じ場所 (このプラグインの IndexedDB / localStorage) にあるのでここで描く。資源の値は Web UI には渡さない。
  * ヘッダ (ビューのタブ) はどのビューでも同じこの 1 行だけ。埋め込んだ Web UI はヘッダを描かない。
  */
 export const PluginPanel = ({ poiState }: { poiState: PoiState }) => {
@@ -48,7 +51,13 @@ export const PluginPanel = ({ poiState }: { poiState: PoiState }) => {
           </div>
           {tab !== "sim" && (
             <main className="min-h-0 flex-1 overflow-auto p-4">
-              {tab === "log" ? <LogTab catalog={catalog} /> : <UploadSettings />}
+              {tab === "log" ? (
+                <LogTab catalog={catalog} />
+              ) : tab === "resources" ? (
+                <ResourcesTab currentAdmiral={resourcesFromPoi(poiState).admiral} />
+              ) : (
+                <UploadSettings />
+              )}
             </main>
           )}
         </ToastProvider>

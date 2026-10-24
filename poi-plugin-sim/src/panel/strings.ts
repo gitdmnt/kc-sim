@@ -1,8 +1,9 @@
-/** プラグインのビュー (観測ログ・送信設定) の文言。共通の文言は Web UI の S (@web/ui) を使う。 */
+/** プラグインのビュー (観測ログ・資源・送信設定) の文言。共通の文言は Web UI の S (@web/ui) を使う。 */
 export const L = {
   tabs: {
     sim: "シミュレーション",
     log: "観測ログ",
+    resources: "資源",
     upload: "送信設定",
   },
   log: {
@@ -31,6 +32,25 @@ export const L = {
     friend: "味方",
     enemySide: "敵",
     copyRaw: "JSON コピー",
+  },
+  resources: {
+    chart: "推移",
+    byEvent: "増減 (イベント)",
+    byDay: "増減 (日別)",
+    admiral: "提督",
+    admiralOption: (id: string, current: boolean) => (current ? `提督 ${id} (ログイン中)` : `提督 ${id}`),
+    summary: (n: number, last: string) => `${n} 件 · 最終 ${last}`,
+    toggle: "表示する資源",
+    materials: "燃料・弾薬・鋼材・ボーキ",
+    items: "資材",
+    noneShown: "表示する資源がありません",
+    noChange: "この期間に増減はありません",
+    date: "日付",
+    time: "日時",
+    event: "内容",
+    empty: "資源の記録がありません",
+    emptyHint:
+      "poi でゲームを開くと、資源 (燃料・弾薬・鋼材・ボーキ・資材) が変わるたびにこのプラグインに記録します。プラグインのウィンドウを開いていなくても記録します。",
   },
   upload: {
     server: "サーバ",

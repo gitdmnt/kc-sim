@@ -15,7 +15,7 @@ UI は Web アプリ (データ API と同じ Cloudflare Worker が配る) で�
 | **1. 戦闘・出撃エンジン** | 砲撃・雷撃・対潜・航空戦・夜戦・命中/回避/クリティカル/装甲・陣形・交戦形態・轟沈ストッパー、ルーティング評価、撤退ポリシー、ゲージ。Rust → wasm、シード指定で完全再現可能 | `sim-core/` |
 | **2. データ基盤** | マスターデータ、深海棲艦の表示/隠しステータス (出典付き)、海域グラフ、ルーティング規則 (自作 DSL)、敵編成と出現率 (KCNav)、装備ボーナス。ローカル完結の HTTP API と静的バンドル | `server/` |
 | **3. 観測と推定** | poi の通信から戦闘を自動記録 (IndexedDB) してサーバに送信。サーバが敵の回避・命中・運をベイズ推定し、シミュレーションに反映 | `poi-plugin-sim/src/capture`, `shared/estimate`, `server/src/estimator` |
-| **4. UI** | Web UI: 出撃 (海域選択・艦隊編成・結果を 1 画面に置き、編成を変えるたびに自動で再計算。出撃 / 単一マス戦闘) / 海域 / 敵艦 (ステータス・装備・サーバの推定) / 設定。poi プラグイン: Web UI の埋め込み + 観測ログ / 送信設定。Web Worker で計算 | `web/`, `poi-plugin-sim/` |
+| **4. UI** | Web UI: 出撃 (海域選択・艦隊編成・結果を 1 画面に置き、編成を変えるたびに自動で再計算。出撃 / 単一マス戦闘) / 海域 / 敵艦 (ステータス・装備・サーバの推定) / 設定。poi プラグイン: Web UI の埋め込み + 観測ログ / 資源 (資源の推移グラフと増減) / 送信設定。Web Worker で計算 | `web/`, `poi-plugin-sim/` |
 
 スクリーンショットは [`docs/screenshots/`](docs/screenshots/) にあります (`13-poi-plugin-window`・`14-poi-plugin-sim`・`16-poi-sortie` は
 実機の poi で撮ったもので、UI を Web に移す前の旧プラグイン UI です。埋め込みの見え方は開発用ページで撮った `19-plugin-embedded`。
@@ -29,7 +29,7 @@ flowchart LR
     GR["game.response<br/>(戦闘パケット)"]
     subgraph plugin["poi-plugin-sim"]
       CAP["capture<br/>(IndexedDB)"]
-      LOG["観測ログ・送信設定"]
+      LOG["観測ログ・資源・送信設定"]
       FRAME["iframe<br/>(Web UI を埋め込む)"]
     end
     GR --> CAP
@@ -72,7 +72,7 @@ flowchart LR
 | `sim-core/` | Rust → wasm のシミュレーションエンジン | テストが `../server/seed/routing` を読む |
 | `server/` | Cloudflare Worker + D1 (データ API、KCNav クローラ、推定器)。`web/dist` を静的アセットとして配る | `wrangler.toml` の `[assets]` が `../web/dist` |
 | `web/` | Web UI (React、vite)。シミュレーションはブラウザ内の Web Worker + wasm | `vite.config.ts` が `../sim-core` (wasm-pack) と `../server/dist/maps` を使い、`web/dist` に出力 |
-| `poi-plugin-sim/` | poi プラグイン (キャプチャ・送信・観測ログ、Web UI の埋め込み) | `@web/*` で `../web/src` の UI 部品を使い、`../poi-plugin-sim-build` に出力 |
+| `poi-plugin-sim/` | poi プラグイン (キャプチャ・送信・観測ログ・資源の記録、Web UI の埋め込み) | `@web/*` で `../web/src` の UI 部品を使い、`../poi-plugin-sim-build` に出力 |
 | `shared/` | プラグイン・Web UI・Worker が共有する TypeScript (パーサ、編成、推定、埋め込みのプロトコル) | — |
 | `docs/` | 設計・API・検証ドキュメント | — |
 
@@ -201,7 +201,7 @@ poi を再起動すると、プラグイン一覧に「シミュ」が現れま�
   サーバの推定ジョブは master に改装元・国籍の情報が無いため、`shipS`・`shipNationality` 条件のボーナスを差し引きません。
 - **戦闘結果の現実性:** 公開されている数式・数値との一致は確認していますが、戦闘全体の結果分布を実測と照合したものではありません。
 - **poi 上の制約:** プラグインは Web UI を iframe で埋め込みます。poi のメインウィンドウは iframe にも Node.js を有効にする設定のため、
-  **ウィンドウモードでのみ** 埋め込みます (タブ表示では案内を出すだけ。観測ログ・送信設定は使えます)。詳しくは [poi-plugin-sim/README.md](poi-plugin-sim/README.md)。
+  **ウィンドウモードでのみ** 埋め込みます (タブ表示では案内を出すだけ。観測ログ・資源・送信設定は使えます)。詳しくは [poi-plugin-sim/README.md](poi-plugin-sim/README.md)。
 - ゲームにログインした状態での動作は、実機の poi では未確認です (未ログイン状態と合成データで確認)。
 
 ## ドキュメント

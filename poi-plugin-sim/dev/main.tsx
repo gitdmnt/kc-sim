@@ -15,6 +15,8 @@ import sampleState from "@web/sampleState.json";
 import * as capture from "../src/capture";
 import * as captureFixtures from "../src/capture/fixtures";
 import { PluginPanel } from "../src/panel/PluginPanel";
+import { ResourceDb } from "../src/resources";
+import { seedResourceHistory } from "./resourcesSeed";
 import { updatePluginSettings } from "../src/settings";
 import styles from "../assets/styles.css?inline";
 
@@ -22,7 +24,7 @@ const params = new URLSearchParams(location.search);
 updatePluginSettings({ serverUrl: params.get("server") ?? "http://localhost:5173/" });
 
 // スクリーンショット等のスクリプトがページ内からデータを流し込むための口
-Object.assign(window, { __kcsimDev: { capture, captureFixtures, importFromPoi, sampleState } });
+Object.assign(window, { __kcsimDev: { capture, captureFixtures, importFromPoi, sampleState, resources: { ResourceDb, seedResourceHistory } } });
 
 const PANEL = (
   <>

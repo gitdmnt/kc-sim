@@ -13,6 +13,8 @@ import type { AutoUploader, AutoUploadOptions } from "./autoUpload";
 import { ObservationDb } from "./db";
 import { CaptureSession } from "./session";
 import type { CapturedFleet, ShipSupply, SortieFleetFeatures } from "@shared/capture/types";
+import { ResourceRecorder, getResourceDb, notifyResourceRecorded, recordFromPoi } from "../resources";
+import type { ResourceStore } from "../resources";
 
 const GLOBAL_KEY = "__kcsimCapture";
 
@@ -23,6 +25,8 @@ export interface StartCaptureOptions {
   target?: Pick<Window, "addEventListener" | "removeEventListener">;
   /** 自動送信の差し替え (テスト用)。false なら自動送信しない。 */
   autoUpload?: false | Partial<Omit<AutoUploadOptions, "db">>;
+  /** 資源の推移の保存先 (テスト用)。false なら記録しない。既定は getResourceDb()。 */
+  resources?: false | ResourceStore;
 }
 
 interface Running {
@@ -141,12 +145,30 @@ export const startCapture = (opts: StartCaptureOptions = {}): ObservationDb => {
     }
   }
 
+  const resourceStore = opts.resources === false ? undefined : (opts.resources ?? getResourceDb());
+  const resources = resourceStore
+    ? new ResourceRecorder({
+        store: resourceStore,
+        onRecord: notifyResourceRecorded,
+        onError: (e) => console.error("[kcsim] resource history failed", e),
+      })
+    : undefined;
+
   const target = opts.target ?? window;
   const listener = (e: Event) => {
     const d = (e as CustomEvent).detail;
     if (d && typeof d.path === "string") {
       void session.handle(d.path, d.body, d.postBody);
       autoUploader?.onResponse(d.path);
+      // poi は game.response の前に redux を更新しているので、ここで読む state はこの応答の反映後
+      // (失敗は ResourceRecorder の onError が記録する)
+      if (resources) {
+        try {
+          void recordFromPoi(resources, getState(), d).catch(() => {});
+        } catch (e) {
+          console.error("[kcsim] resource history failed", e);
+        }
+      }
     }
   };
   target.addEventListener("game.response", listener);
@@ -157,6 +179,7 @@ export const startCapture = (opts: StartCaptureOptions = {}): ObservationDb => {
       autoUploader?.stop();
       target.removeEventListener("game.response", listener);
       void db.close();
+      void resourceStore?.close?.();
       delete g[GLOBAL_KEY];
     },
   };

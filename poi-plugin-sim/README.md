@@ -7,7 +7,10 @@ is the web app in [`../web`](../web), served by the data API's Cloudflare Worker
   them in IndexedDB (`kcsim`),
 - **uploads** them to the server automatically (debounced after each battle result and on returning to port, with
   periodic retry and exponential backoff; one request per 60 s, per-install bearer token),
-- shows the **観測ログ** (observation log) and **送信設定** (server URL, auto upload, registration) views, and
+- shows the **観測ログ** (observation log), **資源** (resource history) and **送信設定** (server URL, auto upload,
+  registration) views,
+- **records the admiral's resources** (燃料 / 弾薬 / 鋼材 / ボーキ and the four materials) whenever they change, in
+  IndexedDB (`kcsim-resources`, kept on this machine, never uploaded or sent to the iframe), and
 - **embeds the web UI** (the simulator) in an iframe and hands it poi's fleets and master data with `postMessage`.
 
 The Rust engine lives in `../sim-core` (used by the web UI); the server in `../server`.
@@ -30,18 +33,23 @@ Output (`../poi-plugin-sim-build`): `index.es`, `package.json` (`main: index.es`
 the plugin's views and their CSS scoped to `.kcsim`), `i18n/`. No wasm and no worker: the simulation runs in the web UI.
 
 Other commands: `bun test`, `bunx tsc --noEmit`, `bun run dev` (below), `bun run screenshots` (starts both dev servers,
-writes `docs/screenshots/{05-log-list,06-log-detail,08-plugin-upload,19-plugin-embedded}.png`).
+writes `docs/screenshots/{05-log-list,06-log-detail,08-plugin-upload,19-plugin-embedded,20-plugin-resources,21-plugin-resources-delta}.png`;
+the 資源 shots are 1024x600 with generated history from `dev/resourcesSeed.ts`, after checking that the tab does not
+scroll the page at 1280x800 / 1200x710 / 1024x600), `bun dev/resources-smoke.ts` (feeds a scripted sequence of API
+responses through `startCapture` the way poi does, and prints what was recorded, a restart and the thinning).
 
 ## Layout
 
 | Path | Role |
 |---|---|
 | `src/poi/index.tsx` | poi entry (vite lib build): redux `connect` for `info` / `const`, inline CSS, `startCapture` exports |
-| `src/panel/PluginPanel.tsx` | The plugin's view: シミュレータ (iframe) / 観測ログ / 送信設定 |
+| `src/panel/PluginPanel.tsx` | The plugin's view: シミュレーション (iframe) / 観測ログ / 資源 / 送信設定 |
 | `src/panel/WebFrame.tsx`, `src/panel/bridge.ts` | The iframe and the plugin side of the embed protocol |
 | `src/panel/log/`, `src/panel/UploadSettings.tsx` | Observation log and upload settings (UI parts from `@web/*` = `../web/src`) |
+| `src/panel/resources/` | 資源 view: line charts (own SVG, no chart library) and the 増減 tables |
 | `src/settings.ts` | Plugin settings (`kcsim:plugin`: server URL, auto upload) and the one-time upgrade from the old in-plugin UI |
 | `src/capture/` | Packet capture, IndexedDB, upload client, auto upload |
+| `src/resources/` | Resource history: recording, thinning (`history.ts`), IndexedDB (`store.ts`), view maths (`view.ts`) |
 | `dev/` | Dev page: the plugin's view without poi (`bun run dev`, http://localhost:5174) |
 
 `bun run dev` serves `dev/index.html` with vite and reproduces poi's window mode: the page plays poi's main window
@@ -78,6 +86,29 @@ Every other upgrade (the old default `http://127.0.0.1:8787`, or any other serve
 nothing is sent to production without the user turning it on. The old UI's keys (`kcsim:settings`, `kcsim:cache:*`,
 `kcsim:tab`, `kcsim:map`, `kcsim:selectedPreset`) are removed; presets, registration and upload state are kept.
 
+## Resource history (資源)
+
+- **When:** `startCapture` also listens for resources. poi updates its redux store before it fires `game.response`
+  (`views/env-parts/data-resolver`), so on every response the plugin reads `info.resources` (poi's order: 燃料, 弾薬,
+  鋼材, ボーキ, 高速建造材, 高速修復材, 開発資材, 改修資材) and `info.basic.api_member_id`. That covers everything poi
+  tracks: `api_port/port`, `api_get_member/material`, `api_req_hokyu/charge`, `api_req_kousyou/*` (開発・建造・解体・
+  廃棄・改修, 高速建造), `api_req_nyukyo/start` / `speedchange`, `api_req_air_corps/supply` / `set_plane`.
+- **What:** a snapshot `{admiral, t, v[8], event, via?}` only when the values differ from that admiral's last snapshot
+  (also across restarts: the last one is read back from IndexedDB). `event` is the API path that changed them. Some
+  APIs move resources in the game but not in poi's store until the next sync (遠征 `api_req_mission/result`, 任務
+  `api_req_quest/clearitemget`, resource nodes `api_req_map/start|next` with `api_itemget`, 改造, アイテム使用); they
+  are listed in `via` of the next snapshot (e.g. 「母港 (遠征・任務)」), and dropped when a full sync (port / material)
+  shows no change.
+- **Storage:** IndexedDB `kcsim-resources` (separate from the observation log, so clearing that does not touch it),
+  one row per snapshot, indexed by `[admiral, t]`; one history per admiral id. Thinning runs after the first snapshot
+  of a session and then daily: the last 7 days are kept whole (per-event 増減), up to 90 days the last snapshot of each
+  hour, older ones the last of each local day; a kept snapshot counts what it absorbed (`merged`). A heavy player
+  stays around a few thousand rows plus 365 a year.
+- **View:** 推移 (step lines, 燃料・弾薬・鋼材・ボーキ and the materials on separate scales), 増減 (イベント) and 増減 (日別),
+  ranges 1日 / 1週 / 1月 / 全期間, a toggle per resource (showing its current value and the change over the range), an
+  admiral selector when several have history. Only the 増減 table scrolls; the page does not. Without history (outside
+  poi, or before the first port) it shows 「資源の記録がありません」.
+
 ## Embedding the web UI
 
 Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every message is
@@ -90,7 +121,7 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
 | plugin → web | `presets` | `json` (`kcsim-presets` export) | after `ready`, until acknowledged once for that origin |
 | web → plugin | `presets-ack` | `imported`, `skipped`, `persisted` | after the import |
 
-- **One header row:** the plugin always draws the only header (シミュレーション / 観測ログ / 送信設定, inset 80 px on
+- **One header row:** the plugin always draws the only header (シミュレーション / 観測ログ / 資源 / 送信設定, inset 80 px on
   macOS for the window buttons), in the same place for every view. The embedded web UI draws no header: its own tabs
   (出撃 / 海域 / 敵艦 / 設定) are a vertical bar on its left. Protocol v2 removed v1's `hostViews` / `host` /
   `open-view` (the web UI merging the plugin's views into its header); the web UI still accepts v1 plugins, which keep
@@ -131,7 +162,7 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
   `nodeIntegration: false` (`lib/webcontent-utils.ts`), and poi sets `window.isWindowMode = true` on them. The plugin
   embeds the web UI only when the window hosting its view has `isWindowMode === true` and no Node.js (`require` /
   `process.versions.node`), so any other window is refused; in poi's tab mode it shows 「ウィンドウモードで開いてください」
-  instead. The log and upload tabs work in both modes.
+  instead. The log, resources and upload tabs work in both modes.
 - **Portal.** Code that touches `window` / `document` from the plugin's views must use the view's own window
   (`element.ownerDocument.defaultView`): the global `window` is poi's main window. The dialogs (`web/src/ui/Modal.tsx`)
   do this for Esc and focus.
@@ -143,7 +174,7 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
   starts from empty storage there (presets are migrated again from the plugin's old copies; newer presets must be
   moved with JSON export/import).
 - Observation capture (`startCapture`) is started from `pluginDidLoad` in poi's main window, listens to `game.response`,
-  and stores battles in IndexedDB (`kcsim`).
+  and stores battles in IndexedDB (`kcsim`) and resource snapshots in IndexedDB (`kcsim-resources`).
 - Styles are scoped to `.kcsim` and injected only while the plugin view is mounted.
 
 ## Verification notes
@@ -153,3 +184,5 @@ The embedding path (the main-window sender seen as `parent.opener`, the portal i
 Not yet checked in a real poi window: whether the iframe has no Node.js, the origin string poi reports (`file://` or
 `null`), and whether the iframe's storage survives a poi restart.
 Previously checked with poi 12.0.1 (macOS) on 2026-10-22 using an isolated profile (`--user-data-dir`), not logged in.
+The resource history is checked against poi 12's reducer (`views/redux/info/resources.js`, read from the installed
+app) and its dispatch-before-event order by `bun dev/resources-smoke.ts`; not yet with a logged-in poi.

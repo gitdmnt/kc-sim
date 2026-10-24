@@ -1,7 +1,7 @@
 /**
  * プラグインのビューのスクリーンショット (docs/screenshots/)。`bun run screenshots`。
  * Web UI (web/ の vite) とプラグインの開発用ページ (dev/) を起動し、headless Chromium で
- * 埋め込んだシミュレータ (poi の state が postMessage で届いたこと = 「poi 接続中」)、観測ログ、送信設定を撮る。
+ * 埋め込んだシミュレータ (poi の state が postMessage で届いたこと = 「poi 接続中」)、観測ログ、資源 (1024x600)、送信設定を撮る。
  * ブラウザは playwright のキャッシュにある chromium_headless_shell を使う (CHROMIUM_PATH で上書き可)。
  */
 import { chromium } from "playwright-core";
@@ -73,14 +73,28 @@ const shot = async (name: string) => {
   console.log("saved", join(OUT, `${name}.png`));
 };
 const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).click();
-/** ヘッダ (プラグインのタブ列) とタブの位置。どのビューでも同じであること */
+/** ヘッダ (プラグインのタブ列) とタブの位置。どのビューでも同じであること (ビューの中の切り替えタブは数えない) */
 const headerBoxes = () =>
-  page.evaluate(() =>
-    [document.querySelector("[role=tablist]")!, ...document.querySelectorAll("[role=tablist] [role=tab]")].map((el) => {
+  page.evaluate(() => {
+    const list = document.querySelector("[role=tablist]")!;
+    return [list, ...list.querySelectorAll("[role=tab]")].map((el) => {
       const r = el.getBoundingClientRect();
       return [r.x, r.y, r.width, r.height].join(",");
-    }).join(" ")
-  );
+    }).join(" ");
+  });
+/** ページ (プラグインのビュー全体と、タブの中身の main) がスクロールしないこと */
+const assertNoPageScroll = async (where: string) => {
+  const over = await page.evaluate(() => {
+    const doc = document.scrollingElement!;
+    const main = document.querySelector("main");
+    return {
+      page: doc.scrollHeight - doc.clientHeight,
+      main: main ? main.scrollHeight - main.clientHeight : 0,
+      wide: doc.scrollWidth - doc.clientWidth,
+    };
+  });
+  if (over.page > 0 || over.main > 0 || over.wide > 0) throw new Error(`${where} scrolls: ${JSON.stringify(over)}`);
+};
 
 try {
   // 埋め込んだ Web UI に poi の state (開発用ページではサンプル) が postMessage で届くと、poi の艦隊の取り込みボタンが有効になる。
@@ -163,12 +177,46 @@ try {
   await shot("06-log-detail");
   await page.keyboard.press("Escape");
 
+  // 資源: 記録が無いとき (開発用ページ = poi の外) は空の表示、記録を入れると推移と増減
+  await tab("資源");
+  await page.getByText("資源の記録がありません").waitFor();
+  if ((await headerBoxes()) !== header) throw new Error(`header moved on 資源: ${header} → ${await headerBoxes()}`);
+  await main.evaluate(async () => {
+    const { resources } = Reflect.get(window, "__kcsimDev");
+    const db = new resources.ResourceDb();
+    for (const s of resources.seedResourceHistory(Date.now())) await db.add(s);
+    await db.close();
+  });
+  await tab("観測ログ");
+  await tab("資源");
+  await page.getByRole("img", { name: "燃料・弾薬・鋼材・ボーキ" }).waitFor();
+  for (const [width, height] of [[1280, 800], [1200, 710], [1024, 600]]) {
+    await page.setViewportSize({ width, height });
+    await page.waitForTimeout(200);
+    for (const view of ["増減 (日別)", "増減 (イベント)", "推移"]) {
+      await page.getByRole("tab", { name: view, exact: true }).click();
+      await assertNoPageScroll(`資源 ${view} at ${width}x${height}`);
+    }
+  }
+  console.log("資源: no page scroll at 1280x800 / 1200x710 / 1024x600");
+  // 1024x600 で、推移 (1 月) にポインタを当てた状態と、イベントごとの増減を撮る
+  await page.getByRole("tab", { name: "1月", exact: true }).click();
+  const chart = (await page.getByRole("img", { name: "燃料・弾薬・鋼材・ボーキ" }).boundingBox())!;
+  await page.mouse.move(chart.x + chart.width * 0.7, chart.y + chart.height * 0.5);
+  await page.waitForTimeout(200);
+  await shot("20-plugin-resources");
+  await page.getByRole("tab", { name: "1週", exact: true }).click();
+  await page.getByRole("tab", { name: "増減 (イベント)", exact: true }).click();
+  await page.waitForTimeout(200);
+  await shot("21-plugin-resources-delta");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+
   await tab("送信設定");
   await page.getByText("観測ログを自動送信").waitFor();
   await page.waitForTimeout(300);
   await shot("08-plugin-upload");
   if ((await headerBoxes()) !== header) throw new Error(`header moved on 送信設定: ${header} → ${await headerBoxes()}`);
-  console.log("header identical in シミュレーション / 観測ログ / 送信設定:", header);
+  console.log("header identical in シミュレーション / 観測ログ / 資源 / 送信設定:", header);
 } finally {
   await browser.close();
   servers.forEach((s) => s.kill());
