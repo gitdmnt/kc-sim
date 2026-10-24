@@ -60,23 +60,23 @@ describe("resolvePrerequisites", () => {
 });
 
 describe("prerequisiteOutline", () => {
-  test("children are direct prerequisites; a shared ancestor is listed once, then referenced", () => {
+  test("2+ prerequisites branch one level in; a single one chains at the same level; shared ancestors are referenced", () => {
     const rows = prerequisiteOutline(graph, 105);
-    expect(rows.map((r) => [r.path.join("/"), r.ref ?? null, r.children, r.more])).toEqual([
-      ["104", null, 2, [false]],
-      ["104/102", null, 1, [false, true]],
-      ["104/102/101", null, 0, [false, true, false]],
-      ["104/103", null, 1, [false, false]],
-      ["104/103/101", "104/102/101", 0, [false, false, false]],
+    expect(rows.map((r) => [r.path.join("/"), r.level, r.chained, r.parent ?? null, r.ref ?? null, r.children, r.more])).toEqual([
+      ["104", 0, false, null, null, 2, [false]],
+      ["104/102", 1, false, "104", null, 1, [false, true]],
+      ["104/102/101", 1, true, "104/102", null, 0, [false, true]],
+      ["104/103", 1, false, "104", null, 1, [false, false]],
+      ["104/103/101", 1, true, "104/103", "104/102/101", 0, [false, false]],
     ]);
     expect(rows.map((r) => r.under)).toEqual([[101, 102, 103], [101], [], [101], []]);
   });
 
-  test("leaves out edges back into the path; unknown ids are leaves", () => {
-    expect(prerequisiteOutline(graph, 106).map((r) => r.path.join("/"))).toEqual(["107", "107/101"]);
+  test("a single chain stays at level 0; edges back into the path are left out; unknown ids are leaves", () => {
+    expect(prerequisiteOutline(graph, 106).map((r) => [r.path.join("/"), r.level, r.chained])).toEqual([["107", 0, false], ["107/101", 0, true]]);
     const rows = prerequisiteOutline(graph, 108);
-    expect(rows.map((r) => r.id)).toEqual([105, 104, 102, 101, 103, 101, 999]);
-    expect(rows.at(-1)).toMatchObject({ id: 999, children: 0, under: [], more: [false] });
+    expect(rows.map((r) => [r.id, r.level])).toEqual([[105, 0], [104, 0], [102, 1], [101, 1], [103, 1], [101, 1], [999, 0]]);
+    expect(rows.at(-1)).toMatchObject({ id: 999, chained: false, children: 0, under: [], more: [false] });
     expect(prerequisiteOutline(graph, 5000)).toEqual([]);
   });
 });
@@ -159,6 +159,20 @@ describe("requirements", () => {
     const eq = Object.fromEntries(equips.map((e) => [e.name, e]));
     expect(eq["12cm単装砲"]).toMatchObject({ amount: 3, owned: 2, ok: false, quests: [103, 104] });
     expect(eq["九六式艦戦"]).toMatchObject({ amount: 2, owned: 1, ok: false, quests: [103, 104] });
+  });
+
+  test("lines naming the same ships merge (master ids vs names): largest amount, quests joined", () => {
+    const g = buildQuestGraph([
+      q(1, [], { category: "fleet", groups: [{ ship: "駆逐艦", stypes: [2], amount: 2 }, { ship: "扶桑", shipIds: [26, 286, 411] }] }),
+      q(2, [], { category: "fleet", groups: [{ ship: "駆逐", amount: 4 }, { ship: "扶桑", amount: 2 }] }),
+    ]);
+    const owned = new OwnershipIndex(rosterFromPoi(state)!);
+    expect(aggregateNeeds(g, [1, 2], owned).ships.map((s) => [s.names.join("/"), s.amount, s.quests, s.owned])).toEqual([
+      ["駆逐艦", 4, [1, 2], 2],
+      ["扶桑", 2, [1, 2], 1],
+    ]);
+    // without the master data only identical names merge
+    expect(aggregateNeeds(g, [1, 2], null).ships.map((s) => [s.names.join("/"), s.amount])).toEqual([["駆逐艦", 2], ["扶桑", 2], ["駆逐", 4]]);
   });
 
   test("names the master data does not know stay unresolved; no roster leaves owned null", () => {

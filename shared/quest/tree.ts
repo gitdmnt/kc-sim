@@ -63,21 +63,28 @@ export const resolvePrerequisites = (graph: QuestGraph, target: number): Prerequ
 };
 
 /**
- * One row of the prerequisite outline: a direct prerequisite of the row above it at one level less (the target's own
- * prerequisites are level 0). A quest is listed in full where the outline first reaches it; later occurrences are
+ * One row of the prerequisite outline. A quest with one prerequisite continues as a chain: the prerequisite is the next
+ * row at the same level (`chained`). A quest with two or more has them as branches, one level further in. The target's
+ * own prerequisites are level 0. A quest is listed in full where the outline first reaches it; later occurrences are
  * one-line references to that row, so shared ancestors are not repeated.
  */
 export interface OutlineRow {
   id: number;
   /** Quest ids from a direct prerequisite of the target down to this row; `path.join("/")` is the row key */
   path: number[];
+  /** Indent level */
+  level: number;
+  /** Key of the row this quest is a prerequisite of (none for the target's own prerequisites) */
+  parent?: string;
+  /** The only prerequisite of `parent`: the row right below it, at the same level */
+  chained: boolean;
   /** Key of the row showing this quest in full; set on a reference (which has no children) */
   ref?: string;
-  /** Rows directly below (0 for references and quests without prerequisites) */
+  /** Direct prerequisites (rows right below; 0 for references and quests without prerequisites) */
   children: number;
   /** Every quest below this row, transitively and without repeats, ascending (empty on references) */
   under: number[];
-  /** Per level 0 … depth (this row last): whether the row on this path at that level has a later sibling (guide lines) */
+  /** Per level 0 … `level`: whether the branch on this path at that level has a later sibling (guide lines) */
   more: boolean[];
 }
 
@@ -88,13 +95,19 @@ export interface OutlineRow {
 export const prerequisiteOutline = (graph: QuestGraph, target: number): OutlineRow[] => {
   const rows: OutlineRow[] = [];
   const full = new Map<number, string>();
-  const visit = (id: number, path: number[], more: boolean[]) => {
+  const visit = (id: number, path: number[], parent: OutlineRow | undefined): number => {
     const pre = [...new Set((graph.byId.get(id)?.pre ?? []).map((p) => p.id))]
       .filter((p) => p !== target && !path.includes(p))
       .sort((a, b) => a - b);
+    const chained = !!parent && pre.length === 1;
     pre.forEach((p, i) => {
       const at = [...path, p];
-      const row: OutlineRow = { id: p, path: at, children: 0, under: [], more: [...more, i < pre.length - 1] };
+      const row: OutlineRow = {
+        id: p, path: at, chained, children: 0, under: [],
+        level: !parent ? 0 : chained ? parent.level : parent.level + 1,
+        more: chained ? parent!.more : [...(parent?.more ?? []), i < pre.length - 1],
+        ...(parent && { parent: parent.path.join("/") }),
+      };
       rows.push(row);
       const ref = full.get(p);
       if (ref !== undefined) {
@@ -103,12 +116,11 @@ export const prerequisiteOutline = (graph: QuestGraph, target: number): OutlineR
       }
       full.set(p, at.join("/"));
       row.under = resolvePrerequisites(graph, p).order.filter((x) => x !== p).sort((a, b) => a - b);
-      const before = rows.length;
-      visit(p, at, row.more);
-      row.children = rows.slice(before).filter((r) => r.path.length === at.length + 1).length;
+      row.children = visit(p, at, row);
     });
+    return pre.length;
   };
-  visit(target, [], []);
+  visit(target, [], undefined);
   return rows;
 };
 
@@ -439,8 +451,9 @@ export interface EquipNeedRow extends NeedRowBase {
 }
 
 /**
- * Requirements of `ids` merged: a ship need keeps the largest amount any quest asks (ships stay; modernization
- * material is summed), equipment is summed (exchanged, converted or scrapped equipment is used up).
+ * Requirements of `ids` merged: a ship need keeps the largest amount any quest asks (each quest needs the ships at its
+ * own time and they stay; modernization material is used up and summed), equipment is summed (exchanged, converted or
+ * scrapped equipment is used up). Ship lines that resolve to the same master ships are one line.
  */
 export const aggregateNeeds = (
   graph: QuestGraph,
@@ -500,24 +513,40 @@ export const aggregateRequirements = (
       ...(m.ctypes ?? []).map((t) => `艦型${t}`),
     ];
   }
-  if (owned) {
-    for (const row of ships.values()) {
-      if (row.match) {
-        row.owned = owned.ownedShips(owned.matchShips(row.match));
-        row.ok = row.owned >= row.amount;
-        continue;
+  // One line per set of ships: an override's master ids and an upstream name (or two spellings of one type) for the
+  // same ships merge once resolved; without the master data, identical names merge.
+  const merged = new Map<string, ShipNeedRow>();
+  for (const row of ships.values()) {
+    let ids: number[] | null = null;
+    if (owned) {
+      if (row.match) ids = owned.matchShips(row.match);
+      else {
+        const found = new Set<number>();
+        for (const name of row.names) {
+          const r = owned.resolveShip(row.kind, name);
+          if (r) r.forEach((x) => found.add(x));
+          else row.unresolved.push(name);
+        }
+        if (row.unresolved.length < row.names.length) ids = [...found];
       }
-      const ids = new Set<number>();
-      for (const name of row.names) {
-        const r = owned.resolveShip(row.kind, name);
-        if (r) r.forEach((x) => ids.add(x));
-        else row.unresolved.push(name);
-      }
-      if (row.unresolved.length < row.names.length) {
+      if (ids) {
         row.owned = owned.ownedShips(ids);
         row.ok = row.owned >= row.amount;
       }
     }
+    const sig = `${row.consumed ? "c" : ""}:${
+      ids?.length && row.unresolved.length === 0 ? ids.sort((a, b) => a - b).join(",") : row.names.map(nameKey).sort().join("/")
+    }`;
+    const same = merged.get(sig);
+    if (!same) {
+      merged.set(sig, row);
+      continue;
+    }
+    same.amount = row.consumed ? same.amount + row.amount : Math.max(same.amount, row.amount);
+    for (const q of row.quests) if (!same.quests.includes(q)) same.quests.push(q);
+    if (same.owned !== null) same.ok = same.owned >= same.amount;
+  }
+  if (owned) {
     for (const row of equips.values()) {
       const r = row.equipIds || row.equipTypes ? owned.matchEquips(row.equipIds, row.equipTypes) : owned.resolveEquip(row.name);
       if (!r) {
@@ -528,7 +557,7 @@ export const aggregateRequirements = (
       row.ok = row.owned >= row.amount;
     }
   }
-  return { ships: [...ships.values()], equips: [...equips.values()] };
+  return { ships: [...merged.values()], equips: [...equips.values()] };
 };
 
 // ---- Text ----

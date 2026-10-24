@@ -1,6 +1,7 @@
 /**
  * 任務タブのスクリーンショット (docs/screenshots/17-quests.png, 1024×600) と、1280×800・1200×710・1024×600 で
- * ページも main もスクロールしないことの確認。続けて、上書きデータの達成条件を kc-sim プラグインが数えた単発任務の例
+ * ページも main もスクロールしないことの確認。同じ任務 (A88) の前提ツリーをすべて開いた状態 (docs/screenshots/25-quest-tree.png:
+ * どの行の題名も MIN_TITLE_PX 以上の幅)。続けて、上書きデータの達成条件を kc-sim プラグインが数えた単発任務の例
  * (docs/screenshots/18-quest-progress.png: COUNTED_QUEST、既定 B182 を遂行中、サブ目標の途中まで数えた状態)。最後に
  * 一覧の絞り込み (単発・出撃 + 検索語) と選択報酬つきの任務 (docs/screenshots/19-quest-filters.png: FILTER_QUEST、既定 B117、
  * 分類のドロップダウンを開いた状態) を 1024×600 で撮る。さらに「実施可能」を入れた一覧
@@ -27,6 +28,9 @@ const OUT = resolve(import.meta.dir, "../../docs/screenshots/17-quests.png");
 const OUT_COUNTED = resolve(import.meta.dir, "../../docs/screenshots/18-quest-progress.png");
 const OUT_FILTERED = resolve(import.meta.dir, "../../docs/screenshots/19-quest-filters.png");
 const OUT_DOABLE = resolve(import.meta.dir, "../../docs/screenshots/24-quest-doable.png");
+const OUT_TREE = resolve(import.meta.dir, "../../docs/screenshots/25-quest-tree.png");
+/** Narrowest quest title the expanded tree may leave at 1024×600 (px; about 8 characters at 14px) */
+const MIN_TITLE_PX = 110;
 const PORT = 5213;
 const API = process.env.KCSIM_API ?? "http://127.0.0.1:8787";
 /** A88 最精鋭甲型駆逐艦、集結せよ！ (前提 40 件余り、艦娘・装備の条件つき) */
@@ -133,6 +137,22 @@ try {
   await page.screenshot({ path: OUT });
   console.log("saved", OUT);
 
+  // 前提ツリーをすべて開く: 鎖は同じ段、枝だけ字下げなので、どの行も題名が 8 文字ほど見えること
+  const treeList = page.getByRole("list", { name: "前提任務" });
+  const expandTree = async (quest: number) => {
+    await page.getByRole("button", { name: "すべて開く" }).click();
+    const allRows = await treeList.getByRole("listitem").count();
+    const narrowest = await treeList.evaluate((ul) =>
+      Math.min(...[...ul.querySelectorAll(":scope > li > button > span:nth-child(3)")].map((s) => s.getBoundingClientRect().width)),
+    );
+    console.log(`${quest} tree expanded: ${allRows} rows, narrowest title ${Math.round(narrowest)}px`);
+    if (narrowest < MIN_TITLE_PX) throw new Error(`${quest} tree: a title is only ${Math.round(narrowest)}px wide`);
+  };
+  await expandTree(TARGET);
+  await treeList.evaluate((ul) => ul.parentElement!.scrollIntoView({ block: "start" }));
+  await page.screenshot({ path: OUT_TREE });
+  console.log("saved", OUT_TREE);
+
   // 単発任務を遂行中にし、プラグインのカウンタが数えた進捗 (source "kcsim") を例として入れる: 前半のサブ目標は達成済み
   const goals = questGoals(graph.byId.get(COUNTED)?.requirements ?? null);
   if (goals.length === 0) throw new Error(`${COUNTED}: no countable goals (needs an override with mechanical conditions)`);
@@ -174,6 +194,8 @@ try {
   if (sh > ih) throw new Error(`1024x600 filtered: page scrolls (${sh} > ${ih})`);
   await page.screenshot({ path: OUT_FILTERED });
   console.log("saved", OUT_FILTERED);
+  await page.keyboard.press("Escape");
+  await expandTree(FILTER_QUEST);
 
   // 実施可能 (保存された絞り込みで on)、件数は shared/quest/doable.ts の判定と一致すること
   served = { ...devState, quests: doableQuests };

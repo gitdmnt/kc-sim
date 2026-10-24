@@ -47,10 +47,11 @@ export interface Player {
 
 /**
  * One quest as a clickable row: status dot, code, name, progress, 実施可能 mark. `lead` goes before the button (tree
- * guides, expand toggle), `trail` at its end; `onClick` replaces selecting the quest.
+ * guides, expand toggle; the li is their positioning context), `trail` at its end; `onClick` replaces selecting the
+ * quest. `dense`: tighter gaps and a code column only as wide as the code (the tree's indented rows).
  */
 export const QuestRow = ({
-  id, graph, player, current, onSelect, lead, trail, muted, onClick, highlight, rowKey,
+  id, graph, player, current, onSelect, lead, trail, muted, onClick, highlight, rowKey, dense,
 }: {
   id: number;
   graph: QuestGraph;
@@ -63,27 +64,29 @@ export const QuestRow = ({
   onClick?: () => void;
   highlight?: boolean;
   rowKey?: string;
+  dense?: boolean;
 }) => {
   const q = graph.byId.get(id);
   const status = player.statuses.get(id) ?? "unknown";
   const progress = progressText(player.visible.get(id), player.records[id]);
   const doable = player.doability?.get(id);
   return (
-    <li className="flex min-w-0 items-stretch" data-row={rowKey}>
+    <li className="relative flex min-w-0 items-stretch" data-row={rowKey}>
       {lead}
       <button
         type="button"
         onClick={onClick ?? (() => q && onSelect(id))}
         title={q ? [q.detail, ...describeRequirement(q.requirements), rewardSummary(q.rewards) && `報酬: ${rewardSummary(q.rewards)}`].filter(Boolean).join("\n") : undefined}
         className={cx(
-          "flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-2 py-0.5 text-left text-sm transition-colors",
+          "flex min-w-0 flex-1 cursor-pointer items-center rounded-md py-0.5 text-left text-sm transition-colors",
+          dense ? "gap-1.5 px-1.5" : "gap-2 px-2",
           current ? "bg-accent-500/12 text-ink-50" : highlight ? "bg-accent-500/25 text-ink-50" : "hover:bg-ink-800",
           !current && !highlight && (muted ? "text-ink-400" : "text-ink-100"),
           !q && !onClick && "cursor-default text-ink-400"
         )}
       >
         <Dot status={status} />
-        <span className="w-11 shrink-0 truncate text-xs tabular-nums text-ink-400">{q?.code ?? `#${id}`}</span>
+        <span className={cx("shrink-0 text-xs tabular-nums text-ink-400", dense ? "min-w-8" : "w-11 truncate")}>{q?.code ?? `#${id}`}</span>
         <span className="min-w-0 flex-1 truncate">{q?.name ?? `不明な任務 #${id}`}</span>
         {progress && <span className="shrink-0 text-xs tabular-nums text-accent-400" title={progressSource(player.records[id])}>{progress}</span>}
         {doable?.doable &&

@@ -69,29 +69,27 @@ const DoableView = ({ d }: { d: Doability }) => {
   );
 };
 
+/** Owned/needed only for a shortfall; otherwise the needed count, muted (also without poi data). */
 const NeedList = <R extends ShipNeedRow | EquipNeedRow>({ title, rows, render }: {
   title: string;
   rows: R[];
   render: (r: R) => React.ReactNode;
-}) => (
-  <div>
-    <h4 className="mb-1 text-xs font-semibold text-ink-300">{title}</h4>
-    {rows.length === 0 ? (
-      <p className="text-xs text-ink-500">指定なし</p>
-    ) : (
+}) =>
+  rows.length > 0 && (
+    <div>
+      <h4 className="mb-1 text-xs font-semibold text-ink-300">{title}</h4>
       <ul className="flex flex-col gap-0.5">
         {rows.map((r) => (
           <li key={r.key} className="flex items-center gap-2 text-sm" title={r.unresolved.length ? `マスターに無い名前: ${r.unresolved.join("、")}` : undefined}>
             <span className="min-w-0 flex-1 truncate text-ink-100">{render(r)}</span>
-            <span className={cx("shrink-0 text-xs tabular-nums", r.ok === false ? "text-danger-400/80" : "text-ink-400")}>
-              {r.owned === null ? (r.unresolved.length ? `?/${r.amount}` : `×${r.amount}`) : `${r.owned}/${r.amount}`}
+            <span className={cx("shrink-0 text-xs tabular-nums", r.ok === false ? "text-danger-400" : "text-ink-500")}>
+              {r.ok === false ? `${r.owned}/${r.amount}` : r.owned === null && r.unresolved.length ? `?/${r.amount}` : `×${r.amount}`}
             </span>
           </li>
         ))}
       </ul>
-    )}
-  </div>
-);
+    </div>
+  );
 
 const initialSelected = (): number | null => {
   try {
@@ -296,7 +294,7 @@ export const QuestTab = () => {
       </Card>
 
       <Card title="必要なもの" className="flex min-h-0 flex-col" bodyClassName="flex min-h-0 flex-1 flex-col gap-3 overflow-auto">
-        {needs && (
+        {needs && needs.ships.length + needs.equips.length > 0 && (
           <>
             <p className="text-xs text-ink-400">未達成の前提任務を含む</p>
             <NeedList title="艦娘" rows={needs.ships} render={(r) => `${r.names.join(" / ")}${r.consumed ? " (改修素材)" : ""}`} />

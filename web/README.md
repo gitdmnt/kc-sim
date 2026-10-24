@@ -128,9 +128,11 @@ random stream. Map, mode, conditions and 自動 persist in `kcsim:workspace`, th
 `dataVersion` equals the version in the response's ETag, 24 h when boot fails; docs/DATA_SOURCES.md §14) and `shared/quest/tree.ts`.
 Three full-height cards that scroll inside (no page scroll at 1280×800 / 1200×710 / 1024×600, checked by
 `bun scripts/screenshot-quests.ts`, which also writes `docs/screenshots/17-quests.png`, `18-quest-progress.png`, a
-one-time quest with counts from the plugin, `19-quest-filters.png`, a filtered list and a quest with 選択報酬, and
-`24-quest-doable.png`, 実施可能 on with poi state injected, all at 1024×600). The tab shows only what the user cannot
-infer from the UI itself: no boxed status badges, no captions that restate what is visible, no provenance chatter.
+one-time quest with counts from the plugin, `19-quest-filters.png`, a filtered list and a quest with 選択報酬,
+`24-quest-doable.png`, 実施可能 on with poi state injected, and `25-quest-tree.png`, A88's tree after 「すべて開く」, all at
+1024×600; it also fails if a title in the fully expanded A88 or B117 tree is narrower than about 8 characters). The tab
+shows only what the user cannot infer from the UI itself: no boxed status badges, no captions that restate what is
+visible, no provenance chatter.
 
 - **List:** search by code / name / id, combined with three dropdown filters (`QuestFilters.tsx` over
   `shared/quest/filter.ts`): 種別 (単発 / デイリー / ウィークリー / マンスリー / クォータリー / イヤリー / 期間限定; key
@@ -150,22 +152,33 @@ infer from the UI itself: no boxed status badges, no captions that restate what 
   by 「、」, one 「選択1: A / B / C」 line per 選択報酬 group; the KC3 memo's `[獲]` part is hidden then); the progress; the
   prerequisite tree (below); and at the bottom one 「出典:」 line linking the sources this quest's data came from (the
   override's reference page, kcwiki-quest-data, KC3Kai, kcanotify).
-- **Prerequisite tree** (`PrerequisiteTree.tsx` over `prerequisiteOutline` in `shared/quest/tree.ts`): an outline in
-  which a row's children are its direct prerequisites, one fixed indent step (with guide lines) per level; siblings share
-  a level and are ordered by id. The graph is a DAG, so a quest reached a second time (a shared ancestor) is a one-line
-  muted reference (↰) instead of a repeated subtree; clicking it opens the branches down to the full row, scrolls to it
-  and highlights it. Rows with prerequisites have a ▸ toggle; a closed row shows how many quests it hides (「+12」). Open
-  at first: the first two levels and every branch leading to a 受注可 / 遂行中 quest (the player's frontier); closed: every
-  branch whose quests are all 達成済 / 達成, and anything deeper. 「すべて開く」 / 「畳む」 switch between everything and
-  that default. This keeps the 40+-quest chains (A88, B117) to a dozen rows at first instead of a 16-level staircase.
-  Cycles are cut at the closing edge and unknown ids shown as such (both noted under the tree). Clicking a row selects
-  that quest.
+- **Prerequisite tree** (`PrerequisiteTree.tsx` over `prerequisiteOutline` in `shared/quest/tree.ts`). Two kinds of
+  link, drawn differently:
+  - **Chain:** a quest with exactly one prerequisite has it on the next row at the *same* indent, and a vertical line
+    joins the two status dots: "requires the one below". A linear run (B74 → A71 → B72) reads as one column.
+  - **Branches:** a quest with two or more prerequisites has each of them one indent step (10 px) further in, joined to
+    it by guide lines with an elbow under its ▸ toggle. Branches are ordered by id.
+
+  So indentation only grows where the graph forks: the 40+-quest trees of A88 / B117 stay within 5 levels and every
+  title keeps at least about 8 characters at 1024×600 (A88 was 16 levels as a plain tree). The target's own
+  prerequisites are the top level (a single one too). The graph is a DAG, so a quest reached a second time (a shared
+  ancestor) is a one-line muted reference (↰) instead of a repeated subtree; clicking it opens the rows down to the
+  full one, scrolls to it and highlights it. The ▸ toggle sits on the head of a chain and on every quest with branches
+  (rows inside a chain have none: a chain folds at its head); a closed row shows how many quests it hides (「+12」).
+  Open at first: down to the second indent level and every branch leading to a 受注可 / 遂行中 quest (the player's
+  frontier); closed: rows whose prerequisites are all 達成済 / 達成, and anything deeper. 「すべて開く」 / 「畳む」 switch
+  between everything and that default. Cycles are cut at the closing edge and unknown ids shown as such (both noted
+  under the tree). Clicking a row selects that quest.
 - **必要なもの:** 「未達成の前提任務を含む」: ships and equipment named by the conditions of the tree's quests that are not
-  yet cleared, merged (a ship need keeps the largest amount, equipment is summed because exchanges, conversions and
-  scraps use it up), each with owned/needed as plain text (「1/2」, muted; red when short; 「×2」 without poi data;
-  「?/2」 when a name does not resolve) from poi's ships and equipment (a named ship also matches its later remodels;
-  ship-type words and classes resolve through the master data; overrides name master ids, ship types, classes or
-  equipment categories, which match exactly). Below: 後続任務, the quests this one unlocks.
+  yet cleared, merged into one line per requirement. Ship lines that resolve to the same master ships are one line
+  (an override's master ids and the upstream name for the same ships, 駆逐 / 駆逐艦), else lines with identical names;
+  a ship line keeps the largest amount any quest asks, because each quest needs the ships at its own time and they
+  stay (modernization material, 改修素材, is used up and summed). Equipment is summed, because exchanges, conversions
+  and scraps use it up. Counts are plain text and only a shortfall stands out: 「0/2」 (owned/needed) in red; otherwise
+  the needed count, muted (「×4」, also without poi data); 「?/2」 when a name does not resolve. Ownership comes from
+  poi's ships and equipment (a named ship also matches its later remodels; ship-type words and classes resolve through
+  the master data; overrides name master ids, ship types, classes or equipment categories, which match exactly). An
+  empty 艦娘 or 装備 section is left out. Below: 後続任務, the quests this one unlocks.
 
 Status (poi state `quests`, protocol.ts `PoiQuests`): 達成 / 遂行中 / 受注可 straight from the game's list; 達成済 (inferred:
 an ancestor of a listed quest) and 未開放 (inferred: after a listed one-time quest). Without the 全て list (poi restarted,
