@@ -78,6 +78,15 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: bun run ingest:event-bonus
 
+      # Quest master data (KC3Kai quests_meta + kc3-translations + kcwiki-quest-data, DATA_SOURCES.md §14): ~5 s,
+      # three raw files + three commit lookups, one D1 batch replacing `quests`. Clients cache GET /quests for a day.
+      - name: Quests
+        working-directory: server
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bun run ingest:quests
+
       - name: Jobs (ingest, aggregation, estimator)
         working-directory: server
         run: bun scripts/run-jobs.ts run --minutes 25

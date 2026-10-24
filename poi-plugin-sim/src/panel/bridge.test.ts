@@ -45,7 +45,7 @@ describe("EmbedBridge", () => {
     bridge.update({ info: base, const: master });
     bridge.onMessage(ready);
     // another info object with the same parts (e.g. resources changed): nothing to send
-    bridge.update({ info: { ...base, quests: { x: 1 } }, const: master });
+    bridge.update({ info: { ...base, resources: [1, 2] }, const: master });
     expect(sent).toHaveLength(1);
     bridge.update({ info: { ...base, fleets: [2] }, const: master });
     expect(sent).toHaveLength(2);
@@ -68,6 +68,31 @@ describe("EmbedBridge", () => {
     expect(sent[1]).toMatchObject({ combinedFlag: 1 });
     bridge.update({ info: { ...base, airbase: [] }, const: master, combinedFlag: 1 });
     expect(sent).toHaveLength(3);
+  });
+
+  test("poi's active quests / records and the plugin's quest list are projected, and a change resends the state", () => {
+    const { bridge, sent } = setup();
+    const quests = {
+      activeQuests: { 214: { time: 1, detail: { api_no: 214, api_state: 2, api_type: 2, api_progress_flag: 1, api_title: "あ号作戦" } } },
+      records: { 214: { id: 214, sortie: { count: 12, required: 36, description: "出撃" }, count: 12, required: 36, active: true } },
+    };
+    const base = { ...info([1]), quests };
+    const questList = { list: [{ id: 214, state: 2, type: 2, progress: 1 }, { id: 101, state: 1, type: 4, progress: 0 }] };
+    bridge.update({ info: base, const: master, questList });
+    bridge.onMessage(ready);
+    expect(sent[0]).toMatchObject({
+      quests: {
+        list: questList.list,
+        active: [{ id: 214, state: 2, type: 2, progress: 1 }],
+        records: { 214: [{ key: "sortie", description: "出撃", count: 12, required: 36 }] },
+      },
+    });
+    expect(JSON.stringify(sent[0])).not.toContain("あ号作戦");
+    bridge.update({ info: base, const: master, questList: { list: [] } });
+    expect(sent).toHaveLength(2);
+    bridge.update({ info: { ...base, quests: { ...quests, records: {} } }, const: master, questList: { list: [] } });
+    expect(sent).toHaveLength(3);
+    expect(sent[2]).toMatchObject({ quests: { list: [], records: {} } });
   });
 
   test("a second ready (iframe reloaded) resends everything", () => {

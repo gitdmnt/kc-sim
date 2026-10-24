@@ -47,13 +47,15 @@ export function upsert(
   let size = head.length + tail.length;
   for (const row of rows) {
     const t = `(${cols.map((c) => { const v = row[c]; return v instanceof Raw ? v.sql : lit(v); }).join(", ")})`;
-    if (tuples.length > 0 && size + t.length + 2 > MAX_STATEMENT_BYTES) {
+    // D1's limit is in bytes: non-ASCII text (quest names) takes up to 3 per UTF-16 unit
+    const bytes = Buffer.byteLength(t);
+    if (tuples.length > 0 && size + bytes + 2 > MAX_STATEMENT_BYTES) {
       out.push(head + tuples.join(",\n") + tail);
       tuples = [];
       size = head.length + tail.length;
     }
     tuples.push(t);
-    size += t.length + 2;
+    size += bytes + 2;
   }
   out.push(head + tuples.join(",\n") + tail);
   return out;

@@ -106,7 +106,7 @@ const onMessage = (e: MessageEvent) => {
   // const は変わったときだけ届く。前回の参照を使い続けるとカタログを作り直さずに済む
   const master = msg.const ?? current.state?.const;
   if (master === undefined) return;
-  set({ status: "connected", state: { info: msg.info, const: master, combinedFlag: msg.combinedFlag } });
+  set({ status: "connected", state: { info: msg.info, const: master, combinedFlag: msg.combinedFlag, quests: msg.quests } });
 };
 
 /** エントリ (main.tsx) から 1 回だけ呼ぶ。 */

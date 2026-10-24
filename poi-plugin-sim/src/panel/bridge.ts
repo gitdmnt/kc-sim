@@ -2,7 +2,9 @@
  * プラグイン側の橋渡し (プロトコルは shared/embed/protocol.ts)。DOM に依存しない部分だけをここに置く
  * (iframe・postMessage・オリジン確認は WebFrame.tsx)。
  */
-import { EMBED_SOURCE, EMBED_VERSION, parseWebMessage, projectCombinedFlag, projectConst, projectInfo } from "@shared/embed/protocol";
+import {
+  EMBED_SOURCE, EMBED_VERSION, parseWebMessage, projectCombinedFlag, projectConst, projectInfo, projectQuests,
+} from "@shared/embed/protocol";
 import type { PluginMessage, PoiState } from "@shared/embed/protocol";
 
 export interface BridgeDeps {
@@ -21,8 +23,8 @@ const field = (v: unknown, key: string): unknown =>
   typeof v === "object" && v !== null ? (v as Record<string, unknown>)[key] : undefined;
 
 /**
- * poi の state のうち Web UI に送る部分の参照 (projectInfo の元) と連合艦隊のフラグ。redux はスライスを不変に更新するので、
- * どれかが変わったときだけ射影して送り直す (資源や任務の更新では送らない)。
+ * poi の state のうち Web UI に送る部分の参照 (projectInfo / projectQuests の元) と連合艦隊のフラグ。redux はスライスを
+ * 不変に更新するので、どれかが変わったときだけ射影して送り直す (資源の更新では送らない)。
  */
 const infoParts = (state: PoiState): unknown[] => [
   field(state.info, "fleets"),
@@ -31,6 +33,9 @@ const infoParts = (state: PoiState): unknown[] => [
   field(state.info, "airbase"),
   field(field(state.info, "basic"), "api_level"),
   state.combinedFlag,
+  field(field(state.info, "quests"), "activeQuests"),
+  field(field(state.info, "quests"), "records"),
+  state.questList,
 ];
 
 export class EmbedBridge {
@@ -73,7 +78,10 @@ export class EmbedBridge {
     const infoChanged = !prev || parts.some((p, i) => p !== prev[i]);
     const constChanged = !this.constSent || this.sentConst !== this.latest.const;
     if (!constChanged && !infoChanged) return;
-    const msg: PluginMessage = { src: EMBED_SOURCE, v: EMBED_VERSION, type: "state", info: projectInfo(this.latest.info) };
+    const msg: PluginMessage = {
+      src: EMBED_SOURCE, v: EMBED_VERSION, type: "state", info: projectInfo(this.latest.info),
+      quests: projectQuests(field(this.latest.info, "quests"), this.latest.questList),
+    };
     if (constChanged) msg.const = projectConst(this.latest.const);
     const combinedFlag = projectCombinedFlag(this.latest.combinedFlag);
     if (combinedFlag !== undefined) msg.combinedFlag = combinedFlag;

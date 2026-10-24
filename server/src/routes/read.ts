@@ -2,6 +2,7 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { mapName, parseMapKey } from "../maps";
+import { QUEST_SOURCE_KEYS } from "../quests";
 import {
   COMP_COLS, COMP_SET_COLS, COMP_SHIP_COLS, EDGE_COLS, EQUIP_COLS, EQUIP_FIELDS, ESTIMATE_COLS, MAP_COLS, NODE_COLS, ROUTING_HEAD_COLS,
   ROUTING_INFERRED_COLS, ROUTING_RULE_COLS, SHIP_COLS, SHIP_FIELDS, bestEstimates, compSetSummaryJson, compSetsJson, edgeJson, equipJson,
@@ -153,6 +154,18 @@ read.get("/equipments", async (c) => {
 read.get("/equipments/:id", async (c) => {
   const e = await c.env.DB.prepare(`SELECT ${EQUIP_COLS} FROM equipments WHERE id = ?1`).bind(Number(c.req.param("id"))).first();
   return e ? c.json({ equipment: equipJson(e) }) : c.json({ error: "equipment not found" }, 404);
+});
+
+// Quest master data (API.md "Quests"): the whole list in one response; the web caches it for a day.
+const QUEST_FIELDS = [["id", "id"], ["code", "code"], ["name", "name"], ["detail", "detail"], ["memo", "memo"], ["pre", "pre", "json"], ["requirements", "requirements", "json"]] as const;
+read.get("/quests", async (c) => {
+  const [row, sources] = await Promise.all([
+    c.env.DB.prepare(jsonArraySql(QUEST_FIELDS, "FROM quests ORDER BY id")).first<{ body: string }>(),
+    c.env.DB.prepare("SELECT key, revision, fetched_at FROM sources WHERE key IN (SELECT value FROM json_each(?1)) ORDER BY key")
+      .bind(JSON.stringify(QUEST_SOURCE_KEYS)).all(),
+  ]);
+  const src = sources.results.map((s) => ({ key: s.key, revision: s.revision, fetchedAt: s.fetched_at }));
+  return c.body(`{"sources":${JSON.stringify(src)},"quests":${row!.body}}`, 200, JSON_HEADERS);
 });
 
 read.get("/maps/:map/bonuses", async (c) => {

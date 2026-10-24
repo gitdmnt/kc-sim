@@ -1,11 +1,12 @@
 import React, { useMemo, useRef, useState } from "react";
-import { Anchor, Compass, Map, Settings, Swords } from "lucide-react";
+import { Anchor, Compass, ListChecks, Map, Settings, Swords } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { STORAGE_PREFIX } from "../fleet";
 import { Badge, S, cx } from "../ui";
 import { EnemyTab } from "./enemy/EnemyTab";
 import { MapTab } from "./map/MapTab";
 import { Workspace } from "./sim/Workspace";
+import { QuestTab } from "./quests/QuestTab";
 import { SettingsTab } from "./SettingsTab";
 import { NavProvider } from "./nav";
 import type { NavIntent, TabId } from "./nav";
@@ -16,11 +17,12 @@ const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
   { id: "sortie", label: S.tabs.sortie, icon: Anchor },
   { id: "map", label: S.tabs.map, icon: Map },
   { id: "enemy", label: S.tabs.enemy, icon: Swords },
+  { id: "quests", label: S.tabs.quests, icon: ListChecks },
   { id: "settings", label: S.tabs.settings, icon: Settings },
 ];
 
 /** 画面いっぱいに使うタブ (中で区画ごとにスクロールする)。他のタブは内容の高さで、はみ出せば main がスクロールする */
-const FULL_HEIGHT: TabId[] = ["sortie", "map", "enemy"];
+const FULL_HEIGHT: TabId[] = ["sortie", "map", "enemy", "quests"];
 
 /** poi との接続で対処が要る状態だけ出す */
 const PoiBadge = ({ poi }: { poi: PoiConnection }) =>
@@ -142,6 +144,7 @@ export const Shell = () => {
               </div>
               {tab === "map" && <div className={pane}><MapTab /></div>}
               {tab === "enemy" && <div className={pane}><EnemyTab /></div>}
+              {tab === "quests" && <div className={pane}><QuestTab /></div>}
               {tab === "settings" && <SettingsTab />}
             </div>
           </main>

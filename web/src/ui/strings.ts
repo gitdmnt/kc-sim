@@ -5,6 +5,7 @@ export const S = {
     sortie: "出撃",
     map: "海域",
     enemy: "敵艦",
+    quests: "任務",
     settings: "設定",
   },
   common: {

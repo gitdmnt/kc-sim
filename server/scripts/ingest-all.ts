@@ -6,6 +6,7 @@ import { ingestMapGraph } from "./ingest-map-graph";
 import { ingestFitBonuses } from "./ingest-fit-bonuses";
 import { ingestEventBonuses } from "./ingest-event-bonuses";
 import { ingestRouting } from "./ingest-routing";
+import { ingestQuests } from "./ingest-quests";
 
 await ingestStart2();
 await ingestAbyssal();
@@ -13,9 +14,10 @@ await ingestMapGraph();
 await ingestFitBonuses();
 await ingestEventBonuses();
 await ingestRouting();
+await ingestQuests();
 
 const tables = ["sources", "ship_types", "ships", "equip_types", "equipments", "maps", "nodes", "edges", "routing_maps",
   "routing_rules", "estimates", "fit_bonuses", "event_bonuses", "enemy_comp_sets", "enemy_comps", "enemy_comp_ships", "observations",
-  "kcnav_queue", "kcnav_cache"];
+  "kcnav_queue", "kcnav_cache", "quests"];
 const rows = await query<Record<string, number>>(`SELECT ${tables.map((t) => `(SELECT COUNT(*) FROM ${t}) AS ${t}`).join(", ")}`);
 console.table(rows[0]);

@@ -87,6 +87,26 @@ describe("parsePluginMessage", () => {
     expect(parsePluginMessage({ ...env, type: "state", info: {}, combinedFlag: 9 })).not.toHaveProperty("combinedFlag");
   });
 
+  test("quests are re-validated on receipt: malformed entries and goals dropped, extra keys stripped", () => {
+    const m = parsePluginMessage({
+      ...env, type: "state", info: {},
+      quests: {
+        list: [{ id: 101, state: 1, type: 4, progress: 0, title: "x" }, { id: "x", state: 1 }, null],
+        active: "nope",
+        records: { 214: [{ key: "sortie", count: 3, required: 36, description: "出撃", extra: 1 }, { key: "bad", count: "3" }], abc: [], 5: "x" },
+        secret: 1,
+      },
+    });
+    expect(m && m.type === "state" && m.quests).toEqual({
+      list: [{ id: 101, state: 1, type: 4, progress: 0 }],
+      active: [],
+      records: { 214: [{ key: "sortie", description: "出撃", count: 3, required: 36 }] },
+    });
+    const none = parsePluginMessage({ ...env, type: "state", info: {}, quests: 1 });
+    expect(none && "quests" in none).toBe(false);
+    expect(parsePluginMessage({ ...env, type: "state", info: {}, quests: {} })).toMatchObject({ quests: { list: null, active: [], records: {} } });
+  });
+
   test("rejects foreign, malformed and unsupported messages", () => {
     expect(parsePluginMessage(null)).toBeNull();
     expect(parsePluginMessage("kcsim")).toBeNull();

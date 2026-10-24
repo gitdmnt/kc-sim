@@ -84,6 +84,17 @@ describe("DataApi cache", () => {
     expect(calls).toHaveLength(2);
   });
 
+  test("quests are cached for a day regardless of the default ttl", async () => {
+    const { api, calls, advance } = mk([json({ sources: [], quests: [] }), json({ sources: [], quests: [] })]);
+    await api.quests();
+    advance(23 * 60 * 60 * 1000);
+    await api.quests();
+    expect(calls).toEqual(["http://x/api/v1/quests"]);
+    advance(2 * 60 * 60 * 1000);
+    await api.quests();
+    expect(calls).toHaveLength(2);
+  });
+
   test("dedupes in-flight requests", async () => {
     const { api, calls } = mk([json({ ships: [] })]);
     await Promise.all([api.abyssalShips(), api.abyssalShips()]);

@@ -3,6 +3,7 @@ import type { KeyValueStorage } from "../fleet";
 import { defaultStorage, keysWithPrefix } from "../fleet/storage";
 import type { FitEntry } from "@shared/sim/fit";
 import type { EventBonusResponse } from "@shared/sim/bonuses";
+import type { QuestsResponse } from "@shared/quest/types";
 import type {
   ApiEquipment,
   ApiShip,
@@ -42,6 +43,8 @@ export interface DataApiOptions {
 
 const CACHE_PREFIX = `${STORAGE_PREFIX}cache:`;
 const DEFAULT_TTL = 10 * 60 * 1000;
+/** 任務データ (サーバの取り込みは 1 日 1 回) */
+const QUEST_TTL = 24 * 60 * 60 * 1000;
 
 interface Entry {
   t: number;
@@ -92,10 +95,10 @@ export class DataApi {
     for (const k of keysWithPrefix(this.storage, CACHE_PREFIX)) this.storage.removeItem(k);
   }
 
-  private get<T>(path: string, fresh = false): Promise<Loaded<T>> {
+  private get<T>(path: string, fresh = false, ttl = this.ttl): Promise<Loaded<T>> {
     const key = `${this.opts.baseUrl().replace(/\/+$/, "")}${path}`;
     const cached = this.readEntry(key);
-    if (!fresh && cached && this.now() - cached.t < this.ttl) {
+    if (!fresh && cached && this.now() - cached.t < ttl) {
       return Promise.resolve({ data: cached.data as T, stale: false });
     }
     const running = this.inflight.get(key);
@@ -175,6 +178,10 @@ export class DataApi {
   async abyssalEquipments() {
     const r = await this.get<{ equipments: ApiEquipment[] }>("/api/v1/equipments?abyssal=1");
     return { data: r.data.equipments, stale: r.stale };
+  }
+  /** 任務の一覧 (前提・条件つき、docs/API.md)。サーバは 1 日 1 回取り込むので、キャッシュも 1 日使う。 */
+  quests() {
+    return this.get<QuestsResponse>("/api/v1/quests", false, QUEST_TTL);
   }
 }
 

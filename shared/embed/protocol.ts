@@ -1,7 +1,7 @@
 // postMessage protocol between the poi plugin (parent, file://) and the web UI it embeds in an iframe.
 //
 //   web → plugin   ready        { v }                             once the web UI listens
-//   plugin → web   state        { info, const?, combinedFlag? }   after every ready (const included), then on change
+//   plugin → web   state        { info, const?, combinedFlag?, quests? }   after every ready (const included), then on change
 //   plugin → web   presets      { json }                          the plugin's old presets, once per origin until acked
 //   web → plugin   presets-ack  { imported, skipped, persisted }  persisted = saved to storage that survives a reload
 //
@@ -27,12 +27,43 @@ export interface PoiState {
   const: unknown;
   /** poi's `state.sortie.combinedFlag` (api_combined_flag: 0 none, 1 機動, 2 水上, 3 輸送) */
   combinedFlag?: unknown;
+  /** Plugin side: the plugin's own reducer state (poi-plugin-sim/src/quests: the last questlist), raw */
+  questList?: unknown;
+  /** Web side: what `projectQuests` made of poi's `info.quests` and `questList` */
+  quests?: PoiQuests;
+}
+
+/** One quest of the game's questlist: api_no, api_state (1 available, 2 in progress, 3 done), api_type (4 = one-time), api_progress_flag (0, 1 = 50 %, 2 = 80 %). */
+export interface PoiQuestEntry {
+  id: number;
+  state: number;
+  type: number | null;
+  progress: number | null;
+}
+
+/** One sub-goal counted by poi's quest tracker (`info.quests.records[id][key]`). */
+export interface PoiQuestGoal {
+  key: string;
+  description: string | null;
+  count: number;
+  required: number;
+}
+
+/** Quest state for the 任務 tab. */
+export interface PoiQuests {
+  /** The last 全て (api_tab_id 0) questlist of this poi session: every unlocked, not yet cleared quest; null until the player opened it */
+  list: PoiQuestEntry[] | null;
+  /** poi's `info.quests.activeQuests` (in progress or done, reward not taken) */
+  active: PoiQuestEntry[];
+  /** poi's `info.quests.records`: per-quest progress counted on every battle / expedition / ... (quests in poi's quest_goal.cson) */
+  records: Record<number, PoiQuestGoal[]>;
 }
 
 /**
  * What the web UI reads from `state.info` (shared/fleet/poiImport.ts): HQ level, fleets (id, name, ship ids), land
  * bases (area, number, name, action, squadrons), and per ship / equipment instance only the fields below. Fleet
- * `api_member_id` (the admiral's id), base distances, missions, resources, quests, the admiral's name, … are dropped.
+ * `api_member_id` (the admiral's id), base distances, missions, resources, the admiral's name, … are dropped; quests
+ * travel separately as `quests` (PoiQuests: ids, states and progress counts only).
  */
 export interface PoiInfo {
   basic: { api_level?: unknown };
@@ -66,7 +97,7 @@ export type WebMessage =
   | { src: typeof EMBED_SOURCE; v: number; type: "presets-ack"; imported: number; skipped: number; persisted: boolean };
 
 export type PluginMessage =
-  | { src: typeof EMBED_SOURCE; v: number; type: "state"; info: PoiInfo; const?: PoiConst; combinedFlag?: number }
+  | { src: typeof EMBED_SOURCE; v: number; type: "state"; info: PoiInfo; const?: PoiConst; combinedFlag?: number; quests?: PoiQuests }
   | { src: typeof EMBED_SOURCE; v: number; type: "presets"; json: string };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -120,6 +151,78 @@ export const projectConst = (c: unknown): PoiConst => ({
   $mapareas: at(c, "$mapareas"),
 });
 
+const int = (v: unknown): number | null => (typeof v === "number" && Number.isInteger(v) ? v : null);
+/** Upper bound on quests read from one list (the game has < 1 000) */
+const MAX_QUESTS = 2000;
+
+/** One game questlist object (`api_list[]`, `activeQuests[id].detail`) as a PoiQuestEntry, or null. */
+export const questEntry = (q: unknown): PoiQuestEntry | null => {
+  const id = int(at(q, "api_no"));
+  const state = int(at(q, "api_state"));
+  return id !== null && id > 0 && state !== null ? { id, state, type: int(at(q, "api_type")), progress: int(at(q, "api_progress_flag")) } : null;
+};
+
+const readEntries = (v: unknown): PoiQuestEntry[] | null => {
+  if (!Array.isArray(v)) return null;
+  const out: PoiQuestEntry[] = [];
+  for (const e of v.slice(0, MAX_QUESTS)) {
+    const id = int(at(e, "id"));
+    const state = int(at(e, "state"));
+    if (id !== null && id > 0 && state !== null) out.push({ id, state, type: int(at(e, "type")), progress: int(at(e, "progress")) });
+  }
+  return out;
+};
+
+const readGoal = (key: string, g: unknown): PoiQuestGoal | null => {
+  const count = at(g, "count");
+  const required = at(g, "required");
+  if (typeof count !== "number" || typeof required !== "number" || !Number.isFinite(count) || !Number.isFinite(required)) return null;
+  const description = at(g, "description");
+  return { key, description: typeof description === "string" ? description : null, count, required };
+};
+
+/**
+ * Plugin side: poi's `info.quests` (activeQuests, records) and the plugin's questlist reducer state (`{list}`) as
+ * PoiQuests. A record's sub-goals are its object-valued keys (poi also writes summary `count` / `required` numbers).
+ */
+export const projectQuests = (infoQuests: unknown, questList: unknown): PoiQuests => {
+  const active: PoiQuestEntry[] = [];
+  const activeQuests = at(infoQuests, "activeQuests");
+  if (isObject(activeQuests)) {
+    for (const a of Object.values(activeQuests).slice(0, MAX_QUESTS)) {
+      const e = questEntry(at(a, "detail"));
+      if (e) active.push(e);
+    }
+  }
+  const records: Record<number, PoiQuestGoal[]> = {};
+  const raw = at(infoQuests, "records");
+  if (isObject(raw)) {
+    for (const [id, r] of Object.entries(raw).slice(0, MAX_QUESTS)) {
+      if (!/^[1-9]\d*$/.test(id) || !isObject(r)) continue;
+      const goals = Object.entries(r).flatMap(([k, g]) => (isObject(g) ? (readGoal(k, g) ?? []) : []));
+      if (goals.length > 0) records[Number(id)] = goals;
+    }
+  }
+  return { list: readEntries(at(questList, "list")), active, records };
+};
+
+/** Web side: a received PoiQuests, re-validated (unknown keys dropped), or undefined. */
+export const readQuests = (v: unknown): PoiQuests | undefined => {
+  if (!isObject(v)) return undefined;
+  const records: Record<number, PoiQuestGoal[]> = {};
+  if (isObject(v.records)) {
+    for (const [id, goals] of Object.entries(v.records).slice(0, MAX_QUESTS)) {
+      if (!/^[1-9]\d*$/.test(id) || !Array.isArray(goals)) continue;
+      const read = goals.flatMap((g) => {
+        const key = at(g, "key");
+        return typeof key === "string" ? (readGoal(key, g) ?? []) : [];
+      });
+      if (read.length > 0) records[Number(id)] = read;
+    }
+  }
+  return { list: readEntries(v.list), active: readEntries(v.active) ?? [], records };
+};
+
 /** `src` and an integer `v` ≥ 1, else null. */
 export const readEnvelope = (data: unknown): (Record<string, unknown> & { v: number; type: string }) | null => {
   if (!isObject(data) || data.src !== EMBED_SOURCE) return null;
@@ -150,6 +253,8 @@ export const parsePluginMessage = (data: unknown): PluginMessage | null => {
     if (m.const !== undefined) msg.const = projectConst(m.const);
     const combinedFlag = projectCombinedFlag(m.combinedFlag);
     if (combinedFlag !== undefined) msg.combinedFlag = combinedFlag;
+    const quests = readQuests(m.quests);
+    if (quests) msg.quests = quests;
     return msg;
   }
   if (m.type === "presets" && typeof m.json === "string" && m.json.length <= MAX_PRESETS_JSON) {

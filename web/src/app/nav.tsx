@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-export type TabId = "sortie" | "map" | "enemy" | "settings";
+export type TabId = "sortie" | "map" | "enemy" | "quests" | "settings";
 
 /** タブ間の遷移指示。遷移先のタブが読む (seq は同じ指示の再送を区別する)。 */
 export interface NavIntent {

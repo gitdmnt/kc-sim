@@ -7,9 +7,10 @@ import { connect } from "react-redux";
 import type { PoiState } from "@shared/embed/protocol";
 import styles from "../../assets/styles.css?inline";
 import { PluginPanel } from "../panel/PluginPanel";
+import { questListOf } from "../quests/reducer";
 
-const PoiApp = ({ info, const: master, combinedFlag }: PoiState) => {
-  const poiState = React.useMemo(() => ({ info, const: master, combinedFlag }), [info, master, combinedFlag]);
+const PoiApp = ({ info, const: master, combinedFlag, questList }: PoiState) => {
+  const poiState = React.useMemo(() => ({ info, const: master, combinedFlag, questList }), [info, master, combinedFlag, questList]);
   return (
     // <style> はこのコンポーネントがマウントされている間だけ存在する (アンマウントで poi 本体に残らない)
     <>
@@ -19,12 +20,13 @@ const PoiApp = ({ info, const: master, combinedFlag }: PoiState) => {
   );
 };
 
-// poi の state 全体ではなく info / const と連合艦隊のフラグだけ購読して再描画を減らす
+// poi の state 全体ではなく info / const と連合艦隊のフラグ、このプラグインの任務一覧だけ購読して再描画を減らす
 // (mapState の戻り値は浅く比較されるので、スライスを props にする)
 const Connected = connect((state: (Partial<PoiState> & { sortie?: { combinedFlag?: unknown } }) | undefined): PoiState => ({
   info: state?.info,
   const: state?.const,
   combinedFlag: state?.sortie?.combinedFlag,
+  questList: questListOf(state),
 }))(PoiApp);
 
 // poi はこのコンポーネントをプラグインパネルに描画する
@@ -35,3 +37,5 @@ export class reactClass extends React.Component {
 }
 
 export { startCapture, stopCapture, getCaptureDb } from "../capture";
+// poi が state.ext["poi-plugin-sim-build"]._ に置く (任務タブ用の任務一覧)
+export { reducer } from "../quests/reducer";
