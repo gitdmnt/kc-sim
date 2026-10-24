@@ -195,16 +195,16 @@ interface Built { input: BattleInput; nakedDiff: number[][]; warnings: string[] 
 
 /** One stored battle → BattleInput, or the reason it is not simulated. */
 function build(r: Row): Built | string {
-  if (r.kind === "unsupported") return `battle type ${r.api_name.split("/")[1]} (not modelled)`;
-  if (r.verified === 0) return "day result disagrees with the night packet";
+  if (r.kind === "unsupported") return `戦闘種別 ${r.api_name.split("/")[1]} (未対応)`;
+  if (r.verified === 0) return "昼戦の結果が夜戦パケットと食い違う";
   const s = parseBattleSetup(JSON.parse(r.raw));
   const p = s.rawapi;
   const fleetType = COMBINED_FLAG_TYPES[s.fleet.fleettype] ?? "single";
   const main = s.fleet.fleet1.map((sh, i) => presetShip(sh, p.api_f_maxhps[i] ?? 0, p.api_f_nowhps[i] ?? 0));
   const escort = (s.fleet.fleet2 ?? []).map((sh, i) => presetShip(sh, p.api_f_maxhps_combined?.[i] ?? 0, p.api_f_nowhps_combined?.[i] ?? 0));
-  if (fleetType !== "single" && !escort.length) return "combined fleet without escort data";
+  if (fleetType !== "single" && !escort.length) return "随伴艦隊のデータがない連合艦隊";
   const unknown = [...main, ...escort].filter((x) => !master.data.ships[x.masterId]);
-  if (unknown.length) return "ship missing from master data";
+  if (unknown.length) return "マスターデータにない艦がいる";
   const friend = buildFriendShips(
     { id: String(r.id), name: "", createdAt: 0, updatedAt: 0, fleetType, formation: "line_ahead", ships: main, escort },
     master.data, { fitBonuses: input.fit },
@@ -257,7 +257,7 @@ function build(r: Row): Built | string {
     const launched = firstWave.get(w.api_base_id)!;
     const key = launched.map((q) => q.id).join(",");
     const base = s.fleet.lbas?.find((b) => b.planes.filter((id) => id > 0).join(",") === key);
-    if (!base) return "land base missing from KCNav's fleet";
+    if (!base) return "KCNav の艦隊に基地航空隊がない";
     const slotOf = base.planes.flatMap((id, j) => (id > 0 ? [j] : []));
     const preset: PresetAirBase = {
       mode: "sortie", targets: [r.node_letter, r.node_letter],
@@ -280,12 +280,12 @@ function build(r: Row): Built | string {
   let support: SupportInput | undefined;
   const warnings: string[] = [];
   if (flag > 0) {
-    if (!s.fleet.support?.length) return "support arrived but KCNav has no support fleet";
+    if (!s.fleet.support?.length) return "支援艦隊が到着したが KCNav に支援艦隊がない";
     const ships = s.fleet.support.map((sh) => {
       const hp = master.data.ships[sh.id]?.api_taik?.[0] ?? 1;
       return presetShip(sh, hp, hp);
     });
-    if (ships.some((x) => !master.data.ships[x.masterId])) return "ship missing from master data";
+    if (ships.some((x) => !master.data.ships[x.masterId])) return "マスターデータにない艦がいる";
     const built = buildFriendShips({ id: "", name: "", createdAt: 0, updatedAt: 0, fleetType: "single", formation: "line_ahead", ships }, master.data, { fitBonuses: input.fit });
     warnings.push(...built.warnings);
     support = { fleet: { ships: built.input }, type: SUPPORT_TYPE[flag], chance: 1 };
@@ -313,7 +313,7 @@ function build(r: Row): Built | string {
         exSlot: eq(fi.api_slot_ex?.[i], false),
       };
     });
-    if (friendShips.some((x) => !master.data.ships[x.masterId])) return "friend fleet ship missing from master data";
+    if (friendShips.some((x) => !master.data.ships[x.masterId])) return "マスターデータにない友軍艦隊の艦がいる";
     const built = buildFriendShips({ id: "", name: "", createdAt: 0, updatedAt: 0, fleetType: "single", formation: "line_ahead", ships: friendShips },
       master.data, { fitBonuses: input.fit });
     built.input.forEach((sh, i) => {
@@ -396,6 +396,9 @@ const PHASES: [string, OutcomePhase][] = [
   ["support", "support"], ["friendFleet", "friendFleet"],
 ];
 const AIR: Record<number, keyof SimulationSummary["airStateRates"]> = { 0: "parity", 1: "supremacy", 2: "superiority", 3: "denial", 4: "incapability" };
+const AIR_JA: Record<keyof SimulationSummary["airStateRates"], string> = {
+  none: "航空戦なし", parity: "航空均衡", supremacy: "制空権確保", superiority: "航空優勢", denial: "航空劣勢", incapability: "制空権喪失",
+};
 /** The packet's opening airstrikes (api_kouku stage 3): per ship, torpedo / bomb attack flags and damage (null: no ship). */
 const flags = z.array(z.number().nullable()).nullish();
 const stage3 = z.object({ api_erai_flag: flags, api_ebak_flag: flags, api_edam: flags, api_frai_flag: flags, api_fbak_flag: flags, api_fdam: flags }).loose();
@@ -436,7 +439,7 @@ for (const r of input.rows) {
   // Stored by src/kcnav/battles.ts normalizeBattle.
   const out = JSON.parse(r.outcome) as BattleOutcome;
   if (out.friend.length !== sum.friend.length || out.enemy.length !== sum.enemy.length) {
-    skipped.set("fleet size differs from the packet", (skipped.get("fleet size differs from the packet") ?? 0) + 1);
+    skipped.set("艦隊の艦数がパケットと違う", (skipped.get("艦隊の艦数がパケットと違う") ?? 0) + 1);
     continue;
   }
   nakedDiffs.push(...b.nakedDiff);
@@ -624,7 +627,7 @@ function wilson(k: number, n: number): [number, number] {
 }
 
 function reliability(points: { p: number; y: number }[]): string[] {
-  const rows: string[] = ["| predicted | n | mean predicted | observed [95% CI] |", "|---|---|---|---|"];
+  const rows: string[] = ["| 予測 | n | 予測の平均 | 観測 [95% CI] |", "|---|---|---|---|"];
   for (let b = 0; b < 10; b++) {
     const lo = b / 10, hi = (b + 1) / 10;
     const inBin = points.filter((x) => x.p >= lo && (x.p < hi || (b === 9 && x.p <= 1)));
@@ -652,8 +655,8 @@ const groupTable = (title: string, key: (s: Scored) => string, minN = 1): string
   const groups = new Map<string, number[]>();
   scored.forEach((s, i) => groups.set(key(s), [...(groups.get(key(s)) ?? []), i]));
   const lines = [
-    `#### By ${title}`, "",
-    `| ${title} | n | S obs / pred | A+ obs / pred | rank Brier model / node base | rank skill [95% CI] | ship-state skill [95% CI] | HP MAE friend / enemy |`,
+    `#### ${title}別`, "",
+    `| ${title} | n | S勝利 観測 / 予測 | A+ 観測 / 予測 | ランク Brier モデル / マスの基準値 | ランク skill [95% CI] | 艦の状態 skill [95% CI] | HP MAE プレイヤー / 敵 |`,
     "|---|---|---|---|---|---|---|---|",
   ];
   for (const [k, idx] of [...groups].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))) {
@@ -666,7 +669,7 @@ const groupTable = (title: string, key: (s: Scored) => string, minN = 1): string
 
 const phaseLines = (): string[] => {
   const lines = [
-    "| phase | HP removed from the enemy: observed / simulated (ratio) | from the player: observed / simulated (ratio) |",
+    "| 段階 | 敵から削った HP: 観測 / シミュレーション (比) | プレイヤーから: 観測 / シミュレーション (比) |",
     "|---|---|---|",
   ];
   for (const [, ph] of PHASES) {
@@ -690,12 +693,12 @@ const airLines = (): string[] => {
     return `${paired.length}: ${pct(mean(paired.map((t) => (t.damaged ? 1 : 0))))} / ${pct(mean(paired.map((t) => t.sim ?? 0)))}`;
   };
   const groups: [string, (s: Scored) => boolean][] = [
-    ...Object.entries(AIR).map(([k, name]): [string, (s: Scored) => boolean] => [`air ${name}`, (s) => s.row.air_state === Number(k)]),
-    ["normal maps", (s) => s.row.map_id < 100], ["event maps", (s) => s.row.map_id > 100], ["air raids", (s) => s.row.kind === "airRaid"],
-    ["all", () => true],
+    ...Object.entries(AIR).map(([k, name]): [string, (s: Scored) => boolean] => [AIR_JA[name], (s) => s.row.air_state === Number(k)]),
+    ["通常海域", (s) => s.row.map_id < 100], ["イベント海域", (s) => s.row.map_id > 100], ["空襲", (s) => s.row.kind === "airRaid"],
+    ["全体", () => true],
   ];
   const lines = [
-    "| battles | player's airstrikes: targets: damaged observed / simulated | enemy airstrikes on the player: targets: damaged observed / simulated |",
+    "| 戦闘 | プレイヤーの航空攻撃: 目標数: 損傷 観測 / シミュレーション | プレイヤーへの敵の航空攻撃: 目標数: 損傷 観測 / シミュレーション |",
     "|---|---|---|",
   ];
   for (const [label, keep] of groups) {
@@ -707,67 +710,67 @@ const airLines = (): string[] => {
 
 const nd = nakedDiffs.length;
 const exact = (k: number) => nakedDiffs.filter((d) => d[k] === 0).length / nd;
-const skippedLines = [...skipped].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join("; ") || "none";
+const skippedLines = [...skipped].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v} 戦`).join("、") || "なし";
 const rankCal = RANKS.map((r, k) => `${r} ${pct(mean(scored.map((s) => (s.rankO === k ? 1 : 0))))} / ${pct(mean(scored.map((s) => s.rankP[k]!)))}`).join(" · ");
 
 const out: string[] = [
-  `Generated by \`bun scripts/battle-accuracy.ts\` (server/) on ${new Date().toISOString().slice(0, 10)}: engine = sim-core/src at ${engine || "?"}, ${RUNS} runs per battle (${LOGGED} with event logs for the phases), seeds = KCNav battle ids${values.debuffs ? ", event armor debuffs on" : ""}${values["no-pursuit"] ? ", no boss night pursuit" : ""}. Inputs saved ${input.savedAt.slice(0, 16)}Z.`,
+  `\`bun scripts/battle-accuracy.ts\` (server/) で ${new Date().toISOString().slice(0, 10)} に生成: エンジン = sim-core/src ${engine || "?"}、1 戦あたり ${RUNS} 回 (段階ごとの集計用にイベントログつき ${LOGGED} 回)、乱数の種 = KCNav の戦闘 ID${values.debuffs ? "、イベントの装甲破砕あり" : ""}${values["no-pursuit"] ? "、ボスの夜戦追撃なし" : ""}。入力の保存 ${input.savedAt.slice(0, 16)}Z。`,
   "",
-  `Data: ${input.rows.length} KCNav battles (${maps.join(", ")}; ${dates[0] ?? "–"} … ${dates.at(-1) ?? "–"}). **Scored: ${scored.length} battles, ${head.ships} player ships.** Not simulated: ${skippedLines}.`,
+  `データ: KCNav の戦闘 ${input.rows.length} 戦 (${maps.join(", ")}; ${dates[0] ?? "–"} … ${dates.at(-1) ?? "–"})。**採点: ${scored.length} 戦、プレイヤーの艦 ${head.ships} 隻。** シミュレートしなかったもの: ${skippedLines}。`,
   "",
-  "Baselines are leave-one-out frequencies over the scored battles: ranks at the same node (≥ 10 other battles there, else all nodes), ship end states given the ship's state at the start, enemy sinking at the node, HP as the average kept share of the starting HP. Skill = 1 − model / baseline (> 0 beats the baseline); 95% intervals bootstrap the battles.",
+  "基準値は、採点した戦闘に対する 1 つ抜きの頻度だ: ランクは同じマス (そこにほかの戦闘が 10 戦以上あれば。なければ全マス)、艦の終了時の状態は開始時の状態ごと、敵の撃沈はマスごと、HP は開始時 HP のうち残った割合の平均。skill = 1 − モデル / 基準値 (> 0 なら基準値に勝つ)。95% 区間は戦闘のブートストラップ。",
   "",
-  "| | model | baseline | skill |",
+  "| | モデル | 基準値 | skill |",
   "|---|---|---|---|",
-  `| rank Brier (6 classes, SS+S merged) | ${f3(head.rank.model)} | ${f3(head.rank.base)} node · ${f3(head.rankGlobal)} all | ${ci(head.skill)} vs node · ${f3(head.skillGlobal)} vs all |`,
-  `| rank log-loss | ${f3(head.rankLog.model)} | ${f3(head.rankLog.base)} | – |`,
-  `| player ship end state Brier (5 classes) | ${f3(head.state.model)} | ${f3(head.state.base)} | ${ci(head.stateSkill)} |`,
-  `| P(player ship heavily damaged or sunk) Brier | ${f3(head.taiha.model)} | ${f3(head.taiha.base)} | ${f3(1 - head.taiha.model / head.taiha.base)} |`,
-  `| P(enemy ship sunk) Brier | ${f3(head.enemySunk.model)} | ${f3(head.enemySunk.base)} | ${f3(1 - head.enemySunk.model / head.enemySunk.base)} |`,
-  `| player HP after: MAE (bias sim − real) | ${f1(head.hpFriend.model)} HP (${f1(head.biasFriend)}) | ${f1(head.hpFriend.base)} HP | ${f3(1 - head.hpFriend.model / head.hpFriend.base)} |`,
-  `| enemy HP after: MAE (bias sim − real) | ${f1(head.hpEnemy.model)} HP (${f1(head.biasEnemy)}) | ${f1(head.hpEnemy.base)} HP | ${f3(1 - head.hpEnemy.model / head.hpEnemy.base)} |`,
-  `| air state: mean P(observed) · most likely = observed | ${pct(head.air)} · ${pct(head.airHit)} | – | – |`,
+  `| ランク Brier (6 クラス、SS と S は統合) | ${f3(head.rank.model)} | ${f3(head.rank.base)} マス · ${f3(head.rankGlobal)} 全体 | ${ci(head.skill)} 対マス · ${f3(head.skillGlobal)} 対全体 |`,
+  `| ランク log-loss | ${f3(head.rankLog.model)} | ${f3(head.rankLog.base)} | – |`,
+  `| プレイヤーの艦の終了時の状態 Brier (5 クラス) | ${f3(head.state.model)} | ${f3(head.state.base)} | ${ci(head.stateSkill)} |`,
+  `| P(プレイヤーの艦が大破または轟沈) Brier | ${f3(head.taiha.model)} | ${f3(head.taiha.base)} | ${f3(1 - head.taiha.model / head.taiha.base)} |`,
+  `| P(敵艦の撃沈) Brier | ${f3(head.enemySunk.model)} | ${f3(head.enemySunk.base)} | ${f3(1 - head.enemySunk.model / head.enemySunk.base)} |`,
+  `| 戦闘後のプレイヤーの HP: MAE (偏り シミュレーション − 実際) | ${f1(head.hpFriend.model)} HP (${f1(head.biasFriend)}) | ${f1(head.hpFriend.base)} HP | ${f3(1 - head.hpFriend.model / head.hpFriend.base)} |`,
+  `| 戦闘後の敵の HP: MAE (偏り シミュレーション − 実際) | ${f1(head.hpEnemy.model)} HP (${f1(head.biasEnemy)}) | ${f1(head.hpEnemy.base)} HP | ${f3(1 - head.hpEnemy.model / head.hpEnemy.base)} |`,
+  `| 制空状態: P(観測) の平均 · 最も確率の高い状態 = 観測 | ${pct(head.air)} · ${pct(head.airHit)} | – | – |`,
   "",
-  `Rank, observed / mean predicted: ${rankCal}.`,
+  `ランク、観測 / 予測の平均: ${rankCal}。`,
   "",
-  "#### Reliability: P(S or SS)",
+  "#### 較正: P(S または SS)",
   "",
   ...reliability(scored.map((s) => ({ p: s.rankP[0]!, y: s.rankO === 0 ? 1 : 0 }))),
   "",
-  "#### Reliability: P(A or better)",
+  "#### 較正: P(A 以上)",
   "",
   ...reliability(scored.map((s) => ({ p: s.rankP[0]! + s.rankP[1]!, y: s.rankO <= 1 ? 1 : 0 }))),
   "",
-  "#### Reliability: P(player ship heavily damaged or sunk)",
+  "#### 較正: P(プレイヤーの艦が大破または轟沈)",
   "",
   ...reliability(friendShips.map((x) => ({ p: x.f.p[0]! + x.f.p[1]!, y: x.f.o <= 1 ? 1 : 0 }))),
   "",
-  "#### Reliability: P(enemy ship sunk)",
+  "#### 較正: P(敵艦の撃沈)",
   "",
   ...reliability(enemyShips.map((x) => ({ p: x.e.p[0]!, y: x.e.o === 0 ? 1 : 0 }))),
   "",
-  ...groupTable("outcome spread", (s) => {
+  ...groupTable("結果のばらつき", (s) => {
     const atNode = scored.filter((x) => x.node === s.node);
     const top = Math.max(...RANKS.map((_, k) => atNode.filter((x) => x.rankO === k).length)) / atNode.length;
-    return top > 0.9 ? "decided node (one rank > 90%)" : "contested node (no rank > 90%)";
+    return top > 0.9 ? "決まったマス (1 つのランクが 90% 超)" : "接戦のマス (90% を超えるランクなし)";
   }),
-  ...groupTable("map", (s) => s.node.split(" ")[0]!),
-  ...groupTable("node", (s) => s.node),
-  ...groupTable("battle type", (s) => s.row.kind),
-  ...groupTable("fleet", (s) => `${s.fleet}${s.lbas ? " + land bases" : ""}`),
-  ...groupTable("enemy fleet", (s) => (s.row.enemy_combined ? "combined (12 ships)" : "single")),
-  ...groupTable("extra fleets", (s) => [s.row.support ? "support" : "", s.row.friend_fleet ? "friend fleet" : ""].filter(Boolean).join(" + ") || "none"),
-  "#### HP removed per phase (mean per battle; each hit at most the HP the ship had left)",
+  ...groupTable("海域", (s) => s.node.split(" ")[0]!),
+  ...groupTable("マス", (s) => s.node),
+  ...groupTable("戦闘種別", (s) => s.row.kind),
+  ...groupTable("艦隊", (s) => `${s.fleet === "combined" ? "連合艦隊" : "通常艦隊"}${s.lbas ? " + 基地航空隊" : ""}`),
+  ...groupTable("敵艦隊", (s) => (s.row.enemy_combined ? "連合艦隊 (12 隻)" : "通常艦隊")),
+  ...groupTable("追加の艦隊", (s) => [s.row.support ? "支援艦隊" : "", s.row.friend_fleet ? "友軍艦隊" : ""].filter(Boolean).join(" + ") || "なし"),
+  "#### 段階ごとに削った HP (1 戦あたりの平均。各命中は艦の残り HP まで)",
   "",
   ...phaseLines(),
   "",
-  "#### Opening airstrikes vs the packets (api_kouku stage 3)",
+  "#### 開幕航空戦とパケットの比較 (api_kouku stage 3)",
   "",
-  `Ships an airstrike attacked in the packet (torpedo or bomb flag) and in at least one of the ${LOGGED} logged runs: the share that took damage, observed / simulated given attacked.`,
+  `パケットで航空攻撃を受けた艦 (雷撃または爆撃のフラグ) のうち、ログつきの ${LOGGED} 回の実行の少なくとも 1 回でも攻撃を受けたもの: 損傷を受けた割合を、攻撃を受けた場合について 観測 / シミュレーション で示す。`,
   "",
   ...airLines(),
   "",
-  `Inputs: player FP/TP/AA/AR are naked from the packet's api_fParam, with the visible equipment bonus taken as displayed − equipment − api_fParam (the game's own). Our fit-bonus data (kancolle-replay mst_slotitem_bonus.json, shared/sim/fit.ts) gave that same bonus for ${pct(exact(0))} / ${pct(exact(1))} / ${pct(exact(2))} / ${pct(exact(3))} of ${nd} ships (FP / TP / AA / AR); the web UI, which has only displayed stats, would mis-split the rest. EV / ASW / LoS use our fit data for the split (totals are the displayed ones). ${warnings} adapter warnings. Simulation took ${simSeconds.toFixed(0)} s.`,
+  `入力: プレイヤーの FP/TP/AA/AR はパケットの api_fParam の素の値で、見える装備ボーナスは 表示値 − 装備 − api_fParam (ゲーム自身の値) とする。こちらのフィットボーナスのデータ (kancolle-replay mst_slotitem_bonus.json、shared/sim/fit.ts) は、${nd} 隻のうち ${pct(exact(0))} / ${pct(exact(1))} / ${pct(exact(2))} / ${pct(exact(3))} で同じボーナスを出した (FP / TP / AA / AR)。表示上の能力値しか持たない web UI では、残りの分け方を誤る。EV / ASW / LoS はこちらのフィットデータで分ける (合計は表示値)。アダプターの警告 ${warnings} 件。シミュレーションの所要時間 ${simSeconds.toFixed(0)} 秒。`,
 ];
 
 // ---------------------------------------------------------------- outputs ----
@@ -787,17 +790,17 @@ if (existsSync(SUMMARY)) {
   // Written by this script.
   const prev = JSON.parse(readFileSync(SUMMARY, "utf8")) as Summary;
   const rows: [string, keyof Summary, (x: number) => string][] = [
-    ["scored battles", "scored", String], ["rank Brier", "rankBrier", f3], ["rank skill vs node", "rankSkillNode", f3],
-    ["rank log-loss", "rankLogLoss", f3], ["ship end state Brier", "stateBrier", f3], ["P(heavy or sunk) Brier", "taihaBrier", f3],
-    ["P(enemy sunk) Brier", "enemySunkBrier", f3], ["player HP MAE", "hpMaeFriend", f1], ["enemy HP MAE", "hpMaeEnemy", f1],
-    ["P(S) predicted / observed", "predS", pct],
+    ["採点した戦闘", "scored", String], ["ランク Brier", "rankBrier", f3], ["マスに対するランク skill", "rankSkillNode", f3],
+    ["ランク log-loss", "rankLogLoss", f3], ["艦の終了時の状態 Brier", "stateBrier", f3], ["P(大破または轟沈) Brier", "taihaBrier", f3],
+    ["P(敵艦の撃沈) Brier", "enemySunkBrier", f3], ["プレイヤーの HP MAE", "hpMaeFriend", f1], ["敵の HP MAE", "hpMaeEnemy", f1],
+    ["P(S勝利) 予測 / 観測", "predS", pct],
   ];
   console.log(`vs previous summary (${prev.generatedAt.slice(0, 16)}, engine ${prev.engine}, ${prev.scored} battles):`);
   for (const [, k] of rows) console.log(`  ${k}: ${prev[k]} → ${summary[k]}`);
   // An engine change on the same battles (e.g. --offline after a sim-core merge) goes into the document.
   if (prev.engine !== engine && prev.scored === summary.scored) {
-    out.push("", `#### Change against the previous engine (sim-core/src at ${prev.engine}, same ${prev.scored} battles)`, "",
-      "| | before | now |", "|---|---|---|",
+    out.push("", `#### 前のエンジンとの比較 (sim-core/src ${prev.engine}、同じ ${prev.scored} 戦)`, "",
+      "| | 前 | 今 |", "|---|---|---|",
       ...rows.map(([label, k, f]) => `| ${label} | ${f(Number(prev[k]))}${k === "predS" ? ` / ${pct(prev.obsS)}` : ""} | ${f(Number(summary[k]))}${k === "predS" ? ` / ${pct(summary.obsS)}` : ""} |`));
   }
 }
