@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { battleKind, battleRank, normalizeBattle } from "../src/kcnav/battles";
+import { battleKind, battleRank, normalizeBattle, parseBattleSetup } from "../src/kcnav/battles";
 import { enqueue, jobPath } from "../src/kcnav/enqueue";
 import { reparseCached, tick } from "../src/kcnav/tick";
 import { Budget } from "../src/budget";
@@ -70,6 +70,12 @@ describe("battles: normalize", () => {
     expect(battleRank([[100, 100, 90]], [[100, 100, 99]])).toBe("D");
     expect(battleRank([[100, 100, 100], [100, 100, 0]], [full(100)])).toBe("E");
     expect(battleRank([[100, 100, 95]], [full(100)], true)).toBe("A");
+  });
+
+  test("a land base slot count may be null (empty slot in a sortied base)", () => {
+    const raw = structuredClone(page74P.result.battles[0]) as { battle: { fleet: { lbas: { slots: (number | null)[] }[] } } };
+    raw.battle.fleet.lbas[0]!.slots[0] = null;
+    expect(parseBattleSetup(raw).fleet.lbas?.[0]?.slots[0]).toBeNull();
   });
 
   test("an entry without packets is rejected", () => {

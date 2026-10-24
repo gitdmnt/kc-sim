@@ -72,7 +72,7 @@ const setupShip = z.object({
   ammo: z.number().nullish(),
   morale: z.number().nullish(),
 });
-const setupBase = z.object({ planes: nums, slots: nums, proficiency: nums, improvements: nums });
+const setupBase = z.object({ planes: nums, slots: z.array(z.number().nullable()), proficiency: nums, improvements: nums });
 const nums2 = z.array(nums);
 /** Event friend fleet (友軍艦隊) as the game sends it: `api_Param` [FP, TP, AA, AR] like `api_fParam` (naked). */
 const friendlyInfo = z.object({
