@@ -1,11 +1,10 @@
 import React, { useMemo, useRef, useState } from "react";
-import { Anchor, Compass, FlaskConical, Map, Settings, Swords } from "lucide-react";
+import { Anchor, Compass, Map, Settings, Swords } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { STORAGE_PREFIX } from "../fleet";
 import { Badge, S, cx } from "../ui";
-import { EnemyTab } from "./enemy/EnemyTab";
+import { EnemyHub } from "./enemy/EnemyHub";
 import { MapTab } from "./map/MapTab";
-import { EstimateTab } from "./estimate/EstimateTab";
 import { Workspace } from "./sim/Workspace";
 import { SettingsTab } from "./SettingsTab";
 import { NavProvider } from "./nav";
@@ -17,12 +16,11 @@ const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
   { id: "sortie", label: S.tabs.sortie, icon: Anchor },
   { id: "map", label: S.tabs.map, icon: Map },
   { id: "enemy", label: S.tabs.enemy, icon: Swords },
-  { id: "estimate", label: S.tabs.estimate, icon: FlaskConical },
   { id: "settings", label: S.tabs.settings, icon: Settings },
 ];
 
 /** 画面いっぱいに使うタブ (中で区画ごとにスクロールする)。他のタブは内容の高さで、はみ出せば main がスクロールする */
-const FULL_HEIGHT: TabId[] = ["sortie", "map", "enemy", "estimate"];
+const FULL_HEIGHT: TabId[] = ["sortie", "map", "enemy"];
 
 /** poi との接続で対処が要る状態だけ出す */
 const PoiBadge = ({ poi }: { poi: PoiConnection }) =>
@@ -34,7 +32,7 @@ const PoiBadge = ({ poi }: { poi: PoiConnection }) =>
 
 /** 左端の縦のタブ列 (VS Code のアクティビティバー): アイコンと短い名前 */
 const ActivityBar = ({ value, onChange }: { value: TabId; onChange: (id: TabId) => void }) => (
-  <nav role="tablist" aria-orientation="vertical" className="flex w-14 shrink-0 flex-col border-r border-ink-800 py-1">
+  <nav role="tablist" aria-orientation="vertical" className="flex w-16 shrink-0 flex-col border-r border-ink-800 py-1">
     {TABS.map((t, i) => {
       const active = t.id === value;
       const Icon = t.icon;
@@ -70,11 +68,14 @@ const ActivityBar = ({ value, onChange }: { value: TabId; onChange: (id: TabId) 
 );
 
 const TAB_KEY = `${STORAGE_PREFIX}tab`;
+/** 統合で消えたタブ id → 移した先 (保存済みの選択を引き継ぐ) */
+const RENAMED_TABS: Record<string, TabId> = { estimate: "enemy" };
 
 const initialTab = (): TabId => {
   try {
-    const v = localStorage.getItem(TAB_KEY) as TabId | null;
-    if (v && TABS.some((t) => t.id === v)) return v;
+    const v = localStorage.getItem(TAB_KEY);
+    const id = v && (RENAMED_TABS[v] ?? v);
+    if (id && TABS.some((t) => t.id === id)) return id as TabId;
   } catch {
     // ignore
   }
@@ -118,10 +119,10 @@ export const Shell = () => {
     <NavProvider value={nav}>
       <div className="flex h-screen flex-col">
         {!embedded && (
-          <header className="flex h-10 shrink-0 items-center gap-2 border-b border-ink-800 px-3">
+          <header className="flex h-10 shrink-0 items-center gap-2 border-b border-ink-800 pr-3 pl-12">
             <Compass size={18} className="text-ink-400" aria-hidden />
             <h1 className="text-sm font-semibold text-ink-50">{S.appTitle}</h1>
-            <span className="ml-auto text-xs text-ink-500 tabular-nums">v{__APP_VERSION__}</span>
+            <span className="text-xs text-ink-500 tabular-nums">v{__APP_VERSION__}</span>
           </header>
         )}
         <div className="flex min-h-0 flex-1">
@@ -140,8 +141,7 @@ export const Shell = () => {
                 <Workspace />
               </div>
               {tab === "map" && <div className={pane}><MapTab /></div>}
-              {tab === "enemy" && <div className={pane}><EnemyTab /></div>}
-              {tab === "estimate" && <div className={pane}><EstimateTab /></div>}
+              {tab === "enemy" && <div className={pane}><EnemyHub /></div>}
               {tab === "settings" && <SettingsTab />}
             </div>
           </main>

@@ -1,6 +1,5 @@
-/** パラメータ推定タブ: サーバが全プレイヤーの観測から推定した敵艦の隠しステータスを表示する (GET /api/v1/estimates)。 */
+/** 敵艦・推定タブの推定の区画: サーバが全プレイヤーの観測から推定した敵艦の隠しステータスを表示する (GET /api/v1/estimates)。 */
 import React, { useMemo, useState } from "react";
-import { useIntentFor } from "../nav";
 import { getDataApi } from "../../data/api";
 import { useAbyssalData } from "../../data/names";
 import { ESTIMATE_MIN_N } from "@shared/data/types";
@@ -86,15 +85,14 @@ const ShipDetail = ({ name, shipId, rows, densityLoading }: { name: string; ship
 
 type SortKey = "id" | "n" | "shift";
 
-export const EstimateTab = () => {
+export const EstimateTab = ({ initialShipId }: { initialShipId?: number }) => {
   const names = useAbyssalData();
   const [reload, setReload] = useState(0);
   const [query, setQuery] = useState("");
   const [stat, setStat] = useState<EstimatedStat | "">("");
   const [filter, setFilter] = useState<"" | "shifted" | "enough">("");
   const [sort, setSort] = useState<SortKey>("id");
-  const intent = useIntentFor("estimate");
-  const [selected, setSelected] = useState<number | null>(intent?.shipId ?? null);
+  const [selected, setSelected] = useState<number | null>(initialShipId ?? null);
 
   const list = useAsync(() => getDataApi().estimates({ density: false }, reload > 0), [reload]);
   const all = list.data?.estimates;

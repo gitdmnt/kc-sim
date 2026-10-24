@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-export type TabId = "sortie" | "map" | "enemy" | "estimate" | "settings";
+export type TabId = "sortie" | "map" | "enemy" | "settings";
 
 /** タブ間の遷移指示。遷移先のタブが読む (seq は同じ指示の再送を区別する)。 */
 export interface NavIntent {
@@ -10,7 +10,8 @@ export interface NavIntent {
   mode?: "sortie" | "battle";
   map?: string;
   node?: string;
-  /** estimate タブ: 表示する深海棲艦 */
+  /** enemy タブ: 開く区画 (敵艦の一覧 / サーバの推定値) と、推定値で選ぶ深海棲艦 */
+  view?: "ships" | "estimates";
   shipId?: number;
 }
 

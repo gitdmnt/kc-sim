@@ -39,7 +39,8 @@ try {
   await page.reload();
 
   const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).click();
-  await tab("パラメータ推定");
+  await tab("敵艦・推定");
+  await page.getByRole("tab", { name: "推定", exact: true }).click();
   await page.getByText("事前との差").waitFor({ timeout: 30_000 });
   await page.getByText("最終推定:").waitFor({ timeout: 30_000 });
   // ずれの大きい艦を選ぶ

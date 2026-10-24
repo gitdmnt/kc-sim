@@ -106,7 +106,7 @@ const ShipDetailView = ({ id, equipById, max }: { id: number; equipById: (id: nu
         <>
           {res.stale && <StaleBadge />}
           {estimates.length > 0 && (
-            <Button size="sm" onClick={() => nav.go({ tab: "estimate", shipId: ship.id })}>
+            <Button size="sm" onClick={() => nav.go({ tab: "enemy", view: "estimates", shipId: ship.id })}>
               推定詳細
               <ArrowRight size={14} aria-hidden />
             </Button>
