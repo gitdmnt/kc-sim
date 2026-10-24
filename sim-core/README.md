@@ -1,10 +1,9 @@
 # sim-core
 
-KanColle battle and sortie engine (Rust → wasm) for Monte-Carlo win/rank rates, routing and gauges:
-single or combined (機動 / 水上 / 輸送護衛) friend fleets vs a single enemy fleet, with land-based air
-squadron waves.
-The JSON/TypeScript contract is `../docs/SIM_INTERFACE.md` (machine-readable copy:
-`sim_core_types.d.ts`, embedded into `pkg/sim_core.d.ts`).
+艦これの戦闘・出撃エンジン(Rust → wasm)。モンテカルロ法で勝率・ランク率・ルーティング・ゲージを求める。
+単艦隊または連合艦隊(機動 / 水上 / 輸送護衛)の自艦隊と、単一の敵艦隊の戦闘を扱い、基地航空隊の波状攻撃にも対応する。
+JSON/TypeScript の契約は `../docs/SIM_INTERFACE.md` にある(機械可読なコピーは
+`sim_core_types.d.ts` で、`pkg/sim_core.d.ts` に埋め込まれる)。
 
 ```ts
 simulateBattle(input: BattleInput, count: number, seed: number): SimulationSummary
@@ -14,7 +13,7 @@ damageDistribution(query: AttackQuery): DamageDistribution           // forward 
 simulateSortie(input: SortieInput, count: number, seed: number): SortieSummary  // routing + chained battles
 ```
 
-## Build & test
+## ビルドとテスト
 
 ```sh
 wasm-pack build --target web            # -> pkg/
@@ -24,35 +23,35 @@ bun validation/routing-vs-kcnav.ts [--offline]  # routing vs KCNav edge counts -
 KCR_DIR=<kancolle-replay checkout> bun validation/battle-vs-kcsim.ts  # realistic sorties + per-node battles vs kcsim -> ../docs/VALIDATION.md §3
 ```
 
-## Layout
+## 構成
 
-| file | content |
+| ファイル | 内容 |
 |---|---|
-| `src/model.rs` | serde types of the contract |
-| `src/equipment.rs` | equipment classification by `api_type`, improvement / proficiency effects |
-| `src/ship.rs` | derived per-ship data (totals, cut-in kinds, ASW power, AA), mutable battle state |
-| `src/formation.rs` | formation / vanguard / engagement tables |
-| `src/formulas.rs` | accuracy, critical, soft cap, armor, scratch, protection |
-| `src/fit.rs` | main-gun fit (accuracy / CL firepower) by equipment id and ship class |
-| `src/battle/` | phases (`air`, `day` = OASW + shelling, `torpedo`, `night`, `lbas` = land-base waves), combined-fleet phase order, `calc` (per-attack modifiers shared with the forward model), rank, supply, morale |
-| `src/sim.rs` | `run_battle`, Monte-Carlo aggregation |
-| `src/query.rs` | `hit_probability`, `damage_distribution` |
-| `src/routing.rs` | ROUTING_DSL parser / validator / evaluator, LoS formula 33 |
-| `src/sortie/` | sortie loop (node handling, retreat, state carry-over), aggregation, gauge estimates; `model.rs` = sortie JSON types |
-| `src/lib.rs` | wasm-bindgen exports |
-| `tests/` | engine behaviour, rank rules, JSON contract, published-number realism checks, combined fleets + LBAS (`combined.rs`), routing (all seed docs, start rules, golden routes, combined-fleet metrics), sortie (1-5 end-to-end from `fixtures/1-5.api.json`, a one-time capture of the local server API), bench |
-| `validation/` | KCNav routing comparison harness + its data snapshot (`docs/VALIDATION.md`) |
+| `src/model.rs` | 契約の serde 型 |
+| `src/equipment.rs` | `api_type` による装備の分類、改修・熟練度の効果 |
+| `src/ship.rs` | 艦ごとの導出データ(合計値、カットインの種類、対潜攻撃力、対空)と、戦闘中に変わる状態 |
+| `src/formation.rs` | 陣形 / 前衛 / 交戦形態のテーブル |
+| `src/formulas.rs` | 命中、クリティカル、キャップ、装甲、カスダメージ、轟沈保護 |
+| `src/fit.rs` | 装備 id と艦種ごとの主砲フィット(命中 / 軽巡の火力) |
+| `src/battle/` | 各フェーズ(`air`、`day` = 先制対潜 + 砲撃、`torpedo`、`night`、`lbas` = 基地航空隊の波)、連合艦隊のフェーズ順、`calc`(順方向モデルと共有する攻撃ごとの補正)、ランク、補給、士気 |
+| `src/sim.rs` | `run_battle`、モンテカルロ集計 |
+| `src/query.rs` | `hit_probability`、`damage_distribution` |
+| `src/routing.rs` | ROUTING_DSL のパーサ / 検証器 / 評価器、索敵式 33 |
+| `src/sortie/` | 出撃ループ(マスの処理、撤退、状態の引き継ぎ)、集計、ゲージの推定。`model.rs` は出撃の JSON 型 |
+| `src/lib.rs` | wasm-bindgen のエクスポート |
+| `tests/` | エンジンの挙動、ランク規則、JSON 契約、公表されている数値との整合確認、連合艦隊 + 基地航空隊(`combined.rs`)、ルーティング(全シード文書、開始規則、ゴールデンルート、連合艦隊の指標)、出撃(`fixtures/1-5.api.json` による 1-5 のエンドツーエンド。ローカルサーバ API を 1 回だけ取得したもの)、ベンチマーク |
+| `validation/` | KCNav とのルーティング比較ハーネスとそのデータスナップショット(`docs/VALIDATION.md`) |
 
-Mechanics and the list of known simplifications are documented in `../docs/SIM_INTERFACE.md`.
+メカニクスと既知の簡略化の一覧は `../docs/SIM_INTERFACE.md` にある。
 
-## Attribution
+## 出典
 
-Combat formulas, constants and phase logic are ported from
-[KC3Kai/kancolle-replay](https://github.com/KC3Kai/kancolle-replay) (`js/kcsim.js`, `js/kcsimcombined.js`,
-`js/kcships.js`, `js/kcEQDATA.js`) and cross-checked with [en.kancollewiki.net](https://en.kancollewiki.net/).
-Battle-rank rules follow KC3Kai's `BattlePrediction` / ElectronicObserver `kcmemo.md`.
+戦闘式、定数、フェーズの論理は
+[KC3Kai/kancolle-replay](https://github.com/KC3Kai/kancolle-replay)(`js/kcsim.js`、`js/kcsimcombined.js`、
+`js/kcships.js`、`js/kcEQDATA.js`)から移植し、[en.kancollewiki.net](https://en.kancollewiki.net/) と照合した。
+戦闘ランクの規則は KC3Kai の `BattlePrediction` と ElectronicObserver の `kcmemo.md` に従う。
 
-kancolle-replay is distributed under the MIT License:
+kancolle-replay は MIT ライセンスで配布されている。
 
 ```
 The MIT License (MIT)
