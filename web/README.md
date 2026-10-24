@@ -38,7 +38,7 @@ it uses the static bundles; it fails if the 出撃 tab scrolls, page or tab cont
 ## 出撃 workspace
 
 Layout: no header inside poi (the plugin draws the one header: シミュレーション / 観測ログ / 資源 / 送信設定); a title row when
-opened directly. The tabs 出撃 / 海域 / 敵艦 / 設定 are a vertical bar (icon + name) on the left. Left column:
+opened directly. The tabs 出撃 / 海域 / 敵艦 / 任務 / 設定 are a vertical bar (icon + name) on the left. Left column:
 編成 (preset selector + ⋯: name, HQ level, poi import of fleet 1–4 or 連合 = fleets 1 + 2, new / duplicate / IO / delete),
 艦隊 (通常艦隊 / 機動部隊 / 水上部隊 / 輸送護衛部隊 / 遊撃部隊) and the 主力 / 随伴 / 支援 / 友軍 / 基地 tabs above the fleet. Right column: the
 simulator toolbar in the order of use, left to right: 海域 (+ 難易度 for event maps), 出撃 / 単一戦闘 (with node and enemy
@@ -99,6 +99,35 @@ map, difficulty, mode, conditions, estimate settings; not the preset name or not
 300 ms after the last change, cancelling the run in flight. 実行 runs the count chosen in 条件 (default 100,000).
 Old results are dimmed and the 実行 button fills with progress. The seed is fixed, so fleet variants are compared on the same
 random stream. Map, mode, conditions and 自動 persist in `kcsim:workspace`, the preset in `kcsim:selectedPreset`.
+
+## 任務 tab
+
+`src/app/quests/QuestTab.tsx`, over `GET /api/v1/quests` (cached 24 h, docs/DATA_SOURCES.md §14) and `shared/quest/tree.ts`.
+Three full-height cards that scroll inside (no page scroll at 1280×800 / 1200×710 / 1024×600, checked by
+`bun scripts/screenshot-quests.ts`, which also writes `docs/screenshots/17-quests.png`):
+
+- **List:** search by code / name / id; a status dot per quest. The selection persists in `kcsim:quest`.
+- **Quest:** description, the structured clear conditions (kcwiki-quest-data, when it has the quest), poi's progress, and
+  the prerequisite tree: every ancestor quest, prerequisites first (by depth, then id), indented by depth. Cycles are cut at
+  the closing edge and unknown ids shown as such (both noted under the tree). Clicking a row selects that quest.
+- **必要なもの:** ships and equipment named by the conditions of the tree's quests that are not yet cleared, merged (a ship
+  need keeps the largest amount, equipment is summed because exchanges, conversions and scraps use it up), with 所持 /
+  不足 counts from poi's ships and equipment (a named ship also matches its later remodels; ship-type words and classes
+  resolve through the master data; names the master lacks show 照合不可). Below: the quests this one unlocks (and the count
+  of everything after it).
+
+Status (poi state `quests`, protocol.ts `PoiQuests`): 達成 / 遂行中 / 受注可 straight from the game's list; 達成済 (inferred:
+an ancestor of a listed quest) and 未開放 (inferred: after a listed one-time quest). Without the 全て list (poi restarted,
+quest screen not opened since) only poi's active quests feed the inference; without poi everything is 不明 and nothing is
+matched against owned ships.
+
+Progress counts: poi already counts every relevant event for the quests in its `assets/data/quest_goal.cson` (130,
+essentially the dailies / weeklies / monthlies / quarterlies / yearlies) and keeps them in `info.quests.records`; the tab
+shows those counts (e.g. `2/5`, one per sub-goal) instead of counting again. Other quests show the game's own
+`api_progress_flag` (50% / 80%) or 達成. Counting one-time quests ourselves would need, per quest, the clear condition
+matched against every sortie (fleet composition by name / class / type, map, boss, rank), exercise, expedition,
+modernization, conversion and scrap event, i.e. re-implementing poi's tracker with goal data that does not exist for
+them (kcwiki-quest-data's conditions stop in 2023 and name ships in prose-like strings); it is not done.
 
 ## Design system
 

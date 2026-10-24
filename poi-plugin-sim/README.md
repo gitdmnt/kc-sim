@@ -117,13 +117,13 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
 | Direction | `type` | Fields | When |
 |---|---|---|---|
 | web → plugin | `ready` | `v` = the web UI's protocol version | once the web UI listens |
-| plugin → web | `state` | `info`, `const?`, `combinedFlag?` | after every `ready` (with `const`), then when the parts below change (coalesced, 250 ms); `const` only when it changes |
+| plugin → web | `state` | `info`, `const?`, `combinedFlag?`, `quests?` | after every `ready` (with `const`), then when the parts below change (coalesced, 250 ms); `const` only when it changes |
 | plugin → web | `presets` | `json` (`kcsim-presets` export) | after `ready`, until acknowledged once for that origin |
 | web → plugin | `presets-ack` | `imported`, `skipped`, `persisted` | after the import |
 
 - **One header row:** the plugin always draws the only header (シミュレーション / 観測ログ / 資源 / 送信設定, inset 80 px on
   macOS for the window buttons), in the same place for every view. The embedded web UI draws no header: its own tabs
-  (出撃 / 海域 / 敵艦 / 設定) are a vertical bar on its left. Protocol v2 removed v1's `hostViews` / `host` /
+  (出撃 / 海域 / 敵艦 / 任務 / 設定) are a vertical bar on its left. Protocol v2 removed v1's `hostViews` / `host` /
   `open-view` (the web UI merging the plugin's views into its header); the web UI still accepts v1 plugins, which keep
   their own tab bar when no `ready` asks for the merge.
 
@@ -133,10 +133,14 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
   api_taiku, api_soukou, api_kaihi, api_taisen, api_sakuteki, api_lucky, api_leng, api_soku, api_cond`; per equipment
   instance `api_id, api_slotitem_id, api_level, api_alv`; land bases `info.airbase[]` as `{api_area_id, api_rid,
   api_name, api_action_kind, api_plane_info[]: {api_squadron_id, api_state, api_slotid, api_count, api_max_count}}`;
-  poi's `sortie.combinedFlag` as the message's `combinedFlag` (0–3); and `const.{$ships, $equips, $shipTypes,
-  $equipTypes, $mapareas}`. Everything else (the admiral's name and member id, including `api_member_id` on each fleet,
-  base distances, missions, resources, quests) is dropped, by the plugin before posting and again by the web UI on
-  receipt. It goes to the iframe and nowhere else; the web UI never uploads it.
+  poi's `sortie.combinedFlag` as the message's `combinedFlag` (0–3); `const.{$ships, $equips, $shipTypes,
+  $equipTypes, $mapareas}`; and for the 任務 tab `quests` = `{list, active, records}`: the last 全て questlist (`api_no`,
+  `api_state`, `api_type`, `api_progress_flag` only) that the plugin's reducer (`src/quests/reducer.ts`, exported as the
+  plugin's `reducer`, held by poi at `state.ext["poi-plugin-sim-build"]._`) saw this session, poi's
+  `info.quests.activeQuests` reduced to the same four fields, and poi's progress counters `info.quests.records`
+  (`{key, description, count, required}` per sub-goal). Everything else (the admiral's name and member id, including
+  `api_member_id` on each fleet, base distances, missions, resources, quest titles) is dropped, by the plugin before
+  posting and again by the web UI on receipt. It goes to the iframe and nowhere else; the web UI never uploads it.
 - **Origins and senders:** the plugin posts with the server URL's origin as the target and accepts messages only from
   the iframe's window with that origin. In poi's window mode the plugin's code runs in poi's main window and its view is
   portaled into the plugin window, so the sender the iframe sees is the main window, i.e. `window.parent.opener`. The
