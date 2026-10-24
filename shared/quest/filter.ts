@@ -1,7 +1,8 @@
 // Facets of the 任務 list (web/src/app/quests/QuestTab.tsx): frequency and category from the wiki code, status from
-// the player's quest state (./tree.ts questStatuses). An empty facet selection means "all".
+// the player's quest state (./tree.ts questStatuses), 実施可能のみ (./doable.ts). An empty facet selection means "all".
 import type { QuestEntry } from "./types";
 import type { QuestStatus } from "./tree";
+import type { Doability } from "./doable";
 
 export const QUEST_FREQUENCIES = ["once", "daily", "weekly", "monthly", "quarterly", "yearly", "limited"] as const;
 export type QuestFrequency = (typeof QUEST_FREQUENCIES)[number];
@@ -47,55 +48,75 @@ export interface QuestFilter {
   freq: QuestFrequency[];
   cat: QuestCategory[];
   status: StatusGroup[];
+  /** 実施可能のみ (./doable.ts) */
+  doable: boolean;
 }
-export const EMPTY_QUEST_FILTER: QuestFilter = { freq: [], cat: [], status: [] };
+export const EMPTY_QUEST_FILTER: QuestFilter = { freq: [], cat: [], status: [], doable: false };
 
 /**
  * A stored filter (localStorage JSON); unknown values are dropped, anything malformed is the empty filter. The former
- * 未達成 ("open", unlocked or locked) becomes 未開放 + 未達成.
+ * 未達成 ("open", unlocked or locked) becomes 未開放 + 未達成; filters saved before 実施可能のみ load with it off.
  */
 export const parseQuestFilter = (v: unknown): QuestFilter => {
   const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
   const pick = <T extends string>(x: unknown, allowed: readonly T[]): T[] =>
     Array.isArray(x) ? allowed.filter((a) => x.includes(a)) : [];
   const status = Array.isArray(o.status) && o.status.includes("open") ? [...o.status, "locked", "available"] : o.status;
-  return { freq: pick(o.freq, QUEST_FREQUENCIES), cat: pick(o.cat, QUEST_CATEGORIES), status: pick(status, STATUS_GROUPS) };
+  return {
+    freq: pick(o.freq, QUEST_FREQUENCIES), cat: pick(o.cat, QUEST_CATEGORIES), status: pick(status, STATUS_GROUPS), doable: o.doable === true,
+  };
 };
 
 export interface QuestFacetCounts {
   freq: Record<QuestFrequency, number>;
   cat: Record<QuestCategory, number>;
   status: Record<StatusGroup, number>;
+  /** 実施可能 among the quests passing the other facets */
+  doable: number;
+  /** Of the quests passing the other facets, the 不明 ones 実施可能 leaves out (DoableGate "unknown") */
+  doableUnknown: number;
+}
+
+export interface QuestFilterContext {
+  /** Each quest's status; absent without poi's quest state (the status facet is then ignored) */
+  statusOf?: (id: number) => QuestStatus;
+  /** Each quest's 実施可能; absent without poi's quest state and roster (実施可能のみ is then ignored) */
+  doableOf?: (id: number) => Doability;
+  /** The text search */
+  match?: (q: QuestEntry) => boolean;
 }
 
 /**
  * Quests passing `match` (the text search) and every facet, and per facet value how many would pass with that value
- * selected instead of the facet's current selection (the usual faceted counts). `statusOf` gives each quest's status;
- * pass `useStatus: false` to ignore the status facet (no player data).
+ * selected instead of the facet's current selection (the usual faceted counts).
  */
 export const filterQuests = (
   quests: readonly QuestEntry[],
   filter: QuestFilter,
-  statusOf: (id: number) => QuestStatus,
-  match: (q: QuestEntry) => boolean = () => true,
-  useStatus = true,
+  { statusOf, doableOf, match }: QuestFilterContext = {},
 ): { list: QuestEntry[]; counts: QuestFacetCounts } => {
   const zero = <K extends string>(keys: readonly K[]) => Object.fromEntries(keys.map((k) => [k, 0])) as Record<K, number>;
-  const counts: QuestFacetCounts = { freq: zero(QUEST_FREQUENCIES), cat: zero(QUEST_CATEGORIES), status: zero(STATUS_GROUPS) };
-  const status = useStatus ? filter.status : [];
+  const counts: QuestFacetCounts = {
+    freq: zero(QUEST_FREQUENCIES), cat: zero(QUEST_CATEGORIES), status: zero(STATUS_GROUPS), doable: 0, doableUnknown: 0,
+  };
+  const status = statusOf ? filter.status : [];
   const list: QuestEntry[] = [];
   for (const q of quests) {
-    if (!match(q)) continue;
+    if (match && !match(q)) continue;
     const f = questFrequency(q.code);
     const c = questCategory(q.code);
-    const s = statusGroup(statusOf(q.id));
+    const s = statusGroup(statusOf?.(q.id) ?? "unknown");
+    const d = doableOf?.(q.id);
     const okF = filter.freq.length === 0 || filter.freq.includes(f);
     const okC = filter.cat.length === 0 || filter.cat.includes(c);
     const okS = status.length === 0 || status.includes(s);
-    if (okC && okS) counts.freq[f]++;
-    if (okF && okS) counts.cat[c]++;
-    if (okF && okC) counts.status[s]++;
-    if (okF && okC && okS) list.push(q);
+    const okD = !filter.doable || !d || d.doable;
+    if (okC && okS && okD) counts.freq[f]++;
+    if (okF && okS && okD) counts.cat[c]++;
+    if (okF && okC && okD) counts.status[s]++;
+    if (okF && okC && okS && d?.doable) counts.doable++;
+    if (okF && okC && okS && d?.gate === "unknown") counts.doableUnknown++;
+    if (okF && okC && okS && okD) list.push(q);
   }
   return { list, counts };
 };

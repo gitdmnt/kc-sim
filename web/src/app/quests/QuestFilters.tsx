@@ -69,26 +69,58 @@ const CATEGORY_NAMES = Object.fromEntries(
   QUEST_CATEGORIES.map((c) => [c, c === "other" ? CATEGORY_LABEL[c] : `${c} ${CATEGORY_LABEL[c]}`]),
 ) as Record<(typeof QUEST_CATEGORIES)[number], string>;
 
-/** 任務一覧の絞り込み: 頻度・種別 (任務コードから)・状況 (poi の任務状態があるときだけ)。 */
-export const QuestFilters = ({ filter, counts, showStatus, onChange }: {
+const DOABLE_TITLE =
+  "開放済み (受注可・遂行中・達成) で、この任務自身の条件に出てくる艦娘・装備をいま所持している任務。前提の経路で要るものは数えない";
+
+/**
+ * 任務一覧の絞り込み: 頻度・種別 (任務コードから)・状況 (poi の任務状態があるときだけ)、その下に「実施可能のみ」。
+ * `doableOff`: 実施可能を判定できない理由 (無ければ使える)。`unknownHint`: 除外した不明の任務の説明。
+ */
+export const QuestFilters = ({ filter, counts, showStatus, doableOff, unknownHint, onChange }: {
   filter: QuestFilter;
   counts: QuestFacetCounts;
   showStatus: boolean;
+  doableOff: string | null;
+  unknownHint: string;
   onChange: (f: QuestFilter) => void;
 }) => {
-  const active = filter.freq.length + filter.cat.length + (showStatus ? filter.status.length : 0) > 0;
+  const doable = filter.doable && !doableOff;
+  const active = filter.freq.length + filter.cat.length + (showStatus ? filter.status.length : 0) > 0 || doable;
   return (
-    <div className="flex items-center gap-1" role="group" aria-label="任務の絞り込み">
-      <Facet label="頻度" keys={QUEST_FREQUENCIES} names={FREQUENCY_LABEL} short={FREQ_SHORT} selected={filter.freq} counts={counts.freq} onChange={(freq) => onChange({ ...filter, freq })} />
-      <Facet label="種別" keys={QUEST_CATEGORIES} names={CATEGORY_NAMES} short={CATEGORY_LABEL} selected={filter.cat} counts={counts.cat} onChange={(cat) => onChange({ ...filter, cat })} />
-      {showStatus && (
-        <Facet label="状況" keys={STATUS_GROUPS} names={STATUS_GROUP_LABEL} selected={filter.status} counts={counts.status} onChange={(status) => onChange({ ...filter, status })} />
-      )}
-      {active && (
-        <Button variant="ghost" size="sm" icon aria-label="絞り込みを解除" title="絞り込みを解除" onClick={() => onChange(EMPTY_QUEST_FILTER)}>
-          <X aria-hidden className="size-3.5" />
+    <div className="flex flex-col gap-1" role="group" aria-label="任務の絞り込み">
+      <div className="flex items-center gap-1">
+        <Facet label="頻度" keys={QUEST_FREQUENCIES} names={FREQUENCY_LABEL} short={FREQ_SHORT} selected={filter.freq} counts={counts.freq} onChange={(freq) => onChange({ ...filter, freq })} />
+        <Facet label="種別" keys={QUEST_CATEGORIES} names={CATEGORY_NAMES} short={CATEGORY_LABEL} selected={filter.cat} counts={counts.cat} onChange={(cat) => onChange({ ...filter, cat })} />
+        {showStatus && (
+          <Facet label="状況" keys={STATUS_GROUPS} names={STATUS_GROUP_LABEL} selected={filter.status} counts={counts.status} onChange={(status) => onChange({ ...filter, status })} />
+        )}
+        {active && (
+          <Button variant="ghost" size="sm" icon aria-label="絞り込みを解除" title="絞り込みを解除" onClick={() => onChange(EMPTY_QUEST_FILTER)}>
+            <X aria-hidden className="size-3.5" />
+          </Button>
+        )}
+      </div>
+      <div className="flex min-w-0 items-center gap-2">
+        <Button
+          size="sm"
+          aria-pressed={doable}
+          disabled={!!doableOff}
+          title={DOABLE_TITLE}
+          onClick={() => onChange({ ...filter, doable: !doable })}
+          className={cx("gap-1.5 px-2 text-xs", doable && "bg-accent-500/20 text-ink-50 hover:bg-accent-500/30")}
+        >
+          <span className={cx("size-2.5 shrink-0 rounded-sm border", doable ? "border-accent-400 bg-accent-400" : "border-ink-500")} />
+          実施可能のみ
+          {!doableOff && <span className="tabular-nums text-ink-400">{counts.doable}</span>}
         </Button>
-      )}
+        {doableOff ? (
+          <span className="min-w-0 truncate text-xs text-ink-500" title={doableOff}>{doableOff}</span>
+        ) : (
+          doable && counts.doableUnknown > 0 && (
+            <span className="min-w-0 truncate text-xs text-ink-400" title={unknownHint}>不明 {counts.doableUnknown} 件は除外</span>
+          )
+        )}
+      </div>
     </div>
   );
 };

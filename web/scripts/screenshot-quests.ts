@@ -3,7 +3,9 @@
  * ページも main もスクロールしないことの確認。続けて、手入力の達成条件を kc-sim プラグインが数えた単発任務の例
  * (docs/screenshots/18-quest-progress.png: COUNTED_QUEST、既定 B182 を遂行中、サブ目標の途中まで数えた状態)。最後に
  * 一覧の絞り込み (単発・出撃 + 検索語) と選択報酬つきの任務 (docs/screenshots/19-quest-filters.png: FILTER_QUEST、既定 B117、
- * 種別のドロップダウンを開いた状態) を 1024×600 で撮る。
+ * 種別のドロップダウンを開いた状態) を 1024×600 で撮る。さらに「実施可能のみ」を入れた一覧
+ * (docs/screenshots/24-quest-doable.png: 全て の一覧なし、A88 と B117 の前提の途中・デイリーを遂行中、
+ * 詳細は遂行中なのに艦娘・装備が足りない任務) を 1024×600 で撮る。
  * `bun scripts/screenshot-quests.ts`
  * 任務データは /api (中継先 127.0.0.1:8787、KCSIM_API で上書き) の GET /api/v1/quests: ローカル D1 に
  * `cd server && bun run ingest:quests` 済みであること。poi の代わりの state は同梱サンプルに、マスター全体
@@ -17,12 +19,14 @@ import { startDevServer } from "./devServer";
 import sample from "../src/sampleState.json";
 import type { PoiQuests } from "@shared/embed/protocol";
 import type { QuestsResponse } from "@shared/quest/types";
-import { buildQuestGraph, resolvePrerequisites } from "@shared/quest/tree";
+import { OwnershipIndex, buildQuestGraph, questStatuses, resolvePrerequisites, rosterFromPoi } from "@shared/quest/tree";
+import { questDoability } from "@shared/quest/doable";
 import { questGoals } from "@shared/quest/progress";
 
 const OUT = resolve(import.meta.dir, "../../docs/screenshots/17-quests.png");
 const OUT_COUNTED = resolve(import.meta.dir, "../../docs/screenshots/18-quest-progress.png");
 const OUT_FILTERED = resolve(import.meta.dir, "../../docs/screenshots/19-quest-filters.png");
+const OUT_DOABLE = resolve(import.meta.dir, "../../docs/screenshots/24-quest-doable.png");
 const PORT = 5213;
 const API = process.env.KCSIM_API ?? "http://127.0.0.1:8787";
 /** A88 最精鋭甲型駆逐艦、集結せよ！ (前提 40 件余り、艦娘・装備の条件つき) */
@@ -75,6 +79,25 @@ const devState = {
   const: { ...sample.const, $ships: { ...byId(start2.api_mst_ship), ...sample.const.$ships }, $equips: { ...byId(start2.api_mst_slotitem), ...sample.const.$equips } },
   quests,
 };
+
+// 実施可能のみ: poi が 全て の一覧を見ていない状態で、二つの前提ツリーの途中とデイリーを遂行中にする。遂行中の任務の
+// 祖先が達成済み、その兄弟の不明任務が「開放済みとみなす」になる。詳細には遂行中で艦娘・装備が足りない任務を出す
+const chainAt = (target: number, f: number) => {
+  const c = resolvePrerequisites(graph, target).order.slice(0, -1);
+  return c[Math.floor(c.length * f)]!;
+};
+const doableQuests: PoiQuests = {
+  list: null,
+  active: [mid, chainAt(FILTER_QUEST, 0.6), chainAt(FILTER_QUEST, 0.9), ...(periodic ? [periodic] : [])].map((id) => ({
+    id, state: 2, type: id === periodic ? 1 : 4, progress: 0,
+  })),
+  records: {},
+};
+const doableOwned = new OwnershipIndex(rosterFromPoi(devState)!);
+const doableStatuses = questStatuses(graph, doableQuests);
+const doability = [...graph.byId.keys()].map((id) => [id, questDoability(graph, id, doableStatuses, false, doableOwned)] as const);
+const DOABLE_QUEST =
+  doability.find(([, d]) => d.gate === "open" && !d.doable)?.[0] ?? doability.find(([, d]) => d.doable)?.[0] ?? TARGET;
 
 const server = await startDevServer(PORT, API);
 const browser = await chromium.launch({ executablePath: findChromium() });
@@ -151,6 +174,26 @@ try {
   if (sh > ih) throw new Error(`1024x600 filtered: page scrolls (${sh} > ${ih})`);
   await page.screenshot({ path: OUT_FILTERED });
   console.log("saved", OUT_FILTERED);
+
+  // 実施可能のみ (保存された絞り込みで on)、件数は shared/quest/doable.ts の判定と一致すること
+  served = { ...devState, quests: doableQuests };
+  await page.evaluate((id) => {
+    localStorage.setItem("kcsim:quest", String(id));
+    localStorage.setItem("kcsim:questFilter", JSON.stringify({ freq: [], cat: [], status: [], doable: true }));
+  }, DOABLE_QUEST);
+  await page.reload();
+  await page.getByLabel("実施可能かどうか").waitFor({ timeout: 30_000 });
+  const expected = doability.filter(([, d]) => d.doable).length;
+  const shown = await page.getByRole("list", { name: "任務の一覧" }).getByRole("listitem").count();
+  const chip = await page.getByRole("button", { name: /^実施可能のみ/, pressed: true }).innerText();
+  const excluded = await page.getByText(/^不明 \d+ 件は除外$/).innerText();
+  const why = await page.getByLabel("実施可能かどうか").innerText();
+  console.log(`実施可能: ${shown} listed (expected ${expected}), chip "${chip.replace(/\n/g, " ")}", ${excluded}; ${DOABLE_QUEST}: ${why.replace(/\n/g, " | ")}`);
+  if (shown !== expected) throw new Error(`実施可能のみ: ${shown} listed, expected ${expected}`);
+  const [dsh, dih] = await page.evaluate(() => [document.scrollingElement!.scrollHeight, innerHeight]);
+  if (dsh > dih) throw new Error(`1024x600 doable: page scrolls (${dsh} > ${dih})`);
+  await page.screenshot({ path: OUT_DOABLE });
+  console.log("saved", OUT_DOABLE);
 } finally {
   await browser.close();
   server.kill();

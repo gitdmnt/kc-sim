@@ -411,11 +411,18 @@ export const aggregateNeeds = (
   graph: QuestGraph,
   ids: readonly number[],
   owned: OwnershipIndex | null,
+): { ships: ShipNeedRow[]; equips: EquipNeedRow[] } =>
+  aggregateRequirements(ids.map((id) => [id, graph.byId.get(id)?.requirements ?? null]), owned);
+
+/** aggregateNeeds over explicit [quest id, requirements] pairs (./doable.ts checks one `or` alternative at a time). */
+export const aggregateRequirements = (
+  entries: readonly (readonly [number, QuestRequirement | null])[],
+  owned: OwnershipIndex | null,
 ): { ships: ShipNeedRow[]; equips: EquipNeedRow[] } => {
   const ships = new Map<string, ShipNeedRow>();
   const equips = new Map<string, EquipNeedRow>();
-  for (const id of ids) {
-    const needs = questNeeds(graph.byId.get(id)?.requirements ?? null);
+  for (const [id, req] of entries) {
+    const needs = questNeeds(req);
     for (const n of needs.ships) {
       const names = [...n.names].sort();
       const key = n.match

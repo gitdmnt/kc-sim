@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import type { QuestEntry } from "./types";
 import type { QuestStatus } from "./tree";
+import type { Doability, DoableGate } from "./doable";
 import { EMPTY_QUEST_FILTER, filterQuests, parseQuestFilter, questCategory, questFrequency, statusGroup } from "./filter";
 
 test("frequency from the wiki code", () => {
@@ -33,37 +34,58 @@ const STATUS: Record<number, QuestStatus> = { 1: "cleared", 2: "active", 3: "ava
 const statusOf = (id: number) => STATUS[id] ?? "unknown";
 
 test("facets combine with each other and the text match; counts are per facet", () => {
-  const all = filterQuests(QUESTS, EMPTY_QUEST_FILTER, statusOf);
+  const all = filterQuests(QUESTS, EMPTY_QUEST_FILTER, { statusOf });
   expect(all.list.map((x) => x.id)).toEqual([1, 2, 3, 4, 5, 6, 7]);
   expect(all.counts.cat).toMatchObject({ A: 1, B: 4, F: 2, C: 0, other: 0 });
   expect(all.counts.freq).toMatchObject({ once: 3, daily: 2, weekly: 1, limited: 1 });
   expect(all.counts.status).toEqual({ locked: 1, available: 1, active: 2, cleared: 1, unknown: 2 });
 
   // 出撃 + (デイリー or ウィークリー): counts of a facet ignore that facet's own selection
-  const r = filterQuests(QUESTS, { freq: ["daily", "weekly"], cat: ["B"], status: [] }, statusOf);
+  const r = filterQuests(QUESTS, { ...EMPTY_QUEST_FILTER, freq: ["daily", "weekly"], cat: ["B"] }, { statusOf });
   expect(r.list.map((x) => x.id)).toEqual([2, 3]);
   expect(r.counts.cat).toMatchObject({ A: 0, B: 2, F: 1 });
   expect(r.counts.freq).toMatchObject({ once: 1, daily: 1, weekly: 1, limited: 1 });
   expect(r.counts.status).toEqual({ locked: 0, available: 1, active: 1, cleared: 0, unknown: 0 });
 
-  const available = filterQuests(QUESTS, { freq: [], cat: ["B"], status: ["available"] }, statusOf);
+  const available = filterQuests(QUESTS, { ...EMPTY_QUEST_FILTER, cat: ["B"], status: ["available"] }, { statusOf });
   expect(available.list.map((x) => x.id)).toEqual([3]);
-  const locked = filterQuests(QUESTS, { freq: [], cat: ["B"], status: ["locked"] }, statusOf);
+  const locked = filterQuests(QUESTS, { ...EMPTY_QUEST_FILTER, cat: ["B"], status: ["locked"] }, { statusOf });
   expect(locked.list.map((x) => x.id)).toEqual([4]);
   expect(locked.counts.status).toEqual({ locked: 1, available: 1, active: 1, cleared: 0, unknown: 1 });
   // without player data the status facet is ignored
-  expect(filterQuests(QUESTS, { freq: [], cat: ["B"], status: ["available"] }, statusOf, undefined, false).list.map((x) => x.id)).toEqual([2, 3, 4, 5]);
+  expect(filterQuests(QUESTS, { ...EMPTY_QUEST_FILTER, cat: ["B"], status: ["available"] }).list.map((x) => x.id)).toEqual([2, 3, 4, 5]);
 
-  const text = filterQuests(QUESTS, { freq: [], cat: ["B", "F"], status: [] }, statusOf, (x) => x.code!.includes("d"));
+  const text = filterQuests(QUESTS, { ...EMPTY_QUEST_FILTER, cat: ["B", "F"] }, { statusOf, match: (x) => x.code!.includes("d") });
   expect(text.list.map((x) => x.id)).toEqual([2, 7]);
   expect(text.counts.cat).toMatchObject({ B: 1, F: 1, A: 0 });
 });
 
+test("実施可能のみ combines with the other facets; counts the 不明 quests it leaves out", () => {
+  const d = (doable: boolean, gate: DoableGate = doable ? "open" : "locked"): Doability =>
+    ({ gate, doable, blockers: [], ships: [], equips: [], unchecked: [] });
+  const DOABLE: Record<number, Doability> = { 2: d(true), 3: d(true), 5: d(false, "unknown"), 7: d(true, "inferred") };
+  const doableOf = (id: number) => DOABLE[id] ?? d(false);
+  const on = { ...EMPTY_QUEST_FILTER, doable: true };
+  const all = filterQuests(QUESTS, on, { statusOf, doableOf });
+  expect(all.list.map((x) => x.id)).toEqual([2, 3, 7]);
+  expect(all.counts).toMatchObject({ doable: 3, doableUnknown: 1 });
+  expect(all.counts.cat).toMatchObject({ B: 2, F: 1 });
+  // the chip's count follows the other facets, with or without the chip on
+  const daily = filterQuests(QUESTS, { ...EMPTY_QUEST_FILTER, freq: ["daily"] }, { statusOf, doableOf });
+  expect(daily.list.map((x) => x.id)).toEqual([2, 7]);
+  expect(daily.counts).toMatchObject({ doable: 2, doableUnknown: 0 });
+  expect(filterQuests(QUESTS, { ...on, cat: ["B"] }, { statusOf, doableOf, match: (x) => x.id !== 2 }).list.map((x) => x.id)).toEqual([3]);
+  // without poi's quest state and roster the chip is ignored
+  expect(filterQuests(QUESTS, on, { statusOf }).list).toHaveLength(7);
+});
+
 test("stored filters are validated", () => {
-  expect(parseQuestFilter({ freq: ["daily", "bogus"], cat: ["F", "B"], status: "available" })).toEqual({ freq: ["daily"], cat: ["B", "F"], status: [] });
+  expect(parseQuestFilter({ freq: ["daily", "bogus"], cat: ["F", "B"], status: "available" })).toEqual({ freq: ["daily"], cat: ["B", "F"], status: [], doable: false });
   expect(parseQuestFilter({ freq: [], cat: [], status: ["unknown", "available", "locked"] }).status).toEqual(["locked", "available", "unknown"]);
   // the former 未達成 covered locked and unlocked quests
   expect(parseQuestFilter({ freq: [], cat: [], status: ["open", "active"] }).status).toEqual(["locked", "available", "active"]);
+  expect(parseQuestFilter({ freq: [], cat: [], status: [], doable: true }).doable).toBe(true);
+  expect(parseQuestFilter({ freq: [], cat: [], status: [], doable: "yes" }).doable).toBe(false);
   expect(parseQuestFilter(null)).toEqual(EMPTY_QUEST_FILTER);
   expect(parseQuestFilter("x")).toEqual(EMPTY_QUEST_FILTER);
 });

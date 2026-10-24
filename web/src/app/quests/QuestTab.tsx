@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { Check } from "lucide-react";
 import type { PoiQuestGoal, PoiQuestEntry, PoiQuests } from "@shared/embed/protocol";
 import {
   OwnershipIndex, aggregateNeeds, buildQuestGraph, descendants, describeRequirement, questStatuses, resolvePrerequisites,
@@ -7,6 +8,8 @@ import {
 import type { EquipNeedRow, QuestGraph, QuestStatus, ShipNeedRow } from "@shared/quest/tree";
 import { CATEGORY_LABEL, FREQUENCY_LABEL, filterQuests, parseQuestFilter, questCategory, questFrequency } from "@shared/quest/filter";
 import type { QuestFilter } from "@shared/quest/filter";
+import { questDoability } from "@shared/quest/doable";
+import type { Doability } from "@shared/quest/doable";
 import { rewardSummary, sumRewards } from "@shared/quest/rewards";
 import type { QuestEntry } from "@shared/quest/types";
 import { Badge, Card, S, TextInput, cx } from "../../ui";
@@ -66,7 +69,11 @@ interface Player {
   statuses: Map<number, QuestStatus>;
   visible: Map<number, PoiQuestEntry>;
   records: PoiQuests["records"];
+  /** 実施可能 per quest; null without poi's quest state and roster */
+  doability: Map<number, Doability> | null;
 }
+
+const UNCHECKED_TITLE = "実施可能 (条件未確認): 所持と照合できない条件がある";
 
 const QuestRow = ({
   id, graph, player, depth, current, onSelect,
@@ -74,6 +81,7 @@ const QuestRow = ({
   const q = graph.byId.get(id);
   const status = player.statuses.get(id) ?? "unknown";
   const progress = progressText(player.visible.get(id), player.records[id]);
+  const doable = player.doability?.get(id);
   return (
     <li>
       <button
@@ -91,8 +99,53 @@ const QuestRow = ({
         <span className="w-11 shrink-0 truncate text-xs tabular-nums text-ink-400">{q?.code ?? `#${id}`}</span>
         <span className="min-w-0 flex-1 truncate">{q?.name ?? `不明な任務 #${id}`}</span>
         {progress && <span className="shrink-0 text-xs tabular-nums text-accent-400" title={progressSource(player.records[id])}>{progress}</span>}
+        {doable?.doable &&
+          (doable.unchecked.length > 0 ? (
+            <span className="shrink-0 text-[11px] text-ink-400" title={`${UNCHECKED_TITLE}\n${doable.unchecked.join("\n")}`}>条件未確認</span>
+          ) : (
+            <Check role="img" aria-label="実施可能" className="size-3.5 shrink-0 text-ok-400" />
+          ))}
       </button>
     </li>
+  );
+};
+
+const needText = (r: ShipNeedRow | EquipNeedRow) =>
+  `${"names" in r ? r.names.join("/") : r.name} ${r.owned ?? 0}/${r.amount}`;
+
+/** 詳細の「実施可能」: できる / できない理由 (未開放の前提、不足の艦娘・装備、照合できない条件)。 */
+const DoableView = ({ d, listSeen, graph, onSelect }: { d: Doability; listSeen: boolean; graph: QuestGraph; onSelect: (id: number) => void }) => {
+  const links = (ids: number[]) =>
+    ids.map((id, i) => (
+      <React.Fragment key={id}>
+        {i > 0 && "、"}
+        <button type="button" onClick={() => graph.byId.has(id) && onSelect(id)} className="cursor-pointer text-accent-400 underline">
+          {label(graph.byId.get(id), id)}
+        </button>
+      </React.Fragment>
+    ));
+  const [tone, text]: [BadgeTone, string] = d.doable
+    ? d.unchecked.length > 0 ? ["warn", "実施可能 (条件未確認)"] : ["ok", "実施可能"]
+    : ["danger", "実施不可"];
+  const missing = [...d.ships, ...d.equips];
+  return (
+    <div className="flex flex-col gap-0.5 text-xs text-ink-300" aria-label="実施可能かどうか">
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <Badge tone={tone} className="shrink-0">{text}</Badge>
+        {d.gate === "inferred" && <span>不明だが前提がすべて達成済みなので開放済みとみなす</span>}
+        {d.gate === "cleared" && <span>達成済み</span>}
+        {d.gate === "locked" && <span>未開放{d.blockers.length > 0 && <>: 前提 {links(d.blockers)} が未達成</>}</span>}
+        {d.gate === "unknown" && (
+          <span>
+            開放状況が不明:{" "}
+            {listSeen ? "任務画面「全て」の一覧に無い (達成済みか未開放)" : d.blockers.length > 0 ? <>前提 {links(d.blockers)} の達成が確認できない</> : "前提が無く poi の一覧にも無い"}
+          </span>
+        )}
+        {d.doable && d.unchecked.length === 0 && <span>条件の艦娘・装備をすべて所持</span>}
+      </p>
+      {missing.length > 0 && <p className="text-danger-400">不足: {missing.map(needText).join("、")}</p>}
+      {d.unchecked.length > 0 && <p className="text-warn-400">所持と照合できない条件: {d.unchecked.join("、")}</p>}
+    </div>
   );
 };
 
@@ -170,24 +223,26 @@ export const QuestTab = () => {
   const quests = res.data?.quests;
   const graph = useMemo(() => buildQuestGraph(quests ?? []), [quests]);
   const poiQuests: PoiQuests | undefined = state?.quests;
-  const player: Player = useMemo(
-    () => ({ statuses: questStatuses(graph, poiQuests), visible: visibleQuests(poiQuests), records: poiQuests?.records ?? {} }),
-    [graph, poiQuests]
-  );
   const owned = useMemo(() => {
     const roster = rosterFromPoi(state);
     return roster ? new OwnershipIndex(roster) : null;
   }, [state]);
+  const player: Player = useMemo(() => {
+    const statuses = questStatuses(graph, poiQuests);
+    const listSeen = !!poiQuests?.list;
+    const doability =
+      poiQuests && owned ? new Map([...graph.byId.keys()].map((id) => [id, questDoability(graph, id, statuses, listSeen, owned)])) : null;
+    return { statuses, visible: visibleQuests(poiQuests), records: poiQuests?.records ?? {}, doability };
+  }, [graph, poiQuests, owned]);
 
   const { list: filtered, counts } = useMemo(() => {
     const needle = normalizeForSearch(query);
-    return filterQuests(
-      quests ?? [],
-      filter,
-      (id) => player.statuses.get(id) ?? "unknown",
-      needle ? (q) => normalizeForSearch(`${q.code ?? ""}${q.name ?? ""}${q.id}`).includes(needle) : undefined,
-      !!poiQuests,
-    );
+    const { statuses, doability } = player;
+    return filterQuests(quests ?? [], filter, {
+      statusOf: poiQuests ? (id) => statuses.get(id) ?? "unknown" : undefined,
+      doableOf: doability ? (id) => doability.get(id)! : undefined,
+      match: needle ? (q) => normalizeForSearch(`${q.code ?? ""}${q.name ?? ""}${q.id}`).includes(needle) : undefined,
+    });
   }, [quests, query, filter, player, poiQuests]);
   // 既定: 遂行中の任務、無ければ最初の任務
   const fallback = [...player.visible.values()].find((e) => e.state === 2)?.id ?? quests?.[0]?.id ?? null;
@@ -242,7 +297,18 @@ export const QuestTab = () => {
         bodyClassName="flex min-h-0 flex-1 flex-col gap-2"
       >
         <TextInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="コード・名前で検索" aria-label="任務を検索" />
-        <QuestFilters filter={filter} counts={counts} showStatus={!!poiQuests} onChange={setFilter} />
+        <QuestFilters
+          filter={filter}
+          counts={counts}
+          showStatus={!!poiQuests}
+          doableOff={!poiQuests ? "poi 接続時のみ" : !owned ? "所持艦のデータ待ち" : null}
+          unknownHint={
+            poiQuests?.list
+              ? "状況が不明 = 任務画面「全て」の一覧に無い (達成済みか未開放) ので除外"
+              : "状況が不明で、前提の達成も確かめられないので除外。任務画面の「全て」を開くと開放状況が分かる"
+          }
+          onChange={setFilter}
+        />
         {poiNote && <p className="text-xs text-ink-400">{poiNote}</p>}
         <ul className="-mx-2 flex min-h-0 flex-1 flex-col overflow-auto px-2" aria-label="任務の一覧">
           {filtered.slice(0, MAX_LIST).map((x) => (
@@ -279,6 +345,9 @@ export const QuestTab = () => {
                 <pre className="font-sans text-xs whitespace-pre-wrap text-ink-300">{describeRequirement(q.requirements).join("\n")}</pre>
               ) : (
                 <p className="text-xs text-ink-500">構造化された達成条件なし (kcwiki-quest-data・手入力データに未収録)</p>
+              )}
+              {player.doability?.get(q.id) && (
+                <DoableView d={player.doability.get(q.id)!} listSeen={!!poiQuests?.list} graph={graph} onSelect={select} />
               )}
               <QuestRewardsView rewards={q.rewards} />
               {pathRewards && <RewardTotalLine total={pathRewards.total} quests={pathRewards.quests} />}
