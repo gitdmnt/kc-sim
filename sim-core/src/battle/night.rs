@@ -246,6 +246,16 @@ impl<'a> Battle<'a> {
     }
 
     pub(super) fn night_turn(&mut self, side: usize, a: usize, env: &NightEnv, sl_rerolls: u8, night_only: bool) {
+        // kcsim `nightPhase` / `NBattack` with `useAtoll`: at an atoll node a friend ship with
+        // amphibious tanks attacks once per tank, without cut-ins, and a miss still scratches
+        // (`cutin = 1000`; the packets show `api_sp_list` 1000).
+        let tanks = if side == 0 && self.setup.atoll { self.core(0, a).atoll_attacks } else { 0 };
+        for _ in 0..tanks.max(1) {
+            self.night_turn_one(side, a, env, sl_rerolls, night_only, tanks > 0);
+        }
+    }
+
+    fn night_turn_one(&mut self, side: usize, a: usize, env: &NightEnv, sl_rerolls: u8, night_only: bool, atoll: bool) {
         let def = 1 - side;
         let subs = self.subs(def);
         let surface = self.surface(def);
@@ -263,7 +273,8 @@ impl<'a> Battle<'a> {
             return;
         }
         let (t, covered) = self.choose_preferred(side, a, surface.as_slice(), false, sl_rerolls);
-        self.night_attack(side, a, t, covered, env, None);
+        let atoll = atoll.then_some((calc::Special { pow: 1.0, acc: 1.0, sub: false }, SpecialAttack::Normal));
+        self.night_attack(side, a, t, covered, env, atoll);
     }
 
     fn roll_night_ci(&mut self, side: usize, a: usize, d: usize, env: &NightEnv) -> NightAttack {

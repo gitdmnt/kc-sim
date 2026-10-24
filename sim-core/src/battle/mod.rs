@@ -124,6 +124,8 @@ pub struct BattleSetup {
     pub smoke_layers: Option<u8>,
     /// Barrage-balloon node.
     pub balloons: bool,
+    /// Atoll node: friend anti-atoll ships attack with their amphibious tanks.
+    pub atoll: bool,
 }
 
 /// Validated input with all static derivations done once (reused across Monte-Carlo runs).
@@ -265,6 +267,7 @@ impl Prepared {
                 smoke_used: input.friend.smoke_used.unwrap_or(false),
                 smoke_layers: input.options.smoke_layers,
                 balloons: input.options.balloons,
+                atoll: input.options.atoll,
             },
             lb_waves,
             lbas,

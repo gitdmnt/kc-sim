@@ -440,6 +440,8 @@ pub struct ShipCore {
     /// also from a combined fleet's main fleet (`OPENING_TORPEDO_MAIN_IDS`).
     pub opening_torpedo: bool,
     pub opening_torpedo_main: bool,
+    /// Attacks with amphibious tanks at atoll nodes (kcsim `numAtollAttacks`, 0..2).
+    pub atoll_attacks: u8,
     /// Carrier (or night-capable air AO) with night aviation personnel (equipped or built in) and
     /// night planes.
     pub night_air_gear: bool,
@@ -576,6 +578,7 @@ impl ShipCore {
             no_opening_torpedo: !is_player && NO_OPENING_TORPEDO_IDS.contains(&input.id.unwrap_or(0)),
             opening_torpedo: !is_player && OPENING_TORPEDO_IDS.contains(&input.id.unwrap_or(0)),
             opening_torpedo_main: !is_player && OPENING_TORPEDO_MAIN_IDS.contains(&input.id.unwrap_or(0)),
+            atoll_attacks: 0,
             night_air_gear: false,
             air_ao: false,
             fit_acc: 0.0,
@@ -707,6 +710,11 @@ impl ShipCore {
                 self.d_gun_k3 += 1;
             }
         }
+        // kcsim `isAntiAtollShip` / `numAtollAttacks`: submarines, ships 507 / 586, and 348 with a
+        // turbine (33) and a boiler (34 / 87) attack once per 特四式内火艇 (/改) at atoll nodes, at most twice.
+        let has = |id: u32| self.slots.iter().flatten().any(|e| e.id == id);
+        let anti_atoll = self.class.is_sub() || matches!(self.master_id, 507 | 586) || (self.master_id == 348 && has(33) && (has(34) || has(87)));
+        self.atoll_attacks = if anti_atoll { self.slots.iter().flatten().filter(|e| e.id == 525 || e.id == 526).count().min(2) as u8 } else { 0 };
         ar += imp.armor;
         self.fp = fp;
         self.tp = tp;

@@ -66,6 +66,8 @@ pub struct SortieNode {
     pub battle_kind: Option<BattleKind>,
     /// Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect.
     pub balloons: Option<bool>,
+    /// Atoll node (環礁, `BattleOptions.atoll`).
+    pub atoll: Option<bool>,
     /// Event bonuses of the friend ships at this node, in `friend.ships` order (`null` = none).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bonuses: Option<Vec<Option<ShipBonusSet>>>,

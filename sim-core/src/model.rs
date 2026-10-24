@@ -425,6 +425,10 @@ pub struct BattleOptions {
     /// Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub balloons: bool,
+    /// Atoll node (環礁): friend submarines (from level 10) and the other kcsim anti-atoll ships
+    /// attack with their 特四式内火艇 (/改) in the opening torpedo and at night.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub atoll: bool,
     /// Trigger rates (percent) overriding the defaults of the fleet special attacks.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub special_attack_rates: Option<SpecialAttackRates>,

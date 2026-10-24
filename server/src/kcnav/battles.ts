@@ -95,9 +95,10 @@ const setupPacket = z.object({
   api_support_flag: z.number().nullish(),
   api_n_support_flag: z.number().nullish(),
   api_friendly_info: friendlyInfo.nullish(),
-  /** Smoke screen layers the friend fleet deployed (0 none); barrage-balloon node (1). */
+  /** Smoke screen layers the friend fleet deployed (0 none); barrage-balloon / atoll node (1). */
   api_smoke_type: z.number().nullish(),
   api_balloon_cell: z.number().nullish(),
+  api_atoll_cell: z.number().nullish(),
 });
 const setupSchema = z.object({
   battle: z.object({

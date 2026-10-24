@@ -14,3 +14,9 @@ const BALLOON_NODES: Record<string, true> = Object.fromEntries(
 
 /** 阻塞気球が効くマスか (両艦隊の気球が有効になる)。 */
 export const isBalloonNode = (world: number, map: number, node: string): boolean => BALLOON_NODES[`${world}-${map}-${node}`] === true;
+
+/** 環礁マス: kancolle-replay `simulator-ui/common.js` COMMON.ATOLL_NODES (62-3-X は KCNav の api_atoll_cell = 1 と一致)。 */
+const ATOLL_NODES: Record<string, true> = { "58-2-Y": true, "58-3-Z": true, "58-4-S": true, "62-3-X": true };
+
+/** 環礁マスか (潜水艦などが特四式内火艇で先制雷撃・夜戦を行う)。 */
+export const isAtollNode = (world: number, map: number, node: string): boolean => ATOLL_NODES[`${world}-${map}-${node}`] === true;

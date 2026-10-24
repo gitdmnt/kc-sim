@@ -14,6 +14,13 @@ type RawEvent = Omit<AttackEvent, "seq">;
 
 const hitOf = (cl: unknown): HitKind => (cl === 2 ? "crit" : cl === 1 ? "hit" : "miss");
 
+/** 雷撃戦が何巡目の砲撃の後に来るか (ここに無い戦闘は砲撃3の後)。 */
+const TORPEDO_AFTER: Record<string, number> = {
+  "api_req_combined_battle/battle": 1,
+  "api_req_combined_battle/ec_battle": 1,
+  "api_req_combined_battle/each_battle": 2,
+};
+
 /** 昼戦・夜戦で .1 が付くかばう表現を分離する。 */
 export const splitDamage = (raw: unknown): { damage: number; protected: boolean } => {
   const n = typeof raw === "number" && Number.isFinite(raw) ? raw : 0;
@@ -167,15 +174,17 @@ export const extractAttackEvents = (body: any, path = ""): AttackEvent[] => {
   raw.push(...parseKouku(body.api_kouku2));
   raw.push(...parseHougeki(body.api_opening_taisen, "opening_asw"));
   raw.push(...parseTorpedo(body.api_opening_atack, "opening_torpedo"));
-  raw.push(...parseHougeki(body.api_hougeki1, "shelling1"));
-  // [INFERENCE] 空母機動部隊 (api_req_combined_battle/battle) は 砲撃1 → 雷撃 → 砲撃2,3 の順。
-  // seq の並びにだけ影響し、イベント内容は変わらない。
-  const torpedoFirst = path.endsWith("api_req_combined_battle/battle");
+  // 雷撃戦の位置 (kcsim simCombined / sim6vs12 / sim12vs12): 空母機動・輸送護衛部隊 対 通常 (combined_battle/battle)
+  // と 通常 対 敵連合 (ec_battle) は砲撃1の後、空母機動・輸送護衛部隊 対 敵連合 (each_battle) は砲撃2の後、ほかは最後。
+  // 砲撃のあと最後に置くと、KCNav の each_battle / ec_battle では雷撃の始まる前に撃沈済みの艦を狙う雷撃が 580 件出る (この順なら 0 件)。
+  const torpedoAfter = Object.entries(TORPEDO_AFTER).find(([api]) => path.endsWith(api))?.[1] ?? 3;
   const closingTorpedo = parseTorpedo(body.api_raigeki, "closing_torpedo");
-  if (torpedoFirst) raw.push(...closingTorpedo);
+  raw.push(...parseHougeki(body.api_hougeki1, "shelling1"));
+  if (torpedoAfter === 1) raw.push(...closingTorpedo);
   raw.push(...parseHougeki(body.api_hougeki2, "shelling2"));
+  if (torpedoAfter === 2) raw.push(...closingTorpedo);
   raw.push(...parseHougeki(body.api_hougeki3, "shelling3"));
-  if (!torpedoFirst) raw.push(...closingTorpedo);
+  if (torpedoAfter === 3) raw.push(...closingTorpedo);
   // 夜戦 (api_hougeki) と夜→昼 (api_n_hougeki1/2)。昼戦で api_hougeki 単独キーが来る場合は砲撃1扱い。
   raw.push(...parseHougeki(body.api_n_hougeki1, "night"));
   raw.push(...parseHougeki(body.api_n_hougeki2, "night"));

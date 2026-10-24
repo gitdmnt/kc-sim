@@ -280,6 +280,31 @@ fn combined_battles_judge_morale_before_the_entry_cost() {
 }
 
 #[test]
+fn atoll_nodes_turn_the_opening_torpedo_into_tank_attacks() {
+    // kcsim `torpedoPhase` with `useAtoll` (62-3 X packets: a submarine fires once per 特四式内火艇, none without).
+    let sub = |tanks: usize| {
+        let mut slots = vec![eq(213, 32, 5, st(0.0, 15.0, 0.0, 0.0))];
+        slots.extend((0..tanks).map(|_| eq(525, 46, 36, st(0.0, 1.0, 1.0, 0.0))));
+        ship(13, 80.0, 30, 0.0, 60.0, 0.0, 10.0, 40.0, 0.0, 20.0, slots)
+    };
+    let friend = FleetInput { ships: vec![sub(0), sub(1), sub(2)], formation: None, ..Default::default() };
+    let shots = |atoll: bool| {
+        let mut b = battle(friend.clone(), enemy_fleet(), BattleKind::Day);
+        b.options.log = true;
+        b.options.atoll = atoll;
+        let mut n = [0; 3];
+        for e in run_battle(&b, 1).unwrap().result.events.unwrap() {
+            if e.phase == Phase::OpeningTorpedo && e.attacker_side == Side::Friend {
+                n[e.attacker] += 1;
+            }
+        }
+        n
+    };
+    assert_eq!(shots(false), [1, 1, 1]);
+    assert_eq!(shots(true), [0, 1, 2]);
+}
+
+#[test]
 fn ammo_penalty_reduces_damage() {
     let input = battle(friend_fleet(), enemy_fleet(), BattleKind::Day);
     let full = simulate(&input, 2000, 21).unwrap();

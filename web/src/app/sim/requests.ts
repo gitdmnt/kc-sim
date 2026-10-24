@@ -14,7 +14,7 @@ import {
 } from "@shared/sim/adapter";
 import type { FitEntry } from "@shared/sim/fit";
 import { bonusAt, buildBonuses, debuffsAt } from "@shared/sim/bonuses";
-import { isBalloonNode } from "@shared/sim/nodeEffects";
+import { isAtollNode, isBalloonNode } from "@shared/sim/nodeEffects";
 import type { EventBonusResponse } from "@shared/sim/bonuses";
 import { DataApiError, getDataApi } from "../../data/api";
 import type { MapData } from "../../data/mapData";
@@ -225,8 +225,9 @@ export const battleRequest = (
     bonusWarnings.push(eventBonusNote(e), ...b.warnings);
   }
   const balloons = isBalloonNode(data.detail.map.world, data.detail.map.no, o.node);
+  const atoll = isAtollNode(data.detail.map.world, data.detail.map.no, o.node);
   const inputs = enemies.map((e) => ({
-    ...buildBattleInput(fleet, e.fleet, { kind: o.kind, lbas, balloons }),
+    ...buildBattleInput(fleet, e.fleet, { kind: o.kind, lbas, balloons, atoll }),
     ...extras,
     ...(raid.bases.length > 0 ? { baseRaid: { enemy: e.fleet, bases: raid.bases } } : {}),
   }));

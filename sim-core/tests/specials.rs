@@ -286,8 +286,8 @@ fn rocket_barrage_and_enemy_aaci_are_logged() {
             if ev.rocket_barrage {
                 barrages += 1;
                 assert_eq!((ev.side, ev.ship), (Side::Friend, 0));
-                // The barrage ship takes no airstrike in that phase.
-                assert!(!events.iter().any(|e| e.phase == ev.phase && e.kind == AttackKind::Air && e.attacker_side == Side::Enemy && e.defender == 0));
+                // The barrage ship's airstrikes of that phase all miss (logged as misses, pHit 0).
+                assert!(events.iter().filter(|e| e.phase == ev.phase && e.kind == AttackKind::Air && e.attacker_side == Side::Enemy && e.defender == 0).all(|e| e.hit == HitResult::Miss && e.damage == 0 && e.p_hit == 0.0));
             }
             if ev.side == Side::Enemy {
                 assert_eq!((ev.ship, ev.aaci), (1, Some(9)));

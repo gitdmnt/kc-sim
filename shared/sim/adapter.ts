@@ -433,6 +433,8 @@ export interface BuildBattleOptions {
   smoke?: boolean;
   /** 阻塞気球マス (`isBalloonNode`) */
   balloons?: boolean;
+  /** 環礁マス (`isAtollNode`) */
+  atoll?: boolean;
   support?: SupportInput;
   friendFleet?: FriendFleetInput;
   baseRaid?: BaseRaidInput;
@@ -448,7 +450,7 @@ export const friendFleet = (build: Pick<FriendBuild, "input" | "escort" | "combi
 export const buildBattleInput = (friend: FleetInput, enemy: FleetInput, o: BuildBattleOptions): BattleInput => ({
   friend,
   enemy,
-  options: { kind: o.kind, ...(o.smoke ? { smoke: true } : {}), ...(o.balloons ? { balloons: true } : {}) },
+  options: { kind: o.kind, ...(o.smoke ? { smoke: true } : {}), ...(o.balloons ? { balloons: true } : {}), ...(o.atoll ? { atoll: true } : {}) },
   ...(o.lbas?.length ? { lbas: o.lbas } : {}),
   ...(o.support ? { support: o.support } : {}),
   ...(o.friendFleet ? { friendFleet: o.friendFleet } : {}),

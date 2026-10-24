@@ -368,10 +368,11 @@ function build(r: Row): Built | string {
         ? { ships: enemy.input, escort: enemyEscort.input, formation: FRIEND_FORMATION[r.enemy_formation ?? 14] ?? "combinedBattle" }
         : { ships: enemy.input, formation: ENEMY_FORMATION_BY_ID[r.enemy_formation ?? 1] ?? "lineAhead" },
       // The kind is a sim-core BattleKind here (unsupported kinds returned above). The smoke screen the packet shows
-      // (api_smoke_type: layers, the player's choice and roll) is forced like the engagement; balloon nodes as flagged.
+      // (api_smoke_type: layers, the player's choice and roll) is forced like the engagement; balloon and atoll nodes as flagged.
       options: {
         kind: kind as NonNullable<BattleInput["options"]>["kind"], ...(engagement ? { engagement } : {}),
         ...(p.api_smoke_type ? { smokeLayers: p.api_smoke_type } : {}), ...(p.api_balloon_cell ? { balloons: true } : {}),
+        ...(p.api_atoll_cell ? { atoll: true } : {}),
       },
       ...(lbas.length ? { lbas } : {}),
       ...(support ? { support } : {}),

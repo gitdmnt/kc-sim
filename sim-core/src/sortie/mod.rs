@@ -139,6 +139,7 @@ struct NodeInfo {
     /// `node.battleKind`: replaces the kind derived from the node kind and the night policy.
     battle_kind: Option<BattleKind>,
     balloons: bool,
+    atoll: bool,
     /// `policy.smoke` lists the node.
     smoke: bool,
     advance: Option<Advance>,
@@ -571,6 +572,7 @@ impl Sortie {
             let lb_bonus = bonus::build_bases(&format!("node {letter} lbasBonuses"), n.and_then(|n| n.lbas_bonuses.as_deref()), bases.len(), MAX_SQUADRONS)?;
             let ff_bonus = friend::bonuses(input.friend_fleet.as_ref(), n.and_then(|n| n.friend_fleet_bonuses.as_deref()), &format!("node {letter} "))?;
             let balloons = n.and_then(|n| n.balloons).unwrap_or(false);
+            let atoll = n.and_then(|n| n.atoll).unwrap_or(false);
             let smoke = input.policy.smoke.contains(&letter);
             nodes.push(NodeInfo {
                 effect,
@@ -582,6 +584,7 @@ impl Sortie {
                 supply,
                 battle_kind,
                 balloons,
+                atoll,
                 smoke,
                 advance,
                 warning,
@@ -809,6 +812,7 @@ impl Sortie {
             smoke: info.smoke,
             smoke_used,
             balloons: info.balloons,
+            atoll: info.atoll,
             ..Default::default()
         }
     }

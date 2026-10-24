@@ -61,24 +61,33 @@ impl<'a> Battle<'a> {
                 }
                 l
             };
+            // kcsim `torpedoPhase` with `useAtoll`: at an atoll node the friend opening salvo is the
+            // anti-atoll ships' amphibious tanks, one shot each (submarines from level 10), nothing else.
+            let atoll = opening && side == 0 && self.setup.atoll;
             for &a in order.as_slice() {
                 let c = self.core(side, a);
                 let st = &self.st[side][a];
-                let ok = if opening { can_open_torp(c, st, self.setup.formations[side]) } else { can_close_torp(c, st) };
-                if !ok || (a < att_main_end && !(opening && c.opening_torpedo_main)) {
+                let shots_of = if atoll {
+                    if st.hp > 0 && (!c.class.is_sub() || c.level >= 10.0) { c.atoll_attacks } else { 0 }
+                } else {
+                    (if opening { can_open_torp(c, st, self.setup.formations[side]) } else { can_close_torp(c, st) }) as u8
+                };
+                if shots_of == 0 || (a < att_main_end && !(opening && c.opening_torpedo_main)) {
                     continue;
                 }
                 let ratio = st.hp_ratio(c.max_hp);
                 let power = calc::torpedo_power(&self.unit(side, a), self.eng, ratio);
-                let cands = if !split {
-                    targets[def]
-                } else if self.rng().chance(0.35) {
-                    pools[0]
-                } else {
-                    pools[1]
-                };
-                let (t, covered) = self.choose_target(def, cands.as_slice(), 0);
-                shots.push((side, a, t, covered, power));
+                for _ in 0..shots_of {
+                    let cands = if !split {
+                        targets[def]
+                    } else if self.rng().chance(0.35) {
+                        pools[0]
+                    } else {
+                        pools[1]
+                    };
+                    let (t, covered) = self.choose_target(def, cands.as_slice(), 0);
+                    shots.push((side, a, t, covered, power));
+                }
             }
         }
         for (side, a, d, covered, power) in shots {

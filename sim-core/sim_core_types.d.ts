@@ -333,6 +333,10 @@ export interface BattleOptions {
   smokeLayers?: number;
   /** Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect. Default false. */
   balloons?: boolean;
+  /** Atoll node (環礁): friend submarines (from level 10) and kcsim's other anti-atoll ships attack
+   *  once per 特四式内火艇 (/改), at most twice, in the opening torpedo (nothing else fires it) and at
+   *  night (no cut-ins). Default false. */
+  atoll?: boolean;
   /** Trigger-rate overrides (percent) of the fleet special attacks; absent fields use the
    *  defaults (level / luck formulas or kcsim's fixed rates, see SIM_INTERFACE.md). */
   specialAttackRates?: SpecialAttackRates;
@@ -805,6 +809,8 @@ export interface SortieNode {
   lbasDistance?: number;
   /** Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect. Default false. */
   balloons?: boolean;
+  /** Atoll node (環礁, `BattleOptions.atoll`). Default false. */
+  atoll?: boolean;
 }
 
 export interface ResourceAmounts {

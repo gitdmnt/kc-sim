@@ -27,7 +27,7 @@ import type { BuildEnemyOptions, EnemyBuild, EnemyLookup, FriendBuild, FriendOpt
 import { bonusAt, buildBonuses, debuffsAt } from "@shared/sim/bonuses";
 import type { AccEvaMode, EventBonusResponse } from "@shared/sim/bonuses";
 import type { FitEntry } from "@shared/sim/fit";
-import { isBalloonNode } from "@shared/sim/nodeEffects";
+import { isAtollNode, isBalloonNode } from "@shared/sim/nodeEffects";
 import { applyNodeEffects, buildGauge } from "./sortieOptions";
 import type { GaugeSettings, NodeEffect } from "./sortieOptions";
 
@@ -274,6 +274,7 @@ export const buildSortieInput = (
       ...(typeof n.lbasDistance === "number" ? { lbasDistance: n.lbasDistance } : {}),
     };
     if (isBalloonNode(data.detail.map.world, data.detail.map.no, n.letter)) nodes[n.letter].balloons = true;
+    if (isAtollNode(data.detail.map.world, data.detail.map.no, n.letter)) nodes[n.letter].atoll = true;
     const sets = data.comps[n.letter];
     if (!sets?.length) continue;
     const picked = pickSet(sets, s.difficulty);

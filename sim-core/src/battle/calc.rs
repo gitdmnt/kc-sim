@@ -198,11 +198,15 @@ enum SmokeKind {
     Shell,
     Asw,
     Torpedo,
+    Air,
 }
 
 /// Accuracy multiplier under a smoke screen of 1..3 layers, friend (F) / enemy (E) attacker, with
 /// or without a radar for shelling. kcsim `SIMCONSTS.smokeEst` (kcsim's own estimates of the
-/// wiki observations: shelling without radar nearly never hits, ASW ≈ 25 %) [unverified].
+/// wiki observations: shelling without radar nearly never hits, ASW ≈ 25 %) [unverified]; enemy
+/// airstrikes 0.5 like enemy shelling (kcsim 1): the KCNav packets show 11.0% of the attacked
+/// friend ships damaged under smoke (118 ships) vs 31.0% simulated without the modifier, the hit
+/// floor of 10 [fit, one value for every layer].
 fn smoke_mod(att: &Unit, kind: SmokeKind) -> f64 {
     if att.smoke == 0 {
         return 1.0;
@@ -217,6 +221,8 @@ fn smoke_mod(att: &Unit, kind: SmokeKind) -> f64 {
         (SmokeKind::Asw, false, _) => [1.0, 1.0, 1.0],
         (SmokeKind::Torpedo, true, _) => [0.45, 0.42, 0.42],
         (SmokeKind::Torpedo, false, _) => [0.7, 0.6, 0.5],
+        (SmokeKind::Air, true, _) => [1.0, 1.0, 1.0],
+        (SmokeKind::Air, false, _) => [0.5, 0.5, 0.5],
     };
     t[i]
 }
@@ -859,7 +865,7 @@ pub fn air_terms(att: &Unit, def: &Unit) -> AccTerms {
     let (crit_rate, crit_dmg, acc_plane) = a.proficiency(att.st);
     let ev = def.evasion(1.0, 0.0);
     // Event bonus: ship × plane-group accuracy (kcsim takes the plane groups only; see `Bonus::acc`).
-    let acc = (0.95 + def.cf.air_acc) * att.bonus_acc(|| true);
+    let acc = (0.95 + def.cf.air_acc) * att.bonus_acc(|| true) * smoke_mod(att, SmokeKind::Air);
     let hit = HitFn::new(0.0, 0.0, 0.0, &[], 0.0, HitTail::Fixed(acc));
     AccTerms {
         hit, luck: a.luck, hidden_acc: a.hidden_acc, ev, crit_mod: 0.0, plane: Some(PlaneBonus { acc: acc_plane, crit_rate }), crit_flat: 0.0,
