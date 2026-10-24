@@ -1,4 +1,4 @@
-// CPU of a fresh isolate's first invocation (docs/DEPLOY.md "CPU budget"): GET, upload, jobs run.
+// CPU of a fresh isolate's first invocation (private deployment notes "CPU budget"): GET, upload, jobs run.
 //
 //   bun bench/cold.ts [--runs 3] [--db <wrangler D1 sqlite>] [--worker <bench/worker.ts of another checkout>]
 //
@@ -9,7 +9,7 @@
 //   first          the first replay of the recording in that isolate (lazy JS compilation, sim-core if used)
 //   warm           the same replay again (median of 5)
 // Production bills only `first`: the global scope runs at isolate startup, outside the invocation's cpuTime (a
-// 60–100 ms busy loop there did not show up in `wrangler tail`, docs/DEPLOY.md §10). So one-off work belongs in the
+// 60–100 ms busy loop there did not show up in `wrangler tail`, private deployment notes §10). So one-off work belongs in the
 // global scope, and `first` is what a fresh isolate's invocation costs. `--worker` runs another checkout's bench
 // worker over the same recordings (before/after).
 import { readdirSync } from "node:fs";

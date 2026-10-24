@@ -1,4 +1,4 @@
-// Background work (docs/DEPLOY.md §5 "Jobs", "CPU budget"). scripts/run-jobs.ts runs the stages below in GitHub
+// Background work (private deployment notes §5 "Jobs", "CPU budget"). scripts/run-jobs.ts runs the stages below in GitHub
 // Actions (daily, against production D1 over the D1 HTTP API) in passes under one cost-model budget per run
 // (RUN_MS, RUN_D1_CALLS; src/budget.ts) and one lease. A pass gives each stage a share of PASS_MS; each stage
 // stops when its next unit would not fit:

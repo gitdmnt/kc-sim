@@ -1,4 +1,4 @@
-# KCNav battle crawl (docs/DEPLOY.md §5 "KCNav battle crawl"): works through the `battles` jobs of the KCNav queue
+# KCNav battle crawl (private deployment notes §5 "KCNav battle crawl"): works through the `battles` jobs of the KCNav queue
 # (pages of real battles for the accuracy harness, server/scripts/battle-accuracy.ts) at the shared gate's rate:
 # one request per ≥ 65 s (kv_state.kcnav_next_allowed_at in production D1, shared with the daily jobs workflow and any
 # local runner), one 50-battle page per request. The daily jobs workflow skips `battles` jobs, so this is their only

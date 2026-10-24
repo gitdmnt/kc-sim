@@ -1,4 +1,4 @@
-// CPU per invocation of every worker path (docs/DEPLOY.md "CPU budget").
+// CPU per invocation of every worker path (private deployment notes "CPU budget").
 //
 //   bun bench/run.ts [--workerd] [--filter <regex>] [--db <wrangler D1 sqlite>] [--out <json>]
 //

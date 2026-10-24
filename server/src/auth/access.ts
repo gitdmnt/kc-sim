@@ -1,4 +1,4 @@
-// Cloudflare Access for /admin/* (docs/DEPLOY.md "Access"). Access sits in front of the worker and adds a
+// Cloudflare Access for /admin/* (private deployment notes "Access"). Access sits in front of the worker and adds a
 // signed JWT (`Cf-Access-Jwt-Assertion`) to every request it lets through; the worker verifies it against
 // the team's JWKS so that a request reaching the worker by any other route (workers.dev, a missing Access
 // policy) is still refused.

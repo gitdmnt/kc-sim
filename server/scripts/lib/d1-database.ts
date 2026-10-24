@@ -1,5 +1,5 @@
 // D1Database for scripts that run the server's background code outside the worker (GitHub Actions jobs,
-// docs/DEPLOY.md §5; routing inference): production D1 through the D1 HTTP API (D1_REMOTE=1), or the local
+// private deployment notes §5; routing inference): production D1 through the D1 HTTP API (D1_REMOTE=1), or the local
 // wrangler D1 file through bun:sqlite. Covers what the server code uses: prepare().bind().first/all/run and batch().
 import { Database } from "bun:sqlite";
 import { readdirSync } from "node:fs";

@@ -36,3 +36,8 @@ logs/
 .DS_Store
 .idea/
 .vscode/
+
+# purged from history: old data-worker scratch, and the deployment notes (production account and infra
+# details), which are kept privately
+data-worker/.tmp/
+docs/DEPLOY.md

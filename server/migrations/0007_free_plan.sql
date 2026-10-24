@@ -1,4 +1,4 @@
--- Workers Free plan (10 ms CPU per invocation, docs/DEPLOY.md "CPU budget"): uploads are staged and processed
+-- Workers Free plan (10 ms CPU per invocation, private deployment notes "CPU budget"): uploads are staged and processed
 -- by the cron in budgeted steps; the estimator counts rolls per signature before folding them into the grids;
 -- the grids are base64 TEXT (D1 hands BLOBs to the worker as JSON number arrays, ~1 ms per 80 KB grid).
 

@@ -67,7 +67,7 @@ export function writeRoutes(deps: WriteDeps) {
     }
     // Validation, storage and aggregation run in the jobs (src/jobs.ts); rejections land in observation_rejections.
     // The request does not ingest itself: uploads mostly land on fresh isolates, where the first ingest also pays
-    // V8's compilation of the whole validation path (cold uploads measured 30 ms with it, 9 ms without, docs/DEPLOY.md
+    // V8's compilation of the whole validation path (cold uploads measured 30 ms with it, 9 ms without, private deployment notes
     // §10), while a jobs run pays it once for every upload it ingests.
     return c.json({ queued: r.queued, duplicates: r.duplicates, pending: r.pending }, 202);
   });

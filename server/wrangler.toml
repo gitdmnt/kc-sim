@@ -12,7 +12,7 @@ directory = "../web/dist"
 run_worker_first = ["/api/*", "/admin/*"]
 
 # Top level = local development (`bun run dev`, `wrangler dev`). It cannot be deployed: the D1 id is a
-# placeholder. Production is [env.production] below (`wrangler deploy --env production`, docs/DEPLOY.md).
+# placeholder. Production is [env.production] below (`wrangler deploy --env production`, private deployment notes).
 
 [[d1_databases]]
 binding = "DB"
@@ -35,7 +35,7 @@ ENVIRONMENT = "production"
 [env.production]
 name = "kc-sim"
 # Custom domain on the udama.net zone: Cloudflare creates the DNS record and certificate. The Cache API
-# (caches.default) needs a custom domain or zone route (docs/DEPLOY.md §7), so workers.dev stays off.
+# (caches.default) needs a custom domain or zone route (private deployment notes §7), so workers.dev stays off.
 workers_dev = false
 routes = [{ pattern = "kc-sim.udama.net", custom_domain = true }]
 
@@ -54,7 +54,7 @@ simple = { limit = 20, period = 60 }
 KCNAV_BASE = "https://tsunkit.net"
 KCNAV_MIN_INTERVAL_MS = "65000"
 ENVIRONMENT = "production"
-# Cloudflare Access application for /admin/* (docs/DEPLOY.md "Access"), e.g. "<team>.cloudflareaccess.com" and the
+# Cloudflare Access application for /admin/* (private deployment notes "Access"), e.g. "<team>.cloudflareaccess.com" and the
 # application's AUD tag. Empty until Access is set up: every /admin request then answers 503. (A placeholder host
 # would be a real, third-party team domain the worker fetches signing keys from.)
 ACCESS_TEAM_DOMAIN = ""
@@ -63,12 +63,12 @@ ACCESS_AUD = ""
 
 # Workers Paid: CPU limit per invocation, set explicitly (the Paid default). Only the manual admin job endpoints
 # (POST /admin/jobs/run …) do background work in the worker; a run stops at a cost-model budget of 6–9 s of
-# production CPU (src/budget.ts RUN_MS, docs/DEPLOY.md §10), well inside it.
+# production CPU (src/budget.ts RUN_MS, private deployment notes §10), well inside it.
 [env.production.limits]
 cpu_ms = 30000
 
 # No cron: background jobs (staged uploads, aggregation, estimator, KCNav queue, routing inference) run in GitHub
-# Actions (.github/workflows/jobs.yml, scripts/run-jobs.ts; docs/DEPLOY.md §5). `crons = []` removes the trigger the
+# Actions (.github/workflows/jobs.yml, scripts/run-jobs.ts; private deployment notes §5). `crons = []` removes the trigger the
 # worker had until 2026-10-23 (omitting the key would leave it in place).
 [env.production.triggers]
 crons = []

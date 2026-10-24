@@ -1,4 +1,4 @@
-// CPU budget of background work (docs/DEPLOY.md "CPU budget"). Inside workerd neither Date.now() nor
+// CPU budget of background work (private deployment notes "CPU budget"). Inside workerd neither Date.now() nor
 // performance.now() advance while JavaScript runs, so a job cannot time itself. Background work therefore counts
 // its work units and charges each one with a cost per unit measured on workerd (bench/calibrate.ts), rounded up.
 // A job checks `fits` before a unit and stops when the rest of the run would not fit; the queue keeps the
@@ -7,7 +7,7 @@
 /**
  * Milliseconds of workerd CPU per unit: local workerd on an Apple M-series machine (bench/calibrate.ts unit costs,
  * bench/run.ts whole invocations), rounded up to about 1.5× the measurement. Production worker invocations measure
- * 10–15× the model (docs/DEPLOY.md "Fresh isolates"); RUN_MS allows for that.
+ * 10–15× the model (private deployment notes "Fresh isolates"); RUN_MS allows for that.
  */
 export const COST = {
   /** fixed part of a scheduled invocation (lease, queue probes, isolate overhead) */

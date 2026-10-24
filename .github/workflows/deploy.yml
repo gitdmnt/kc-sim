@@ -1,4 +1,4 @@
-# Production deploy on every push to main (docs/DEPLOY.md "Automatic deploy"): tests, the static map bundle from
+# Production deploy on every push to main (private deployment notes "Automatic deploy"): tests, the static map bundle from
 # production D1, the web build, then pending D1 migrations, then `wrangler deploy --env production` (upload only).
 # Everything that can fail runs before the migration.
 name: deploy

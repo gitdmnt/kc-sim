@@ -82,7 +82,7 @@ Windows は `%APPDATA%\poi\plugins`、Linux は `~/.config/poi/plugins` です�
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): 構成とデータの流れ
 - [docs/WORKFLOW.md](docs/WORKFLOW.md): ローカルでの開発とテスト
-- [docs/DEPLOY.md](docs/DEPLOY.md): デプロイ
+- デプロイ手順: 非公開のメモ (リポジトリには含めない)
 - [web/README.md](web/README.md)、[poi-plugin-sim/README.md](poi-plugin-sim/README.md): Web UI とプラグインの詳細
 
 

@@ -1,5 +1,5 @@
 // D1 rows written per uploaded battle, end to end (stage, ingest, aggregation, estimator count / fold / summary),
-// for the capacity estimate (docs/DEPLOY.md "Capacity"). Counts the rows each statement
+// for the capacity estimate (private deployment notes "Capacity"). Counts the rows each statement
 // changed per table, and the same weighted by 1 + the table's index count (D1 also bills index rows; an upper
 // bound, since an UPDATE only rewrites the indexes of the columns it changes).
 //

@@ -1,5 +1,5 @@
 // Thin wrappers over `wrangler d1 execute kc-sim`. Local D1 by default; D1_REMOTE=1 targets the production
-// database (`--remote --env production`, docs/DEPLOY.md).
+// database (`--remote --env production`, private deployment notes).
 import { mkdirSync } from "node:fs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;

@@ -1,4 +1,4 @@
-// Background jobs outside the worker (docs/DEPLOY.md §5). GitHub Actions (.github/workflows/jobs.yml) runs this
+// Background jobs outside the worker (private deployment notes §5). GitHub Actions (.github/workflows/jobs.yml) runs this
 // against production D1 (D1_REMOTE=1: D1 HTTP API); without D1_REMOTE it works on the local wrangler D1 file.
 //   bun scripts/run-jobs.ts run [--minutes 25] [--no-estimator]
 //       jobs runs (staged uploads → observations, aggregation, estimator; src/jobs.ts) until every queue is empty,

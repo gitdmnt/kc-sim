@@ -48,7 +48,7 @@ would read summary fields the old wasm does not produce. `SKIP_WASM_BUILD=1` ser
 
 `dist/`: `index.html`, `assets/` (hashed JS, CSS, `sim.worker-*.js`, `sim_core_bg-*.wasm`) and, when
 `../server/dist/maps` exists (`cd ../server && bun run export:bundle`), `maps/` (the static map bundles the UI reads
-when `/api` fails). Deploying: `cd ../server && bun run deploy` builds this first ([docs/DEPLOY.md](../docs/DEPLOY.md)).
+when `/api` fails). Deploying: `cd ../server && bun run deploy` builds this first (private deployment notes).
 
 Scripts: `bun run sample` (regenerate `src/sampleState.json` from `@kancolle/data`), `bun run screenshots`
 (`docs/screenshots/` or `SHOTS_DIR`, file prefix `SHOTS_PREFIX`; docs keep `23-web-sortie` only; with the API down, e.g.

@@ -1,6 +1,6 @@
 // Calls the worker's admin API. Local `wrangler dev` (ENVIRONMENT=development) needs no credentials; a
 // deployed worker sits behind Cloudflare Access, so set DATA_API and an Access service token
-// (CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET, docs/DEPLOY.md "Access").
+// (CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET, private deployment notes "Access").
 
 const BASE = process.env.DATA_API ?? "http://127.0.0.1:8787";
 
