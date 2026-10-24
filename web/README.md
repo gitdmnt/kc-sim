@@ -70,7 +70,8 @@ a node without a saved choice uses `defaults.select` (else the first option), or
 cannot reach it, the first option that can (`resolveSelects`).
 Enemy combined fleets (e.g. 6-5 M) are sent with their escort and fought as 6 vs 12 / 12 vs 12 (formations 11–14 →
 第一〜第四警戒航行序列); results list the enemy main fleet, then its escort. Left: a one-line fleet
-summary (icons: 制空, 速力, 索敵 Cn1–4, ドラム缶, 電探) and the six ships in a 2 × 3 grid like the game; each ship is a
+summary (icons: 制空, 速力, 索敵 Cn1–4, ドラム缶, 電探) and the six ships in a 2 × 3 grid like the game (one column, scrolling
+inside the panel, when the panel is under 36rem wide, e.g. at 1024 / 1200 px, so names stay readable); each ship is a
 header (number, ship type, name, Lv) over one column of slots (equipment icon, name, ★, 熟練, 搭載); mods, morale and
 stats behind ⋯. Right: the key rates as bars on one 0–100% scale (ボス到達 colored by boss rank, 突破 = boss A+ per
 sortie, S勝利 = boss S+ per sortie, 大破撤退), secondary numbers (周回, 旗艦撃沈, 資源/出撃, 入渠, 護衛退避, 出撃間の待ち),

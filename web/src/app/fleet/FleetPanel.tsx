@@ -37,7 +37,7 @@ export const FleetPanel = ({ store, preset, select, losCns, fleet = "main", head
   const max = fleet === "main" ? (preset ? maxShipsOf(preset.fleetType) : 6) : fleet === "friendFleet" ? 7 : 6;
 
   return (
-    <section className="flex min-w-0 flex-col gap-2 rounded-md border border-ink-800 bg-ink-900 px-4 py-3 lg:min-h-0">
+    <section className="@container flex min-w-0 flex-col gap-2 rounded-md border border-ink-800 bg-ink-900 px-4 py-3 lg:min-h-0">
       {header}
       {preset && ships.length > 0 && (
         <div className="flex min-w-0 items-start justify-between gap-2">
@@ -52,8 +52,9 @@ export const FleetPanel = ({ store, preset, select, losCns, fleet = "main", head
       )}
 
       {/* 6 隻とも装備枠が多い艦隊で画面に収まらないときだけ、この枠の中でスクロールする */}
-      {/* ゲームの編成画面と同じ 2 列 × 3 行 (1 2 / 3 4 / 5 6)。どの艦も同じ列構成なので装備の列が縦に揃う */}
-      <div className="-mx-4 grid grid-cols-1 content-start gap-x-6 gap-y-4 px-4 tall:gap-y-6 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+      {/* ゲームの編成画面と同じ 2 列 × 3 行 (1 2 / 3 4 / 5 6)。どの艦も同じ列構成なので装備の列が縦に揃う。
+          2 列は艦の欄が艦名・装備名を読める幅 (約 17rem) になる枠の幅 36rem から。狭い枠 (1024px の窓など) では 1 列にする */}
+      <div className="-mx-4 grid grid-cols-1 content-start gap-x-6 gap-y-4 px-4 tall:gap-y-6 @min-[36rem]:grid-cols-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         {ships.map((ship, i) => (
           <ShipRow
             key={i}
