@@ -25,7 +25,7 @@ const SIZES = [[1280, 800], [1200, 710], [1024, 600]] as const;
 /** docs の画像の大きさ */
 const DOC = { width: 1024, height: 600 };
 /** macOS の信号ボタン (閉じる/最小化/拡大) が占める左上の範囲 */
-const BUTTONS = { width: 80, height: 28 };
+const BUTTONS = { width: 120, height: 42 };
 /** 任務タブで選んでおく任務 (A88 最精鋭甲型駆逐艦、集結せよ！: 前提が多い) */
 const QUEST = 193;
 
@@ -300,7 +300,7 @@ try {
     await db.close();
   });
   // 機能を切り替えて戻ると読み直す (最後に開いていた画面 = 推移に戻る)
-  await tab("シミュ");
+  await tab("シミュレーション");
   if (!(await isSelected("送信設定"))) throw new Error("シミュ did not return to its last view (送信設定)");
   await tab("資源");
   await page.getByRole("img", { name: "燃料・弾薬・鋼材・ボーキ" }).waitFor();

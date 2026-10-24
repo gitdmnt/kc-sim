@@ -24,7 +24,7 @@ version at its right end.
 
 | Feature (bar) | Views (top row) | Drawn by |
 |---|---|---|
-| シミュ (シミュレーション) | 出撃 / 海域 / 敵艦 / 観測ログ / 送信設定 / 計算設定 | 観測ログ, 送信設定: the plugin; the others: the iframe |
+| シミュレーション | 出撃 / 海域 / 敵艦 / 観測ログ / 送信設定 / 計算設定 | 観測ログ, 送信設定: the plugin; the others: the iframe |
 | 任務 | (title only) | the iframe |
 | 資源 | 推移 / 増減 (イベント) / 増減 (日別) (range, admiral and resource toggles stay in the view) | the plugin |
 | 設定 (gear, bottom) | (title only): the web UI's app-wide settings (sample data, deleting presets, data cache, reset) | the iframe |
@@ -34,9 +34,9 @@ version at its right end.
   back as `view` and selects 出撃 in the plugin's top row.
 - The current view is saved in the plugin's localStorage (`kcsim:view`, the same key and ids as the web UI); switching
   features returns to the feature's last view in the session.
-- macOS: the plugin window has no title bar; the traffic-light buttons (~80 × 28 px) sit at the top left and poi lays
-  a 23 px `-webkit-app-region: drag` strip over the top. The top row spans the window and starts its tabs 128 px in
-  (`pl-32`, version `pr-12`); the activity bar starts below the top row (y = 41 px); the top row's tabs are `no-drag`,
+- macOS: the plugin window has no title bar; the traffic-light buttons (~80 × 28 px, reserved as 120 × 42 px) sit at the top left and poi lays
+  a 23 px `-webkit-app-region: drag` strip over the top. The top row spans the window and starts its tabs 192 px in
+  (`pl-48`, version `pr-12`); the activity bar starts below the top row (y = 61 px; the row is 60 px high, the bar 96 px wide); the top row's tabs are `no-drag`,
   the rest of the row still drags the window. Elsewhere the corner above the bar shows the app icon.
 
 The Rust engine lives in `../sim-core` (used by the web UI); the server in `../server`.

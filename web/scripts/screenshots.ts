@@ -98,7 +98,7 @@ try {
   await page.getByText("1番艦を追加").waitFor();
   const tabs = await chromeTabs();
   console.log("chrome:", JSON.stringify(tabs));
-  if (tabs.bar.join() !== "シミュ,任務,設定" || tabs.top.join() !== "出撃,海域,敵艦,計算設定") throw new Error(`unexpected chrome: ${JSON.stringify(tabs)}`);
+  if (tabs.bar.join() !== "シミュレーション,任務,設定" || tabs.top.join() !== "出撃,海域,敵艦,計算設定") throw new Error(`unexpected chrome: ${JSON.stringify(tabs)}`);
   await shot("00-workspace-empty");
 
   // poi の第1艦隊 (6 隻) を取り込み、海域を選ぶ → 自動で計算される
@@ -195,7 +195,7 @@ try {
   await page.getByText("データキャッシュ").waitFor();
   await shot("12-settings");
   // 機能を切り替えて戻ると、その機能で最後に開いていた画面 (計算設定)
-  await tab("シミュ");
+  await tab("シミュレーション");
   if ((await page.getByRole("tab", { name: "計算設定", exact: true }).getAttribute("aria-selected")) !== "true") throw new Error("シミュ did not return to 計算設定");
 
   // 自動 (チェックボックス): 保存され、オフの間は入力を変えても計算せず、オンにすると計算する

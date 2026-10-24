@@ -25,7 +25,7 @@ this page moves by itself (海域 →「戦闘シミュ」/「出撃シミュ」
 bars. Inside an older plugin (v2, one header row of its own) the page draws its bars below the plugin's header.
 The current view is saved in `kcsim:view` (switching features returns to the feature's last view in the session);
 the old `kcsim:tab` (出撃 / 海域 / 敵艦 / 任務 / 設定 bar, `estimate` → `enemy`) is moved over once. The two-column
-layouts start at a document width of 960 px (`--breakpoint-lg`): the plugin's 1024 px window gives the iframe 960 px,
+layouts start at a document width of 928 px (`--breakpoint-lg`): the plugin's 1024 px window gives the iframe 928 px (1024 − the 96 px bar),
 the same content width as this page at 1024 px with its own bar.
 
 ## Commands

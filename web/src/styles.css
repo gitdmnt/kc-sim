@@ -80,9 +80,9 @@
 
   --radius-md: 6px;
 
-  /* 2 列の画面割り (出撃・海域・敵艦・任務) は中身の幅 960px から。poi プラグインの 1024px の窓では iframe の幅
-     (= この文書の幅) が左のバー 64px を引いた 960px で、ブラウザで開いた 1024px (枠を除く中身 960px) と同じ割りになる */
-  --breakpoint-lg: 60rem;
+  /* 2 列の画面割り (出撃・海域・敵艦・任務) は中身の幅 928px から。poi プラグインの 1024px の窓では iframe の幅
+     (= この文書の幅) が左のバー 96px を引いた 928px で、ブラウザで開いた 1024px (枠を除く中身 928px) と同じ割りになる */
+  --breakpoint-lg: 58rem;
 
   --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Noto Sans JP",
     "Segoe UI", system-ui, sans-serif;

@@ -60,10 +60,10 @@ export const AppChrome = <F extends string, V extends string>({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {bars && (
-        // 高さはタブ (h-10) + 下の罫。見出しだけの機能でも同じ高さ (バーと中身が動かない)
-        <div className={cx("box-content flex h-10 shrink-0 items-center border-b border-ink-800", windowButtons ? "pr-12 pl-32" : "pr-3")}>
+        // 高さはタブ (h-15 = 60px) + 下の罫。見出しだけの機能でも同じ高さ (バーと中身が動かない)
+        <div className={cx("box-content flex h-15 shrink-0 items-center border-b border-ink-800", windowButtons ? "pr-12 pl-48" : "pr-3")}>
           {!windowButtons && (
-            <div className="flex w-16 shrink-0 justify-center text-ink-400" title={S.appTitle} role="img" aria-label={S.appTitle}>
+            <div className="flex w-24 shrink-0 justify-center text-ink-400" title={S.appTitle} role="img" aria-label={S.appTitle}>
               <Compass size={18} aria-hidden />
             </div>
           )}
@@ -95,7 +95,7 @@ const ActivityBar = <F extends string, V extends string>({
 }) => {
   const firstBottom = features.findIndex((f) => f.bottom);
   return (
-    <nav role="tablist" aria-orientation="vertical" className="flex w-16 shrink-0 flex-col border-r border-ink-800 py-1">
+    <nav role="tablist" aria-orientation="vertical" className="flex w-24 shrink-0 flex-col border-r border-ink-800 py-1.5">
       {features.map((f, i) => {
         const active = f.id === value;
         const Icon = f.icon;
@@ -119,8 +119,8 @@ const ActivityBar = <F extends string, V extends string>({
             }}
             className={cx(
               // 選択中の印は左端の縦線 (VS Code と同じ)
-              "relative flex h-14 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-400",
-              "before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full",
+              "relative flex h-21 shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-400",
+              "before:absolute before:inset-y-3 before:left-0 before:w-0.5 before:rounded-full",
               i === firstBottom && "mt-auto",
               active ? "text-ink-50 before:bg-accent-500" : "text-ink-500 hover:text-ink-200"
             )}
