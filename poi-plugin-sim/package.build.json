@@ -2,13 +2,35 @@
   "name": "poi-plugin-kc-sim",
   "main": "index.es",
   "description": "艦これの出撃シミュレータ (poi プラグイン): 戦闘の記録、任務の進捗、資源の推移 / KanColle sortie simulator for poi, with battle log, quest progress and resource history",
-  "keywords": ["poi-plugin", "poi", "kancolle", "kantai-collection", "simulator"],
+  "keywords": [
+    "poi-plugin",
+    "poi",
+    "kancolle",
+    "kantai-collection",
+    "simulator"
+  ],
   "license": "MIT",
   "author": {
     "name": "gitdmnt",
     "url": "https://github.com/gitdmnt"
   },
-  "files": ["index.es", "views/", "i18n/", "README.md", "LICENSE", "THIRD_PARTY_NOTICES"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gitdmnt/kc-sim.git",
+    "directory": "poi-plugin-sim"
+  },
+  "homepage": "https://github.com/gitdmnt/kc-sim#readme",
+  "bugs": {
+    "url": "https://github.com/gitdmnt/kc-sim/issues"
+  },
+  "files": [
+    "index.es",
+    "views/",
+    "i18n/",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES"
+  ],
   "poiPlugin": {
     "title": "kc-sim",
     "description": "Sortie simulator, battle log, quest progress and resource history",

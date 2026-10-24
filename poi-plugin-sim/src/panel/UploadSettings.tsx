@@ -61,7 +61,7 @@ const useAutoUploadStatus = (tick: number): { status: AutoUploadStatus; pending:
 
 const formatTime = (t: number | null) => (t === null ? "—" : new Date(t).toLocaleString());
 
-/** 自動送信がオフの間、送る内容と送り先を出す (閉じるまで)。内容は capture/db.ts の uploadPending が送るもの。 */
+/** 自動送信がオンの間、送る内容と送り先を出す (閉じるまで)。内容は capture/db.ts の uploadPending が送るもの。 */
 const UploadNotice = ({ origin }: { origin: string }) => {
   const N = L.upload.notice;
   return (
@@ -73,10 +73,9 @@ const UploadNotice = ({ origin }: { origin: string }) => {
         ))}
       </ul>
       <p>{N.notSent}</p>
-      <p>{N.local}</p>
       <div className="flex gap-2 pt-1">
-        <Button size="sm" variant="primary" onClick={() => updatePluginSettings({ autoUpload: true })} disabled={origin === ""}>
-          {N.enable}
+        <Button size="sm" variant="secondary" onClick={() => updatePluginSettings({ autoUpload: false, uploadNoticeClosed: true })}>
+          {N.disable}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => updatePluginSettings({ uploadNoticeClosed: true })}>
           {N.close}
@@ -134,7 +133,7 @@ export const UploadSettings = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      {!settings.autoUpload && !settings.uploadNoticeClosed && <UploadNotice origin={apiBase} />}
+      {settings.autoUpload && !settings.uploadNoticeClosed && <UploadNotice origin={apiBase} />}
       <Card bodyClassName="flex flex-col gap-6">
         <Field label={L.upload.serverUrl} hint={draftValid ? undefined : L.upload.serverUrlInvalid}>
           <div className="flex gap-2">
