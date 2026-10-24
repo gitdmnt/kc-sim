@@ -1,7 +1,7 @@
 # kc-sim
 
-艦これの出撃を何万回もシミュレートして、ボス到達率・S勝利率・大破撤退率・資源の消費を見積もるツールです。
-任務の前提ツリーと、資源の推移の記録も見られます。
+艦これの出撃をシミュレートしてボス到達率・S勝利率・大破撤退率・資源の消費などをを見積もるプラグインです。
+任務のツリーや資源推移の記録も見られます。
 
 ブラウザで https://kc-sim.udama.net を開くか、[poi](https://github.com/poooi/poi) のプラグインとして使います。
 プラグインでは poi の艦隊・装備・任務の状態がそのまま読み込まれます。
@@ -10,38 +10,30 @@
 
 ## できること
 
-**シミュ**
+**シミュレータ**
 
 - 出撃: 海域と艦隊を選ぶと、出撃を 10,000 回計算して結果を出します。編成を変えるたびに計算し直します。
-  ボス到達・突破・S勝利・大破撤退の割合、マスごとの到達率と勝敗、経路、損耗、出撃 1 回あたりの資源を表示します。
+  ボス到達・突破・S勝利・大破撤退の割合、マスごとの到達率と勝敗、出撃ルート、艦隊の損耗、出撃 1 回あたりの必要資源を表示します。
   連合艦隊・支援艦隊・友軍艦隊・基地航空隊、撤退の方針、能動分岐、ゲージも設定できます。
 - 単一戦闘: 1 つのマスの 1 つの敵編成と戦った結果だけを計算します。
-- 海域: 海域のマップ、ルート分岐の条件、マスごとの敵編成と出現率。
-- 敵艦: 深海棲艦のステータスと装備。公開されていない回避・運などは、プレイヤーの観測から推定した値も表示します。
-- 観測ログ・送信設定 (プラグインのみ): プレイ中の戦闘を自動で記録します。サーバへの送信は初期設定でオフで、送信設定でオンにできます。
+- 海域: 海域のマップ、ルート分岐の条件、マスごとの敵編成と出現率を表示します。
+- 敵艦: 深海棲艦のステータスと装備を表示します。
+- 観測ログ・送信設定 (プラグインのみ): プレイ中の戦闘を自動で記録します。
 
 **任務**
 
 - 任務の一覧を、種別・分類・状況で絞り込めます。
-- 「実施可能」: 開放済みで、条件の艦娘と装備をすでに持っている任務だけを残します (poi 接続時のみ)。
 - 選んだ任務の前提任務をツリーで表示し、未達成の前提任務も含めて必要な艦娘・装備と所持数を並べます。
-- 進捗: poi が数えている任務は poi の値を、poi が数えない単発任務の一部はプラグインが数えた値を表示します。
 
 **資源** (プラグインのみ)
 
 - 燃料・弾薬・鋼材・ボーキと資材の推移をグラフで表示し、増減をイベントごと・日ごとの表で見られます。
-- 記録は手元の PC に保存され、サーバには送りません。
 
 ![任務の前提ツリー](docs/screenshots/25-quest-tree.png)
 
 ![資源の推移](docs/screenshots/20-plugin-resources.png)
 
 ## 使い方
-
-### ブラウザ
-
-https://kc-sim.udama.net を開きます。poi のデータが無いので、出撃画面の「内蔵サンプルデータを使う」で同梱の艦娘と装備を使うか、
-編成を JSON で読み込みます。観測ログ・資源と任務の「実施可能」は使えません。
 
 ### poi プラグイン
 
@@ -68,12 +60,11 @@ Windows は `%APPDATA%\poi\plugins`、Linux は `~/.config/poi/plugins` です�
 以前の手順で `poi-plugin-sim-build` として登録した場合の切り替えは [poi-plugin-sim/README.md](poi-plugin-sim/README.md) の「Install into poi」にあります。
 
 - **ウィンドウモードで開いてください。** タブ表示ではシミュと任務の画面が出ません (観測ログ・送信設定・資源は使えます)。
-- 接続先は既定で https://kc-sim.udama.net です。シミュ → 送信設定 で変えられます。
-- 計算結果は近似です。ゲームの結果と一致する保証はありません。
+- 計算結果にはコミュニティやユーザーが独自に推定した計算式や値を参照しています。KCNavの出撃データと照合して90%以上の確率で結果を再現することを確認していますが、シミュレーションの結果がゲームの結果と一致する保証はありません。
 
 ## データの出典
 
-- 艦娘・装備・海域のマスターデータ: ゲームの `api_start2` ([Tibowl/api_start2](https://github.com/Tibowl/api_start2) 経由)
+- 艦娘・装備・海域のマスターデータ: `api_start2` ([Tibowl/api_start2](https://github.com/Tibowl/api_start2) 経由)
 - 深海棲艦のステータス、装備ボーナス、イベント特効: [KC3Kai/kancolle-replay](https://github.com/KC3Kai/kancolle-replay) (MIT)
 - 海域の辺と座標、任務の前提: [KC3Kai/KC3Kai](https://github.com/KC3Kai/KC3Kai) (MIT)、任務の文章: [KC3Kai/kc3-translations](https://github.com/KC3Kai/kc3-translations) (MIT)
 - 任務の達成条件: [kcwikizh/kcwiki-quest-data](https://github.com/kcwikizh/kcwiki-quest-data) (MIT)、任務の報酬: [antest1/kcanotify-gamedata](https://github.com/antest1/kcanotify-gamedata) (MIT)
@@ -82,8 +73,6 @@ Windows は `%APPDATA%\poi\plugins`、Linux は `~/.config/poi/plugins` です�
 - ルート分岐の条件: [x-20a 羅針盤シミュ](https://x-20a.github.io/compass) を参考に手で書いたもの
 - 一部の任務の条件と前提: [ぜかましねっと](https://zekamashi.net/) を参考に手で書いたもの
 - 戦闘式: kancolle-replay と [en.kancollewiki.net](https://en.kancollewiki.net/) の記述をもとに実装
-
-ライセンスと許可の状況は [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) にあります。
 
 ## 開発者向け
 
@@ -102,10 +91,5 @@ Windows は `%APPDATA%\poi\plugins`、Linux は `~/.config/poi/plugins` です�
 - [docs/DEPLOY.md](docs/DEPLOY.md): デプロイ
 - [web/README.md](web/README.md)、[poi-plugin-sim/README.md](poi-plugin-sim/README.md): Web UI とプラグインの詳細
 
-## ライセンス
-
-- `poi-plugin-sim/`: MIT ([poi-plugin-sim/LICENSE](poi-plugin-sim/LICENSE))
-- `sim-core/`: MIT または Apache-2.0 ([sim-core/LICENSE_MIT](sim-core/LICENSE_MIT)、[sim-core/LICENSE_APACHE](sim-core/LICENSE_APACHE))
-- それ以外のディレクトリにはライセンスファイルがありません。
 
 非公式のファンツールです。ゲームの運営とは関係ありません。
