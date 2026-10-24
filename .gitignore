@@ -17,6 +17,9 @@ server/.tmp/
 *.sqlite-wal
 *.db
 
+# agent git worktrees (always inside the repo, never beside it)
+.worktrees/
+
 # secrets
 .dev.vars
 .env
