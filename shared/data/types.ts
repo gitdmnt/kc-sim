@@ -163,7 +163,7 @@ export interface CompSelection {
   minObserved: number;
 }
 
-/** `GET /api/v1/maps/{map}/enemy-comps`: every node's picked sets. */
+/** `enemyComps` of `GET /api/v1/views/map/{map}`: every node's picked sets. */
 export interface EnemyCompsResponse {
   map: string;
   minObserved: number;

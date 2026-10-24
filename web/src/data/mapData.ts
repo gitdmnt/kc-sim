@@ -2,6 +2,7 @@ import { DataApi, getDataApi } from "./api";
 import { BUNDLE_BASE, StaticBundleLoader } from "./bundle";
 import type { MapBundleLoader } from "./bundle";
 import type { ApiEquipment, CompSelection, EnemyCompSet, MapDetail, MapSummary, ShipDetail } from "@shared/data/types";
+import type { EventBonusResponse } from "@shared/sim/bonuses";
 
 /** シミュレーションに必要な海域データ一式 (API か静的バンドルから)。 */
 export interface MapData {
@@ -12,6 +13,8 @@ export interface MapData {
   compSelection: Record<string, CompSelection[]>;
   ships: Map<number, ShipDetail>;
   equips: Map<number, ApiEquipment>;
+  /** イベント特効。null はデータの無い海域、undefined は取得できなかった (静的バンドルには無い) */
+  bonuses?: EventBonusResponse | null;
   source: "api" | "bundle";
   stale: boolean;
   /** 静的バンドルの生成日時 */
@@ -38,26 +41,24 @@ export const loadMapData = async (
 ): Promise<MapData> => {
   const api = opts.api ?? getDataApi();
   try {
-    // 海域・全マスの敵編成・深海装備を並べて取り、編成に出る艦をまとめて 1 リクエスト (マスや艦ごとに分けるとレート制限にかかる)
-    const [d, c, eq] = await Promise.all([api.map(key), api.enemyComps(key, opts.minObserved), api.abyssalEquipments()]);
+    // 海域の一式 (マス・敵編成・艦・特効) は 1 リクエスト。深海装備は起動時の boot (キャッシュ済み) から
+    const [boot, v] = await Promise.all([api.boot(), api.mapView(key, opts.minObserved)]);
     const comps: Record<string, EnemyCompSet[]> = {};
     const compSelection: Record<string, CompSelection[]> = {};
-    for (const [n, picked] of Object.entries(c.data.nodes)) {
+    for (const [n, picked] of Object.entries(v.data.enemyComps.nodes)) {
       comps[n] = picked.sets;
       compSelection[n] = picked.selection;
     }
-    const ids = [...new Set(Object.values(comps).flatMap((sets) => sets.flatMap((s) => s.comps.flatMap((x) => [...x.main, ...x.escort].map((m) => m.shipId)))))];
-    const shipRes = await api.shipDetails(ids.sort((a, b) => a - b));
-    const ships = new Map<number, ShipDetail>(shipRes.data.map((s) => [s.ship.id, s]));
     return {
       key,
-      detail: d.data,
+      detail: v.data.detail,
       comps,
       compSelection,
-      ships,
-      equips: new Map(eq.data.map((e) => [e.id, e])),
+      ships: new Map<number, ShipDetail>(v.data.ships.map((s) => [s.ship.id, s])),
+      equips: new Map(boot.data.equipments.map((e) => [e.id, e])),
+      bonuses: v.data.bonuses,
       source: "api",
-      stale: d.stale || c.stale || eq.stale || shipRes.stale,
+      stale: boot.stale || v.stale,
     };
   } catch (e) {
     if (!shouldFallback(e)) throw e;
@@ -89,8 +90,8 @@ export interface MapList {
 export const loadMapList = async (opts: { api?: DataApi; fetch?: typeof fetch } = {}): Promise<MapList> => {
   const api = opts.api ?? getDataApi();
   try {
-    const r = await api.maps();
-    return { maps: r.data, source: "api", stale: r.stale };
+    const r = await api.boot();
+    return { maps: r.data.maps, source: "api", stale: r.stale };
   } catch (e) {
     if (!shouldFallback(e)) throw e;
     try {

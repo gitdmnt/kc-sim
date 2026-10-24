@@ -97,6 +97,7 @@ describe("loadMapData fallback", () => {
   test("uses the static bundle when the API is offline", async () => {
     const d = await loadMapData("9-9", { api: offlineApi, bundle: { loadMap: async () => bundle } });
     expect(d.source).toBe("bundle");
+    expect(d.bonuses).toBeUndefined();
     expect(d.detail.enemyCompNodes).toEqual(["A"]);
     expect(d.ships.get(1501)?.ship.name).toBe("イ");
     expect(d.equips.get(1501)?.name).toBe("砲");
@@ -115,25 +116,30 @@ describe("loadMapData fallback", () => {
     });
     expect((await loadMapData("9-9", { api: limited, bundle: { loadMap: async () => bundle } })).source).toBe("bundle");
   });
-  test("API: one request each for the map, every node's comps (minObserved), the equipment and the ships", async () => {
+  test("API: the map view (minObserved) and the boot data, one request each", async () => {
     const urls: string[] = [];
     const selection = [{ difficulty: 0, source: "poi-observed", observedCount: 42, minObserved: 40 }];
+    const bonuses = { map: "9-9", date: null, note: null, source: "kancolle-replay", revision: null, bonuses: [], lbasBonuses: [], debuffs: [] };
     const json = (url: string): unknown =>
-      url.includes("/enemy-comps") ? { map: "9-9", minObserved: 40, nodes: { A: { selection, sets: bundle.enemyComps.A.map((s) => ({ ...s, source: "poi-observed", totalCount: 42 })) } } }
-      : url.endsWith("/maps/9-9") ? { map: bundle.map, nodes: bundle.nodes, edges: [], routing, enemyCompNodes: ["A"] }
-      : url.includes("/ship-details") ? { ships: [{ ship: bundle.ships["1501"], estimates: [], best: {} }] }
-      : { equipments: [] };
+      url.includes("/views/map/")
+        ? {
+            detail: { map: bundle.map, nodes: bundle.nodes, edges: [], routing, enemyCompNodes: ["A"] },
+            enemyComps: { map: "9-9", minObserved: 40, nodes: { A: { selection, sets: bundle.enemyComps.A.map((s) => ({ ...s, source: "poi-observed", totalCount: 42 })) } } },
+            ships: [{ ship: bundle.ships["1501"], estimates: [], best: {} }],
+            bonuses,
+          }
+        : { dataVersion: 1, maps: [], equipments: [bundle.equipments["1501"]], fitBonuses: [] };
     const api = new DataApi({
       baseUrl: () => "http://x", storage: new MemoryStorage(),
       fetch: (async (url: string) => (urls.push(url), new Response(JSON.stringify(json(url))))) as unknown as typeof fetch,
     });
     const d = await loadMapData("9-9", { api, minObserved: 40 });
-    expect(urls.sort()).toEqual([
-      "http://x/api/v1/equipments?abyssal=1",
-      "http://x/api/v1/maps/9-9",
-      "http://x/api/v1/maps/9-9/enemy-comps?minObserved=40",
-      "http://x/api/v1/ship-details?ids=1501",
-    ]);
+    expect(urls.sort()).toEqual(["http://x/api/v1/views/boot", "http://x/api/v1/views/map/9-9?minObserved=40"]);
+    expect(d.bonuses).toEqual(bonuses);
+    expect(d.equips.get(1501)?.name).toBe("砲");
+    // another map: only its view (boot is cached)
+    await loadMapData("9-8", { api, minObserved: 40 });
+    expect(urls.filter((u) => u.includes("/views/boot"))).toHaveLength(1);
     expect(d.compSelection).toEqual({ A: selection });
     expect(d.comps.A[0].source).toBe("poi-observed");
     expect(d.ships.get(1501)?.ship.id).toBe(1501);

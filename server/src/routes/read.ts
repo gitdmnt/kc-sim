@@ -22,9 +22,9 @@ read.get("/sources", async (c) => {
   return c.json({ sources: results.map((s) => ({ key: s.key, name: s.name, url: s.url, licence: s.licence, revision: s.revision, fetchedAt: s.fetched_at })) });
 });
 
-read.get("/maps", async (c) => {
-  // Rule counts: hand-authored rules, else the inferred document (provenance says which).
-  const { results } = await c.env.DB.prepare(
+/** GET /maps `maps`. Rule counts: hand-authored rules, else the inferred document (provenance says which). */
+export async function mapList(db: D1Database) {
+  const { results } = await db.prepare(
     `SELECT m.id, m.world, m.no, m.name, m.is_event,
        (SELECT COUNT(*) FROM nodes n WHERE n.map_id = m.id) AS node_count,
        (SELECT COUNT(*) FROM edges e WHERE e.map_id = m.id) AS edge_count,
@@ -33,14 +33,14 @@ read.get("/maps", async (c) => {
        (SELECT COUNT(*) FROM enemy_comp_sets s WHERE s.map_id = m.id) AS comp_set_count
      FROM maps m LEFT JOIN routing_maps r ON r.map_id = m.id LEFT JOIN routing_inferred i ON i.map_id = m.id ORDER BY m.id`,
   ).all();
-  return c.json({
-    maps: results.map((m) => ({
-      id: m.id, key: mapName(m.id as number), world: m.world, no: m.no, name: m.name, isEvent: !!m.is_event,
-      nodeCount: m.node_count, edgeCount: m.edge_count, compSetCount: m.comp_set_count,
-      routing: m.provenance === null ? null : { ruleCount: m.rule_count, uncertainCount: m.uncertain_count, provenance: m.provenance },
-    })),
-  });
-});
+  return results.map((m) => ({
+    id: m.id, key: mapName(m.id as number), world: m.world, no: m.no, name: m.name, isEvent: !!m.is_event,
+    nodeCount: m.node_count, edgeCount: m.edge_count, compSetCount: m.comp_set_count,
+    routing: m.provenance === null ? null : { ruleCount: m.rule_count, uncertainCount: m.uncertain_count, provenance: m.provenance },
+  }));
+}
+
+read.get("/maps", async (c) => c.json({ maps: await mapList(c.env.DB) }));
 
 async function routingOf(db: D1Database, mapId: number) {
   const [head, rules, inferred] = await Promise.all([
@@ -51,26 +51,24 @@ async function routingOf(db: D1Database, mapId: number) {
   return routingJson(head, rules.results, inferred);
 }
 
-read.get("/maps/:map", async (c) => {
-  const key = parseMapKey(c.req.param("map"));
-  if (!key) return c.json({ error: "bad map key" }, 400);
-  const db = c.env.DB;
-  const map = await db.prepare(`SELECT ${MAP_COLS} FROM maps WHERE id = ?1`).bind(key.id).first();
-  if (!map) return c.json({ error: "map not found" }, 404);
+/** The body of GET /maps/{map}; null when the map does not exist. */
+export async function mapDetail(db: D1Database, mapId: number) {
+  const map = await db.prepare(`SELECT ${MAP_COLS} FROM maps WHERE id = ?1`).bind(mapId).first();
+  if (!map) return null;
   const [nodes, edges, compSets, layouts, cells, edgeCounts, mismatches] = await Promise.all([
-    db.prepare(`SELECT ${NODE_COLS} FROM nodes WHERE map_id = ?1 ORDER BY letter`).bind(key.id).all(),
-    db.prepare(`SELECT ${EDGE_COLS} FROM edges WHERE map_id = ?1 ORDER BY edge_id`).bind(key.id).all(),
+    db.prepare(`SELECT ${NODE_COLS} FROM nodes WHERE map_id = ?1 ORDER BY letter`).bind(mapId).all(),
+    db.prepare(`SELECT ${EDGE_COLS} FROM edges WHERE map_id = ?1 ORDER BY edge_id`).bind(mapId).all(),
     db.prepare(`SELECT ${COMP_SET_COLS} FROM enemy_comp_sets s LEFT JOIN sources src ON src.id = s.source_id
-      WHERE s.map_id = ?1 ORDER BY s.node_letter, s.difficulty, s.retrieved_at DESC`).bind(key.id).all(),
-    db.prepare(`SELECT ${OBSERVED_LAYOUT_COLS} FROM poi_layouts WHERE map_id = ?1`).bind(key.id).all(),
-    db.prepare(`SELECT ${OBSERVED_CELL_COLS} FROM poi_cells WHERE map_id = ?1`).bind(key.id).all(),
-    db.prepare(`${OBSERVED_EDGE_SQL} WHERE map_id = ?1 ${OBSERVED_EDGE_GROUP}`).bind(key.id).all(),
-    db.prepare(`SELECT ${MISMATCH_COLS} FROM poi_graph_mismatches WHERE map_id = ?1 ORDER BY kind, to_cell, from_cell`).bind(key.id).all(),
+      WHERE s.map_id = ?1 ORDER BY s.node_letter, s.difficulty, s.retrieved_at DESC`).bind(mapId).all(),
+    db.prepare(`SELECT ${OBSERVED_LAYOUT_COLS} FROM poi_layouts WHERE map_id = ?1`).bind(mapId).all(),
+    db.prepare(`SELECT ${OBSERVED_CELL_COLS} FROM poi_cells WHERE map_id = ?1`).bind(mapId).all(),
+    db.prepare(`${OBSERVED_EDGE_SQL} WHERE map_id = ?1 ${OBSERVED_EDGE_GROUP}`).bind(mapId).all(),
+    db.prepare(`SELECT ${MISMATCH_COLS} FROM poi_graph_mismatches WHERE map_id = ?1 ORDER BY kind, to_cell, from_cell`).bind(mapId).all(),
   ]);
-  const routing = await routingOf(db, key.id);
+  const routing = await routingOf(db, mapId);
   const observed = observedGraphJson({ layouts: layouts.results, cells: cells.results, edgeCounts: edgeCounts.results, mismatches: mismatches.results, edges: edges.results });
   const lbas = lbasDistanceByLetter(observed);
-  return c.json({
+  return {
     map: mapJson(map),
     nodes: nodes.results.map((n) => nodeJson(n, lbas)),
     edges: edges.results.map(edgeJson),
@@ -79,7 +77,14 @@ read.get("/maps/:map", async (c) => {
     enemyCompNodes: [...new Set(compSets.results.map((r) => r.node_letter as string))].sort(),
     compSets: compSets.results.map(compSetSummaryJson),
     observed,
-  });
+  };
+}
+
+read.get("/maps/:map", async (c) => {
+  const key = parseMapKey(c.req.param("map"));
+  if (!key) return c.json({ error: "bad map key" }, 400);
+  const detail = await mapDetail(c.env.DB, key.id);
+  return detail ? c.json(detail) : c.json({ error: "map not found" }, 404);
 });
 
 // The body stays the bare ROUTING_DSL document (the evaluator rejects unknown keys); provenance goes in headers.
@@ -94,10 +99,10 @@ read.get("/maps/:map/routing", async (c) => {
   return c.json(routing.doc);
 });
 
-type CompOpts = { minObserved: number; prefer: SourcePref; since: string | null; difficulty: number | null };
+export type CompOpts = { minObserved: number; prefer: SourcePref; since: string | null; difficulty: number | null };
 
-/** The enemy-comps query parameters (shared by the per-node and the map-wide route); a string is the 400 message. */
-function compOpts(q: (name: string) => string | undefined): CompOpts | string {
+/** The enemy-comps query parameters (shared by the per-node route and the map view); a string is the 400 message. */
+export function compOpts(q: (name: string) => string | undefined): CompOpts | string {
   const difficulty = q("difficulty");
   const minObserved = Number(q("minObserved") ?? DEFAULT_MIN_OBSERVED);
   const prefer = (q("source") ?? "auto") as SourcePref;
@@ -109,7 +114,7 @@ function compOpts(q: (name: string) => string | undefined): CompOpts | string {
 }
 
 /** The comp sets of one node (`node`) or of every node of the map (null), picked per node by the source policy. */
-async function compsByNode(db: D1Database, mapId: number, node: string | null, o: CompOpts) {
+export async function compsByNode(db: D1Database, mapId: number, node: string | null, o: CompOpts) {
   const sets = await db.prepare(
     `SELECT ${COMP_SET_COLS} FROM enemy_comp_sets s LEFT JOIN sources src ON src.id = s.source_id
      WHERE s.map_id = ?1 AND (?2 IS NULL OR s.node_letter = ?2) AND (?3 IS NULL OR s.difficulty = ?3)
@@ -135,51 +140,23 @@ read.get("/maps/:map/nodes/:node/enemy-comps", async (c) => {
   return c.json({ map: mapName(key.id), node, minObserved: o.minObserved, source: o.prefer, selection: picked.selection, sets: picked.sets });
 });
 
-// Every node at once (the web UI loads a map with this, not one request per node).
-read.get("/maps/:map/enemy-comps", async (c) => {
-  const key = parseMapKey(c.req.param("map"));
-  if (!key) return c.json({ error: "bad map key" }, 400);
-  const o = compOpts((name) => c.req.query(name));
-  if (typeof o === "string") return c.json({ error: o }, 400);
-  return c.json({ map: mapName(key.id), minObserved: o.minObserved, source: o.prefer, nodes: await compsByNode(c.env.DB, key.id, null, o) });
-});
-
 // List endpoints get their JSON array from D1 as one TEXT value (jsonArraySql): the worker only concatenates it
 // into the envelope, so CPU does not grow with parsing and re-serialising every row.
-const JSON_HEADERS = { "Content-Type": "application/json" };
+export const JSON_HEADERS = { "Content-Type": "application/json" };
 
-read.get("/ships", async (c) => {
-  const abyssal = c.req.query("abyssal");
-  const row = await c.env.DB.prepare(jsonArraySql(SHIP_FIELDS, "FROM ships WHERE (?1 IS NULL OR is_abyssal = ?1) ORDER BY id"))
-    .bind(abyssal === undefined ? null : abyssal === "1" || abyssal === "true" ? 1 : 0).first<{ body: string }>();
-  return c.body(`{"ships":${row!.body}}`, 200, JSON_HEADERS);
-});
+/** `?abyssal=` of the list routes: 1/true, 0/anything else, or absent (null = no filter). */
+const abyssalParam = (v: string | undefined) => (v === undefined ? null : v === "1" || v === "true" ? 1 : 0);
 
-/** One ship with its estimates and the best per stat (the shape of GET /ships/{id}). */
-const shipDetailJson = (ship: Record<string, unknown>, rows: Record<string, unknown>[]) => {
-  const estimates = rows.map(estimateJson);
-  return { ship: shipJson(ship), estimates, best: bestEstimates(estimates) };
-};
+/** The JSON array text of GET /ships `ships` (all ships, or only abyssal = 1 / 0). */
+export async function shipListJson(db: D1Database, abyssal: number | null) {
+  const row = await db.prepare(jsonArraySql(SHIP_FIELDS, "FROM ships WHERE (?1 IS NULL OR is_abyssal = ?1) ORDER BY id")).bind(abyssal).first<{ body: string }>();
+  return row!.body;
+}
 
-read.get("/ships/:id", async (c) => {
-  const id = Number(c.req.param("id"));
-  const db = c.env.DB;
-  const ship = await db.prepare(`SELECT ${SHIP_COLS} FROM ships WHERE id = ?1`).bind(id).first();
-  if (!ship) return c.json({ error: "ship not found" }, 404);
-  const { results } = await db.prepare(
-    `SELECT ${ESTIMATE_COLS} FROM estimates e JOIN sources s ON s.id = e.source_id WHERE e.ship_id = ?1 ORDER BY e.stat, s.key`,
-  ).bind(id).all();
-  return c.json(shipDetailJson(ship, results));
-});
+read.get("/ships", async (c) => c.body(`{"ships":${await shipListJson(c.env.DB, abyssalParam(c.req.query("abyssal")))}}`, 200, JSON_HEADERS));
 
-// GET /ships/{id} for many ids in one request (the web UI loads a map's enemy ships with this). Unknown ids are left out.
-const MAX_SHIP_DETAILS = 200;
-read.get("/ship-details", async (c) => {
-  const ids = c.req.query("ids")?.split(",").map((s) => Number(s.trim())) ?? [];
-  if (ids.length === 0 || ids.length > MAX_SHIP_DETAILS || ids.some((n) => !Number.isInteger(n) || n <= 0)) {
-    return c.json({ error: `ids must be 1 to ${MAX_SHIP_DETAILS} positive integers` }, 400);
-  }
-  const db = c.env.DB;
+/** GET /ships/{id} bodies (ship, its estimates and the best per stat) of `ids`, in id order; unknown ids are left out. */
+export async function shipDetails(db: D1Database, ids: number[]) {
   const json = JSON.stringify(ids);
   const [ships, estimates] = await Promise.all([
     db.prepare(`SELECT ${SHIP_COLS} FROM ships WHERE id IN (SELECT value FROM json_each(?1)) ORDER BY id`).bind(json).all(),
@@ -188,15 +165,24 @@ read.get("/ship-details", async (c) => {
        WHERE e.ship_id IN (SELECT value FROM json_each(?1)) ORDER BY e.stat, s.key`,
     ).bind(json).all(),
   ]);
-  return c.json({ ships: ships.results.map((s) => shipDetailJson(s, estimates.results.filter((e) => e.ship_id === s.id))) });
+  return ships.results.map((ship) => {
+    const rows = estimates.results.filter((e) => e.ship_id === ship.id).map(estimateJson);
+    return { ship: shipJson(ship), estimates: rows, best: bestEstimates(rows) };
+  });
+}
+
+read.get("/ships/:id", async (c) => {
+  const [detail] = await shipDetails(c.env.DB, [Number(c.req.param("id"))]);
+  return detail ? c.json(detail) : c.json({ error: "ship not found" }, 404);
 });
 
-read.get("/equipments", async (c) => {
-  const abyssal = c.req.query("abyssal");
-  const row = await c.env.DB.prepare(jsonArraySql(EQUIP_FIELDS, "FROM equipments WHERE (?1 IS NULL OR is_abyssal = ?1) ORDER BY id"))
-    .bind(abyssal === undefined ? null : abyssal === "1" || abyssal === "true" ? 1 : 0).first<{ body: string }>();
-  return c.body(`{"equipments":${row!.body}}`, 200, JSON_HEADERS);
-});
+/** The JSON array text of GET /equipments `equipments`. */
+export async function equipmentListJson(db: D1Database, abyssal: number | null) {
+  const row = await db.prepare(jsonArraySql(EQUIP_FIELDS, "FROM equipments WHERE (?1 IS NULL OR is_abyssal = ?1) ORDER BY id")).bind(abyssal).first<{ body: string }>();
+  return row!.body;
+}
+
+read.get("/equipments", async (c) => c.body(`{"equipments":${await equipmentListJson(c.env.DB, abyssalParam(c.req.query("abyssal")))}}`, 200, JSON_HEADERS));
 
 read.get("/equipments/:id", async (c) => {
   const e = await c.env.DB.prepare(`SELECT ${EQUIP_COLS} FROM equipments WHERE id = ?1`).bind(Number(c.req.param("id"))).first();
@@ -215,30 +201,50 @@ read.get("/quests", async (c) => {
   return c.body(`{"sources":${JSON.stringify(src)},"quests":${row!.body}}`, 200, JSON_HEADERS);
 });
 
+/** The body of GET /maps/{map}/bonuses; null when the map has no event bonus data. */
+export async function eventBonuses(db: D1Database, mapId: number) {
+  const row = await db.prepare(
+    "SELECT b.date, b.note, b.bonuses, b.lbas_bonuses, b.debuffs, s.key AS source, s.revision FROM event_bonuses b LEFT JOIN sources s ON s.id = b.source_id WHERE b.map_id = ?1",
+  ).bind(mapId).first();
+  if (!row) return null;
+  return {
+    map: mapName(mapId), date: row.date, note: row.note, source: row.source === "manual-event-bonus" ? "manual" : "kancolle-replay", revision: row.revision,
+    bonuses: parseJson(row.bonuses), lbasBonuses: parseJson(row.lbas_bonuses), debuffs: parseJson(row.debuffs),
+  };
+}
+
 read.get("/maps/:map/bonuses", async (c) => {
   const key = parseMapKey(c.req.param("map"));
   if (!key) return c.json({ error: "bad map key" }, 400);
-  const row = await c.env.DB.prepare(
-    "SELECT b.date, b.note, b.bonuses, b.lbas_bonuses, b.debuffs, s.key AS source, s.revision FROM event_bonuses b LEFT JOIN sources s ON s.id = b.source_id WHERE b.map_id = ?1",
-  ).bind(key.id).first();
-  if (!row) return c.json({ error: "no event bonus data for this map" }, 404);
-  return c.json({
-    map: mapName(key.id), date: row.date, note: row.note, source: row.source === "manual-event-bonus" ? "manual" : "kancolle-replay", revision: row.revision,
-    bonuses: parseJson(row.bonuses), lbasBonuses: parseJson(row.lbas_bonuses), debuffs: parseJson(row.debuffs),
-  });
+  const body = await eventBonuses(c.env.DB, key.id);
+  return body ? c.json(body) : c.json({ error: "no event bonus data for this map" }, 404);
 });
 
-read.get("/fit-bonuses", async (c) => {
-  const { results } = await c.env.DB.prepare("SELECT id, equip_ids, equip_types, bonuses FROM fit_bonuses ORDER BY id").all();
-  return c.json({
-    fitBonuses: results.map((f) => ({ id: f.id, ids: parseJson(f.equip_ids), types: parseJson(f.equip_types), bonuses: parseJson(f.bonuses) })),
-  });
-});
+/** GET /fit-bonuses `fitBonuses`. */
+export async function fitBonusList(db: D1Database) {
+  const { results } = await db.prepare("SELECT id, equip_ids, equip_types, bonuses FROM fit_bonuses ORDER BY id").all();
+  return results.map((f) => ({ id: f.id, ids: parseJson(f.equip_ids), types: parseJson(f.equip_types), bonuses: parseJson(f.bonuses) }));
+}
+
+read.get("/fit-bonuses", async (c) => c.json({ fitBonuses: await fitBonusList(c.env.DB) }));
 
 // Server estimator posteriors (docs/API.md §2 "Estimates"): one row per ship × stat.
 const ESTIMATED_STATS = ["ev", "acc", "luck"];
 /** Densities are ~2 KB per row and D1 hands them to the worker as JSON it must parse: ≤ 50 ships (~300 KB) per request. */
 const MAX_DENSITY_SHIPS = 50;
+
+/** The body text of GET /estimates over the already validated filters (null = no filter). */
+export async function estimatesJson(db: D1Database, f: { ids: number[] | null; stats?: string[] | null; minN?: number; density: boolean }) {
+  const row = await db.prepare(jsonArraySql(
+    posteriorFields(f.density),
+    `FROM estimator_posteriors
+     WHERE (?1 IS NULL OR ship_id IN (SELECT value FROM json_each(?1))) AND (?2 IS NULL OR stat IN (SELECT value FROM json_each(?2))) AND n >= ?3
+     ORDER BY ship_id, CASE stat WHEN 'ev' THEN 0 WHEN 'acc' THEN 1 ELSE 2 END`,
+    "(SELECT MAX(updated_at) FROM estimator_posteriors) AS at, ",
+  )).bind(f.ids && JSON.stringify(f.ids), f.stats ? JSON.stringify(f.stats) : null, f.minN ?? 0).first<{ at: string | null; body: string }>();
+  return `{"source":"estimator:server","updatedAt":${JSON.stringify(row!.at)},"estimates":${row!.body}}`;
+}
+
 read.get("/estimates", async (c) => {
   const ids = c.req.query("shipId")?.split(",").map((s) => Number(s.trim())) ?? null;
   const stats = c.req.query("stat")?.split(",").map((s) => s.trim()) ?? null;
@@ -250,13 +256,6 @@ read.get("/estimates", async (c) => {
   if (densityParam !== undefined && densityParam !== "0" && densityParam !== "1") return c.json({ error: "density must be 0 or 1" }, 400);
   const densityAllowed = ids !== null && ids.length <= MAX_DENSITY_SHIPS;
   if (densityParam === "1" && !densityAllowed) return c.json({ error: `density=1 requires shipId with at most ${MAX_DENSITY_SHIPS} ids` }, 400);
-  const withDensity = densityParam === undefined ? densityAllowed : densityParam === "1";
-  const row = await c.env.DB.prepare(jsonArraySql(
-    posteriorFields(withDensity),
-    `FROM estimator_posteriors
-     WHERE (?1 IS NULL OR ship_id IN (SELECT value FROM json_each(?1))) AND (?2 IS NULL OR stat IN (SELECT value FROM json_each(?2))) AND n >= ?3
-     ORDER BY ship_id, CASE stat WHEN 'ev' THEN 0 WHEN 'acc' THEN 1 ELSE 2 END`,
-    "(SELECT MAX(updated_at) FROM estimator_posteriors) AS at, ",
-  )).bind(ids && JSON.stringify(ids), stats && JSON.stringify(stats), minN).first<{ at: string | null; body: string }>();
-  return c.body(`{"source":"estimator:server","updatedAt":${JSON.stringify(row!.at)},"estimates":${row!.body}}`, 200, JSON_HEADERS);
+  const density = densityParam === undefined ? densityAllowed : densityParam === "1";
+  return c.body(await estimatesJson(c.env.DB, { ids, stats, minN, density }), 200, JSON_HEADERS);
 });

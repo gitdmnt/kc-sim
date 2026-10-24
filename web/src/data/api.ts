@@ -4,16 +4,35 @@ import { defaultStorage, keysWithPrefix } from "../fleet/storage";
 import type { FitEntry } from "@shared/sim/fit";
 import type { EventBonusResponse } from "@shared/sim/bonuses";
 import type { QuestsResponse } from "@shared/quest/types";
-import type {
-  ApiEquipment,
-  ApiShip,
-  EnemyCompsResponse,
-  EstimatedStat,
-  EstimatesResponse,
-  MapDetail,
-  MapSummary,
-  ShipDetail,
-} from "@shared/data/types";
+import type { ApiEquipment, ApiShip, EnemyCompsResponse, EstimatesResponse, MapDetail, MapSummary, ShipDetail } from "@shared/data/types";
+
+// 画面ごとの応答 (docs/API.md「Views」)。どれも個別の API の応答をまとめたもの
+
+/** `GET /api/v1/views/boot`: どの画面も使う一覧 (海域・深海装備・装備ボーナス)。 */
+export interface BootView {
+  dataVersion: number;
+  maps: MapSummary[];
+  equipments: ApiEquipment[];
+  fitBonuses: FitEntry[];
+}
+/** `GET /api/v1/views/map/{map}`: 1 海域 (出撃・海域タブ)。ships は編成に出る全艦、bonuses はイベント特効 (無い海域は null)。 */
+export interface MapView {
+  detail: MapDetail;
+  enemyComps: EnemyCompsResponse;
+  ships: ShipDetail[];
+  bonuses: EventBonusResponse | null;
+}
+/** `GET /api/v1/views/enemy/{id}`: 敵艦タブの 1 隻 (推定は分布つき)。 */
+export interface EnemyShipView {
+  detail: ShipDetail;
+  estimates: EstimatesResponse;
+}
+/** `GET /api/v1/views/enemy`: 敵艦タブの一覧 (推定は分布なし) と、選ぶ前に出す先頭の艦の EnemyShipView。 */
+export interface EnemyView {
+  ships: ApiShip[];
+  estimates: EstimatesResponse;
+  firstShip: EnemyShipView | null;
+}
 
 export type DataErrorKind = "offline" | "http" | "parse";
 
@@ -50,8 +69,6 @@ const QUEST_TTL = 24 * 60 * 60 * 1000;
 /** 429 を取り直す回数と、Retry-After の上限 (秒) */
 const RATE_LIMIT_RETRIES = 3;
 const MAX_RETRY_AFTER_S = 10;
-/** GET /ship-details の 1 リクエストの id 数の上限 (サーバと同じ) */
-const SHIP_DETAILS_MAX = 200;
 
 interface Entry {
   t: number;
@@ -110,10 +127,14 @@ export class DataApi {
     for (const k of keysWithPrefix(this.storage, CACHE_PREFIX)) this.storage.removeItem(k);
   }
 
-  private get<T>(path: string, fresh = false, ttl = this.ttl): Promise<Loaded<T>> {
-    const key = `${this.opts.baseUrl().replace(/\/+$/, "")}${path}`;
+  private keyOf(path: string) {
+    return `${this.opts.baseUrl().replace(/\/+$/, "")}${path}`;
+  }
+
+  private get<T>(path: string, ttl = this.ttl): Promise<Loaded<T>> {
+    const key = this.keyOf(path);
     const cached = this.readEntry(key);
-    if (!fresh && cached && this.now() - cached.t < ttl) {
+    if (cached && this.now() - cached.t < ttl) {
       return Promise.resolve({ data: cached.data as T, stale: false });
     }
     const running = this.inflight.get(key);
@@ -158,56 +179,33 @@ export class DataApi {
     return p;
   }
 
-  async maps() {
-    const r = await this.get<{ maps: MapSummary[] }>("/api/v1/maps");
-    return { data: r.data.maps, stale: r.stale };
+  /** 起動時に 1 回: 海域一覧・深海装備・装備ボーナス */
+  boot() {
+    return this.get<BootView>("/api/v1/views/boot");
   }
-  map(key: string) {
-    return this.get<MapDetail>(`/api/v1/maps/${encodeURIComponent(key)}`);
-  }
-  /** 海域の全マスの敵編成 (1 リクエスト)。出典は API の既定ポリシー: 観測 (poi-observed) が minObserved 件以上なら観測、でなければ KCNav (API.md §2)。 */
-  enemyComps(map: string, minObserved?: number) {
+  /** 1 海域の一式 (1 リクエスト)。敵編成の出典は API の既定ポリシー: 観測 (poi-observed) が minObserved 件以上なら観測、でなければ KCNav (API.md §2)。 */
+  mapView(key: string, minObserved?: number) {
     const q = minObserved === undefined ? "" : `?minObserved=${minObserved}`;
-    return this.get<EnemyCompsResponse>(`/api/v1/maps/${encodeURIComponent(map)}/enemy-comps${q}`);
+    return this.get<MapView>(`/api/v1/views/map/${encodeURIComponent(key)}${q}`);
   }
-  async abyssalShips() {
-    const r = await this.get<{ ships: ApiShip[] }>("/api/v1/ships?abyssal=1");
-    return { data: r.data.ships, stale: r.stale };
+  /** 敵艦タブの一覧。応答に入っている先頭の艦の詳細はキャッシュに入れ、選んだときに取り直さない。 */
+  async enemyView() {
+    const r = await this.get<EnemyView>("/api/v1/views/enemy");
+    const first = r.data.firstShip;
+    if (first) {
+      const key = this.keyOf(`/api/v1/views/enemy/${first.detail.ship.id}`);
+      const had = this.readEntry(key);
+      if (!had || this.now() - had.t >= this.ttl) this.writeEntry(key, { t: this.now(), data: first });
+    }
+    return r;
   }
-  ship(id: number) {
-    return this.get<ShipDetail>(`/api/v1/ships/${id}`);
-  }
-  /** 複数の艦の ship() を SHIP_DETAILS_MAX 件ずつ 1 リクエストで。サーバに無い id は結果に入らない。 */
-  async shipDetails(ids: number[]) {
-    const chunks = Array.from({ length: Math.ceil(ids.length / SHIP_DETAILS_MAX) }, (_, i) => ids.slice(i * SHIP_DETAILS_MAX, (i + 1) * SHIP_DETAILS_MAX));
-    const parts = await Promise.all(chunks.map((c) => this.get<{ ships: ShipDetail[] }>(`/api/v1/ship-details?ids=${c.join(",")}`)));
-    return { data: parts.flatMap((r) => r.data.ships), stale: parts.some((r) => r.stale) };
-  }
-  /** サーバの推定値 (docs/API.md)。`density` は shipId 指定のときだけ事前・事後分布を含める。`fresh` はキャッシュを使わず取り直す。 */
-  estimates(q: { shipId?: number; stat?: EstimatedStat; minN?: number; density?: boolean } = {}, fresh = false) {
-    const p = new URLSearchParams();
-    if (q.shipId !== undefined) p.set("shipId", String(q.shipId));
-    if (q.stat) p.set("stat", q.stat);
-    if (q.minN !== undefined) p.set("minN", String(q.minN));
-    if (q.density !== undefined) p.set("density", q.density ? "1" : "0");
-    const qs = p.toString();
-    return this.get<EstimatesResponse>(`/api/v1/estimates${qs ? `?${qs}` : ""}`, fresh);
-  }
-  async fitBonuses() {
-    const r = await this.get<{ fitBonuses: FitEntry[] }>("/api/v1/fit-bonuses");
-    return { data: r.data.fitBonuses, stale: r.stale };
-  }
-  /** イベント特効と装甲デバフ (docs/API.md)。データの無い海域は HTTP 404 の DataApiError。 */
-  eventBonuses(map: string) {
-    return this.get<EventBonusResponse>(`/api/v1/maps/${encodeURIComponent(map)}/bonuses`);
-  }
-  async abyssalEquipments() {
-    const r = await this.get<{ equipments: ApiEquipment[] }>("/api/v1/equipments?abyssal=1");
-    return { data: r.data.equipments, stale: r.stale };
+  /** 敵艦タブで選んだ 1 隻 (詳細と、分布つきのサーバの推定) */
+  enemyShip(id: number) {
+    return this.get<EnemyShipView>(`/api/v1/views/enemy/${id}`);
   }
   /** 任務の一覧 (前提・条件つき、docs/API.md)。サーバは 1 日 1 回取り込むので、キャッシュも 1 日使う。 */
   quests() {
-    return this.get<QuestsResponse>("/api/v1/quests", false, QUEST_TTL);
+    return this.get<QuestsResponse>("/api/v1/quests", QUEST_TTL);
   }
 }
 

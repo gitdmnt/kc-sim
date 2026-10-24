@@ -1,13 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { getDataApi } from "../../data/api";
-import { useAbyssalData } from "../../data/names";
 import { ESTIMATE_MIN_N, SERVER_ESTIMATOR_SOURCE } from "@shared/data/types";
 import type { ApiEquipment, ApiShip, Confidence, EstimateRow, HiddenStat, ShipEstimate } from "@shared/data/types";
 import { useAsync } from "../../data/useAsync";
 import { normalizeForSearch } from "../../fleet/catalog";
 import { Calculator, Check, CircleHelp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Button, Card, EquipIcon, ProgressBar, Select, TextInput, cx, S } from "../../ui";
+import { Card, EquipIcon, ProgressBar, Select, TextInput, cx, S } from "../../ui";
 import { useApp } from "../context";
 import { DataError, StaleBadge } from "../DataState";
 import { CONFIDENCE as CONF } from "./confidence";
@@ -87,30 +86,24 @@ const CONF_ICON: Partial<Record<Confidence | "none", LucideIcon>> = { observed: 
 
 const ShipDetailView = ({
   id,
-  rows,
   equipById,
   max,
 }: {
   id: number;
-  /** 一覧から分かるこの艦のサーバの推定 (分布なし)。一覧を取れていなければ undefined */
-  rows: EstimateRow[] | undefined;
   equipById: (id: number) => ApiEquipment | undefined;
   max: Record<MainKey, number>;
 }) => {
   // 失敗した取得は「再試行」で取り直す (DataApi は 429 を自分で数回取り直してから失敗にする)
   const [retry, setRetry] = useState(0);
-  const [densRetry, setDensRetry] = useState(0);
-  const res = useAsync(() => getDataApi().ship(id), [id, retry]);
-  // 分布 (事前・事後) は 1 隻ずつ取る。一覧で推定が無いと分かっている艦は取らない
-  const dens = useAsync(rows?.length === 0 ? null : () => getDataApi().estimates({ shipId: id, density: true }), [id, densRetry]);
+  // 詳細と分布つきの推定を 1 リクエストで (一覧の先頭の艦は一覧の応答に入っていてキャッシュから出る)
+  const res = useAsync(() => getDataApi().enemyShip(id), [id, retry]);
   const { catalog } = useApp();
   if (res.loading) return <p className="p-4 text-sm text-ink-300">{S.common.loading}</p>;
   if (res.error) return <DataError error={res.error} onRetry={() => setRetry((n) => n + 1)} />;
-  const { ship, estimates, best } = res.data!;
+  const { detail: { ship, estimates, best }, estimates: posteriors } = res.data!;
   const stype = catalog.shipTypes[ship.stype] ?? "—";
   const isBest = (e: ShipEstimate) => best[e.stat]?.source === e.source && best[e.stat]?.value === e.value;
-  const fetched = dens.data?.estimates.filter((r) => r.shipId === id);
-  const server = STAT_ORDER.flatMap((st) => (fetched ?? rows ?? []).filter((r) => r.stat === st));
+  const server = STAT_ORDER.flatMap((st) => posteriors.estimates.filter((r) => r.stat === st));
   const hidden = STAT_ORDER.filter((st) => best[st] || server.some((r) => r.stat === st) || (st === "luck" && ship.luck != null));
   const others = estimates.filter((e) => !isBest(e) && e.source !== SERVER_ESTIMATOR_SOURCE);
 
@@ -168,20 +161,7 @@ const ShipDetailView = ({
 
       {!!ship.equips?.length && <EquipList ids={ship.equips} equipById={equipById} />}
       {server.length > 0 ? (
-        <ServerEstimates
-          rows={server}
-          label={(st) => STAT_LABEL[st]}
-          updatedAt={dens.data?.updatedAt}
-          loading={dens.loading}
-          onRetry={dens.error ? () => setDensRetry((n) => n + 1) : undefined}
-        />
-      ) : dens.loading ? null : dens.error ? (
-        <p className="flex items-center gap-2 text-xs text-ink-400">
-          推定を取得できませんでした
-          <Button size="sm" variant="ghost" onClick={() => setDensRetry((n) => n + 1)}>
-            再試行
-          </Button>
-        </p>
+        <ServerEstimates rows={server} label={(st) => STAT_LABEL[st]} updatedAt={posteriors.updatedAt} />
       ) : (
         <p className="text-xs text-ink-400" title="サーバの推定器にこの艦の観測がまだない">推定なし</p>
       )}
@@ -201,31 +181,34 @@ type EstimateFilter = "" | "any" | "enough" | "shifted";
 
 export const EnemyTab = () => {
   const { catalog } = useApp();
-  const data = useAbyssalData();
-  const estList = useAsync(() => getDataApi().estimates({ density: false }), []);
+  const view = useAsync(() => getDataApi().enemyView(), []);
+  // 装備名は boot (どの画面も使う、キャッシュ済み) から
+  const boot = useAsync(() => getDataApi().boot(), []);
+  const equips = useMemo(() => new Map((boot.data?.equipments ?? []).map((e) => [e.id, e])), [boot.data]);
+  const ships = view.data?.ships;
   const [query, setQuery] = useState("");
   const [stype, setStype] = useState("");
   const [estFilter, setEstFilter] = useState<EstimateFilter>("");
   const [selected, setSelected] = useState<number | null>(null);
 
-  const types = useMemo(() => [...new Set((data.ships ?? []).map((s) => s.stype))].sort((a, b) => a - b), [data.ships]);
+  const types = useMemo(() => [...new Set((ships ?? []).map((s) => s.stype))].sort((a, b) => a - b), [ships]);
   const max = useMemo(() => {
     // 上位の外れ値 (ボス) に引きずられないよう 95 パーセンタイルを棒の満量にする
     const m: Record<MainKey, number> = { hp: 1, fp: 1, tp: 1, aa: 1, ar: 1 };
     for (const [, k] of MAIN_STATS) {
-      const v = (data.ships ?? []).map((s) => s[k] ?? 0).sort((a, b) => a - b);
+      const v = (ships ?? []).map((s) => s[k] ?? 0).sort((a, b) => a - b);
       m[k] = Math.max(1, v[Math.floor(v.length * 0.95)] ?? 1);
     }
     return m;
-  }, [data.ships]);
+  }, [ships]);
   const byShip = useMemo(() => {
     const m = new Map<number, EstimateRow[]>();
-    for (const r of estList.data?.estimates ?? []) m.set(r.shipId, [...(m.get(r.shipId) ?? []), r]);
+    for (const r of view.data?.estimates.estimates ?? []) m.set(r.shipId, [...(m.get(r.shipId) ?? []), r]);
     return m;
-  }, [estList.data]);
+  }, [view.data]);
   const filtered = useMemo(() => {
     const q = normalizeForSearch(query);
-    return (data.ships ?? []).filter((s: ApiShip) => {
+    return (ships ?? []).filter((s: ApiShip) => {
       const est = byShip.get(s.id);
       return (
         (!stype || String(s.stype) === stype) &&
@@ -234,18 +217,18 @@ export const EnemyTab = () => {
         (!q || normalizeForSearch(`${s.name}${s.yomi ?? ""}${s.nameEn ?? ""}${s.id}`).includes(q))
       );
     });
-  }, [data.ships, query, stype, estFilter, byShip]);
+  }, [ships, query, stype, estFilter, byShip]);
 
   const current = filtered.some((s) => s.id === selected) ? selected : (filtered[0]?.id ?? null);
 
-  if (data.error) return <DataError error={data.error} />;
-  if (data.loading && !data.ships) return <p className="text-sm text-ink-300">{S.common.loading}</p>;
+  if (view.error) return <DataError error={view.error} />;
+  if (!ships) return <p className="text-sm text-ink-300">{S.common.loading}</p>;
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:h-full lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
       <Card
         title={<span className="tabular-nums">{S.common.count(filtered.length)}</span>}
-        actions={data.stale ? <StaleBadge /> : undefined}
+        actions={view.stale ? <StaleBadge /> : undefined}
         className="flex min-h-0 flex-col"
         bodyClassName="flex min-h-0 flex-1 flex-col gap-3"
       >
@@ -259,13 +242,7 @@ export const EnemyTab = () => {
               </option>
             ))}
           </Select>
-          <Select
-            value={estFilter}
-            onChange={(e) => setEstFilter(e.target.value as EstimateFilter)}
-            aria-label="推定"
-            disabled={!estList.data}
-            title={estList.error ? "推定の一覧を取得できませんでした" : undefined}
-          >
+          <Select value={estFilter} onChange={(e) => setEstFilter(e.target.value as EstimateFilter)} aria-label="推定">
             <option value="">推定: すべて</option>
             <option value="any">推定あり</option>
             <option value="enough">{`推定 n ≥ ${ESTIMATE_MIN_N}`}</option>
@@ -306,7 +283,7 @@ export const EnemyTab = () => {
         </ul>
       </Card>
       {current !== null && (
-        <ShipDetailView key={current} id={current} rows={estList.data ? (byShip.get(current) ?? []) : undefined} equipById={data.equipById} max={max} />
+        <ShipDetailView key={current} id={current} equipById={(id) => equips.get(id)} max={max} />
       )}
     </div>
   );

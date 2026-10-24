@@ -115,6 +115,9 @@ export const Shell = () => {
     [intent] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const sortie = tab === "sortie";
+  // 出撃タブは初めて開いたときに作る (他のタブで起動したときに海域データを取りに行かない)
+  const [sortieMounted, setSortieMounted] = useState(sortie);
+  if (sortie && !sortieMounted) setSortieMounted(true);
   const pane = "lg:min-h-0 lg:flex-1";
 
   return (
@@ -138,10 +141,12 @@ export const Shell = () => {
           <main className="min-h-0 min-w-0 flex-1 overflow-auto">
             <div className={cx("mx-auto flex max-w-[1600px] flex-col gap-2 p-2", FULL_HEIGHT.includes(tab) && "lg:h-full")}>
               <PoiBadge poi={poi} />
-              {/* 出撃タブは隠すだけで外さない (結果と計算を保つ) */}
-              <div className={sortie ? pane : "hidden"}>
-                <Workspace />
-              </div>
+              {/* 出撃タブは一度作ったら隠すだけで外さない (結果と計算を保つ) */}
+              {sortieMounted && (
+                <div className={sortie ? pane : "hidden"}>
+                  <Workspace />
+                </div>
+              )}
               {tab === "map" && <div className={pane}><MapTab /></div>}
               {tab === "enemy" && <div className={pane}><EnemyTab /></div>}
               {tab === "quests" && <div className={pane}><QuestTab /></div>}

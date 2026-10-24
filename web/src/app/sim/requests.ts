@@ -15,8 +15,7 @@ import {
 import type { FitEntry } from "@shared/sim/fit";
 import { bonusAt, buildBonuses, debuffsAt } from "@shared/sim/bonuses";
 import { isAtollNode, isBalloonNode } from "@shared/sim/nodeEffects";
-import type { EventBonusResponse } from "@shared/sim/bonuses";
-import { DataApiError, getDataApi } from "../../data/api";
+import { getDataApi } from "../../data/api";
 import type { MapData } from "../../data/mapData";
 import { runInWorker, runSortieInWorker } from "../../sim/client";
 import { allocateCounts, mergeSummaries } from "../../sim/runner";
@@ -62,40 +61,16 @@ export interface BattleOutcome {
 
 export type SimOutcome = SortieOutcome | BattleOutcome;
 
-let fitPromise: Promise<FitEntry[] | null> | undefined;
-/** 装備ボーナスの定義。取得できなければ null (その計算は未適用で回し、次の計算でまた取りに行く)。 */
+/** 装備ボーナスの定義 (boot に入っている)。取得できなければ null (その計算は未適用で回す)。 */
 export const loadFitBonuses = (): Promise<FitEntry[] | null> =>
-  (fitPromise ??= getDataApi()
-    .fitBonuses()
+  getDataApi()
+    .boot()
     .then(
-      (r) => r.data,
-      () => {
-        fitPromise = undefined;
-        return null;
-      }
-    ));
+      (r) => r.data.fitBonuses,
+      () => null
+    );
 
 const FIT_MISSING = "装備ボーナスを取得できず未適用";
-
-const eventBonusCache = new Map<string, Promise<EventBonusResponse | null>>();
-/** 海域のイベント特効。データの無い海域 (404) は null。通信の失敗は reject (ページを開いている間、海域ごとに 1 度だけ取得)。 */
-export const loadEventBonuses = (map: string): Promise<EventBonusResponse | null> => {
-  let p = eventBonusCache.get(map);
-  if (!p) {
-    p = getDataApi()
-      .eventBonuses(map)
-      .then(
-        (r) => r.data,
-        (e) => {
-          if (e instanceof DataApiError && e.status === 404) return null;
-          eventBonusCache.delete(map);
-          throw e;
-        }
-      );
-    eventBonusCache.set(map, p);
-  }
-  return p;
-};
 
 /** 前提の欄に出す、使った特効データの説明 */
 const eventBonusNote = (e: EventBonusSettings): string => {

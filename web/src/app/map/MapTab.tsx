@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { STORAGE_PREFIX } from "../../fleet";
 import { getDataApi } from "../../data/api";
-import { useAbyssalData } from "../../data/names";
+import { useMapNames } from "../../data/names";
 import { useMapData, useMapList } from "../../data/useMapData";
 import type { MapSummary } from "@shared/data/types";
 import { RefreshCw, Route, Swords } from "lucide-react";
@@ -56,7 +56,7 @@ export const MapTab = () => {
   };
 
   const detail = useMapData(mapKey, tick);
-  const names = useAbyssalData(detail.data);
+  const names = useMapNames(detail.data);
   const md = detail.data;
   const d = md?.detail;
 

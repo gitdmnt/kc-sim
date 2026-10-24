@@ -1,9 +1,9 @@
-/** 敵艦の詳細の推定の区画: サーバが全プレイヤーの観測から推定した隠しステータスの分布 (GET /api/v1/estimates)。 */
+/** 敵艦の詳細の推定の区画: サーバが全プレイヤーの観測から推定した隠しステータスの分布 (GET /api/v1/views/enemy/{id})。 */
 import React from "react";
 import { ESTIMATE_MIN_N } from "@shared/data/types";
 import type { EstimatedStat, EstimateRow } from "@shared/data/types";
 import { ArrowDown, ArrowUp, TriangleAlert } from "lucide-react";
-import { Button, S, cx } from "../../ui";
+import { cx } from "../../ui";
 import { formatShortDateTime } from "../../ui/format";
 import { CONFIDENCE as CONF } from "./confidence";
 import { DensityPlot } from "./DensityPlot";
@@ -47,15 +47,10 @@ export const ServerEstimates = ({
   rows,
   label,
   updatedAt,
-  loading,
-  onRetry,
 }: {
   rows: EstimateRow[];
   label: (stat: EstimatedStat) => string;
-  updatedAt: string | null | undefined;
-  loading: boolean;
-  /** 分布の取得に失敗したときだけ: 取り直す */
-  onRetry?: () => void;
+  updatedAt: string | null;
 }) => (
   <section className="flex max-w-3xl flex-col gap-2">
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-400">
@@ -63,14 +58,6 @@ export const ServerEstimates = ({
       <span><span className="mr-1 inline-block h-2 w-3 bg-accent-500/40" />事後</span>
       <span><span className="mr-1 inline-block w-3 border-t border-dashed border-ink-400 align-middle" />事前</span>
       <span><span className="mr-1 inline-block h-3 w-0.5 bg-ink-50 align-middle" />平均</span>
-      {onRetry && (
-        <span className="inline-flex items-center gap-1 text-warn-400">
-          分布を取得できませんでした
-          <Button size="sm" variant="ghost" onClick={onRetry}>
-            再試行
-          </Button>
-        </span>
-      )}
       {updatedAt && <span className="ml-auto tabular-nums" title="サーバの最終推定">{formatShortDateTime(Date.parse(updatedAt))}</span>}
     </div>
     <div className="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-x-4 gap-y-3">
@@ -85,7 +72,7 @@ export const ServerEstimates = ({
           {r.density ? (
             <DensityPlot density={r.density} ci90={r.ci90} mean={r.mean} priorValue={r.prior.value} label={label(r.stat)} />
           ) : (
-            <p className="py-6 text-center text-xs text-ink-400">{loading ? S.common.loading : "—"}</p>
+            <p className="py-6 text-center text-xs text-ink-400">—</p>
           )}
           <div className="flex flex-wrap items-center gap-x-3 text-xs tabular-nums text-ink-400">
             <PriorShift r={r} />
