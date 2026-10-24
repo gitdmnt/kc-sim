@@ -95,6 +95,9 @@ const setupPacket = z.object({
   api_support_flag: z.number().nullish(),
   api_n_support_flag: z.number().nullish(),
   api_friendly_info: friendlyInfo.nullish(),
+  /** Smoke screen layers the friend fleet deployed (0 none); barrage-balloon node (1). */
+  api_smoke_type: z.number().nullish(),
+  api_balloon_cell: z.number().nullish(),
 });
 const setupSchema = z.object({
   battle: z.object({
@@ -150,7 +153,7 @@ export interface BattleOutcome {
   enemyMain: number;
   /** HP after the day phases, when a night battle followed. */
   dayEnd: { friend: number[]; enemy: number[] } | null;
-  /** HP removed per phase: [from the enemy, from the friend fleet] (overkill included). */
+  /** HP removed per phase: [from the enemy, from the friend fleet], each hit at most the HP the ship had left. */
   phases: Partial<Record<OutcomePhase, [number, number]>>;
   /** Day result equals the night packet's starting HP; null without a night battle (nothing to check). */
   verified: boolean | null;
@@ -195,9 +198,9 @@ class Ledger {
     const list = side === "friend" ? this.friend : this.enemy;
     const i = side === "friend" ? slot(idx, this.fMain, this.fEscort) : slot(idx, this.eMain, this.eEscort);
     if (i < 0 || i >= list.length || damage <= 0) return;
-    list[i]! -= damage;
     const t = (this.phases[phase] ??= [0, 0]);
-    t[side === "enemy" ? 0 : 1] += damage;
+    t[side === "enemy" ? 0 : 1] += Math.min(damage, Math.max(0, list[i]!));
+    list[i]! -= damage;
   }
 
   events(body: unknown, path: string, as?: OutcomePhase, sides: ("friend" | "enemy")[] = ["friend", "enemy"]) {

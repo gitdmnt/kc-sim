@@ -252,6 +252,34 @@ fn supply_and_morale_chain() {
 }
 
 #[test]
+fn combined_battles_judge_morale_before_the_entry_cost() {
+    // wikiwiki 疲労度: the day battle's −3 is taken before combat (51 → 48, not sparkled), but with a
+    // combined fleet on either side the state is judged first (51 fights sparkled: enemy accuracy × 0.7).
+    let mut friend = FleetInput { ships: vec![friend_bb(), friend_bb()], formation: None, ..Default::default() };
+    friend.ships[0].morale = Some(51);
+    friend.ships[1].morale = Some(49);
+    // Enemy day-shelling p_hit on the morale-51 and the morale-49 ship by the same attacker.
+    let p_hit = |enemy: FleetInput| {
+        let mut b = battle(friend.clone(), enemy, BattleKind::Day);
+        b.options.log = true;
+        let mut p: std::collections::HashMap<usize, [Option<f64>; 2]> = Default::default();
+        for seed in 0..60 {
+            for e in run_battle(&b, seed).unwrap().result.events.unwrap() {
+                if e.attacker_side == Side::Enemy && e.kind == AttackKind::Shelling && e.special == SpecialAttack::Normal {
+                    p.entry(e.attacker).or_default()[e.defender] = Some(e.p_hit);
+                }
+            }
+        }
+        p.into_values().find_map(|[a, b]| Some((a?, b?))).unwrap()
+    };
+    let (single51, single49) = p_hit(FleetInput { ships: vec![enemy_bb()], formation: None, ..Default::default() });
+    assert_eq!(single51, single49);
+    let combined = FleetInput { ships: vec![enemy_bb()], escort: Some(vec![enemy_bb()]), formation: None, ..Default::default() };
+    let (comb51, comb49) = p_hit(combined);
+    assert!(comb51 < comb49, "{comb51} vs {comb49}");
+}
+
+#[test]
 fn ammo_penalty_reduces_damage() {
     let input = battle(friend_fleet(), enemy_fleet(), BattleKind::Day);
     let full = simulate(&input, 2000, 21).unwrap();

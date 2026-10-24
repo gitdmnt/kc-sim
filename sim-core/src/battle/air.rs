@@ -345,13 +345,18 @@ impl<'a> Battle<'a> {
             }
             if !targets.is_empty() {
                 let (t, covered) = self.choose_target(def_side, targets.as_slice(), 0);
-                if !barrage.as_slice().contains(&t) {
-                    attacks.push((i, s, t, covered));
-                }
+                attacks.push((i, s, t, covered));
             }
         }
         for (i, s, t, covered) in attacks {
-            self.airstrike(att_side, i, s, t, covered, contact);
+            if barrage.as_slice().contains(&t) {
+                // The planes attack and miss (the packets flag the ship as attacked, damage 0).
+                let hc = formulas::HitCrit { acc: -1, crit: -1, hit_term: 0.0, dodge_term: 0.0 };
+                let hp = self.st[def_side][t].hp;
+                self.record(AttackKind::Air, SpecialAttack::Normal, att_side, i, t, covered, Some(s), Roll::Miss, 0, hp, &hc);
+            } else {
+                self.airstrike(att_side, i, s, t, covered, contact);
+            }
         }
     }
 

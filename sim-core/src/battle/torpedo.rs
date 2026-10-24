@@ -1,18 +1,25 @@
 //! Opening and closing torpedo salvos (kcsim `torpedoPhase`, KC3Kai/kancolle-replay,
 //! MIT © fourinone41). All targets and attack powers are fixed before any torpedo lands.
-//! The main fleet of a combined fleet never fires torpedoes [kcsim `canOpTorpMain` abyssals not
-//! modelled]. Against an enemy combined fleet (`combinedAll`) a closing-torpedo shot at a combined
-//! side picks its main fleet with 35%, else its escort (en wiki Shooting Order and Targeting:
-//! closing torpedo 35% / 65%).
+//! The main fleet of a combined fleet never fires torpedoes, except the opening torpedo of
+//! kcSHIPDATA `canOpTorpMain` abyssals. Against an enemy combined fleet (`combinedAll`) a
+//! closing-torpedo shot at a combined side picks its main fleet with 35%, else its escort (en wiki
+//! Shooting Order and Targeting: closing torpedo 35% / 65%).
 
 use super::calc;
 use super::{Battle, List};
 use crate::formulas::{self, Roll};
-use crate::model::{AttackKind, SpecialAttack};
+use crate::model::{AttackKind, Formation, SpecialAttack};
 use crate::ship::{ShipCore, ShipState};
 
-fn can_open_torp(c: &ShipCore, st: &ShipState) -> bool {
-    st.hp > 0 && (c.has_midget_sub || (c.class.is_sub() && c.level >= 10.0 && !c.no_opening_torpedo))
+/// Opening torpedo: a midget sub, a submarine from level 10, or an abyssal that fires one by
+/// itself (kcSHIPDATA `canOpTorp`) — the latter not from a diamond formation: the KCNav packets
+/// show 駆逐ラ級 firing in 225 of 226 battles in other formations and in none of 105 in diamond
+/// [inference: rule or node design].
+fn can_open_torp(c: &ShipCore, st: &ShipState, form: Formation) -> bool {
+    st.hp > 0
+        && (c.has_midget_sub
+            || (c.opening_torpedo && form != Formation::Diamond)
+            || (c.class.is_sub() && c.level >= 10.0 && !c.no_opening_torpedo))
 }
 
 fn can_close_torp(c: &ShipCore, st: &ShipState) -> bool {
@@ -57,8 +64,8 @@ impl<'a> Battle<'a> {
             for &a in order.as_slice() {
                 let c = self.core(side, a);
                 let st = &self.st[side][a];
-                let ok = if opening { can_open_torp(c, st) } else { can_close_torp(c, st) };
-                if !ok || a < att_main_end {
+                let ok = if opening { can_open_torp(c, st, self.setup.formations[side]) } else { can_close_torp(c, st) };
+                if !ok || (a < att_main_end && !(opening && c.opening_torpedo_main)) {
                     continue;
                 }
                 let ratio = st.hp_ratio(c.max_hp);

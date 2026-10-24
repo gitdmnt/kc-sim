@@ -302,6 +302,27 @@ const CLASS_ARK_ROYAL: u32 = 78;
 /// Abyssal submarines that never fire opening torpedoes (kcsim kcSHIPDATA `canOpTorp: false`):
 /// base Ka / Yo / So-class and 潜水棲姫.
 const NO_OPENING_TORPEDO_IDS: [u32; 6] = [1530, 1531, 1570, 1644, 1645, 1646];
+/// Abyssal surface ships that fire opening torpedoes without a midget sub (kcSHIPDATA
+/// `canOpTorp: true`: the 駆逐ラ級 and 米駆逐棲姫 families, 集積地棲姫 C バカンスmode, …).
+const OPENING_TORPEDO_IDS: [u32; 89] = [
+    2073, 2074, 2075, 2076, 2080, 2081, 2082, 2083, 2085, 2087, 2089, 2138, 2139, 2140, 2141, 2142, 2143, 2144, 2145, 2202, 2203,
+    2204, 2205, 2206, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2237, 2238, 2239, 2240, 2241, 2242, 2250, 2251, 2252,
+    2253, 2254, 2255, 2262, 2263, 2264, 2265, 2266, 2267, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281,
+    2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2301, 2302, 2303, 2304, 2305, 2306, 2338, 2339, 2340,
+    2341, 2342, 2343, 2385, 2391,
+];
+/// Abyssals whose opening torpedo also fires from a combined fleet's main fleet (kcSHIPDATA
+/// `canOpTorpMain`).
+const OPENING_TORPEDO_MAIN_IDS: [u32; 88] = [
+    1988, 1989, 1990, 1991, 1992, 1993, 2080, 2081, 2082, 2083, 2164, 2165, 2166, 2167, 2168, 2169, 2170, 2171, 2172, 2173, 2174,
+    2175, 2176, 2177, 2202, 2203, 2228, 2229, 2230, 2231, 2232, 2233, 2237, 2238, 2239, 2240, 2241, 2242, 2250, 2251, 2252, 2253,
+    2254, 2255, 2262, 2263, 2264, 2265, 2266, 2267, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2288,
+    2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2301, 2302, 2303, 2304, 2305, 2306, 2338, 2339, 2340, 2341,
+    2342, 2343, 2385, 2391,
+];
+/// Abyssal midget-sub-type equipment that gives no opening torpedo (kcEQDATA `cannotOpTorp`):
+/// 高速深海魚雷 mod.2, 深海待伏魚雷, 深海標的, 深海四連装 / 五連装(酸素)魚雷後期型.
+const NO_OPENING_TORPEDO_EQUIPS: [u32; 5] = [1570, 1580, 1590, 1622, 1624];
 /// Player ships that always perform opening ASW (kcsim kcSHIPDATA `alwaysOASW` or Lv1 ASW ≥ 50):
 /// Isuzu K2, Tatsuta K2, Jervis/Janus Kai, Samuel B. Roberts, Fletcher class, Taiyou class, Yuubari K2D, …
 const ALWAYS_OASW_IDS: [u32; 26] = [
@@ -415,6 +436,10 @@ pub struct ShipCore {
     pub ship_class: u32,
     /// Abyssal submarine type that never fires opening torpedoes.
     pub no_opening_torpedo: bool,
+    /// Abyssal surface ship that fires opening torpedoes by itself (`OPENING_TORPEDO_IDS`), and
+    /// also from a combined fleet's main fleet (`OPENING_TORPEDO_MAIN_IDS`).
+    pub opening_torpedo: bool,
+    pub opening_torpedo_main: bool,
     /// Carrier (or night-capable air AO) with night aviation personnel (equipped or built in) and
     /// night planes.
     pub night_air_gear: bool,
@@ -549,6 +574,8 @@ impl ShipCore {
             master_id: input.id.unwrap_or(0),
             ship_class: input.ship_class.unwrap_or(0),
             no_opening_torpedo: !is_player && NO_OPENING_TORPEDO_IDS.contains(&input.id.unwrap_or(0)),
+            opening_torpedo: !is_player && OPENING_TORPEDO_IDS.contains(&input.id.unwrap_or(0)),
+            opening_torpedo_main: !is_player && OPENING_TORPEDO_MAIN_IDS.contains(&input.id.unwrap_or(0)),
             night_air_gear: false,
             air_ao: false,
             fit_acc: 0.0,
@@ -649,7 +676,7 @@ impl ShipCore {
             if e.has(f::ASW_DAMAGE) {
                 equip_asw_dmg += e.asw;
             }
-            if e.has(f::MIDGET_SUB) {
+            if e.has(f::MIDGET_SUB) && !NO_OPENING_TORPEDO_EQUIPS.contains(&e.id) {
                 self.has_midget_sub = true;
             }
             if e.has(f::STARSHELL) {

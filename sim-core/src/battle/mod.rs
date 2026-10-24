@@ -120,6 +120,8 @@ pub struct BattleSetup {
     pub smoke: bool,
     /// A smoke screen was already deployed earlier in the sortie.
     pub smoke_used: bool,
+    /// Forced smoke layers (0..3) in place of the roll (`BattleOptions.smokeLayers`).
+    pub smoke_layers: Option<u8>,
     /// Barrage-balloon node.
     pub balloons: bool,
 }
@@ -261,6 +263,7 @@ impl Prepared {
                 supply: None,
                 smoke: input.options.smoke,
                 smoke_used: input.friend.smoke_used.unwrap_or(false),
+                smoke_layers: input.options.smoke_layers,
                 balloons: input.options.balloons,
             },
             lb_waves,
@@ -544,6 +547,10 @@ impl<'a> Battle<'a> {
     /// 3⌈5n − 5 + s⌉ + 1 % (s = 1.5√luck + 0.3·Σ★ + 0.5·Σ★Kai). A single fleet needs ≥ 4 surface
     /// ships afloat. Once per sortie.
     fn deploy_smoke(&mut self) {
+        if let Some(l) = self.setup.smoke_layers {
+            self.smoke = l.min(3);
+            return;
+        }
         if !self.setup.smoke || self.setup.smoke_used {
             return;
         }
@@ -857,7 +864,14 @@ impl<'a> Battle<'a> {
     pub fn run(&mut self) -> Outcome {
         let kind = self.setup.kind;
         let night_only = kind == BattleKind::NightOnly;
-        // Morale cost of entering the battle (applied before combat).
+        // Morale cost of entering the battle (wikiwiki 疲労度): taken before combat, so a ship
+        // needs 53 to fight a day battle sparkled — except when either side is a combined fleet:
+        // the state is judged first and the cost taken after the day battle (sparkled from 50;
+        // the KCNav packets show it, docs/VALIDATION.md §4).
+        let mut entry_cost_due = !night_only && (self.combined.is_some() || self.ecombined);
+        if !night_only && !entry_cost_due {
+            self.entry_morale_cost();
+        }
         for i in 0..self.len(0) {
             let flagship = self.is_flagship(0, i);
             let st = &mut self.st[0][i];
@@ -865,14 +879,8 @@ impl<'a> Battle<'a> {
                 continue;
             }
             if night_only {
-                st.morale -= 2;
-            } else {
-                if st.morale < 30 {
-                    st.morale -= 6;
-                }
-                st.morale -= 3;
+                st.morale = (st.morale - 2).max(0);
             }
-            st.morale = st.morale.max(0);
             let core = &self.fleets[0].ships[i];
             st.protected = flagship || st.hp_ratio(core.max_hp) > 0.25;
         }
@@ -925,6 +933,10 @@ impl<'a> Battle<'a> {
             }
             BattleKind::Day | BattleKind::DayNight => {
                 detection = self.day_battle();
+                if entry_cost_due {
+                    self.entry_morale_cost();
+                    entry_cost_due = false;
+                }
                 let pursue = kind == BattleKind::DayNight
                     && self.both_alive()
                     && self.night_ready()
@@ -964,6 +976,9 @@ impl<'a> Battle<'a> {
                     }
                 }
             }
+        }
+        if entry_cost_due {
+            self.entry_morale_cost();
         }
 
         let (rank, enemy_gauge, friend_gauge) = if kind == BattleKind::AirRaid { self.raid_rank() } else { self.rank() };
@@ -1300,6 +1315,16 @@ impl<'a> Battle<'a> {
     fn mvp(&self) -> (usize, Option<usize>) {
         let (es, n) = (self.escort_start(0), self.len(0));
         (self.mvp_in(0, es), self.combined.map(|_| self.mvp_in(es, n)))
+    }
+
+    /// Battle-entry morale cost (wikiwiki 疲労度): −3, −9 under 30, for the ships afloat at the
+    /// start of the battle.
+    fn entry_morale_cost(&mut self) {
+        for (st, &hp) in self.st[0].iter_mut().zip(&self.hp_start[0]) {
+            if hp > 0 {
+                st.morale = (st.morale - if st.morale < 30 { 9 } else { 3 }).max(0);
+            }
+        }
     }
 
     /// Post-battle morale (wiki): S +4, A +3, B +2, C +1, flagship +3 (≥ C), MVP +10. Combined

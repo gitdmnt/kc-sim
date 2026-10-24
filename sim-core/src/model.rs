@@ -418,6 +418,10 @@ pub struct BattleOptions {
     /// The friend fleet tries to deploy a smoke screen (煙幕) at this node.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub smoke: bool,
+    /// Force the smoke screen: layers (0 none, 1..3) deployed at the start of the battle in
+    /// place of the `smoke` roll, as a battle packet shows them (`api_smoke_type`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub smoke_layers: Option<u8>,
     /// Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub balloons: bool,

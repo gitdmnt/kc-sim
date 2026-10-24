@@ -328,6 +328,9 @@ export interface BattleOptions {
   /** The friend fleet tries to deploy a smoke screen (煙幕; day / air battles, single fleets with
    *  ≥ 4 surface ships afloat; once per sortie). Default false. */
   smoke?: boolean;
+  /** Force the smoke screen: 0 (none) – 3 layers deployed at the start of the battle in place of
+   *  the `smoke` roll, as a battle packet shows them (`api_smoke_type`). */
+  smokeLayers?: number;
   /** Barrage-balloon node (阻塞気球): balloons equipped by either fleet take effect. Default false. */
   balloons?: boolean;
   /** Trigger-rate overrides (percent) of the fleet special attacks; absent fields use the

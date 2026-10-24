@@ -27,10 +27,10 @@ describe("battles: normalize", () => {
     expect(n.lbasWaves).toBeGreaterThan(0);
     expect(n.outcome.friend).toHaveLength(n.outcome.friendMain);
     expect(n.outcome.phases.lbas?.[0]).toBeGreaterThan(0);
-    // Every HP point lost is accounted to a phase (overkill makes the phase sums ≥ the HP lost).
+    // Every HP point lost is accounted to a phase (each hit counts at most the HP the ship had left).
     const lost = (ships: [number, number, number][]) => ships.reduce((s, [, b, a]) => s + b - a, 0);
     const phaseSum = (k: 0 | 1) => Object.values(n.outcome.phases).reduce((s, v) => s + v![k], 0);
-    expect(phaseSum(0)).toBeGreaterThanOrEqual(lost(n.outcome.enemy));
+    expect(phaseSum(0)).toBe(lost(n.outcome.enemy));
     expect(phaseSum(1)).toBe(lost(n.outcome.friend));
     for (const [max, before, after] of [...n.outcome.friend, ...n.outcome.enemy]) {
       expect(before).toBeLessThanOrEqual(max);

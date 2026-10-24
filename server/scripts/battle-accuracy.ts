@@ -26,7 +26,7 @@ import type { Preset, PresetAirBase, PresetEquip, PresetShip } from "../../share
 import { type EventBonusResponse, type NodeBonus, bonusAt, buildBonuses, debuffsAt } from "../../shared/sim/bonuses";
 import { ENEMY_FORMATION_BY_ID, buildEnemyShips, buildFriendShips, buildSquadrons, friendFleet } from "../../shared/sim/adapter";
 import type { FitEntry } from "../../shared/sim/fit";
-import { type BattleOutcome, type BattleSetupShip, type OutcomePhase, parseBattleSetup } from "../src/kcnav/battles";
+import { type BattleOutcome, type BattleSetupShip, type OutcomePhase, normalizeBattle, parseBattleSetup } from "../src/kcnav/battles";
 import { type EquipRow, type ShipRow, loadFitBonuses, loadMaster, masterFromRows } from "../src/master";
 import { openD1 } from "./lib/d1-database";
 
@@ -367,8 +367,12 @@ function build(r: Row): Built | string {
       enemy: enemyEscort
         ? { ships: enemy.input, escort: enemyEscort.input, formation: FRIEND_FORMATION[r.enemy_formation ?? 14] ?? "combinedBattle" }
         : { ships: enemy.input, formation: ENEMY_FORMATION_BY_ID[r.enemy_formation ?? 1] ?? "lineAhead" },
-      // The kind is a sim-core BattleKind here (unsupported kinds returned above).
-      options: { kind: kind as NonNullable<BattleInput["options"]>["kind"], ...(engagement ? { engagement } : {}) },
+      // The kind is a sim-core BattleKind here (unsupported kinds returned above). The smoke screen the packet shows
+      // (api_smoke_type: layers, the player's choice and roll) is forced like the engagement; balloon nodes as flagged.
+      options: {
+        kind: kind as NonNullable<BattleInput["options"]>["kind"], ...(engagement ? { engagement } : {}),
+        ...(p.api_smoke_type ? { smokeLayers: p.api_smoke_type } : {}), ...(p.api_balloon_cell ? { balloons: true } : {}),
+      },
       ...(lbas.length ? { lbas } : {}),
       ...(support ? { support } : {}),
       ...(friendFleetIn ? { friendFleet: friendFleetIn } : {}),
@@ -452,7 +456,8 @@ for (const r of input.rows) {
       // Enemy shots in the friend fleet phase hit the friend fleet, not the player (the packets' ledger skips them too).
       if (!ph || (ph === "friendFleet" && e.attackerSide === "enemy")) continue;
       const t = (phasePred[ph] ??= [0, 0]);
-      t[e.attackerSide === "friend" ? 0 : 1] += e.damage / LOGGED;
+      // HP removed: a hit counts at most the HP the ship had left, as in the packets' ledger.
+      t[e.attackerSide === "friend" ? 0 : 1] += Math.min(e.damage, Math.max(0, e.defenderHpBefore)) / LOGGED;
       if (e.phase === "airStrike") {
         const key = `${e.attackerSide === "friend" ? 0 : 1}:${e.defender}`;
         struck.set(key, (struck.get(key) ?? 0) + e.damage);
@@ -486,7 +491,8 @@ for (const r of input.rows) {
     rankP: [rr.SS + rr.S, rr.A, rr.B, rr.C, rr.D, rr.E], rankO: rankIdx(r.rank),
     friend: sum.friend.map((s, i) => ship(s, out.friend[i]!)).filter((s) => s.before > 0),
     enemy: sum.enemy.map((s, i) => ship(s, out.enemy[i]!)).filter((s) => s.before > 0),
-    phasePred, phaseAct: out.phases,
+    // Recomputed from the packets: rows stored before the ledger capped each hit at the HP left count overkill.
+    phasePred, phaseAct: normalizeBattle(JSON.parse(r.raw)).outcome.phases,
     airP: air ? sum.airStateRates[air] : null,
     airHit: air ? Object.entries(sum.airStateRates).sort((a, c) => c[1] - a[1])[0]![0] === air : null,
     airTargets,
@@ -750,7 +756,7 @@ const out: string[] = [
   ...groupTable("fleet", (s) => `${s.fleet}${s.lbas ? " + land bases" : ""}`),
   ...groupTable("enemy fleet", (s) => (s.row.enemy_combined ? "combined (12 ships)" : "single")),
   ...groupTable("extra fleets", (s) => [s.row.support ? "support" : "", s.row.friend_fleet ? "friend fleet" : ""].filter(Boolean).join(" + ") || "none"),
-  "#### HP removed per phase (mean per battle; overkill included)",
+  "#### HP removed per phase (mean per battle; each hit at most the HP the ship had left)",
   "",
   ...phaseLines(),
   "",
