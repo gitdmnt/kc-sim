@@ -64,7 +64,7 @@ export interface DataApiOptions {
 
 const CACHE_PREFIX = `${STORAGE_PREFIX}cache:`;
 const DEFAULT_TTL = 10 * 60 * 1000;
-/** 任務データ (サーバの取り込みは 1 日 1 回) */
+/** 任務データの版が分からない (boot が取れない) ときのキャッシュ期間 */
 const QUEST_TTL = 24 * 60 * 60 * 1000;
 /** 429 を取り直す回数と、Retry-After の上限 (秒) */
 const RATE_LIMIT_RETRIES = 3;
@@ -73,7 +73,14 @@ const MAX_RETRY_AFTER_S = 10;
 interface Entry {
   t: number;
   data: unknown;
+  v?: number;
 }
+
+/** 応答の ETag (`"dv<n>"`、圧縮されると `W/"dv<n>"`) から data_version を返す。 */
+const etagVersion = (res: Response): number | undefined => {
+  const m = /^(?:W\/)?"dv(\d+)"$/.exec(res.headers.get("ETag") ?? "");
+  return m ? Number(m[1]) : undefined;
+};
 
 export class DataApi {
   private memory = new Map<string, Entry>();
@@ -131,10 +138,10 @@ export class DataApi {
     return `${this.opts.baseUrl().replace(/\/+$/, "")}${path}`;
   }
 
-  private get<T>(path: string, ttl = this.ttl): Promise<Loaded<T>> {
+  private get<T>(path: string, { ttl = this.ttl, version }: { ttl?: number; version?: number } = {}): Promise<Loaded<T>> {
     const key = this.keyOf(path);
     const cached = this.readEntry(key);
-    if (cached && this.now() - cached.t < ttl) {
+    if (cached && (version === undefined ? this.now() - cached.t < ttl : cached.v === version)) {
       return Promise.resolve({ data: cached.data as T, stale: false });
     }
     const running = this.inflight.get(key);
@@ -162,7 +169,7 @@ export class DataApi {
         } catch {
           throw new DataApiError("parse", "応答を解釈できません");
         }
-        this.writeEntry(key, { t: this.now(), data });
+        this.writeEntry(key, { t: this.now(), data, v: etagVersion(res) });
         return { data, stale: false };
       } catch (e) {
         // 404 など「無い」ことが確定した応答は古いキャッシュで隠さない
@@ -203,9 +210,13 @@ export class DataApi {
   enemyShip(id: number) {
     return this.get<EnemyShipView>(`/api/v1/views/enemy/${id}`);
   }
-  /** 任務の一覧 (前提・条件つき、docs/API.md)。サーバは 1 日 1 回取り込むので、キャッシュも 1 日使う。 */
-  quests() {
-    return this.get<QuestsResponse>("/api/v1/quests", QUEST_TTL);
+  /** 任務の一覧を、boot の dataVersion と同じ版のキャッシュがあればそこから返す。 */
+  async quests() {
+    const version = await this.boot().then(
+      (r) => (r.stale ? undefined : r.data.dataVersion),
+      () => undefined
+    );
+    return this.get<QuestsResponse>("/api/v1/quests", { ttl: QUEST_TTL, version });
   }
 }
 

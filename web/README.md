@@ -123,7 +123,8 @@ random stream. Map, mode, conditions and 自動 persist in `kcsim:workspace`, th
 
 ## 任務 tab
 
-`src/app/quests/QuestTab.tsx`, over `GET /api/v1/quests` (cached 24 h, docs/DATA_SOURCES.md §14) and `shared/quest/tree.ts`.
+`src/app/quests/QuestTab.tsx`, over `GET /api/v1/quests` (cached per data version: kept while the boot view's
+`dataVersion` equals the version in the response's ETag, 24 h when boot fails; docs/DATA_SOURCES.md §14) and `shared/quest/tree.ts`.
 Three full-height cards that scroll inside (no page scroll at 1280×800 / 1200×710 / 1024×600, checked by
 `bun scripts/screenshot-quests.ts`, which also writes `docs/screenshots/17-quests.png`, `18-quest-progress.png`, a
 one-time quest with counts from the plugin, and `19-quest-filters.png`, a filtered list and a quest with 選択報酬 at 1024×600):

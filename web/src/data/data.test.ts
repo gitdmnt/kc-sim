@@ -88,15 +88,63 @@ describe("DataApi cache", () => {
     expect(calls).toHaveLength(2);
   });
 
-  test("quests are cached for a day regardless of the default ttl", async () => {
-    const { api, calls, advance } = mk([json({ sources: [], quests: [] }), json({ sources: [], quests: [] })]);
+  const versioned = (server: { v: number; quests: unknown[]; bootDown?: boolean }) => {
+    let t = 0;
+    const calls: string[] = [];
+    const storage = new MemoryStorage();
+    const fetchFn = (async (url: string) => {
+      calls.push(url);
+      if (url.endsWith("/views/boot")) {
+        if (server.bootDown) throw new TypeError("fetch failed");
+        return new Response(JSON.stringify({ dataVersion: server.v, maps: [] }), { headers: { ETag: `"dv${server.v}"` } });
+      }
+      return new Response(JSON.stringify({ sources: [], quests: server.quests }), { headers: { ETag: `W/"dv${server.v}"` } });
+    }) as unknown as typeof fetch;
+    const api = new DataApi({ baseUrl: () => "http://x/", fetch: fetchFn, storage, ttlMs: 1000, now: () => t });
+    const questCalls = () => calls.filter((u) => u.endsWith("/quests")).length;
+    return { api, storage, questCalls, advance: (ms: number) => (t += ms) };
+  };
+  const HOUR = 60 * 60 * 1000;
+  const B117 = { id: 884, code: "B117" };
+  const B117_REWARDS = { ...B117, rewards: { resources: [0, 1000, 0, 500], items: [{ name: "戦闘詳報", choice: 1 }], src: "kcanotify" } };
+
+  test("a quest list cached before an ingest is refetched once boot reports the new data version, within the day", async () => {
+    const server = { v: 49, quests: [B117] as unknown[] };
+    const { api, questCalls, advance } = versioned(server);
+    expect((await api.quests()).data.quests[0]).toEqual(B117 as never);
+    server.v = 50;
+    server.quests = [B117_REWARDS];
+    advance(2000);
+    expect((await api.quests()).data.quests[0]?.rewards).toEqual(B117_REWARDS.rewards as never);
+    expect(questCalls()).toBe(2);
+  });
+
+  test("a stored quest list without a data version (older clients) is refetched", async () => {
+    const { api, storage, questCalls } = versioned({ v: 50, quests: [B117_REWARDS] });
+    storage.setItem("kcsim:cache:http://x/api/v1/quests", JSON.stringify({ t: 0, data: { sources: [], quests: [B117] } }));
+    expect((await api.quests()).data.quests[0]?.rewards).toEqual(B117_REWARDS.rewards as never);
+    expect(questCalls()).toBe(1);
+  });
+
+  test("quests stay cached while the data version is unchanged, past a day", async () => {
+    const { api, questCalls, advance } = versioned({ v: 50, quests: [B117_REWARDS] });
     await api.quests();
-    advance(23 * 60 * 60 * 1000);
+    advance(48 * HOUR);
+    expect((await api.quests()).stale).toBe(false);
+    expect(questCalls()).toBe(1);
+  });
+
+  test("without boot, quests are cached for a day", async () => {
+    const server = { v: 50, quests: [B117_REWARDS] as unknown[], bootDown: false };
+    const { api, questCalls, advance } = versioned(server);
     await api.quests();
-    expect(calls).toEqual(["http://x/api/v1/quests"]);
-    advance(2 * 60 * 60 * 1000);
+    server.bootDown = true;
+    advance(23 * HOUR);
     await api.quests();
-    expect(calls).toHaveLength(2);
+    expect(questCalls()).toBe(1);
+    advance(2 * HOUR);
+    await api.quests();
+    expect(questCalls()).toBe(2);
   });
 
   test("dedupes in-flight requests", async () => {
