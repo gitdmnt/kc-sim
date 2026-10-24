@@ -5,7 +5,7 @@
 import {
   EMBED_SOURCE, EMBED_VERSION, parseWebMessage, projectCombinedFlag, projectConst, projectInfo, projectQuests,
 } from "@shared/embed/protocol";
-import type { PluginMessage, PoiState } from "@shared/embed/protocol";
+import type { PluginMessage, PoiState, WebView } from "@shared/embed/protocol";
 
 export interface BridgeDeps {
   /** iframe へ送る (WebFrame が iframe のオリジン宛てに postMessage する) */
@@ -17,6 +17,8 @@ export interface BridgeDeps {
   markPresetsDone: () => void;
   /** Web UI のプロトコルの版 (ready で届く) */
   onWebVersion?: (v: number) => void;
+  /** Web UI が自分で画面を移った (海域 →「戦闘シミュ」→ 出撃 など)。プラグインの枠の選択を合わせる */
+  onView?: (v: WebView) => void;
 }
 
 const field = (v: unknown, key: string): unknown =>
@@ -45,6 +47,9 @@ export class EmbedBridge {
   private sentConst: unknown = undefined;
   private constSent = false;
   private sentInfo: unknown[] | null = null;
+  /** iframe に出してほしい画面 / iframe が今出している画面 (送ったか、Web UI から届いた) */
+  private view: WebView | null = null;
+  private shownView: WebView | null = null;
 
   constructor(private deps: BridgeDeps) {}
 
@@ -54,22 +59,41 @@ export class EmbedBridge {
     if (this.ready) this.flush();
   }
 
+  /** プラグインの枠で選んだ Web UI の画面。ready 前は覚えておくだけ */
+  setView(view: WebView) {
+    this.view = view;
+    if (this.ready) this.flushView();
+  }
+
   /** iframe からのメッセージ (送り元とオリジンは WebFrame が確認済み)。 */
   onMessage(data: unknown) {
     const m = parseWebMessage(data);
     if (!m) return;
     if (m.type === "ready") {
-      // 読み込み直した iframe は何も持っていないので、const も含めて全部送り直す
+      // 読み込み直した iframe は何も持っていないので、画面・const も含めて全部送り直す。画面を先に (違う画面を描かせない)
       this.ready = true;
       this.constSent = false;
       this.sentInfo = null;
+      this.shownView = null;
       this.deps.onWebVersion?.(m.v);
+      this.flushView();
       this.flush();
       this.sendPresets();
+    } else if (m.type === "view") {
+      // Web UI はもうその画面にいるので送り返さない
+      this.view = m.view;
+      this.shownView = m.view;
+      this.deps.onView?.(m.view);
     } else if (m.type === "presets-ack" && m.persisted) {
       // Web UI がメモリにしか置けなかったとき (persisted: false) は移行済みにせず、次の ready でまた送る
       this.deps.markPresetsDone();
     }
+  }
+
+  private flushView() {
+    if (this.view === null || this.view === this.shownView) return;
+    this.deps.post({ src: EMBED_SOURCE, v: EMBED_VERSION, type: "view", view: this.view });
+    this.shownView = this.view;
   }
 
   private flush() {

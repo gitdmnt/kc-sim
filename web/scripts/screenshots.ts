@@ -1,8 +1,11 @@
 /**
  * Web UI の開発サーバ (vite) を起動し、headless Chromium で各画面のスクリーンショットを撮る。
  * `bun run screenshots`。出力は SHOTS_DIR (既定 docs/screenshots)、ファイル名の頭に SHOTS_PREFIX を付ける。
+ * docs に置いているのは 23-web-sortie (ブラウザで開いた 出撃、1024×600) だけで、他は確認用。
  * データ API は vite が KCSIM_API (既定 127.0.0.1:8787) に中継し、落ちていれば静的バンドル (server/dist/maps) を使う。
  * ブラウザは playwright のキャッシュにある chromium_headless_shell を使う (CHROMIUM_PATH で上書き可)。
+ * 枠: 左のバーは シミュ / 任務 / 設定 (資源はプラグインだけ)、シミュの上のタブは 出撃 / 海域 / 敵艦 / 計算設定
+ * (観測ログ・送信設定はプラグインだけ) であること。
  * 出撃タブはページも main (タブの中身) もスクロールしないことを 1280×800・1200×710・1024×600 で確かめる。
  * 実行ボタン: 自動の結果が今の入力のものなら押せず (理由は title)、自動オフではクリックで結果が出ることも確かめる。
  */
@@ -45,8 +48,17 @@ const shot = async (name: string, opts: { fullPage?: boolean } = {}) => {
   await page.screenshot({ path: join(OUT, `${PREFIX}${name}.png`), fullPage: opts.fullPage ?? false });
   console.log("saved", `${PREFIX}${name}.png`);
 };
-// 「出撃」は左のタブ列とモード切り替えの両方にある。タブ列が先
+// 「出撃」は上のタブ列とモード切り替えの両方にある。枠のタブ列が先
 const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).first().click();
+/** 枠のタブの名前: 左のバー (縦) と上の行 (文書で最初の横のタブ列。画面の中の切り替えはその後) */
+const chromeTabs = () =>
+  page.evaluate(() => {
+    const names = (list: Element | null) => [...(list?.querySelectorAll(":scope > [role=tab]") ?? [])].map((el) => el.textContent);
+    return {
+      bar: names(document.querySelector("[role=tablist][aria-orientation=vertical]")),
+      top: names(document.querySelector("[role=tablist]:not([aria-orientation])")),
+    };
+  });
 
 /** 結果パネルの実行情報 (title = "seed … · 秒") が変わり、進捗バーが消えるまで待つ */
 const meta = (p: Page) =>
@@ -84,6 +96,9 @@ try {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByText("1番艦を追加").waitFor();
+  const tabs = await chromeTabs();
+  console.log("chrome:", JSON.stringify(tabs));
+  if (tabs.bar.join() !== "シミュ,任務,設定" || tabs.top.join() !== "出撃,海域,敵艦,計算設定") throw new Error(`unexpected chrome: ${JSON.stringify(tabs)}`);
   await shot("00-workspace-empty");
 
   // poi の第1艦隊 (6 隻) を取り込み、海域を選ぶ → 自動で計算される
@@ -100,6 +115,11 @@ try {
   console.log("---- sortie ----\n" + kpi.split("\n").slice(0, 24).join(" | "));
   await checkNoScroll("1280x800");
   await shot("workspace-1280");
+  // ブラウザで開いた 出撃 (docs、1024×600)
+  await page.setViewportSize({ width: 1024, height: 600 });
+  await page.waitForTimeout(400);
+  await checkNoScroll("1024x600");
+  await shot("23-web-sortie");
 
   // poi のプラグインウィンドウ相当 (1200×750 からタブ分を引いた高さ)
   await page.setViewportSize({ width: 1200, height: 710 });
@@ -168,9 +188,15 @@ try {
     console.warn("data API is down; skipping the enemy screenshot");
   }
 
+  await tab("計算設定");
+  await page.getByText("サーバの推定値を使う").waitFor();
+  await shot("12-sim-settings");
   await tab("設定");
-  await page.waitForTimeout(200);
+  await page.getByText("データキャッシュ").waitFor();
   await shot("12-settings");
+  // 機能を切り替えて戻ると、その機能で最後に開いていた画面 (計算設定)
+  await tab("シミュ");
+  if ((await page.getByRole("tab", { name: "計算設定", exact: true }).getAttribute("aria-selected")) !== "true") throw new Error("シミュ did not return to 計算設定");
 
   // 自動 (チェックボックス): 保存され、オフの間は入力を変えても計算せず、オンにすると計算する
   await tab("出撃");

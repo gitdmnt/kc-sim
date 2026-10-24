@@ -15,11 +15,13 @@ UI は Web アプリ (データ API と同じ Cloudflare Worker が配る) で�
 | **1. 戦闘・出撃エンジン** | 砲撃・雷撃・対潜・航空戦・夜戦・命中/回避/クリティカル/装甲・陣形・交戦形態・轟沈ストッパー、ルーティング評価、撤退ポリシー、ゲージ。Rust → wasm、シード指定で完全再現可能 | `sim-core/` |
 | **2. データ基盤** | マスターデータ、深海棲艦の表示/隠しステータス (出典付き)、海域グラフ、ルーティング規則 (自作 DSL)、敵編成と出現率 (KCNav)、装備ボーナス、任務の前提と達成条件 (KC3Kai・kcwiki-quest-data を毎日取り込み、足りない分はぜかましねっとを参照した手入力データ)。ローカル完結の HTTP API と静的バンドル | `server/` |
 | **3. 観測と推定** | poi の通信から戦闘を自動記録 (IndexedDB) してサーバに送信。サーバが敵の回避・命中・運をベイズ推定し、シミュレーションに反映 | `poi-plugin-sim/src/capture`, `shared/estimate`, `server/src/estimator` |
-| **4. UI** | Web UI: 出撃 (海域選択・艦隊編成・結果を 1 画面に置き、編成を変えるたびに自動で再計算。出撃 / 単一マス戦闘) / 海域 / 敵艦 (ステータス・装備・サーバの推定) / 任務 (前提任務のツリー、経路で要る艦娘・装備の所持/不足、poi の進捗と単発任務の自前カウンタ) / 設定。poi プラグイン: Web UI の埋め込み + 観測ログ / 資源 (資源の推移グラフと増減) / 送信設定。Web Worker で計算 | `web/`, `poi-plugin-sim/` |
+| **4. UI** | 画面は VS Code と同じ形で、左のバーで機能を、上のタブで機能の中の画面を切り替える。シミュ: 出撃 (海域選択・艦隊編成・結果を 1 画面に置き、編成を変えるたびに自動で再計算。出撃 / 単一マス戦闘) / 海域 / 敵艦 (ステータス・装備・サーバの推定) / 観測ログ / 送信設定 / 計算設定、任務 (前提任務のツリー、経路で要る艦娘・装備の所持/不足、poi の進捗と単発任務の自前カウンタ)、資源 (資源の推移グラフと増減)、設定 (左下の歯車)。観測ログ・送信設定・資源は poi プラグインだけの画面で、他は Web UI。poi の中ではプラグインが枠を描き、Web UI は iframe の中身だけを描く。Web Worker で計算 | `web/`, `poi-plugin-sim/` |
 
-スクリーンショットは [`docs/screenshots/`](docs/screenshots/) にあります (`13-poi-plugin-window`・`14-poi-plugin-sim`・`16-poi-sortie` は
-実機の poi で撮ったもので、UI を Web に移す前の旧プラグイン UI です。埋め込みの見え方は開発用ページで撮った `19-plugin-embedded`。
-艦隊編成・シミュレーションの画像は出撃タブに統合する前のもので、`cd web && bun run screenshots` で撮り直せます)。
+スクリーンショットは [`docs/screenshots/`](docs/screenshots/) にあります。今の UI は 1024×600 の `19-plugin-embedded` (シミュ / 出撃)、
+`05-log-list` (観測ログ)、`22-plugin-quests` (任務)、`20-plugin-resources` (資源) と、ブラウザで開いた `23-web-sortie` です。
+プラグインの画像は開発用ページで撮り、macOS のプラグインウィンドウの信号ボタンと drag 帯を重ねて描いています
+(`cd poi-plugin-sim && bun run screenshots`、`cd web && bun run screenshots`)。`13-poi-plugin-window`・`14-poi-plugin-sim`・`16-poi-sortie` は
+実機の poi で撮った旧プラグイン UI、艦隊編成・シミュレーションの番号の小さい画像は出撃タブに統合する前のものです。
 
 ## アーキテクチャ
 
@@ -29,21 +31,24 @@ flowchart LR
     GR["game.response<br/>(戦闘パケット)"]
     subgraph plugin["poi-plugin-sim"]
       CAP["capture<br/>(IndexedDB)"]
+      NAV["枠 (左のバー・上のタブ)<br/>Web UI と同じ部品"]
       LOG["観測ログ・資源・送信設定"]
       FRAME["iframe<br/>(Web UI を埋め込む)"]
     end
     GR --> CAP
     CAP --- LOG
+    NAV --- LOG
+    NAV --- FRAME
   end
   subgraph browser["Web UI (web/、ブラウザまたは iframe)"]
-    UI["React UI<br/>(5 タブ)"]
+    UI["React UI<br/>(シミュ・任務・設定)"]
     WK["Web Worker"]
     WASM["sim-core (wasm)"]
     PRE["艦隊プリセット<br/>(localStorage)"]
     UI --> WK --> WASM
     UI --- PRE
   end
-  FRAME -.->|"postMessage: poi の艦隊・マスター<br/>(サーバには送らない)"| UI
+  FRAME -.->|"postMessage: poi の艦隊・マスター、表示する画面<br/>(サーバには送らない)"| UI
   subgraph dw["server (Cloudflare Worker + D1)"]
     ASSETS["/ (静的アセット: web/dist)"]
     API["/api/v1<br/>read / write"]
@@ -125,7 +130,7 @@ bun install
 bun run dev           # http://localhost:5173 (/api は 127.0.0.1:8787 に中継。変更は HMR で反映。sim-core/pkg は起動時と Rust の変更時に作り直す)
 ```
 
-poi なしのブラウザでは poi のデータが無いので、設定タブの「内蔵サンプルデータを使う」で同梱の艦・装備を使えます
+poi なしのブラウザでは poi のデータが無いので、出撃タブの「内蔵サンプルデータを使う」で同梱の艦・装備を使えます
 (開発サーバでは `web/myState.json` (poi の state のダンプ) か同梱サンプルを poi の代わりに読みます)。
 データ API と同じ Worker から配る形は `cd web && bun run build` → `cd server && bun run dev` → http://127.0.0.1:8787/ 。
 
@@ -147,7 +152,7 @@ ln -s /絶対パス/kc-sim/poi-plugin-sim-build node_modules/poi-plugin-sim-buil
 ```
 
 poi を再起動すると、プラグイン一覧に「シミュ」が現れます。**ウィンドウモードで開いてください** (タブ表示では Web UI を埋め込みません)。
-サーバ URL (既定 `https://kc-sim.udama.net/`) は送信設定 (プラグインのヘッダ) で変更できます。手元のサーバなら `http://127.0.0.1:8787/`。
+サーバ URL (既定 `https://kc-sim.udama.net/`) はプラグインの シミュ → 送信設定 で変更できます。手元のサーバなら `http://127.0.0.1:8787/`。
 
 ### テスト
 

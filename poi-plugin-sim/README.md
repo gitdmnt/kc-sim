@@ -7,13 +7,37 @@ is the web app in [`../web`](../web), served by the data API's Cloudflare Worker
   them in IndexedDB (`kcsim`),
 - **uploads** them to the server automatically (debounced after each battle result and on returning to port, with
   periodic retry and exponential backoff; one request per 60 s, per-install bearer token),
-- shows the **観測ログ** (observation log), **資源** (resource history) and **送信設定** (server URL, auto upload,
-  registration) views,
+- shows the **観測ログ** (observation log), **送信設定** (server URL, auto upload, registration) and **資源** (resource
+  history) views,
 - **records the admiral's resources** (燃料 / 弾薬 / 鋼材 / ボーキ and the four materials) whenever they change, in
   IndexedDB (`kcsim-resources`, kept on this machine, never uploaded or sent to the iframe),
 - **counts progress of one-time quests** poi's tracker does not cover, from the hand-authored quest conditions it
   bundles (IndexedDB `kcsim-quests`), and
-- **embeds the web UI** (the simulator) in an iframe and hands it poi's fleets, master data and quest state with `postMessage`.
+- **embeds the web UI** (the simulator) in an iframe and hands it poi's fleets, master data and quest state with
+  `postMessage`, under one chrome the plugin draws (below, "Navigation").
+
+## Navigation
+
+VS Code-style, with the web UI's model (`../web/src/app/nav.tsx`) and component (`../web/src/ui/AppChrome.tsx`): the
+left activity bar switches features (global), the top row switches the selected feature's views (local), with the
+version at its right end.
+
+| Feature (bar) | Views (top row) | Drawn by |
+|---|---|---|
+| シミュ (シミュレーション) | 出撃 / 海域 / 敵艦 / 観測ログ / 送信設定 / 計算設定 | 観測ログ, 送信設定: the plugin; the others: the iframe |
+| 任務 | (title only) | the iframe |
+| 資源 | 推移 / 増減 (イベント) / 増減 (日別) (range, admiral and resource toggles stay in the view) | the plugin |
+| 設定 (gear, bottom) | (title only): the web UI's app-wide settings (sample data, deleting presets, data cache, reset) | the iframe |
+
+- The iframe stays mounted (hidden while a plugin view is shown) and shows the last web view picked; the plugin sends
+  it with `view` and the web UI draws no bars of its own. A move the web UI makes itself (海域 →「出撃シミュ」) comes
+  back as `view` and selects 出撃 in the plugin's top row.
+- The current view is saved in the plugin's localStorage (`kcsim:view`, the same key and ids as the web UI); switching
+  features returns to the feature's last view in the session.
+- macOS: the plugin window has no title bar; the traffic-light buttons (~80 × 28 px) sit at the top left and poi lays
+  a 23 px `-webkit-app-region: drag` strip over the top. The top row spans the window and starts its tabs 128 px in
+  (`pl-32`, version `pr-12`); the activity bar starts below the top row (y = 41 px); the top row's tabs are `no-drag`,
+  the rest of the row still drags the window. Elsewhere the corner above the bar shows the app icon.
 
 The Rust engine lives in `../sim-core` (used by the web UI); the server in `../server`.
 
@@ -27,25 +51,30 @@ bun install
 bun run build        # prebuild: (cd ../web && bun install --frozen-lockfile)
 ```
 
-The plugin's views use the web UI's parts and stylesheet (`../web/src`), whose Tailwind CSS resolves from
+The plugin's views and chrome use the web UI's parts and stylesheet (`../web/src`), whose Tailwind CSS resolves from
 `../web/node_modules`; `bun run build` and `bun run dev` therefore install `../web`'s dependencies first
-(`bun run deps:web`).
+(`bun run deps:web`). `react`, `react-dom` and `lucide-react` imported from `../web/src` resolve to this package's copies
+(`resolve.dedupe` in `vite.config.ts`; a second React breaks hooks).
 
 Output (`../poi-plugin-sim-build`): `index.es`, `package.json` (`main: index.es`), `views/index.js` (capture, upload,
 the plugin's views and their CSS scoped to `.kcsim`), `i18n/`. No wasm and no worker: the simulation runs in the web UI.
 
 Other commands: `bun test`, `bunx tsc --noEmit`, `bun run dev` (below), `bun run screenshots` (starts both dev servers,
-writes `docs/screenshots/{05-log-list,06-log-detail,08-plugin-upload,19-plugin-embedded,20-plugin-resources,21-plugin-resources-delta}.png`;
-the 資源 shots are 1024x600 with generated history from `dev/resourcesSeed.ts`, after checking that the tab does not
-scroll the page at 1280x800 / 1200x710 / 1024x600), `bun dev/resources-smoke.ts` (feeds a scripted sequence of API
-responses through `startCapture` the way poi does, and prints what was recorded, a restart and the thinning).
+writes `docs/screenshots/{05-log-list,06-log-detail,08-plugin-upload,19-plugin-embedded,20-plugin-resources,21-plugin-resources-delta,22-plugin-quests}.png`
+at 1024x600, with poi's macOS drag strip and window buttons drawn over the top left; the 資源 shots use generated
+history from `dev/resourcesSeed.ts` and the 任務 shot the local data API's quests. It fails unless the bar and the top
+row stay in place in every feature and view, no tab sits under the window buttons, the tabs in the drag strip are
+`no-drag`, the plugin's tabs switch the iframe's view and the iframe's own moves come back, the embedded web UI draws no
+bars, and no page (the plugin's or the iframe's) scrolls at 1280x800 / 1200x710 / 1024x600), `bun dev/resources-smoke.ts`
+(feeds a scripted sequence of API responses through `startCapture` the way poi does, and prints what was recorded, a
+restart and the thinning).
 
 ## Layout
 
 | Path | Role |
 |---|---|
 | `src/poi/index.tsx` | poi entry (vite lib build): redux `connect` for `info` / `const`, inline CSS, `startCapture` exports |
-| `src/panel/PluginPanel.tsx` | The plugin's view: シミュレーション (iframe) / 観測ログ / 資源 / 送信設定 |
+| `src/panel/PluginPanel.tsx` | The plugin's view: the chrome (`AppChrome` from `@web/ui`), the iframe and the plugin's own views |
 | `src/panel/WebFrame.tsx`, `src/panel/bridge.ts` | The iframe and the plugin side of the embed protocol |
 | `src/panel/log/`, `src/panel/UploadSettings.tsx` | Observation log and upload settings (UI parts from `@web/*` = `../web/src`) |
 | `src/panel/resources/` | 資源 view: line charts (own SVG, no chart library) and the 増減 tables |
@@ -76,7 +105,7 @@ poi loads plugins from `~/Library/Application Support/poi/plugins/node_modules` 
    ```
 3. Restart poi. The plugin appears in the plugin drawer (chevron next to the plugin tab) as 「シミュ」 / *Simulator for Integrated Management*. Rebuilding updates it in place (restart poi or use the plugin reload).
 
-The server URL (default `https://kc-sim.udama.net/`) is set in the 送信設定 tab: the iframe opens it and
+The server URL (default `https://kc-sim.udama.net/`) is set in シミュ → 送信設定: the iframe opens it and
 observations are uploaded to its origin. Only `https://` URLs are accepted, plus `http://` on `localhost`, `127.0.0.1`
 and `[::1]` (a local `cd ../server && bun run dev` is `http://127.0.0.1:8787/` after `cd ../web && bun run build`).
 
@@ -142,15 +171,20 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
 | Direction | `type` | Fields | When |
 |---|---|---|---|
 | web → plugin | `ready` | `v` = the web UI's protocol version | once the web UI listens |
+| plugin → web | `view` | `view`: `sortie` / `map` / `enemy` / `sim-settings` / `quests` / `settings` (`WEB_VIEWS`) | after every `ready`, first; then when the user picks another web view in the plugin's chrome |
 | plugin → web | `state` | `info`, `const?`, `combinedFlag?`, `quests?` | after every `ready` (with `const`), then when the parts below change (coalesced, 250 ms); `const` only when it changes |
 | plugin → web | `presets` | `json` (`kcsim-presets` export) | after `ready`, until acknowledged once for that origin |
 | web → plugin | `presets-ack` | `imported`, `skipped`, `persisted` | after the import |
+| web → plugin | `view` | `view` (as above) | the web UI moved by itself (海域 →「戦闘シミュ」/「出撃シミュ」), only to plugins of v3 or later; not echoed back |
 
-- **One header row:** the plugin always draws the only header (シミュレーション / 観測ログ / 資源 / 送信設定, inset 80 px on
-  macOS for the window buttons), in the same place for every view. The embedded web UI draws no header: its own tabs
-  (出撃 / 海域 / 敵艦 / 任務 / 設定) are a vertical bar on its left. Protocol v2 removed v1's `hostViews` / `host` /
-  `open-view` (the web UI merging the plugin's views into its header); the web UI still accepts v1 plugins, which keep
-  their own tab bar when no `ready` asks for the merge.
+- **One chrome (v3):** the plugin draws the only bars ("Navigation" above), in the same place for every feature and
+  view, and picks the iframe's view with `view`. The web UI hides its own bars once a message of v3 or later arrives
+  (and while it waits for the first one). The plugin's own views (観測ログ, 送信設定, 資源) are never sent.
+- **Compatibility:** the web UI is deployed at once and accepts v1–v3. Inside a v2 plugin (0.2.x: one header row
+  シミュレーション / 観測ログ / 資源 / 送信設定) it draws its own bars below that header (シミュ: 出撃 / 海域 / 敵艦 /
+  計算設定, 任務, 設定), so everything still works with two rows of tabs until poi loads the v3 plugin. A v3 plugin in
+  front of an older web UI (a stale self-hosted server) gets no reaction to `view`: the web UI keeps its own sidebar
+  and the plugin's web tabs do not switch it. v2 removed v1's `hostViews` / `host` / `open-view`.
 
 - **Data:** the plugin sends only what the web UI reads (shared/fleet/poiImport.ts, the catalog, the map tab):
   `info.basic.api_level`; `info.fleets[]` as `{api_id, api_name, api_ship}`; per ship instance `api_id, api_ship_id,
@@ -192,7 +226,7 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
   `nodeIntegration: false` (`lib/webcontent-utils.ts`), and poi sets `window.isWindowMode = true` on them. The plugin
   embeds the web UI only when the window hosting its view has `isWindowMode === true` and no Node.js (`require` /
   `process.versions.node`), so any other window is refused; in poi's tab mode it shows 「ウィンドウモードで開いてください」
-  instead. The log, resources and upload tabs work in both modes.
+  instead. 観測ログ, 送信設定 and 資源 work in both modes.
 - **Portal.** Code that touches `window` / `document` from the plugin's views must use the view's own window
   (`element.ownerDocument.defaultView`): the global `window` is poi's main window. The dialogs (`web/src/ui/Modal.tsx`)
   do this for Esc and focus.

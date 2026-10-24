@@ -1,8 +1,16 @@
 /**
  * プラグインのビューのスクリーンショット (docs/screenshots/)。`bun run screenshots`。
  * Web UI (web/ の vite) とプラグインの開発用ページ (dev/) を起動し、headless Chromium で
- * 埋め込んだシミュレータ (poi の state が postMessage で届いたこと = 「poi 接続中」)、観測ログ、資源 (1024x600)、送信設定を撮る。
+ * 埋め込んだシミュレータ (poi の state が postMessage で届いたこと = 「poi 接続中」)、観測ログ、任務、資源、送信設定を
+ * 1024x600 で撮る。macOS のプラグインウィンドウを再現する (poi の上端 23px の drag 帯と左上の信号ボタンを重ねて描く)。
+ * 確かめること: 枠 (左のバーと上の行の位置) がどの機能・画面でも同じ、信号ボタンの下にタブ・バーの項目が無い、
+ * drag 帯にかかるタブは no-drag、プラグインのタブで iframe の画面が変わり Web UI 側の遷移 (海域 →「出撃シミュ」) が
+ * プラグインのタブに戻ってくる、埋め込んだ Web UI は枠を描かない、1280x800 / 1200x710 / 1024x600 でページ
+ * (プラグインと iframe の中) がスクロールしない。
  * ブラウザは playwright のキャッシュにある chromium_headless_shell を使う (CHROMIUM_PATH で上書き可)。
+ * 任務は Web UI の開発サーバが中継するデータ API (KCSIM_API、既定 127.0.0.1:8787) の /api/v1/quests を使う。
+ * MAPS_FROM_BUNDLES=1 なら海域のデータ (/api/v1/views/map/*) だけ API を通さず、Web UI の代替の静的バンドル (/maps) を
+ * 使わせる (手元の D1 に KCNav の敵編成が無いと出撃の結果が 0% になるため)。
  */
 import { chromium } from "playwright-core";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
@@ -13,6 +21,13 @@ import { join, resolve } from "node:path";
 const OUT = process.env.SCREENSHOT_OUT ?? resolve(import.meta.dir, "../../docs/screenshots");
 const WEB_PORT = 5198;
 const PLUGIN_PORT = 5197;
+const SIZES = [[1280, 800], [1200, 710], [1024, 600]] as const;
+/** docs の画像の大きさ */
+const DOC = { width: 1024, height: 600 };
+/** macOS の信号ボタン (閉じる/最小化/拡大) が占める左上の範囲 */
+const BUTTONS = { width: 80, height: 28 };
+/** 任務タブで選んでおく任務 (A88 最精鋭甲型駆逐艦、集結せよ！: 前提が多い) */
+const QUEST = 193;
 
 const findChromium = (): string => {
   if (process.env.CHROMIUM_PATH) return process.env.CHROMIUM_PATH;
@@ -47,14 +62,23 @@ const servers = [
 const browser = await chromium.launch({ executablePath: findChromium() });
 // 新しいコンテキストは localStorage / IndexedDB が空。旧プラグイン UI のプリセットを 1 件置いて、移行も通す
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
-await context.addInitScript(() => {
-  if (location.port !== "5197" || localStorage.getItem("kcsim:plugin") !== null) return;
-  const preset = {
-    id: "legacy1", name: "旧プラグインの編成", createdAt: 1, updatedAt: 1, fleetType: "single", formation: "line_ahead",
-    ships: [{ masterId: 1, level: 99, luckMod: 0, hpMod: 0, aswMod: 0, morale: 49, equips: [] }], source: "manual",
-  };
-  localStorage.setItem("kcsim:preset:legacy1", JSON.stringify(preset));
-});
+await context.addInitScript(
+  ({ quest, webPort }) => {
+    // iframe の Web UI (別オリジン): 任務タブで開く任務
+    if (location.port === String(webPort)) {
+      if (localStorage.getItem("kcsim:quest") === null) localStorage.setItem("kcsim:quest", String(quest));
+      return;
+    }
+    if (location.port !== "5197" || localStorage.getItem("kcsim:plugin") !== null) return;
+    const preset = {
+      id: "legacy1", name: "旧プラグインの編成", createdAt: 1, updatedAt: 1, fleetType: "single", formation: "line_ahead",
+      ships: [{ masterId: 1, level: 99, luckMod: 0, hpMod: 0, aswMod: 0, morale: 49, equips: [] }], source: "manual",
+    };
+    localStorage.setItem("kcsim:preset:legacy1", JSON.stringify(preset));
+  },
+  { quest: QUEST, webPort: WEB_PORT }
+);
+if (process.env.MAPS_FROM_BUNDLES) await context.route("**/api/v1/views/map/**", (r) => r.abort());
 const main = await context.newPage();
 for (const p of [main]) {
   p.on("pageerror", (e) => console.error("[pageerror]", e.message));
@@ -72,19 +96,51 @@ const shot = async (name: string) => {
   await page.screenshot({ path: join(OUT, `${name}.png`) });
   console.log("saved", join(OUT, `${name}.png`));
 };
-const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).click();
-/** ヘッダ (プラグインのタブ列) とタブの位置。どのビューでも同じであること (ビューの中の切り替えタブは数えない) */
-const headerBoxes = () =>
+/** 枠のタブ (左のバーの機能、上の行の画面) か、画面の中の切り替え */
+const tab = (label: string) => page.getByRole("tab", { name: label, exact: true }).first().click();
+const isSelected = async (label: string) =>
+  (await page.getByRole("tab", { name: label, exact: true }).first().getAttribute("aria-selected")) === "true";
+const web = page.frameLocator("iframe[title=kc-sim]");
+const webFrame = () => {
+  const f = page.frames().find((x) => x.url().startsWith(`http://localhost:${WEB_PORT}/`));
+  if (!f) throw new Error("the web UI's iframe is not loaded");
+  return f;
+};
+
+/** 枠の位置: 左のバーの項目と、上の行の最初の項目 (タブ列か見出し) の位置。どの機能・画面でも同じであること */
+const chromeBoxes = () =>
   page.evaluate(() => {
-    const list = document.querySelector("[role=tablist]")!;
-    return [list, ...list.querySelectorAll("[role=tab]")].map((el) => {
+    const bar = document.querySelector("[role=tablist][aria-orientation=vertical]")!;
+    const top = document.querySelector("[role=tablist]:not([aria-orientation]), h1")!.getBoundingClientRect();
+    const items = [bar, ...bar.querySelectorAll("[role=tab]")].map((el) => {
       const r = el.getBoundingClientRect();
       return [r.x, r.y, r.width, r.height].join(",");
-    }).join(" ");
+    });
+    // 上の行はタブ列か見出し (縦の位置は高さが違うので比べない。行の高さはバーの位置に出る)
+    return `${items.join(" ")} | top x ${top.x}`;
   });
-/** ページ (プラグインのビュー全体と、タブの中身の main) がスクロールしないこと */
-const assertNoPageScroll = async (where: string) => {
-  const over = await page.evaluate(() => {
+
+/** 信号ボタンの下に枠のタブ・見出しが無く、drag 帯 (上端 23px) にかかるタブは no-drag */
+const assertClearOfWindowButtons = async (where: string) => {
+  const bad = await page.evaluate(
+    ({ width, height }) =>
+      [...document.querySelectorAll("[role=tab], h1")].flatMap((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0) return [];
+        const style = getComputedStyle(el);
+        const region = style.getPropertyValue("-webkit-app-region") || style.getPropertyValue("app-region");
+        const under = r.left < width && r.top < height;
+        const dragged = el.getAttribute("role") === "tab" && r.top < 23 && region !== "no-drag";
+        return under || dragged ? [`${el.textContent} at ${Math.round(r.left)},${Math.round(r.top)} (${region})`] : [];
+      }),
+    BUTTONS
+  );
+  if (bad.length) throw new Error(`${where}: under the window buttons or not clickable in the drag strip: ${bad.join("; ")}`);
+};
+
+/** ページ (プラグインのビュー全体と、プラグインの画面の main。Web UI の画面なら iframe の中の文書と main) がスクロールしないこと */
+const assertNoPageScroll = async (where: string, inFrame = false) => {
+  const measure = () => {
     const doc = document.scrollingElement!;
     const main = document.querySelector("main");
     return {
@@ -92,14 +148,24 @@ const assertNoPageScroll = async (where: string) => {
       main: main ? main.scrollHeight - main.clientHeight : 0,
       wide: doc.scrollWidth - doc.clientWidth,
     };
-  });
-  if (over.page > 0 || over.main > 0 || over.wide > 0) throw new Error(`${where} scrolls: ${JSON.stringify(over)}`);
+  };
+  for (const [name, over] of [["plugin", await page.evaluate(measure)], ...(inFrame ? [["iframe", await webFrame().evaluate(measure)] as const] : [])] as const) {
+    if (over.page > 0 || over.main > 0 || over.wide > 0) throw new Error(`${where} (${name}) scrolls: ${JSON.stringify(over)}`);
+  }
+};
+const atEverySize = async (where: string, inFrame: boolean, check?: () => Promise<void>) => {
+  for (const [width, height] of SIZES) {
+    await page.setViewportSize({ width, height });
+    await page.waitForTimeout(300);
+    await assertNoPageScroll(`${where} at ${width}x${height}`, inFrame);
+    await check?.();
+  }
+  console.log(`${where}: no page scroll at ${SIZES.map((s) => s.join("x")).join(" / ")}`);
 };
 
 try {
   // 埋め込んだ Web UI に poi の state (開発用ページではサンプル) が postMessage で届くと、poi の艦隊の取り込みボタンが有効になる。
   // postMessage の送り元は子ウィンドウでなくメインウィンドウ (= 親の opener) で、実機の poi と同じ経路
-  const web = page.frameLocator("iframe[title=kc-sim]");
   const preset = web.locator("select").first();
   await preset.waitFor({ timeout: 30_000 });
   // 旧プラグイン UI のプリセットが移行されている
@@ -116,32 +182,59 @@ try {
   await web.getByText("突破").first().waitFor();
   // 埋め込んだ Web UI の中でも計算が終わり、結果が出る (実行ボタンは計算済みになり、その理由を title に出す)
   await web.locator("span[title^='この入力の']").waitFor({ timeout: 60_000 });
-  await page.waitForTimeout(300);
-  await shot("19-plugin-embedded");
-  // poi (macOS) がプラグインウィンドウ上端に置く drag 帯 (plugin-window-wrapper.js と同じ)。headless では app-region が
-  // 効かないので、タブが no-drag であること (= 帯の上でもクリックが届く) を計算済みスタイルで確かめ、帯の上でタブを押す
-  await page.evaluate(() => {
-    const div = document.createElement("div");
-    div.style.position = "absolute";
-    div.style.top = "0";
-    div.style.height = "23px";
-    div.style.width = "100%";
-    div.style.setProperty("-webkit-app-region", "drag");
-    div.style.setProperty("pointer-events", "none");
-    document.body.appendChild(div);
-  });
-  const regions = await page.evaluate(() =>
-    [...document.querySelectorAll("[role=tablist] [role=tab]")].map((el) => getComputedStyle(el).getPropertyValue("-webkit-app-region") || getComputedStyle(el).getPropertyValue("app-region"))
+  // ボスに届く海域 (同梱サンプルの第1艦隊で) に替え、その結果が出るまで待つ (結果の欄が変わり、計算済みになる)
+  const before = await webFrame().evaluate(() => (document.querySelector("[data-results]") as HTMLElement).innerText);
+  await web.getByLabel("海域").selectOption("4-2");
+  await webFrame().waitForFunction(
+    (prev) =>
+      (document.querySelector("[data-results]") as HTMLElement).innerText !== prev &&
+      !document.querySelector("[role=progressbar]") &&
+      !!document.querySelector("span[title^='この入力の']"),
+    before,
+    { timeout: 120_000 }
   );
-  if (regions.length === 0 || regions.some((r) => r !== "no-drag")) throw new Error(`plugin tabs are not no-drag: ${regions}`);
+  // 埋め込んだ Web UI は枠を描かない (左のバーも上の行もプラグインのもの 1 つだけ)
+  if (await web.locator("[role=tablist][aria-orientation=vertical]").count()) throw new Error("the embedded web UI draws its activity bar");
+  if (await web.getByRole("img", { name: "艦これ シミュレータ" }).count()) throw new Error("the embedded web UI draws its top row");
+
+  // poi (macOS) のプラグインウィンドウ: 上端 23px の drag 帯 (plugin-window-wrapper.js と同じ) と左上の信号ボタン。
+  // headless では app-region が効かないので、タブが no-drag であること (= 帯の上でもクリックが届く) を計算済みスタイルで
+  // 確かめ、帯の上でタブを押す。信号ボタンは見た目の再現 (クリックは通す)
+  await page.evaluate(({ width, height }) => {
+    const strip = document.createElement("div");
+    strip.style.cssText = "position:absolute;top:0;left:0;width:100%;height:23px;pointer-events:none;z-index:100";
+    strip.style.setProperty("-webkit-app-region", "drag");
+    const buttons = document.createElement("div");
+    buttons.style.cssText = `position:absolute;top:0;left:0;width:${width}px;height:${height}px;pointer-events:none;z-index:101`;
+    ["#ff5f57", "#febc2e", "#28c840"].forEach((c, i) => {
+      const dot = document.createElement("div");
+      dot.style.cssText = `position:absolute;top:8px;left:${14 + i * 20}px;width:12px;height:12px;border-radius:50%;background:${c}`;
+      buttons.appendChild(dot);
+    });
+    document.body.append(strip, buttons);
+  }, BUTTONS);
+  await page.setViewportSize(DOC);
+  await page.waitForTimeout(300);
   const logTab = await page.getByRole("tab", { name: "観測ログ", exact: true }).boundingBox();
   await page.mouse.click(logTab!.x + logTab!.width / 2, 10);
-  if ((await page.getByRole("tab", { name: "観測ログ", exact: true }).getAttribute("aria-selected")) !== "true") throw new Error("観測ログ tab not clickable within the drag strip");
-  await tab("シミュレーション");
-  console.log("plugin tabs no-drag:", regions.join(","));
-  const header = await headerBoxes();
-  // 埋め込んだ Web UI はヘッダを描かない (タブ列は左の縦の 1 本だけ)
-  if (await web.locator("header").count()) throw new Error("the embedded web UI draws a header");
+  if (!(await isSelected("観測ログ"))) throw new Error("観測ログ tab not clickable within the drag strip");
+  await tab("出撃");
+  await assertClearOfWindowButtons("シミュレーション / 出撃");
+  await page.waitForTimeout(300);
+  await shot("19-plugin-embedded");
+  const chrome = await chromeBoxes();
+  console.log("chrome:", chrome);
+  await atEverySize("シミュレーション / 出撃", true);
+
+  // プラグインのタブで iframe の画面が変わり、Web UI 側の遷移 (海域 →「出撃シミュ」) はプラグインのタブに戻ってくる
+  await tab("海域");
+  await web.getByRole("button", { name: "出撃シミュ" }).click({ timeout: 30_000 });
+  await page.waitForTimeout(300);
+  if (!(await isSelected("出撃"))) throw new Error("the web UI's move to 出撃 did not reach the plugin's tabs");
+  await web.getByText("突破").first().waitFor();
+  await tab("計算設定");
+  await web.getByText("サーバの推定値を使う").waitFor();
+  console.log("view sync: plugin → iframe (海域, 計算設定), iframe → plugin (出撃シミュ)");
 
   // 観測ログ: 戦闘を流し込んでから表示
   await main.evaluate(async () => {
@@ -170,53 +263,71 @@ try {
   await page.getByText("昼戦").first().waitFor();
   await page.waitForTimeout(200);
   await shot("05-log-list");
-  if ((await headerBoxes()) !== header) throw new Error(`header moved on 観測ログ: ${header} → ${await headerBoxes()}`);
+  if ((await chromeBoxes()) !== chrome) throw new Error(`chrome moved on 観測ログ: ${chrome} → ${await chromeBoxes()}`);
+  await atEverySize("シミュレーション / 観測ログ", false);
+  await page.setViewportSize(DOC);
   await page.locator("tbody tr").first().click();
   await page.getByText("攻撃イベント").waitFor();
   await page.waitForTimeout(300);
   await shot("06-log-detail");
   await page.keyboard.press("Escape");
 
+  await tab("送信設定");
+  await page.getByText("観測ログを自動送信").waitFor();
+  await page.waitForTimeout(300);
+  await shot("08-plugin-upload");
+  if ((await chromeBoxes()) !== chrome) throw new Error(`chrome moved on 送信設定: ${chrome} → ${await chromeBoxes()}`);
+
+  // 任務 (Web UI の画面、ローカルタブ無し: 上の行は見出し)
+  await tab("任務");
+  await web.getByRole("list", { name: "前提任務" }).waitFor({ timeout: 30_000 });
+  await assertClearOfWindowButtons("任務");
+  if ((await chromeBoxes()) !== chrome) throw new Error(`chrome moved on 任務: ${chrome} → ${await chromeBoxes()}`);
+  await page.waitForTimeout(300);
+  await shot("22-plugin-quests");
+  await atEverySize("任務", true);
+  await page.setViewportSize(DOC);
+
   // 資源: 記録が無いとき (開発用ページ = poi の外) は空の表示、記録を入れると推移と増減
   await tab("資源");
   await page.getByText("資源の記録がありません").waitFor();
-  if ((await headerBoxes()) !== header) throw new Error(`header moved on 資源: ${header} → ${await headerBoxes()}`);
+  await assertClearOfWindowButtons("資源");
+  if ((await chromeBoxes()) !== chrome) throw new Error(`chrome moved on 資源: ${chrome} → ${await chromeBoxes()}`);
   await main.evaluate(async () => {
     const { resources } = Reflect.get(window, "__kcsimDev");
     const db = new resources.ResourceDb();
     for (const s of resources.seedResourceHistory(Date.now())) await db.add(s);
     await db.close();
   });
-  await tab("観測ログ");
+  // 機能を切り替えて戻ると読み直す (最後に開いていた画面 = 推移に戻る)
+  await tab("シミュ");
+  if (!(await isSelected("送信設定"))) throw new Error("シミュ did not return to its last view (送信設定)");
   await tab("資源");
   await page.getByRole("img", { name: "燃料・弾薬・鋼材・ボーキ" }).waitFor();
-  for (const [width, height] of [[1280, 800], [1200, 710], [1024, 600]]) {
-    await page.setViewportSize({ width, height });
-    await page.waitForTimeout(200);
+  await atEverySize("資源", false, async () => {
     for (const view of ["増減 (日別)", "増減 (イベント)", "推移"]) {
-      await page.getByRole("tab", { name: view, exact: true }).click();
-      await assertNoPageScroll(`資源 ${view} at ${width}x${height}`);
+      await tab(view);
+      await assertNoPageScroll(`資源 ${view}`);
     }
-  }
-  console.log("資源: no page scroll at 1280x800 / 1200x710 / 1024x600");
-  // 1024x600 で、推移 (1 月) にポインタを当てた状態と、イベントごとの増減を撮る
-  await page.getByRole("tab", { name: "1月", exact: true }).click();
+  });
+  await page.setViewportSize(DOC);
+  await page.waitForTimeout(200);
+  // 推移 (1 月) にポインタを当てた状態と、イベントごとの増減を撮る
+  await tab("1月");
   const chart = (await page.getByRole("img", { name: "燃料・弾薬・鋼材・ボーキ" }).boundingBox())!;
   await page.mouse.move(chart.x + chart.width * 0.7, chart.y + chart.height * 0.5);
   await page.waitForTimeout(200);
   await shot("20-plugin-resources");
-  await page.getByRole("tab", { name: "1週", exact: true }).click();
-  await page.getByRole("tab", { name: "増減 (イベント)", exact: true }).click();
+  await tab("1週");
+  await tab("増減 (イベント)");
   await page.waitForTimeout(200);
   await shot("21-plugin-resources-delta");
-  await page.setViewportSize({ width: 1440, height: 1000 });
 
-  await tab("送信設定");
-  await page.getByText("観測ログを自動送信").waitFor();
-  await page.waitForTimeout(300);
-  await shot("08-plugin-upload");
-  if ((await headerBoxes()) !== header) throw new Error(`header moved on 送信設定: ${header} → ${await headerBoxes()}`);
-  console.log("header identical in シミュレーション / 観測ログ / 資源 / 送信設定:", header);
+  // 全体の設定 (バーの下端の歯車): Web UI の設定画面
+  await tab("設定");
+  await web.getByText("データキャッシュ").waitFor();
+  if ((await chromeBoxes()) !== chrome) throw new Error(`chrome moved on 設定: ${chrome} → ${await chromeBoxes()}`);
+  console.log("chrome identical in シミュ (出撃 / 観測ログ / 送信設定) / 任務 / 資源 / 設定");
 } finally {
   await browser.close();
   servers.forEach((s) => s.kill());

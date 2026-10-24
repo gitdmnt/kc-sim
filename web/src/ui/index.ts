@@ -5,6 +5,8 @@ export type { ButtonVariant } from "./Button";
 export { Card } from "./Card";
 export { Tabs } from "./Tabs";
 export type { TabItem } from "./Tabs";
+export { AppChrome } from "./AppChrome";
+export type { ChromeFeature, ChromeView } from "./AppChrome";
 export { TextInput, Textarea, Select, Checkbox, Field } from "./Field";
 export { NumberInput } from "./NumberInput";
 export { Combobox } from "./Combobox";

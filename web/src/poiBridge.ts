@@ -8,11 +8,12 @@ import {
   EMBED_MIN_VERSION,
   EMBED_SOURCE,
   EMBED_VERSION,
+  HOST_NAV_VERSION,
   isAllowedParentOrigin,
   parsePluginMessage,
   readEnvelope,
 } from "@shared/embed/protocol";
-import type { PoiState, WebMessage } from "@shared/embed/protocol";
+import type { PoiState, WebMessage, WebView } from "@shared/embed/protocol";
 import { getPresetStore, notifyPresetsChanged } from "./app/fleet/presets";
 
 export type PoiStatus =
@@ -29,14 +30,18 @@ export type PoiStatus =
 export interface PoiConnection {
   status: PoiStatus;
   state: PoiState | null;
-  /** status が unsupported のときのプラグイン側の版 */
+  /** プラグインのプロトコルの版 (最後に受け取ったメッセージの。status が unsupported のときは対応外の版) */
   pluginVersion?: number;
+  /** プラグインが画面の枠 (左のバー・上のタブ) を描き、`view` で Web UI の画面を選ぶ (v3 以降)。Web UI は枠を描かない */
+  hostNav: boolean;
+  /** プラグインが選んだ画面 (届くたびに新しいオブジェクト) */
+  hostView?: { view: WebView };
 }
 
 /** 埋め込まれてから state が届くまで待つ時間 */
 const SILENT_AFTER_MS = 5_000;
 
-let current: PoiConnection = { status: "standalone", state: null };
+let current: PoiConnection = { status: "standalone", state: null, hostNav: false };
 const listeners = new Set<() => void>();
 
 const set = (next: PoiConnection) => {
@@ -94,7 +99,7 @@ const onMessage = (e: MessageEvent) => {
   const env = readEnvelope(e.data);
   if (!env) return;
   if (env.v < EMBED_MIN_VERSION || env.v > EMBED_VERSION) {
-    set({ status: "unsupported", state: current.state, pluginVersion: env.v });
+    set({ ...current, status: "unsupported", pluginVersion: env.v, hostNav: false });
     return;
   }
   const msg = parsePluginMessage(e.data);
@@ -103,10 +108,20 @@ const onMessage = (e: MessageEvent) => {
     importPresets(msg.json);
     return;
   }
+  const host = { pluginVersion: msg.v, hostNav: msg.v >= HOST_NAV_VERSION };
+  if (msg.type === "view") {
+    set({ ...current, ...host, hostView: { view: msg.view } });
+    return;
+  }
   // const は変わったときだけ届く。前回の参照を使い続けるとカタログを作り直さずに済む
   const master = msg.const ?? current.state?.const;
   if (master === undefined) return;
-  set({ status: "connected", state: { info: msg.info, const: master, combinedFlag: msg.combinedFlag, quests: msg.quests } });
+  set({ ...current, ...host, status: "connected", state: { info: msg.info, const: master, combinedFlag: msg.combinedFlag, quests: msg.quests } });
+};
+
+/** Web UI が自分で画面を移った (海域 →「戦闘シミュ」など) ことを、枠を描いているプラグインに知らせる */
+export const reportView = (view: WebView) => {
+  if (current.hostNav) postToParent({ src: EMBED_SOURCE, v: EMBED_VERSION, type: "view", view });
 };
 
 /** エントリ (main.tsx) から 1 回だけ呼ぶ。 */
@@ -115,11 +130,11 @@ export const startPoiBridge = async (): Promise<void> => {
     if (import.meta.env.DEV) {
       // 開発サーバ: poi の代わりに myState.json / サンプル (vite.config.ts の dev-state)
       const state = (await (await fetch("/__dev/state.json")).json()) as PoiState;
-      set({ status: "standalone", state });
+      set({ ...current, status: "standalone", state });
     }
     return;
   }
-  set({ status: "waiting", state: null });
+  set({ ...current, status: "waiting", state: null });
   window.addEventListener("message", onMessage);
   postToParent({ src: EMBED_SOURCE, v: EMBED_VERSION, type: "ready" });
   setTimeout(() => {

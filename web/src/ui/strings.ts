@@ -1,12 +1,22 @@
 /** UI の日本語文言。 */
 export const S = {
   appTitle: "艦これ シミュレータ",
-  tabs: {
+  /** 画面の枠 (app/nav.tsx): アクティビティバーの機能と、上の行のローカルタブ。プラグインだけの画面 (観測ログ・送信設定・資源) も含む */
+  nav: {
+    sim: "シミュ",
+    simTitle: "シミュレーション",
+    quests: "任務",
+    resources: "資源",
+    settings: "設定",
     sortie: "出撃",
     map: "海域",
     enemy: "敵艦",
-    quests: "任務",
-    settings: "設定",
+    log: "観測ログ",
+    upload: "送信設定",
+    simSettings: "計算設定",
+    resourcesChart: "推移",
+    resourcesEvent: "増減 (イベント)",
+    resourcesDay: "増減 (日別)",
   },
   common: {
     cancel: "キャンセル",
@@ -150,6 +160,8 @@ export const S = {
     deckFleet: "取り込む艦隊",
   },
   settings: {
+    enemyData: "敵のデータ",
+    poiData: "poi のデータ",
     useSample: "内蔵サンプルデータを使う",
     data: "データ",
     clearPresets: "プリセットを全削除",

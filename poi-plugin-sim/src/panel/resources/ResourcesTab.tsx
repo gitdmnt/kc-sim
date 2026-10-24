@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import type { PluginView } from "@web/app/nav";
 import { EmptyState, Select, Table, Td, Th, Thead, Tr, Tabs, cx } from "@web/ui";
 import type { TabItem } from "@web/ui";
 import { formatDateTime, formatShortDateTime } from "@web/ui/format";
@@ -9,13 +10,9 @@ import type { DeltaRow, RangeId } from "../../resources/view";
 import { L } from "../strings";
 import { LineChart } from "./LineChart";
 
-type View = "chart" | "event" | "day";
+/** 推移 / 増減 (イベント) / 増減 (日別)。切り替えはプラグインの枠の上の行のタブ */
+type View = Extract<PluginView, `resources-${string}`>;
 
-const VIEW_TABS: TabItem<View>[] = [
-  { id: "chart", label: L.resources.chart },
-  { id: "event", label: L.resources.byEvent },
-  { id: "day", label: L.resources.byDay },
-];
 const RANGE_TABS: TabItem<RangeId>[] = RANGES.map((r) => ({ id: r.id, label: r.label }));
 /** 増減の表の行数の上限 (イベントごとは 1 週で数千行になりうる) */
 const MAX_ROWS = 500;
@@ -37,14 +34,13 @@ const snapshotAt = (snapshots: ResourceSnapshot[], t: number) => snapshots.findL
  * 資源の推移。記録はキャプチャ (startCapture) が poi の game.response ごとに取り、このビューは保存先を読むだけ。
  * 画面はスクロールしない: グラフは残りの高さいっぱいに伸び、増減の表だけが内側でスクロールする。
  */
-export const ResourcesTab = ({ currentAdmiral }: { currentAdmiral: string | null }) => {
+export const ResourcesTab = ({ currentAdmiral, view }: { currentAdmiral: string | null; view: View }) => {
   const db = getResourceDb();
   const [admirals, setAdmirals] = useState<string[] | null>(null);
   /** 選んだ提督 (null なら現在の提督、記録が無ければ最近の提督) */
   const [chosen, setChosen] = useState<string | null>(null);
   const [snapshots, setSnapshots] = useState<ResourceSnapshot[]>([]);
   const [range, setRange] = useState<RangeId>("week");
-  const [view, setView] = useState<View>("chart");
   const [shown, setShown] = useState<boolean[]>(() => RESOURCES.map(() => true));
   const [now, setNow] = useState(Date.now);
   /** 新しい記録が来るたびに増やして読み直す */
@@ -107,7 +103,7 @@ export const ResourcesTab = ({ currentAdmiral }: { currentAdmiral: string | null
   );
 
   const rows: DeltaRow[] = useMemo(
-    () => (view === "event" ? eventDeltas(snapshots, from, now) : view === "day" ? dayDeltas(snapshots, from, now) : []),
+    () => (view === "resources-event" ? eventDeltas(snapshots, from, now) : view === "resources-day" ? dayDeltas(snapshots, from, now) : []),
     [view, snapshots, from, now]
   );
 
@@ -139,7 +135,6 @@ export const ResourcesTab = ({ currentAdmiral }: { currentAdmiral: string | null
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <Tabs tabs={VIEW_TABS} value={view} onChange={setView} variant="pill" size="sm" />
         <Tabs tabs={RANGE_TABS} value={range} onChange={setRange} variant="pill" size="sm" />
         {admirals.length > 1 && (
           <Select className="w-44" value={admiral ?? ""} onChange={(e) => setChosen(e.target.value)} aria-label={L.resources.admiral}>
@@ -182,7 +177,7 @@ export const ResourcesTab = ({ currentAdmiral }: { currentAdmiral: string | null
         })}
       </div>
 
-      {view === "chart" ? (
+      {view === "resources-chart" ? (
         <div className="flex min-h-0 flex-1 flex-col gap-3">
           {charts.map(({ group, series }) => (
             <section
@@ -210,8 +205,8 @@ export const ResourcesTab = ({ currentAdmiral }: { currentAdmiral: string | null
         <Table className="min-h-0 flex-1 rounded-md border border-ink-800 bg-ink-900">
           <Thead>
             <tr>
-              <Th>{view === "day" ? L.resources.date : L.resources.time}</Th>
-              {view === "event" && <Th>{L.resources.event}</Th>}
+              <Th>{view === "resources-day" ? L.resources.date : L.resources.time}</Th>
+              {view === "resources-event" && <Th>{L.resources.event}</Th>}
               {columns.map((c) => (
                 <Th key={c.label} className="text-right">
                   {c.label}
@@ -223,9 +218,9 @@ export const ResourcesTab = ({ currentAdmiral }: { currentAdmiral: string | null
             {rows.slice(0, MAX_ROWS).map((row, k) => (
               <Tr key={`${row.t}-${k}`}>
                 <Td className="whitespace-nowrap text-xs text-ink-400 tabular-nums">
-                  {view === "day" ? new Date(row.t).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" }) : formatShortDateTime(row.t)}
+                  {view === "resources-day" ? new Date(row.t).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" }) : formatShortDateTime(row.t)}
                 </Td>
-                {view === "event" && <Td className="max-w-64 truncate text-ink-100">{row.label}</Td>}
+                {view === "resources-event" && <Td className="max-w-64 truncate text-ink-100">{row.label}</Td>}
                 {columns.map((c) => (
                   <Td key={c.label} className="text-right tabular-nums" title={row.v[c.i] == null ? undefined : num.format(row.v[c.i]!)}>
                     <Delta d={row.d[c.i]} />

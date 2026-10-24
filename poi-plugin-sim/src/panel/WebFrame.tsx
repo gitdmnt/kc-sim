@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { EMBED_VERSION, serverOrigin } from "@shared/embed/protocol";
-import type { PoiState } from "@shared/embed/protocol";
+import type { PoiState, WebView } from "@shared/embed/protocol";
 import { PresetStore } from "@web/fleet/presetStore";
 import { Button, EmptyState } from "@web/ui";
 import { STORAGE_PREFIX } from "../settings";
@@ -30,19 +30,25 @@ const legacyPresetsJson = (): string | null => {
 interface Props {
   serverUrl: string;
   poiState: PoiState;
+  /** iframe に出す画面 (プラグインの枠で選んだもの) */
+  view: WebView;
+  /** Web UI が自分で画面を移った */
+  onView: (v: WebView) => void;
   onOpenSettings: () => void;
 }
 
 /**
- * Web UI を iframe で開き、poi の state を postMessage で渡す。送り先は iframe のオリジンに固定し、
+ * Web UI を iframe で開き、poi の state と出す画面を postMessage で渡す。送り先は iframe のオリジンに固定し、
  * 受け取るのはその iframe から・そのオリジンのメッセージだけ。
  */
-export const WebFrame = ({ serverUrl, poiState, onOpenSettings }: Props) => {
+export const WebFrame = ({ serverUrl, poiState, view, onView, onOpenSettings }: Props) => {
   const origin = serverOrigin(serverUrl);
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const bridgeRef = useRef<EmbedBridge | null>(null);
   const [host, setHost] = useState<Window | null>(null);
   const [webVersion, setWebVersion] = useState<number | null>(null);
+  const onViewRef = useRef(onView);
+  onViewRef.current = onView;
 
   // ウィンドウモードでは DOM はプラグインウィンドウ (別の window) にあり、message もそちらに届く
   const hostRef = useCallback((el: HTMLDivElement | null) => setHost(el?.ownerDocument.defaultView ?? null), []);
@@ -57,6 +63,7 @@ export const WebFrame = ({ serverUrl, poiState, onOpenSettings }: Props) => {
       presetsDone: () => localStorage.getItem(presetsKey) !== null,
       markPresetsDone: () => localStorage.setItem(presetsKey, String(Date.now())),
       onWebVersion: setWebVersion,
+      onView: (v) => onViewRef.current(v),
     });
     bridgeRef.current = bridge;
     const onMessage = (e: MessageEvent) => {
@@ -69,6 +76,9 @@ export const WebFrame = ({ serverUrl, poiState, onOpenSettings }: Props) => {
       bridgeRef.current = null;
     };
   }, [embeddable, host, origin]);
+
+  // 作り直した bridge にも今の画面を渡す (ready 前は bridge が覚えておく)
+  useEffect(() => bridgeRef.current?.setView(view), [view, embeddable, host, origin]);
 
   // 最新の state を間引いて渡す (ready 前は bridge が覚えておく)
   const latest = useRef(poiState);

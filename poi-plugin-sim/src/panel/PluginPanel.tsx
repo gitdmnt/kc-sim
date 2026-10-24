@@ -1,65 +1,65 @@
 import React, { useMemo, useState } from "react";
-import type { PoiState } from "@shared/embed/protocol";
+import { isWebView } from "@shared/embed/protocol";
+import type { PoiState, WebView } from "@shared/embed/protocol";
+import { FEATURES, useViewNav } from "@web/app/nav";
 import { buildCatalog } from "@web/fleet/catalog";
-import { Tabs, ToastProvider, cx } from "@web/ui";
-import type { TabItem } from "@web/ui";
+import { AppChrome, ToastProvider } from "@web/ui";
 import { resourcesFromPoi } from "../resources";
 import { usePluginSettings } from "../settings";
 import { LogTab } from "./log/LogTab";
 import { ResourcesTab } from "./resources/ResourcesTab";
-import { L } from "./strings";
 import { UploadSettings } from "./UploadSettings";
 import { WebFrame } from "./WebFrame";
 
-type PanelTab = "sim" | "log" | "resources" | "upload";
-
-const TABS: TabItem<PanelTab>[] = [
-  { id: "sim", label: L.tabs.sim },
-  { id: "log", label: L.tabs.log },
-  { id: "resources", label: L.tabs.resources },
-  { id: "upload", label: L.tabs.upload },
-];
-
-// macOS のプラグインウィンドウはタイトルバーが無く、左上の信号ボタン (閉じる/最小化/拡大) がタブに重なるので避ける。
-// poi は上端 23px に -webkit-app-region: drag の帯を置くので、タブだけ no-drag にしてクリックを通す (空きはドラッグできる)
+// macOS のプラグインウィンドウはタイトルバーが無く、左上の信号ボタン (閉じる/最小化/拡大) が上の行にかかる。
+// AppChrome は上の行をその右から始め、poi の上端 23px の drag 帯の上でもタブだけ no-drag にしてクリックを通す
 const IS_MAC = typeof navigator !== "undefined" && /Mac/.test(navigator.platform || navigator.userAgent);
-const NO_DRAG_TABS = "[&>[role=tab]]:[-webkit-app-region:no-drag]";
 
 /**
- * プラグインのビュー。シミュレータ本体はサーバの Web UI を iframe で開き (WebFrame)、観測ログ・資源・送信設定は
- * キャプチャと同じ場所 (このプラグインの IndexedDB / localStorage) にあるのでここで描く。資源の値は Web UI には渡さない。
- * ヘッダ (ビューのタブ) はどのビューでも同じこの 1 行だけ。埋め込んだ Web UI はヘッダを描かない。
+ * プラグインのビュー。枠 (左のバーで シミュ / 任務 / 資源 / 設定、上の行でその中の画面) は Web UI と同じ AppChrome で、
+ * ここが描く唯一の枠。Web UI の画面 (出撃・海域・敵艦・計算設定・任務・設定) はサーバの Web UI を iframe で開いて
+ * `view` で選び (WebFrame、Web UI は枠を描かない)、観測ログ・送信設定・資源はキャプチャと同じ場所 (このプラグインの
+ * IndexedDB / localStorage) にあるのでここで描く。資源の値は Web UI には渡さない。
  */
 export const PluginPanel = ({ poiState }: { poiState: PoiState }) => {
-  const [tab, setTab] = useState<PanelTab>("sim");
+  const nav = useViewNav(FEATURES);
+  const { view } = nav;
   const { serverUrl } = usePluginSettings();
   // 観測ログの艦名用。master data は poi 側で不変なので const の参照が変わらない限り作り直さない
   const catalog = useMemo(() => buildCatalog(poiState), [poiState.const]);
+  // iframe は最後に選んだ Web UI の画面のまま (プラグインの画面を出している間は隠すだけ)
+  const [webView, setWebView] = useState<WebView>(isWebView(view) ? view : "sortie");
+  if (isWebView(view) && view !== webView) setWebView(view);
 
   return (
     // .kcsim は CSS のスコープ (postcss-kcsim-scope.mjs が `.kcsim .foo` にする) なので、ユーティリティはその内側に置く
     <div className="kcsim">
       <div className="flex h-screen flex-col">
         <ToastProvider>
-          <div className={cx("flex shrink-0 items-center border-b border-ink-800", IS_MAC ? "pr-12 pl-32" : "px-3")}>
-            <Tabs tabs={TABS} value={tab} onChange={setTab} size="sm" className={cx("min-w-0 flex-1", NO_DRAG_TABS)} />
-            <span className="shrink-0 pl-3 text-xs text-ink-500 tabular-nums">v{__APP_VERSION__}</span>
-          </div>
-          {/* iframe は隠すだけで外さない (Web UI の状態と読み込みを保つ) */}
-          <div className={tab === "sim" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-            <WebFrame serverUrl={serverUrl} poiState={poiState} onOpenSettings={() => setTab("upload")} />
-          </div>
-          {tab !== "sim" && (
-            <main className="min-h-0 flex-1 overflow-auto p-4">
-              {tab === "log" ? (
-                <LogTab catalog={catalog} />
-              ) : tab === "resources" ? (
-                <ResourcesTab currentAdmiral={resourcesFromPoi(poiState).admiral} />
-              ) : (
-                <UploadSettings />
-              )}
-            </main>
-          )}
+          <AppChrome
+            features={FEATURES}
+            view={view}
+            onView={nav.go}
+            onFeature={nav.goFeature}
+            windowButtons={IS_MAC}
+            end={`v${__APP_VERSION__}`}
+          >
+            {/* iframe は隠すだけで外さない (Web UI の状態と読み込みを保つ) */}
+            <div className={isWebView(view) ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
+              <WebFrame serverUrl={serverUrl} poiState={poiState} view={webView} onView={nav.go} onOpenSettings={() => nav.go("upload")} />
+            </div>
+            {!isWebView(view) && (
+              <main className="min-h-0 flex-1 overflow-auto p-4">
+                {view === "log" ? (
+                  <LogTab catalog={catalog} />
+                ) : view === "upload" ? (
+                  <UploadSettings />
+                ) : (
+                  <ResourcesTab currentAdmiral={resourcesFromPoi(poiState).admiral} view={view} />
+                )}
+              </main>
+            )}
+          </AppChrome>
         </ToastProvider>
       </div>
     </div>

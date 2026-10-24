@@ -44,8 +44,9 @@ export const Tabs = <T extends string>({ tabs, value, onChange, className, varia
             e.preventDefault();
             const next = tabs[(i + step + tabs.length) % tabs.length];
             onChange(next.id);
-            // 次のタブにフォーカスを移す (再描画後)
-            requestAnimationFrame(() => (e.currentTarget.parentElement?.querySelector('[aria-selected="true"]') as HTMLElement | null)?.focus());
+            // 次のタブにフォーカスを移す (再描画後。currentTarget はハンドラを抜けると null になる)
+            const list = e.currentTarget.parentElement;
+            requestAnimationFrame(() => (list?.querySelector('[aria-selected="true"]') as HTMLElement | null)?.focus());
           }}
           className={cx(
             "inline-flex cursor-pointer items-center gap-1 whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-accent-400",

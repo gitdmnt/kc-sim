@@ -1,12 +1,32 @@
 # web
 
-The kc-sim web UI. Tabs: 出撃 (the workspace: map, fleet editor and results on one screen without page scroll),
-海域 (maps and routing), 敵艦 (enemy ships: one row per master id, elite / flagship marked, with stats, equipment and
-the server's hidden-stat estimates, [ESTIMATOR.md](../docs/ESTIMATOR.md) "UI"), 設定. The simulation runs in the
-browser (sim-core wasm in a Web Worker). The server's
+The kc-sim web UI. The simulation runs in the browser (sim-core wasm in a Web Worker). The server's
 Cloudflare Worker serves `dist/` as static assets next to the data API, so the UI calls `/api/v1/*` on its own origin.
-The poi plugin (`../poi-plugin-sim`) embeds this page in an iframe and sends poi's fleets and master data with
-`postMessage` (protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts), described in the plugin's README).
+The poi plugin (`../poi-plugin-sim`) embeds this page in an iframe, sends poi's fleets and master data with
+`postMessage` and picks the view (protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts), described in the
+plugin's README).
+
+## Navigation
+
+VS Code-style, one model for the browser and the plugin (`src/app/nav.tsx`), drawn by one component
+(`src/ui/AppChrome.tsx`): the left activity bar (icon + short name, 64 px) switches features, the top row switches the
+selected feature's views (a feature with one view shows its title there instead), with the version at its right end.
+
+| Feature (bar) | Views (top row) |
+|---|---|
+| シミュ (シミュレーション) | 出撃 (the workspace: map, fleet editor and results on one screen without page scroll), 海域 (maps and routing), 敵艦 (enemy ships: one row per master id, elite / flagship marked, with stats, equipment and the server's hidden-stat estimates, [ESTIMATOR.md](../docs/ESTIMATOR.md) "UI"), 計算設定 (サーバの推定値を使う, 観測を優先する遭遇数); in the plugin also 観測ログ and 送信設定 |
+| 任務 | one view (prerequisite trees, below) |
+| 資源 | plugin only: 推移 / 増減 (イベント) / 増減 (日別) |
+| 設定 (gear, bottom) | one view: the sample-data switch, deleting presets, clearing the data cache, resetting the settings |
+
+Opened directly, this page draws the bars with the features it has (シミュ without 観測ログ / 送信設定, 任務, 設定).
+Inside a plugin of protocol v3 or later the plugin draws the bars, sends the view to show (`view`) and hears back when
+this page moves by itself (海域 →「戦闘シミュ」/「出撃シミュ」, `nav.go({ view: "sortie", … })`); the page then draws no
+bars. Inside an older plugin (v2, one header row of its own) the page draws its bars below the plugin's header.
+The current view is saved in `kcsim:view` (switching features returns to the feature's last view in the session);
+the old `kcsim:tab` (出撃 / 海域 / 敵艦 / 任務 / 設定 bar, `estimate` → `enemy`) is moved over once. The two-column
+layouts start at a document width of 960 px (`--breakpoint-lg`): the plugin's 1024 px window gives the iframe 960 px,
+the same content width as this page at 1024 px with its own bar.
 
 ## Commands
 
@@ -31,14 +51,14 @@ would read summary fields the old wasm does not produce. `SKIP_WASM_BUILD=1` ser
 when `/api` fails). Deploying: `cd ../server && bun run deploy` builds this first ([docs/DEPLOY.md](../docs/DEPLOY.md)).
 
 Scripts: `bun run sample` (regenerate `src/sampleState.json` from `@kancolle/data`), `bun run screenshots`
-(`docs/screenshots/` or `SHOTS_DIR`, file prefix `SHOTS_PREFIX`; with the API down, e.g. `KCSIM_API=http://127.0.0.1:9`,
-it uses the static bundles; it fails if the 出撃 tab scrolls, page or tab content, at 1280×800, 1200×710 or 1024×600),
+(`docs/screenshots/` or `SHOTS_DIR`, file prefix `SHOTS_PREFIX`; docs keep `23-web-sortie` only; with the API down, e.g.
+`KCSIM_API=http://127.0.0.1:9`, it uses the static bundles; it fails if the bars are not シミュ / 任務 / 設定 with
+出撃 / 海域 / 敵艦 / 計算設定, or if the 出撃 tab scrolls, page or tab content, at 1280×800, 1200×710 or 1024×600),
 `bun run audit [--offline]`.
 
 ## 出撃 workspace
 
-Layout: no header inside poi (the plugin draws the one header: シミュレーション / 観測ログ / 資源 / 送信設定); a title row when
-opened directly. The tabs 出撃 / 海域 / 敵艦 / 任務 / 設定 are a vertical bar (icon + name) on the left. Left column:
+Layout: left column:
 編成 (preset selector + ⋯: name, HQ level, poi import of fleet 1–4 or 連合 = fleets 1 + 2, new / duplicate / IO / delete),
 艦隊 (通常艦隊 / 機動部隊 / 水上部隊 / 輸送護衛部隊 / 遊撃部隊) and the 主力 / 随伴 / 支援 / 友軍 / 基地 tabs above the fleet. Right column: the
 simulator toolbar in the order of use, left to right: 海域 (+ 難易度 for event maps), 出撃 / 単一戦闘 (with node and enemy
@@ -158,7 +178,7 @@ under the plugin's CSS scoping) and `ui/EquipIcon` (own-drawn equipment category
 | Where the page runs | poi state |
 |---|---|
 | In the plugin's iframe | From the plugin (`src/poiBridge.ts`) |
-| A normal browser | None: presets can be imported as JSON, and the 出撃 tab offers 「内蔵サンプルデータを使う」 (bundled sample ships and equipment; 設定 shows the switch while it is on) |
+| A normal browser | None: presets can be imported as JSON, and the 出撃 tab offers 「内蔵サンプルデータを使う」 (bundled sample ships and equipment; the 設定 gear shows the switch while it is on) |
 | `bun run dev` without a parent | `myState.json` (a dumped poi state, gitignored) or `src/sampleState.json`, served at `/__dev/state.json` |
 
 Presets and settings live in this origin's localStorage (`kcsim:*`).
@@ -170,7 +190,7 @@ Presets and settings live in this origin's localStorage (`kcsim:*`).
 | `src/main.tsx` | Entry: starts the poi bridge, renders `KcsimApp` |
 | `src/KcsimApp.tsx` | Root: poi state (or sample), catalog, `.kcsim` theme root |
 | `src/poiBridge.ts` | Web side of the embed protocol |
-| `src/app/` | Tabs |
+| `src/app/` | Views; `Shell.tsx` (chrome and views), `nav.tsx` (features, views, saved view, nav intents) |
 | `src/data/` | Data API client (`/api`, cached in localStorage), static bundle fallback (`/maps`) |
 | `src/fleet/`, `src/sim/` | Presets and catalog; simulation runner, adapters and the worker (`sim.worker.ts`) |
-| `src/ui/` | UI parts (also used by the plugin's views through `@web/*`) |
+| `src/ui/` | UI parts, including the chrome `AppChrome.tsx` (also used by the plugin through `@web/*`) |

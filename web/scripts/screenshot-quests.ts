@@ -86,7 +86,7 @@ try {
   await page.goto(`http://localhost:${PORT}/`);
   await page.evaluate((id) => {
     localStorage.clear();
-    localStorage.setItem("kcsim:tab", "quests");
+    localStorage.setItem("kcsim:view", "quests");
     localStorage.setItem("kcsim:quest", String(id));
   }, TARGET);
   await page.reload();

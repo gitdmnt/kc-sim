@@ -126,6 +126,16 @@ describe("parsePluginMessage", () => {
     expect(parsePluginMessage({ src: "kcsim", v: 1, type: "state", info: {} })?.type).toBe("state");
     expect(parsePluginMessage({ src: "kcsim", v: 1, type: "host", views: [], insetLeft: 80 })).toBeNull();
   });
+
+  test("view: only the web UI's own views, nothing else attached", () => {
+    expect(parsePluginMessage({ ...env, type: "view", view: "map", extra: 1 })).toEqual({ ...env, type: "view", view: "map" } as never);
+    expect(parsePluginMessage({ ...env, type: "view", view: "sim-settings" })?.type).toBe("view");
+    // the plugin's own views never reach the iframe; unknown or prototype names are refused
+    for (const view of ["log", "upload", "resources-chart", "estimate", "constructor", 1, undefined]) {
+      expect(parsePluginMessage({ ...env, type: "view", view })).toBeNull();
+    }
+    expect(parsePluginMessage({ src: "kcsim", v: EMBED_VERSION + 1, type: "view", view: "map" })).toBeNull();
+  });
 });
 
 describe("parseWebMessage", () => {
@@ -138,6 +148,12 @@ describe("parseWebMessage", () => {
     expect(parseWebMessage({ ...env, type: "state", info: {} })).toBeNull();
     expect(parseWebMessage({ ...env, type: "ready", hostViews: true })).toEqual({ ...env, type: "ready" } as never);
     expect(parseWebMessage({ ...env, type: "open-view", view: "log" })).toBeNull();
+  });
+
+  test("view: the web UI reports a move of its own", () => {
+    expect(parseWebMessage({ ...env, type: "view", view: "sortie" })).toEqual({ ...env, type: "view", view: "sortie" } as never);
+    expect(parseWebMessage({ ...env, type: "view", view: "log" })).toBeNull();
+    expect(parseWebMessage({ ...env, type: "view" })).toBeNull();
   });
 });
 

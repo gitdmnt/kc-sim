@@ -1,25 +1,36 @@
 // postMessage protocol between the poi plugin (parent, file://) and the web UI it embeds in an iframe.
 //
 //   web → plugin   ready        { v }                             once the web UI listens
+//   plugin → web   view         { view }                          after every ready (before state), then when the user picks a web view
 //   plugin → web   state        { info, const?, combinedFlag?, quests? }   after every ready (const included), then on change
 //   plugin → web   presets      { json }                          the plugin's old presets, once per origin until acked
 //   web → plugin   presets-ack  { imported, skipped, persisted }  persisted = saved to storage that survives a reload
+//   web → plugin   view         { view }                          the web UI moved by itself (海域 → 出撃), only to v3+ plugins
 //
 // Every message is `{ src: "kcsim", v, type, ...fields }`. `v` is the sender's protocol version: adding an optional
 // field, or a message type the peer may ignore, keeps it; any other change bumps it, and the web UI (deployed at once)
-// keeps accepting the previous version for at least one plugin release. Unknown types are ignored. The plugin always
-// draws the one header (シミュレーション / 観測ログ / 送信設定); the embedded web UI draws none (v2 dropped v1's
-// `hostViews` / `host` / `open-view`, which merged the plugin's views into the web UI's header; a v1 plugin ignores
-// their absence and keeps its own tab bar). The poi state never leaves the user's machine: the
-// plugin projects it to the keys below (what shared/fleet/poiImport.ts, the catalog and the map tab read; keep the
+// keeps accepting the previous version for at least one plugin release. Unknown types are ignored.
+//
+// Navigation: from v3 (HOST_NAV_VERSION) the plugin draws the one chrome (the left activity bar and the selected
+// feature's top tabs) and picks the web UI's view with `view`; the web UI then draws no bars. With an older plugin
+// (v2: one header row that only switches between the iframe and the plugin's own views) the web UI draws its own bars
+// inside the iframe. v2 dropped v1's `hostViews` / `host` / `open-view`. The poi state never leaves the user's machine:
+// the plugin projects it to the keys below (what shared/fleet/poiImport.ts, the catalog and the map tab read; keep the
 // lists in step with them) and posts it only to the iframe's origin.
 
 export const EMBED_SOURCE = "kcsim";
-export const EMBED_VERSION = 2;
+export const EMBED_VERSION = 3;
 /** Oldest plugin protocol the web UI still accepts. */
 export const EMBED_MIN_VERSION = 1;
+/** First plugin protocol that draws the navigation and drives the web UI's view (`view`). */
+export const HOST_NAV_VERSION = 3;
 /** Upper bound for the presets JSON (the plugin's localStorage holds a few MB at most). */
 export const MAX_PRESETS_JSON = 8 * 1024 * 1024;
+
+/** The web UI's views (its local tabs and settings); the plugin's own views (観測ログ, 送信設定, 資源) are not among them. */
+export const WEB_VIEWS = ["sortie", "map", "enemy", "sim-settings", "quests", "settings"] as const;
+export type WebView = (typeof WEB_VIEWS)[number];
+export const isWebView = (v: unknown): v is WebView => typeof v === "string" && (WEB_VIEWS as readonly string[]).includes(v);
 
 /** The poi redux slices the web UI reads (`info` = 母港, `const` = master data, `state.sortie.combinedFlag`). */
 export interface PoiState {
@@ -98,9 +109,11 @@ export interface PoiConst {
 
 export type WebMessage =
   | { src: typeof EMBED_SOURCE; v: number; type: "ready" }
-  | { src: typeof EMBED_SOURCE; v: number; type: "presets-ack"; imported: number; skipped: number; persisted: boolean };
+  | { src: typeof EMBED_SOURCE; v: number; type: "presets-ack"; imported: number; skipped: number; persisted: boolean }
+  | { src: typeof EMBED_SOURCE; v: number; type: "view"; view: WebView };
 
 export type PluginMessage =
+  | { src: typeof EMBED_SOURCE; v: number; type: "view"; view: WebView }
   | { src: typeof EMBED_SOURCE; v: number; type: "state"; info: PoiInfo; const?: PoiConst; combinedFlag?: number; quests?: PoiQuests }
   | { src: typeof EMBED_SOURCE; v: number; type: "presets"; json: string };
 
@@ -250,6 +263,7 @@ export const parseWebMessage = (data: unknown): WebMessage | null => {
   if (m.type === "presets-ack" && isCount(m.imported) && isCount(m.skipped) && typeof m.persisted === "boolean") {
     return { src: EMBED_SOURCE, v: m.v, type: "presets-ack", imported: m.imported, skipped: m.skipped, persisted: m.persisted };
   }
+  if (m.type === "view" && isWebView(m.view)) return { src: EMBED_SOURCE, v: m.v, type: "view", view: m.view };
   return null;
 };
 
@@ -268,6 +282,7 @@ export const parsePluginMessage = (data: unknown): PluginMessage | null => {
     if (quests) msg.quests = quests;
     return msg;
   }
+  if (m.type === "view" && isWebView(m.view)) return { src: EMBED_SOURCE, v: m.v, type: "view", view: m.view };
   if (m.type === "presets" && typeof m.json === "string" && m.json.length <= MAX_PRESETS_JSON) {
     return { src: EMBED_SOURCE, v: m.v, type: "presets", json: m.json };
   }

@@ -8,11 +8,15 @@ import pkg from "./package.json";
 const DIST_DIR = path.resolve(__dirname, "../poi-plugin-sim-build");
 const ROOT = path.resolve(__dirname, "..");
 
-// tsconfig の paths と同じ別名 (観測ログ・送信設定のビューは Web UI の部品を使う)
-const alias = [
-  { find: /^@web\//, replacement: `${path.join(ROOT, "web/src")}/` },
-  { find: /^@shared\//, replacement: `${path.join(ROOT, "shared")}/` },
-];
+// tsconfig の paths と同じ別名 (プラグインのビューと枠は Web UI の部品を使う)。web/src のファイルの import は
+// ../web/node_modules に解決されるので、React と lucide-react はこのパッケージの 1 組に揃える (2 組あると hooks が壊れる)
+const resolve = {
+  alias: [
+    { find: /^@web\//, replacement: `${path.join(ROOT, "web/src")}/` },
+    { find: /^@shared\//, replacement: `${path.join(ROOT, "shared")}/` },
+  ],
+  dedupe: ["react", "react-dom", "lucide-react"],
+};
 
 // `vite` (serve) は dev/ の開発用ページ (poi 無しでビューと iframe の橋渡しを動かす)、`vite build` は poi 向けのビルド。
 export default defineConfig(({ command }) => ({
@@ -21,7 +25,7 @@ export default defineConfig(({ command }) => ({
     ? {
         root: path.join(__dirname, "dev"),
         plugins: [react({ jsxRuntime: "classic" })],
-        resolve: { alias },
+        resolve,
         css: { postcss: __dirname },
         server: { port: 5174, fs: { allow: [ROOT] } },
       }
@@ -38,7 +42,7 @@ export default defineConfig(({ command }) => ({
             ],
           }),
         ],
-        resolve: { alias },
+        resolve,
         build: {
           outDir: DIST_DIR,
           emptyOutDir: true,

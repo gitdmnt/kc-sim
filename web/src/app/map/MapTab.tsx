@@ -156,13 +156,13 @@ export const MapTab = () => {
             actions={
               <>
                 {compNodes.has(node.letter) && (
-                  <Button size="sm" variant="primary" onClick={() => nav.go({ tab: "sortie", mode: "battle", map: d.map.key, node: node.letter })}>
+                  <Button size="sm" variant="primary" onClick={() => nav.go({ view: "sortie", mode: "battle", map: d.map.key, node: node.letter })}>
                     <Swords size={14} aria-hidden />
                     戦闘シミュ
                   </Button>
                 )}
                 {d.routing && (
-                  <Button size="sm" onClick={() => nav.go({ tab: "sortie", mode: "sortie", map: d.map.key })}>
+                  <Button size="sm" onClick={() => nav.go({ view: "sortie", mode: "sortie", map: d.map.key })}>
                     <Route size={14} aria-hidden />
                     出撃シミュ
                   </Button>

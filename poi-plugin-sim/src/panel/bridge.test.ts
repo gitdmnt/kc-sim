@@ -6,6 +6,7 @@ const setup = (presets: string | null = null) => {
   const sent: PluginMessage[] = [];
   let done = false;
   const versions: number[] = [];
+  const views: string[] = [];
   const bridge = new EmbedBridge({
     post: (m) => sent.push(m),
     presetsJson: () => presets,
@@ -14,8 +15,9 @@ const setup = (presets: string | null = null) => {
       done = true;
     },
     onWebVersion: (v) => versions.push(v),
+    onView: (v) => views.push(v),
   });
-  return { bridge, sent, versions, isDone: () => done };
+  return { bridge, sent, versions, views, isDone: () => done };
 };
 
 const ready = { src: "kcsim", v: 1, type: "ready" };
@@ -156,5 +158,35 @@ describe("EmbedBridge", () => {
     bridge.onMessage({ ...ready, v: 1, hostViews: true });
     bridge.onMessage({ src: "kcsim", v: 1, type: "open-view", view: "log" });
     expect(sent).toEqual([]);
+  });
+
+  test("view: sent first after every ready, then only when it changes", () => {
+    const { bridge, sent } = setup();
+    bridge.setView("map");
+    bridge.update({ info: info([1]), const: master });
+    expect(sent).toEqual([]);
+    bridge.onMessage(ready);
+    expect(sent.map((m) => m.type)).toEqual(["view", "state"]);
+    expect(sent[0]).toMatchObject({ type: "view", view: "map" });
+    bridge.setView("map");
+    bridge.setView("quests");
+    expect(sent.slice(2)).toEqual([{ src: "kcsim", v: expect.any(Number), type: "view", view: "quests" }] as never);
+    // a reloaded iframe gets the view again
+    bridge.onMessage(ready);
+    expect(sent.slice(3).map((m) => m.type)).toEqual(["view", "state"]);
+  });
+
+  test("view: a move the web UI made itself is reported and not echoed back", () => {
+    const { bridge, sent, views } = setup();
+    bridge.setView("map");
+    bridge.onMessage(ready);
+    bridge.onMessage({ src: "kcsim", v: 3, type: "view", view: "sortie" });
+    expect(views).toEqual(["sortie"]);
+    // the plugin's chrome follows (setView with the same view): nothing is posted
+    bridge.setView("sortie");
+    expect(sent.map((m) => m.type)).toEqual(["view"]);
+    // the plugin's own views never go to the iframe
+    bridge.onMessage({ src: "kcsim", v: 3, type: "view", view: "log" });
+    expect(views).toEqual(["sortie"]);
   });
 });
