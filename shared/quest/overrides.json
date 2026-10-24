@@ -26351,5 +26351,1917 @@
         }
       ]
     }
+  },
+  {
+    "id": 159,
+    "code": "SN06",
+    "source": "https://github.com/KC3Kai/kc3-translations/blob/master/data/jp/quests.json",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "modelconversion",
+      "equipment": "九七式艦攻(村田隊)",
+      "secretary": "翔鶴",
+      "secretaryIds": [
+        110,
+        288,
+        461,
+        466
+      ],
+      "note": "scrap list not stated in the sources"
+    }
+  },
+  {
+    "id": 160,
+    "code": "SN09",
+    "source": "https://github.com/KC3Kai/kc3-translations/blob/master/data/jp/quests.json",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "other",
+      "note": "send the western-area dispatch fleet; map and rank are not stated in the sources"
+    }
+  },
+  {
+    "id": 310,
+    "code": "SN07",
+    "source": "https://github.com/KC3Kai/kc3-translations/blob/master/data/jp/quests.json",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "excercise",
+      "times": 4,
+      "victory": true,
+      "daily": true
+    }
+  },
+  {
+    "id": 313,
+    "code": "Cs8",
+    "source": "https://zekamashi.net/kancolle-kouryaku/syuuki-ensyuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "excercise",
+      "times": 8,
+      "victory": true,
+      "daily": true
+    },
+    "rewards": {
+      "resources": [
+        1000,
+        0,
+        300,
+        0
+      ],
+      "items": [
+        {
+          "name": "給糧艦「間宮」"
+        },
+        {
+          "name": "工廠資源"
+        }
+      ]
+    }
+  },
+  {
+    "id": 314,
+    "code": "Cs2",
+    "source": "https://zekamashi.net/kancolle-kouryaku/touki-ensyuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "excercise",
+      "times": 8,
+      "victory": true,
+      "daily": true
+    },
+    "rewards": {
+      "resources": [
+        300,
+        1000,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "高速修復材",
+          "amount": 3
+        },
+        {
+          "name": "給糧艦「間宮」"
+        }
+      ]
+    }
+  },
+  {
+    "id": 321,
+    "code": "5A04",
+    "source": "https://zekamashi.net/kancolle-kouryaku/5syuunen-4/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "excercise",
+      "times": 4,
+      "victory": true,
+      "daily": true,
+      "groups": [
+        {
+          "ship": "駆逐・海防",
+          "amount": 2,
+          "stypes": [
+            1,
+            2
+          ]
+        }
+      ],
+      "maxShips": 5,
+      "minShips": 5
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        500
+      ],
+      "items": [
+        {
+          "name": "給糧艦「伊良湖」",
+          "amount": 5,
+          "choice": 1
+        },
+        {
+          "name": "九五式爆雷★5",
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 2
+        },
+        {
+          "name": "12.7cm連装砲C型改二★5",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 341,
+    "code": "7AC1",
+    "source": "https://zekamashi.net/kancolle-kouryaku/nanasyuunen-ensyuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "excercise",
+      "times": 3,
+      "result": "A",
+      "daily": true,
+      "groups": [
+        {
+          "ship": [
+            "朧",
+            "曙",
+            "漣",
+            "潮"
+          ],
+          "amount": 2,
+          "shipIds": [
+            93,
+            230,
+            15,
+            231,
+            665,
+            94,
+            232,
+            16,
+            233,
+            407
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        700,
+        700,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "給糧艦「間宮」"
+        },
+        {
+          "name": "七周年記念掛け軸"
+        }
+      ]
+    }
+  },
+  {
+    "id": 343,
+    "code": "C46",
+    "source": "https://zekamashi.net/kancolle-kouryaku/koukuubokan-ensyuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "excercise",
+      "times": 4,
+      "victory": true,
+      "daily": true,
+      "groups": [
+        {
+          "ship": "正規空母",
+          "flagship": true,
+          "stypes": [
+            11,
+            18
+          ]
+        },
+        {
+          "ship": "正規空母",
+          "amount": 2,
+          "stypes": [
+            11,
+            18
+          ]
+        },
+        {
+          "ship": "駆逐",
+          "amount": 2,
+          "stypes": [
+            2
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        800,
+        0,
+        800
+      ],
+      "items": [
+        {
+          "name": "「加賀岬」掛け軸"
+        },
+        {
+          "name": "新型航空兵装資材",
+          "choice": 1
+        },
+        {
+          "name": "熟練搭乗員",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 344,
+    "code": "C48",
+    "source": "https://zekamashi.net/kancolle-kouryaku/zyuhoumen-ensyuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "excercise",
+      "times": 4,
+      "result": "A",
+      "daily": true,
+      "groups": [
+        {
+          "ship": [
+            "羽黒",
+            "足柄",
+            "神風"
+          ],
+          "amount": 2,
+          "shipIds": [
+            65,
+            268,
+            194,
+            64,
+            267,
+            193,
+            471,
+            476
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        500,
+        500,
+        500,
+        500
+      ],
+      "items": [
+        {
+          "name": "改修資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "高速修復材",
+          "amount": 4,
+          "choice": 1
+        },
+        {
+          "name": "25mm三連装機銃",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "新型兵装資材",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 358,
+    "code": "C68",
+    "source": "https://zekamashi.net/kancolle-kouryaku/taffyiii-ensyuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "excercise",
+      "times": 4,
+      "result": "S",
+      "daily": true,
+      "groups": [
+        {
+          "ship": [
+            "Samuel B.Roberts"
+          ],
+          "shipIds": [
+            561,
+            681,
+            920
+          ]
+        },
+        {
+          "ship": [
+            "Johnston"
+          ],
+          "shipIds": [
+            562,
+            689
+          ]
+        },
+        {
+          "ship": [
+            "Gambier Bay"
+          ],
+          "shipIds": [
+            544,
+            396,
+            707
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        240,
+        0,
+        240,
+        0
+      ],
+      "items": [
+        {
+          "name": "給糧艦「伊良湖」",
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 10,
+          "choice": 2
+        },
+        {
+          "name": "TBF",
+          "choice": 2
+        },
+        {
+          "name": "SG レーダー(初期型)",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 365,
+    "code": "C75",
+    "source": "https://zekamashi.net/kancolle-kouryaku/sasebosigure-ensyuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "excercise",
+      "times": 5,
+      "result": "S",
+      "daily": true,
+      "groups": [
+        {
+          "ship": [
+            "時雨"
+          ],
+          "shipIds": [
+            43,
+            243,
+            145,
+            961
+          ]
+        },
+        {
+          "ship": [
+            "白露",
+            "有明",
+            "夕暮"
+          ],
+          "shipIds": [
+            42,
+            242,
+            497,
+            632,
+            703,
+            633,
+            725
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        270,
+        270,
+        270,
+        270
+      ],
+      "items": [
+        {
+          "name": "九五式爆雷",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "25mm三連装機銃",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 8,
+          "choice": 2
+        },
+        {
+          "name": "プレゼント箱",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "勲章",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 370,
+    "code": "L23C8",
+    "source": "https://zekamashi.net/kancolle-kouryaku/xmas-kaizyougoeiensyuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "excercise",
+      "times": 5,
+      "result": "A",
+      "groups": [
+        {
+          "ship": [
+            "鹿島",
+            "択捉",
+            "松輪",
+            "佐渡",
+            "福江",
+            "鵜来",
+            "岸波",
+            "早波",
+            "谷風",
+            "江風",
+            "山雲",
+            "朝雲",
+            "山汐丸",
+            "第四号海防艦",
+            "第二十二号海防艦",
+            "第三〇号海防艦"
+          ],
+          "amount": 4,
+          "shipIds": [
+            465,
+            356,
+            524,
+            383,
+            525,
+            384,
+            531,
+            385,
+            565,
+            685,
+            921,
+            926,
+            527,
+            686,
+            528,
+            688,
+            982,
+            169,
+            313,
+            559,
+            459,
+            351,
+            469,
+            414,
+            328,
+            413,
+            327,
+            900,
+            717,
+            637,
+            701,
+            898,
+            728,
+            638,
+            712
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        250,
+        250,
+        250,
+        250
+      ],
+      "items": [
+        {
+          "name": "給糧艦「伊良湖」",
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "高速修復材",
+          "amount": 3,
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 421,
+    "code": "OR2",
+    "source": "https://github.com/KC3Kai/kc3-translations/blob/master/data/jp/quests.json",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "other",
+      "note": "succeed once in the event expedition 親善艦参加観艦式; any six ships"
+    }
+  },
+  {
+    "id": 435,
+    "code": "E47D1",
+    "source": "https://zekamashi.net/kancolle-kouryaku/sekku-ensei/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "expedition",
+      "objects": [
+        {
+          "id": 4,
+          "times": 1
+        },
+        {
+          "id": 10,
+          "times": 1
+        },
+        {
+          "id": 14,
+          "times": 1
+        },
+        {
+          "id": 110,
+          "times": 1
+        },
+        {
+          "id": 102,
+          "times": 1
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        300,
+        300,
+        300,
+        0
+      ],
+      "items": [
+        {
+          "name": "菱餅",
+          "amount": 2
+        },
+        {
+          "name": "洋上補給",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "三式弾",
+          "choice": 1
+        },
+        {
+          "name": "緊急修理資材",
+          "amount": 2,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 443,
+    "code": "D39",
+    "source": "https://zekamashi.net/kancolle-kouryaku/seihourenraku-koukuugizyutu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "expedition",
+      "objects": [
+        {
+          "id": 30,
+          "name": "潜水艦派遣作戦",
+          "times": 2
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        300
+      ],
+      "items": [
+        {
+          "name": "Bf109T改",
+          "choice": 1
+        },
+        {
+          "name": "Do 17 Z-2",
+          "choice": 1
+        },
+        {
+          "name": "新型兵装資材",
+          "choice": 2
+        },
+        {
+          "name": "新型航空兵装資材",
+          "amount": 2,
+          "choice": 2
+        },
+        {
+          "name": "改修資材",
+          "amount": 4,
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 505,
+    "code": "Su01",
+    "source": "https://zekamashi.net/kancolle-kouryaku/syukeika-1/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "equipexchange",
+      "consumptions": [
+        {
+          "name": "お米",
+          "amount": 5,
+          "category": "アイテム"
+        }
+      ],
+      "note": "craft おにぎり x1"
+    },
+    "rewards": {
+      "resources": [
+        200,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "開発資材",
+          "amount": 2
+        },
+        {
+          "name": "探照灯",
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 2,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 506,
+    "code": "Su02",
+    "source": "https://github.com/KC3Kai/kc3-translations/blob/master/data/jp/quests.json",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "equipexchange",
+      "consumptions": [
+        {
+          "name": "お米",
+          "amount": 15,
+          "category": "アイテム"
+        }
+      ],
+      "note": "craft おにぎり x3"
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "二式大艇",
+          "choice": 1
+        },
+        {
+          "name": "特大発動艇",
+          "choice": 1
+        },
+        {
+          "name": "61cm三連装(酸素)魚雷後期型",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 507,
+    "code": "Su03",
+    "source": "https://zekamashi.net/kancolle-kouryaku/syukeika-3/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "equipexchange",
+      "consumptions": [
+        {
+          "name": "お米",
+          "amount": 6,
+          "category": "アイテム"
+        },
+        {
+          "name": "梅干",
+          "amount": 2,
+          "category": "アイテム"
+        },
+        {
+          "name": "海苔",
+          "amount": 3,
+          "category": "アイテム"
+        }
+      ],
+      "note": "craft 高級おにぎり x1"
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        400,
+        0
+      ],
+      "items": [
+        {
+          "name": "熟練見張員",
+          "choice": 1
+        },
+        {
+          "name": "12cm30連装噴進砲",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "高速修復材",
+          "amount": 7,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 508,
+    "code": "Su04",
+    "source": "https://zekamashi.net/kancolle-kouryaku/syukeika-4/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "equipexchange",
+      "consumptions": [
+        {
+          "name": "お米",
+          "amount": 12,
+          "category": "アイテム"
+        },
+        {
+          "name": "梅干",
+          "amount": 4,
+          "category": "アイテム"
+        },
+        {
+          "name": "海苔",
+          "amount": 6,
+          "category": "アイテム"
+        }
+      ],
+      "note": "craft 高級おにぎり x2"
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        500
+      ],
+      "items": [
+        {
+          "name": "零式艦戦52型",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "紫電改二",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "新型航空兵装資材",
+          "choice": 1
+        },
+        {
+          "name": "特注家具職人",
+          "choice": 2
+        },
+        {
+          "name": "補強増設",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 509,
+    "code": "Su05",
+    "source": "https://zekamashi.net/kancolle-kouryaku/syukeika-5/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "equipexchange",
+      "consumptions": [
+        {
+          "name": "お米",
+          "amount": 8,
+          "category": "アイテム"
+        },
+        {
+          "name": "梅干",
+          "amount": 3,
+          "category": "アイテム"
+        },
+        {
+          "name": "海苔",
+          "amount": 3,
+          "category": "アイテム"
+        },
+        {
+          "name": "お茶",
+          "amount": 4,
+          "category": "アイテム"
+        }
+      ],
+      "note": "craft お茶漬け x1"
+    },
+    "rewards": {
+      "resources": [
+        500,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "秋刀魚の缶詰",
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 7,
+          "choice": 1
+        },
+        {
+          "name": "61cm四連装(酸素)魚雷後期型",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 510,
+    "code": "Su06",
+    "source": "https://zekamashi.net/kancolle-kouryaku/syukeika-8/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "pre": [
+      508,
+      509
+    ],
+    "requirements": {
+      "category": "equipexchange",
+      "consumptions": [
+        {
+          "name": "お米",
+          "amount": 16,
+          "category": "アイテム"
+        },
+        {
+          "name": "梅干",
+          "amount": 6,
+          "category": "アイテム"
+        },
+        {
+          "name": "海苔",
+          "amount": 6,
+          "category": "アイテム"
+        },
+        {
+          "name": "お茶",
+          "amount": 8,
+          "category": "アイテム"
+        }
+      ],
+      "note": "craft お茶漬け x2"
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        500,
+        0
+      ],
+      "items": [
+        {
+          "name": "秋刀魚の缶詰",
+          "choice": 1
+        },
+        {
+          "name": "補強増設",
+          "choice": 1
+        },
+        {
+          "name": "秋刀魚の缶詰",
+          "choice": 2
+        },
+        {
+          "name": "三式爆雷投射機 集中配備",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 511,
+    "code": "Su07",
+    "source": "https://zekamashi.net/kancolle-kouryaku/syukeika-6/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "equipexchange",
+      "consumptions": [
+        {
+          "name": "お米",
+          "amount": 12,
+          "category": "アイテム"
+        },
+        {
+          "name": "海苔",
+          "amount": 6,
+          "category": "アイテム"
+        }
+      ],
+      "note": "gather the items; consumed on completion"
+    },
+    "rewards": {
+      "resources": [
+        300,
+        300,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "秋刀魚の缶詰"
+        },
+        {
+          "name": "25mm三連装機銃",
+          "choice": 1
+        },
+        {
+          "name": "12cm30連装噴進砲",
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 512,
+    "code": "Su08",
+    "source": "https://zekamashi.net/kancolle-kouryaku/syukeika-7/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "equipexchange",
+      "consumptions": [
+        {
+          "name": "お米",
+          "amount": 9,
+          "category": "アイテム"
+        },
+        {
+          "name": "梅干",
+          "amount": 5,
+          "category": "アイテム"
+        },
+        {
+          "name": "海苔",
+          "amount": 6,
+          "category": "アイテム"
+        },
+        {
+          "name": "お茶",
+          "amount": 7,
+          "category": "アイテム"
+        },
+        {
+          "name": "秋刀魚の缶詰",
+          "amount": 1,
+          "category": "アイテム"
+        },
+        {
+          "name": "お米",
+          "amount": 15,
+          "category": "アイテム"
+        }
+      ],
+      "note": "craft 和定食膳 x1 and おにぎり x3"
+    },
+    "rewards": {
+      "resources": [
+        500,
+        500,
+        500,
+        500
+      ],
+      "items": [
+        {
+          "name": "二式爆雷"
+        },
+        {
+          "name": "「完食」掛け軸"
+        }
+      ]
+    }
+  },
+  {
+    "id": 513,
+    "code": "Su09",
+    "source": "https://zekamashi.net/kancolle-kouryaku/syukeika-9/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "fleet",
+          "groups": [
+            {
+              "ship": "駆逐艦",
+              "flagship": true,
+              "stypes": [
+                2
+              ]
+            }
+          ],
+          "note": "destroyer as secretary"
+        },
+        {
+          "category": "modelconversion",
+          "slots": [
+            {
+              "slot": 1,
+              "equipment": "12cm30連装噴進砲",
+              "equipIds": [
+                51
+              ]
+            },
+            {
+              "slot": 2,
+              "equipment": "二式爆雷",
+              "equipIds": [
+                227
+              ]
+            }
+          ],
+          "consumptions": [
+            {
+              "name": "お米",
+              "amount": 50,
+              "category": "アイテム"
+            },
+            {
+              "name": "梅干",
+              "amount": 15,
+              "category": "アイテム"
+            },
+            {
+              "name": "お茶",
+              "amount": 10,
+              "category": "アイテム"
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        1000,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "試製15cm9連装対潜噴進砲"
+        }
+      ]
+    }
+  },
+  {
+    "id": 640,
+    "code": "SF1",
+    "source": "https://github.com/KC3Kai/kc3-translations/blob/master/data/jp/quests.json",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "simple",
+      "subcategory": "scrapequipment",
+      "times": 5,
+      "batch": false
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "涼しげな金魚鉢"
+        }
+      ]
+    }
+  },
+  {
+    "id": 697,
+    "code": "L20F1",
+    "source": "https://zekamashi.net/kancolle-kouryaku/mekaziki-kaisyuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "modelconversion",
+      "slots": [
+        {
+          "slot": 1,
+          "equipment": "Swordfish(水上機型)",
+          "equipIds": [
+            367
+          ],
+          "maxmodified": true
+        }
+      ],
+      "secretary": [
+        "Gotland",
+        "Gotland改"
+      ],
+      "secretaryIds": [
+        574,
+        579
+      ],
+      "scraps": [
+        {
+          "name": "瑞雲",
+          "amount": 3,
+          "equipIds": [
+            26
+          ]
+        },
+        {
+          "name": "零式水上偵察機",
+          "amount": 3,
+          "equipIds": [
+            25
+          ]
+        },
+        {
+          "name": "13号対空電探改",
+          "amount": 1,
+          "equipIds": [
+            106
+          ]
+        }
+      ],
+      "consumptions": [
+        {
+          "name": "新型航空兵装資材",
+          "amount": 1,
+          "category": "アイテム"
+        },
+        {
+          "name": "熟練搭乗員",
+          "amount": 1,
+          "category": "アイテム"
+        }
+      ],
+      "resources": [
+        0,
+        2500,
+        0,
+        4000
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "Swordfish Mk.III改(水上機型)"
+        }
+      ]
+    }
+  },
+  {
+    "id": 698,
+    "code": "F91",
+    "source": "https://zekamashi.net/kancolle-kouryaku/sinei-taisen/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "modelconversion",
+      "slots": [
+        {
+          "slot": 1,
+          "equipment": "TBM-3D",
+          "equipIds": [
+            257
+          ]
+        }
+      ],
+      "secretary": "加賀改二護",
+      "secretaryIds": [
+        646
+      ],
+      "scraps": [
+        {
+          "name": "流星",
+          "amount": 1,
+          "equipIds": [
+            18
+          ]
+        },
+        {
+          "name": "流星改",
+          "amount": 1,
+          "equipIds": [
+            52
+          ]
+        },
+        {
+          "name": "TBF",
+          "amount": 2,
+          "equipIds": [
+            256
+          ]
+        }
+      ],
+      "consumptions": [
+        {
+          "name": "熟練搭乗員",
+          "amount": 1,
+          "category": "アイテム"
+        },
+        {
+          "name": "新型航空兵装資材",
+          "amount": 2,
+          "category": "アイテム"
+        }
+      ],
+      "resources": [
+        0,
+        1840,
+        0,
+        6200
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "TBM-3W+3S"
+        }
+      ]
+    }
+  },
+  {
+    "id": 706,
+    "code": "5A03",
+    "source": "https://zekamashi.net/kancolle-kouryaku/5syuunen-3/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "modernization",
+      "times": 2,
+      "target": {
+        "ship": "海防艦",
+        "stypes": [
+          1
+        ]
+      },
+      "consumptions": [
+        {
+          "ship": [
+            "駆逐艦"
+          ],
+          "amount": 5,
+          "stypes": [
+            2
+          ]
+        }
+      ],
+      "resources": [
+        0,
+        0,
+        555,
+        555
+      ]
+    },
+    "rewards": {
+      "resources": [
+        500,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "五周年記念掛け軸"
+        },
+        {
+          "name": "高速修復材",
+          "amount": 10,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 5,
+          "choice": 1
+        },
+        {
+          "name": "戦闘糧食",
+          "amount": 5,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 710,
+    "code": "L21G1",
+    "source": "https://zekamashi.net/kancolle-kouryaku/2021hisimoti-kaisyu-zyo/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "modernization",
+      "times": 1,
+      "target": {
+        "ship": "駆逐艦",
+        "stypes": [
+          2
+        ]
+      },
+      "consumptions": [
+        {
+          "ship": [
+            "睦月型駆逐艦"
+          ],
+          "amount": 4,
+          "ctypes": [
+            28
+          ]
+        }
+      ],
+      "note": "consumes 菱餅 x2 on completion"
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "高速修復材",
+          "amount": 6,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "給糧艦「伊良湖」",
+          "amount": 3,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 711,
+    "code": "L21G2",
+    "source": "https://zekamashi.net/kancolle-kouryaku/2021hisimoti-kaisyu-ha/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "modernization",
+      "times": 2,
+      "target": {
+        "ship": "綾波型駆逐艦",
+        "ctypes": [
+          1
+        ]
+      },
+      "consumptions": [
+        {
+          "ship": [
+            "吹雪型駆逐艦"
+          ],
+          "amount": 5,
+          "ctypes": [
+            12
+          ]
+        }
+      ],
+      "note": "consumes 菱餅 x5 on completion"
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "改装設計図",
+          "choice": 1
+        },
+        {
+          "name": "戦闘詳報",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "新型兵装資材",
+          "amount": 3,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 712,
+    "code": "L21G3",
+    "source": "https://zekamashi.net/kancolle-kouryaku/2021hisimoti-kaisyu-syu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "modernization",
+      "times": 2,
+      "target": {
+        "ship": "重巡級",
+        "stypes": [
+          5,
+          6
+        ]
+      },
+      "consumptions": [
+        {
+          "ship": [
+            "軽巡"
+          ],
+          "amount": 4,
+          "stypes": [
+            3
+          ]
+        }
+      ],
+      "resources": [
+        0,
+        2400,
+        2400,
+        0
+      ],
+      "note": "consumes 菱餅 x3 and 開発資材 x20 on completion"
+    },
+    "rewards": {
+      "resources": [
+        500,
+        0,
+        0,
+        500
+      ],
+      "items": [
+        {
+          "name": "開発資材",
+          "amount": 7,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 3,
+          "choice": 1
+        },
+        {
+          "name": "増設バルジ(中型艦)",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "新型砲熕兵装資材",
+          "choice": 2
+        },
+        {
+          "name": "新型航空兵装資材",
+          "choice": 2
+        },
+        {
+          "name": "新型噴進装備開発資材",
+          "choice": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": 713,
+    "code": "L21G4",
+    "source": "https://zekamashi.net/kancolle-kouryaku/2021hisimoti-kaisyu-kuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "modernization",
+      "times": 2,
+      "target": {
+        "ship": "正規空母",
+        "stypes": [
+          11
+        ]
+      },
+      "consumptions": [
+        {
+          "ship": [
+            "軽空母"
+          ],
+          "amount": 5,
+          "stypes": [
+            7
+          ]
+        }
+      ],
+      "resources": [
+        9000,
+        0,
+        0,
+        9000
+      ],
+      "note": "consumes 菱餅 x7 and 開発資材 x90 on completion"
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "試製甲板カタパルト",
+          "choice": 1
+        },
+        {
+          "name": "ネ式エンジン",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "新型航空機設計図",
+          "amount": 4,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 718,
+    "code": "G10",
+    "source": "https://zekamashi.net/kancolle-kouryaku/mogami-kaisyuu/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "modernization",
+      "times": 2,
+      "target": {
+        "ship": "最上型",
+        "ctypes": [
+          9
+        ]
+      },
+      "consumptions": [
+        {
+          "ship": [
+            "軽巡級"
+          ],
+          "amount": 3,
+          "stypes": [
+            3,
+            4,
+            21
+          ]
+        }
+      ],
+      "resources": [
+        0,
+        1100,
+        1100,
+        0
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        0,
+        0,
+        600
+      ],
+      "items": [
+        {
+          "name": "補強増設"
+        },
+        {
+          "name": "8cm高角砲",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "25mm単装機銃",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "開発資材",
+          "amount": 8,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 719,
+    "code": "G11",
+    "source": "https://zekamashi.net/kancolle-kouryaku/mogami-kaisyuu-zoku/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "modernization",
+      "times": 2,
+      "target": {
+        "ship": "最上型",
+        "ctypes": [
+          9
+        ]
+      },
+      "consumptions": [
+        {
+          "ship": [
+            "重巡級"
+          ],
+          "amount": 4,
+          "stypes": [
+            5,
+            6
+          ]
+        }
+      ],
+      "resources": [
+        0,
+        1200,
+        1200,
+        0
+      ]
+    },
+    "rewards": {
+      "resources": [
+        600,
+        0,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "21号対空電探改二"
+        },
+        {
+          "name": "20.3cm(3号)連装砲",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "瑞雲12型",
+          "amount": 2,
+          "choice": 1
+        },
+        {
+          "name": "改修資材",
+          "amount": 5,
+          "choice": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": 883,
+    "code": "7AB2",
+    "source": "https://zekamashi.net/kancolle-kouryaku/nanasyuunen-koudan/",
+    "author": "llm",
+    "date": "2026-10-24",
+    "requirements": {
+      "category": "and",
+      "list": [
+        {
+          "category": "sortie",
+          "map": [
+            "2-3",
+            "3-1",
+            "3-2",
+            "3-3",
+            "3-4",
+            "3-5"
+          ],
+          "times": 1,
+          "boss": true,
+          "result": "S",
+          "groups": [
+            {
+              "ship": "軽巡級",
+              "stypes": [
+                3,
+                4,
+                21
+              ]
+            },
+            {
+              "ship": "駆逐",
+              "amount": 2,
+              "stypes": [
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "category": "sortie",
+          "map": "7-2",
+          "times": 1,
+          "cells": [
+            15
+          ],
+          "node": "M",
+          "result": "S",
+          "groups": [
+            {
+              "ship": "軽巡級",
+              "stypes": [
+                3,
+                4,
+                21
+              ]
+            },
+            {
+              "ship": "駆逐",
+              "amount": 2,
+              "stypes": [
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rewards": {
+      "resources": [
+        0,
+        7000,
+        0,
+        0
+      ],
+      "items": [
+        {
+          "name": "高速修復材",
+          "amount": 7,
+          "choice": 1
+        },
+        {
+          "name": "61cm三連装(酸素)魚雷後期型★7",
+          "choice": 1
+        },
+        {
+          "name": "Swordfish(水上機型)",
+          "choice": 1
+        },
+        {
+          "name": "勲章",
+          "choice": 2
+        },
+        {
+          "name": "新型航空兵装資材",
+          "choice": 2
+        },
+        {
+          "name": "戦闘詳報",
+          "choice": 2
+        }
+      ]
+    }
   }
 ]
