@@ -24,7 +24,7 @@ test("category from the letter before the number", () => {
 
 test("status groups", () => {
   expect((["available", "locked", "active", "done", "cleared", "unknown"] as QuestStatus[]).map(statusGroup))
-    .toEqual(["open", "open", "active", "active", "cleared", "unknown"]);
+    .toEqual(["available", "locked", "active", "active", "cleared", "unknown"]);
 });
 
 const q = (id: number, code: string, name = `q${id}`): QuestEntry => ({ id, code, name, detail: null, memo: null, pre: [], requirements: null });
@@ -37,19 +37,22 @@ test("facets combine with each other and the text match; counts are per facet", 
   expect(all.list.map((x) => x.id)).toEqual([1, 2, 3, 4, 5, 6, 7]);
   expect(all.counts.cat).toMatchObject({ A: 1, B: 4, F: 2, C: 0, other: 0 });
   expect(all.counts.freq).toMatchObject({ once: 3, daily: 2, weekly: 1, limited: 1 });
-  expect(all.counts.status).toEqual({ open: 2, active: 2, cleared: 1, unknown: 2 });
+  expect(all.counts.status).toEqual({ locked: 1, available: 1, active: 2, cleared: 1, unknown: 2 });
 
   // 出撃 + (デイリー or ウィークリー): counts of a facet ignore that facet's own selection
   const r = filterQuests(QUESTS, { freq: ["daily", "weekly"], cat: ["B"], status: [] }, statusOf);
   expect(r.list.map((x) => x.id)).toEqual([2, 3]);
   expect(r.counts.cat).toMatchObject({ A: 0, B: 2, F: 1 });
   expect(r.counts.freq).toMatchObject({ once: 1, daily: 1, weekly: 1, limited: 1 });
-  expect(r.counts.status).toEqual({ open: 1, active: 1, cleared: 0, unknown: 0 });
+  expect(r.counts.status).toEqual({ locked: 0, available: 1, active: 1, cleared: 0, unknown: 0 });
 
-  const open = filterQuests(QUESTS, { freq: [], cat: ["B"], status: ["open"] }, statusOf);
-  expect(open.list.map((x) => x.id)).toEqual([3, 4]);
+  const available = filterQuests(QUESTS, { freq: [], cat: ["B"], status: ["available"] }, statusOf);
+  expect(available.list.map((x) => x.id)).toEqual([3]);
+  const locked = filterQuests(QUESTS, { freq: [], cat: ["B"], status: ["locked"] }, statusOf);
+  expect(locked.list.map((x) => x.id)).toEqual([4]);
+  expect(locked.counts.status).toEqual({ locked: 1, available: 1, active: 1, cleared: 0, unknown: 1 });
   // without player data the status facet is ignored
-  expect(filterQuests(QUESTS, { freq: [], cat: ["B"], status: ["open"] }, statusOf, undefined, false).list.map((x) => x.id)).toEqual([2, 3, 4, 5]);
+  expect(filterQuests(QUESTS, { freq: [], cat: ["B"], status: ["available"] }, statusOf, undefined, false).list.map((x) => x.id)).toEqual([2, 3, 4, 5]);
 
   const text = filterQuests(QUESTS, { freq: [], cat: ["B", "F"], status: [] }, statusOf, (x) => x.code!.includes("d"));
   expect(text.list.map((x) => x.id)).toEqual([2, 7]);
@@ -57,7 +60,10 @@ test("facets combine with each other and the text match; counts are per facet", 
 });
 
 test("stored filters are validated", () => {
-  expect(parseQuestFilter({ freq: ["daily", "bogus"], cat: ["F", "B"], status: "open" })).toEqual({ freq: ["daily"], cat: ["B", "F"], status: [] });
+  expect(parseQuestFilter({ freq: ["daily", "bogus"], cat: ["F", "B"], status: "available" })).toEqual({ freq: ["daily"], cat: ["B", "F"], status: [] });
+  expect(parseQuestFilter({ freq: [], cat: [], status: ["unknown", "available", "locked"] }).status).toEqual(["locked", "available", "unknown"]);
+  // the former 未達成 covered locked and unlocked quests
+  expect(parseQuestFilter({ freq: [], cat: [], status: ["open", "active"] }).status).toEqual(["locked", "available", "active"]);
   expect(parseQuestFilter(null)).toEqual(EMPTY_QUEST_FILTER);
   expect(parseQuestFilter("x")).toEqual(EMPTY_QUEST_FILTER);
 });

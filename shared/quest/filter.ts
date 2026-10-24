@@ -32,12 +32,14 @@ export const CATEGORY_LABEL: Record<QuestCategory, string> = {
 export const questCategory = (code: string | null): QuestCategory =>
   (/([A-G])[dwmqys]?\d+$/.exec(code ?? "")?.[1] as QuestCategory | undefined) ?? "other";
 
-export const STATUS_GROUPS = ["open", "active", "cleared", "unknown"] as const;
+export const STATUS_GROUPS = ["locked", "available", "active", "cleared", "unknown"] as const;
 export type StatusGroup = (typeof STATUS_GROUPS)[number];
-export const STATUS_GROUP_LABEL: Record<StatusGroup, string> = { open: "未達成", active: "遂行中", cleared: "達成済", unknown: "不明" };
-/** 未達成: unlocked or still locked; 遂行中: in progress, or achieved with the reward not taken yet; 達成済: inferred cleared. */
+export const STATUS_GROUP_LABEL: Record<StatusGroup, string> = {
+  locked: "未開放", available: "未達成", active: "遂行中", cleared: "達成済", unknown: "不明",
+};
+/** 未開放: still locked; 未達成: unlocked; 遂行中: in progress, or achieved with the reward not taken yet; 達成済: inferred cleared. */
 const GROUP_OF: Record<QuestStatus, StatusGroup> = {
-  available: "open", locked: "open", active: "active", done: "active", cleared: "cleared", unknown: "unknown",
+  locked: "locked", available: "available", active: "active", done: "active", cleared: "cleared", unknown: "unknown",
 };
 export const statusGroup = (s: QuestStatus): StatusGroup => GROUP_OF[s];
 
@@ -48,12 +50,16 @@ export interface QuestFilter {
 }
 export const EMPTY_QUEST_FILTER: QuestFilter = { freq: [], cat: [], status: [] };
 
-/** A stored filter (localStorage JSON); unknown values are dropped, anything malformed is the empty filter. */
+/**
+ * A stored filter (localStorage JSON); unknown values are dropped, anything malformed is the empty filter. The former
+ * 未達成 ("open", unlocked or locked) becomes 未開放 + 未達成.
+ */
 export const parseQuestFilter = (v: unknown): QuestFilter => {
   const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
   const pick = <T extends string>(x: unknown, allowed: readonly T[]): T[] =>
     Array.isArray(x) ? allowed.filter((a) => x.includes(a)) : [];
-  return { freq: pick(o.freq, QUEST_FREQUENCIES), cat: pick(o.cat, QUEST_CATEGORIES), status: pick(o.status, STATUS_GROUPS) };
+  const status = Array.isArray(o.status) && o.status.includes("open") ? [...o.status, "locked", "available"] : o.status;
+  return { freq: pick(o.freq, QUEST_FREQUENCIES), cat: pick(o.cat, QUEST_CATEGORIES), status: pick(status, STATUS_GROUPS) };
 };
 
 export interface QuestFacetCounts {

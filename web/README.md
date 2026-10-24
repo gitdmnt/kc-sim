@@ -132,8 +132,9 @@ one-time quest with counts from the plugin, and `19-quest-filters.png`, a filter
 - **List:** search by code / name / id, combined with three dropdown filters (`QuestFilters.tsx` over
   `shared/quest/filter.ts`): 頻度 (単発 / デイリー / ウィークリー / マンスリー / クォータリー / イヤリー / 期間限定) and 種別
   (A 編成 … G 改装, その他), both from the wiki code (`Bq3`, `2610B3`, `L2610F2`, `Cs8` 季節限定 → 期間限定), and 状況
-  (未達成 = 受注可・未開放, 遂行中 = 遂行中・達成, 達成済, 不明; only shown with poi's quest state). Each option shows how
-  many quests it would leave given the other filters and the search. Filters persist in `kcsim:questFilter`, the
+  (未開放 = not unlocked yet, 未達成 = 受注可, 遂行中 = 遂行中・達成, 達成済, 不明; only shown with poi's quest state). Each option shows how
+  many quests it would leave given the other filters and the search. Filters persist in `kcsim:questFilter` (a saved
+  `open`, the former 未達成 = 受注可・未開放, loads as 未開放 + 未達成), the
   selection in `kcsim:quest`. A status dot per quest; the row tooltip has the description, conditions and a reward summary.
 - **Quest:** description, the structured clear conditions (the hand-authored override, else kcwiki-quest-data), rewards
   (`QuestRewards.tsx`: coloured resources, items, one boxed row per 選択報酬 group; the KC3 memo's `[獲]` part is hidden
