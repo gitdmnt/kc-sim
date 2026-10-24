@@ -66,5 +66,5 @@ export class reactClass extends React.Component {
 }
 
 export { startCapture, stopCapture, getCaptureDb } from "../capture";
-// poi が state.ext["poi-plugin-sim-build"]._ に置く (任務タブ用の任務一覧)
+// poi が state.ext[パッケージ名]._ に置く (任務タブ用の任務一覧)
 export { reducer } from "../quests/reducer";

@@ -10,6 +10,7 @@ import { extractGauge } from "@shared/capture/parser";
 import { CaptureSession, isBattlePath, isResultPath } from "./session";
 import type { CapturedFleet } from "@shared/capture/types";
 import { fleetSnapshot, startCapture, stopCapture } from "./plugin";
+import type { UploadClient } from "./uploadClient";
 
 const fleet: CapturedFleet = {
   deckId: 1,
@@ -406,6 +407,36 @@ describe("startCapture", () => {
     expect((await db.listSorties())[0].gauge).toBeNull();
     stopCapture();
     expect(listeners.size).toBe(0);
+  });
+
+  test("records battles and sorties locally while auto upload is off, and sends nothing", async () => {
+    const listeners = new Map<string, (e: Event) => void>();
+    const target = { addEventListener: (n: string, f: any) => listeners.set(n, f), removeEventListener: (n: string) => listeners.delete(n) };
+    const db = new ObservationDb(new IDBFactory());
+    let sends = 0;
+    const client: UploadClient = {
+      state: () => ({ kind: "none" }),
+      send: async () => (sends++, { status: "idle" }),
+      register: async () => ({ status: "deferred", until: 0 }),
+      nextAt: () => 0,
+    };
+    startCapture({
+      db,
+      getState: () => ({}),
+      target,
+      autoUpload: { getSettings: () => ({ autoUpload: false, apiBase: "https://kc-sim.udama.net" }), client, debounceMs: 0 },
+    });
+    const fire = (path: string, body: any, postBody?: any) => listeners.get("game.response")!({ detail: { path, body, postBody } } as any);
+    fire("/kcsapi/api_req_map/start", mapStart, { api_deck_id: "1" });
+    fire("/kcsapi/api_req_sortie/battle", dayBattle, {});
+    fire("/kcsapi/api_port/port", {});
+    await new Promise((r) => setTimeout(r, 50));
+    const battles = await db.listBattles();
+    expect(battles).toHaveLength(1);
+    expect(battles[0].pending).toBe(1);
+    expect(await db.listSorties()).toHaveLength(1);
+    expect(sends).toBe(0);
+    stopCapture();
   });
 
   test("the sortie gauge is read from poi's info.maps (api_eventmap) of the sortied map", async () => {

@@ -61,6 +61,31 @@ const useAutoUploadStatus = (tick: number): { status: AutoUploadStatus; pending:
 
 const formatTime = (t: number | null) => (t === null ? "—" : new Date(t).toLocaleString());
 
+/** 自動送信がオフの間、送る内容と送り先を出す (閉じるまで)。内容は capture/db.ts の uploadPending が送るもの。 */
+const UploadNotice = ({ origin }: { origin: string }) => {
+  const N = L.upload.notice;
+  return (
+    <Card title={N.title} bodyClassName="flex flex-col gap-2 text-sm text-ink-200">
+      <p>{N.where(origin)}</p>
+      <ul className="list-disc pl-5">
+        {N.sent.map((s) => (
+          <li key={s}>{s}</li>
+        ))}
+      </ul>
+      <p>{N.notSent}</p>
+      <p>{N.local}</p>
+      <div className="flex gap-2 pt-1">
+        <Button size="sm" variant="primary" onClick={() => updatePluginSettings({ autoUpload: true })} disabled={origin === ""}>
+          {N.enable}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => updatePluginSettings({ uploadNoticeClosed: true })}>
+          {N.close}
+        </Button>
+      </div>
+    </Card>
+  );
+};
+
 /** プラグインの設定: サーバ URL (Web UI と送信先)、自動送信、登録、観測ログの削除。 */
 export const UploadSettings = () => {
   const settings = usePluginSettings();
@@ -109,6 +134,7 @@ export const UploadSettings = () => {
 
   return (
     <div className="flex flex-col gap-4">
+      {!settings.autoUpload && !settings.uploadNoticeClosed && <UploadNotice origin={apiBase} />}
       <Card bodyClassName="flex flex-col gap-6">
         <Field label={L.upload.serverUrl} hint={draftValid ? undefined : L.upload.serverUrlInvalid}>
           <div className="flex gap-2">
@@ -133,7 +159,7 @@ export const UploadSettings = () => {
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Checkbox
-            label="観測ログを自動送信"
+            label={L.upload.autoUpload}
             checked={settings.autoUpload}
             onChange={(e) => updatePluginSettings({ autoUpload: e.target.checked })}
           />

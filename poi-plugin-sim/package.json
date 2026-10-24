@@ -1,6 +1,6 @@
 {
   "name": "poi-plugin-sim",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "type": "module",
   "main": "../poi-plugin-sim-build/index.es",
   "devDependencies": {

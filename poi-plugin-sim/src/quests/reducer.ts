@@ -1,14 +1,15 @@
 /**
- * 任務一覧の記録 (poi のプラグイン reducer。poi が `state.ext["poi-plugin-sim-build"]._` に置く)。
+ * 任務一覧の記録 (poi のプラグイン reducer。poi が `state.ext[パッケージ名]._` に置く)。
  * poi 本体は遂行中の任務 (info.quests.activeQuests) と進捗 (records) しか持たないので、開放済みの任務すべてを知るために
  * 「全て」タブ (api_tab_id 0) の questlist を覚える。Web UI の任務タブが、一覧にある任務の前提を「達成済み」、
  * 一覧にある単発任務の後続を「未開放」と推定する (shared/quest/tree.ts)。poi の再起動では消え、任務画面を開くと戻る。
  */
 import { questEntry } from "@shared/embed/protocol";
 import type { PoiQuestEntry } from "@shared/embed/protocol";
+import { name as packageName } from "../../package.build.json";
 
 /** poi がプラグインの reducer state を置くキー (package.build.json の name) */
-export const PLUGIN_PACKAGE = "poi-plugin-sim-build";
+export const PLUGIN_PACKAGE = packageName;
 
 export interface QuestListState {
   /** 最後に見た「全て」タブの一覧。まだ見ていなければ null */

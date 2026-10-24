@@ -13,12 +13,12 @@ const run = (entries: Record<string, unknown>) => {
 };
 
 describe("migrateLegacySettings", () => {
-  test("fresh install: auto upload on, production server", () => {
-    expect(run({}).settings).toEqual({ serverUrl: DEFAULT_SERVER_URL, autoUpload: true });
+  test("fresh install: auto upload off, production server, notice not closed", () => {
+    expect(run({}).settings).toEqual({ serverUrl: DEFAULT_SERVER_URL, autoUpload: false, uploadNoticeClosed: false });
   });
 
   test("upgrade from the old default (127.0.0.1, no kcsim:settings): auto upload off", () => {
-    expect(run({ "kcsim:preset:p1": "{}" }).settings).toEqual({ serverUrl: DEFAULT_SERVER_URL, autoUpload: false });
+    expect(run({ "kcsim:preset:p1": "{}" }).settings).toEqual({ serverUrl: DEFAULT_SERVER_URL, autoUpload: false, uploadNoticeClosed: false });
   });
 
   test("upgrade with a local or other apiBase: auto upload off, even if it was on", () => {
@@ -30,7 +30,7 @@ describe("migrateLegacySettings", () => {
   test("upgrade from the old production host: keeps auto upload and moves the credentials to the new origin", () => {
     const creds = { apiBase: OLD_PROD, clientId: "c-1", token: "t", banned: false };
     const { settings, auth } = run({ "kcsim:settings": { apiBase: `${OLD_PROD}/` }, "kcsim:auth": creds });
-    expect(settings).toEqual({ serverUrl: DEFAULT_SERVER_URL, autoUpload: true });
+    expect(settings).toEqual({ serverUrl: DEFAULT_SERVER_URL, autoUpload: true, uploadNoticeClosed: false });
     expect(auth).toEqual({ ...creds, apiBase: NEW_PROD });
     expect(run({ "kcsim:settings": { apiBase: OLD_PROD, autoUpload: false } }).settings.autoUpload).toBe(false);
   });

@@ -1,12 +1,13 @@
 # poi-plugin-sim
 
-KanColle sortie simulator plugin for [poi](https://github.com/poooi/poi) (window-mode plugin). The simulator UI itself
+KanColle sortie simulator plugin for [poi](https://github.com/poooi/poi) (window-mode plugin), published on npm as
+[`poi-plugin-kc-sim`](https://www.npmjs.com/package/poi-plugin-kc-sim). The simulator UI itself
 is the web app in [`../web`](../web), served by the data API's Cloudflare Worker; this plugin:
 
 - **captures** battle and map packets while you play (starts when poi loads the plugin, no window needed) and stores
   them in IndexedDB (`kcsim`),
-- **uploads** them to the server automatically (debounced after each battle result and on returning to port, with
-  periodic retry and exponential backoff; one request per 60 s, per-install bearer token),
+- **uploads** them to the server when 自動送信 is on (off for new installs; debounced after each battle result and on
+  returning to port, with periodic retry and exponential backoff; one request per 60 s, per-install bearer token),
 - shows the **観測ログ** (observation log), **送信設定** (server URL, auto upload, registration) and **資源** (resource
   history) views,
 - **records the admiral's resources** (燃料 / 弾薬 / 鋼材 / ボーキ and the four materials) whenever they change, in
@@ -56,8 +57,16 @@ The plugin's views and chrome use the web UI's parts and stylesheet (`../web/src
 (`bun run deps:web`). `react`, `react-dom` and `lucide-react` imported from `../web/src` resolve to this package's copies
 (`resolve.dedupe` in `vite.config.ts`; a second React breaks hooks).
 
-Output (`../poi-plugin-sim-build`): `index.es`, `package.json` (`main: index.es`), `views/index.js` (capture, upload,
-the plugin's views and their CSS scoped to `.kcsim`), `i18n/`. No wasm and no worker: the simulation runs in the web UI.
+Output (`../poi-plugin-sim-build`, the npm package `poi-plugin-kc-sim`): `index.es`, `package.json` (generated: see
+below), `views/index.js` (capture, upload, the plugin's views and their CSS scoped to `.kcsim`), `i18n/`, `README.md`
+(copied from `README.npm.md`, the npm page for users), `LICENSE`, `THIRD_PARTY_NOTICES` (what `views/index.js`
+bundles: lucide-react, react-redux, use-sync-external-store, Tailwind's CSS, and data from kcwiki-quest-data and
+kancolle-replay; update it when the bundled packages change). No wasm and no worker: the simulation runs in the web UI.
+React and ReactDOM are external: poi 12 provides React 18.3, so the plugin's code must not use React 19-only APIs.
+
+`package.json` in the output is `package.build.json` plus `version` from this directory's `package.json` (the only
+place the version is kept; vite.config.ts `packageJson()`). The package name is also poi's key for the plugin's reducer
+(`state.ext["poi-plugin-kc-sim"]`), read from `package.build.json` by `src/quests/reducer.ts`.
 
 Other commands: `bun test`, `bunx tsc --noEmit`, `bun run dev` (below), `bun run screenshots` (starts both dev servers,
 writes `docs/screenshots/{05-log-list,06-log-detail,08-plugin-upload,19-plugin-embedded,20-plugin-resources,21-plugin-resources-delta,22-plugin-quests}.png`
@@ -79,10 +88,11 @@ restart and the thinning).
 | `src/panel/WebFrame.tsx`, `src/panel/bridge.ts` | The iframe and the plugin side of the embed protocol |
 | `src/panel/log/`, `src/panel/UploadSettings.tsx` | Observation log and upload settings (UI parts from `@web/*` = `../web/src`) |
 | `src/panel/resources/` | 資源 view: line charts (own SVG, no chart library) and the 増減 tables |
-| `src/settings.ts` | Plugin settings (`kcsim:plugin`: server URL, auto upload) and the one-time upgrade from the old in-plugin UI |
+| `src/settings.ts` | Plugin settings (`kcsim:plugin`: server URL, auto upload, upload notice) and the one-time upgrade from the old in-plugin UI |
 | `src/capture/` | Packet capture, IndexedDB, upload client, auto upload |
 | `src/resources/` | Resource history: recording, thinning (`history.ts`), IndexedDB (`store.ts`), view maths (`view.ts`) |
 | `dev/` | Dev page: the plugin's view without poi (`bun run dev`, http://localhost:5174) |
+| `package.build.json`, `index.es`, `i18n/`, `README.npm.md`, `LICENSE`, `THIRD_PARTY_NOTICES` | The npm package's manifest (without `version`), poi entry, translations, npm page and licences, copied into the output |
 
 `bun run dev` serves `dev/index.html` with vite and reproduces poi's window mode: the page plays poi's main window
 (the plugin's React tree and its `postMessage` calls run there) and renders the view with `createPortal` into a child
@@ -93,30 +103,63 @@ is the web UI's sample state; the iframe opens `?server=` (default `http://local
 
 ## Install into poi
 
-poi loads plugins from `~/Library/Application Support/poi/plugins/node_modules` (macOS;
-`%APPDATA%\poi\plugins\node_modules` on Windows, `~/.config/poi/plugins/node_modules` on Linux).
+Users: poi → 設定 → プラグイン, install `poi-plugin-kc-sim` from npm (poi runs `npm install` in its plugin directory).
 
-1. Build (above).
-2. Link the build output as a plugin. Using a `file:` dependency keeps it from being pruned by poi's own `npm install` at startup:
-   ```sh
-   cd "$HOME/Library/Application Support/poi/plugins"
-   cp package.json package.json.bak            # back up first
-   npm pkg set dependencies.poi-plugin-sim-build="file:/ABSOLUTE/PATH/TO/poi-plugin-sim-build"
-   ln -s /ABSOLUTE/PATH/TO/poi-plugin-sim-build node_modules/poi-plugin-sim-build   # if npm did not create it
-   ```
-3. Restart poi. The plugin appears in the plugin drawer (chevron next to the plugin tab) as 「シミュ」 / *Simulator for Integrated Management*. Rebuilding updates it in place (restart poi or use the plugin reload).
+Development: poi loads plugins from `~/Library/Application Support/poi/plugins/node_modules/poi-plugin-*` (macOS;
+`%APPDATA%\poi\plugins\node_modules` on Windows, `~/.config/poi/plugins/node_modules` on Linux). Link the build output
+instead of the npm release (quit poi first; a `file:` dependency keeps it from being pruned by poi's own `npm install`):
+
+```sh
+cd "$HOME/Library/Application Support/poi/plugins"
+cp package.json package.json.bak            # back up first
+npm install /ABSOLUTE/PATH/TO/poi-plugin-sim-build   # adds "poi-plugin-kc-sim": "file:…" and the symlink node_modules/poi-plugin-kc-sim
+```
+
+Restart poi. The plugin appears in the plugin drawer (chevron next to the plugin tab) as 「シミュ」 (*kc-sim* in other
+languages). Rebuilding updates it in place (restart poi or use the plugin reload). Do not keep both the link and the npm
+release: they are the same package (`npm uninstall poi-plugin-kc-sim` removes either).
+
+**Old link name (before 0.4.0).** A plugins directory set up with the previous instructions has
+`"poi-plugin-sim-build": "file:…/poi-plugin-sim-build"` and the symlink `node_modules/poi-plugin-sim-build`. It keeps
+working (poi takes the name from the linked `package.json`, now `poi-plugin-kc-sim`), but poi's update and uninstall
+buttons work on `node_modules/poi-plugin-kc-sim` and would install the npm release next to the link. Switch with poi
+quit, either to the npm release or to the link under the new name (the observation log, settings and resource history
+live in poi's storage and are kept):
+
+```sh
+cd "$HOME/Library/Application Support/poi/plugins" && npm uninstall poi-plugin-sim-build && npm install poi-plugin-kc-sim
+# or, to keep loading the local build:
+cd "$HOME/Library/Application Support/poi/plugins" && npm uninstall poi-plugin-sim-build && npm install /ABSOLUTE/PATH/TO/poi-plugin-sim-build
+```
 
 The server URL (default `https://kc-sim.udama.net/`) is set in シミュ → 送信設定: the iframe opens it and
 observations are uploaded to its origin. Only `https://` URLs are accepted, plus `http://` on `localhost`, `127.0.0.1`
 and `[::1]` (a local `cd ../server && bun run dev` is `http://127.0.0.1:8787/` after `cd ../web && bun run build`).
 
-**Upgrading from the in-plugin UI** (first start, `src/settings.ts`): a fresh install uploads automatically. An upgrade
-whose old API base was the old production worker (`kc-sim-data.lumpoler.workers.dev`) or already the new host
-(`kc-sim.udama.net`) keeps its auto-upload setting, and its registration is moved to the new origin (same D1, so the
-client id stays valid).
+**Auto upload** (`src/settings.ts`): a fresh install (no `kcsim:` key in poi's localStorage) starts with auto upload
+**off**. While it is off, 送信設定 shows a notice with what an upload contains (the map packets of each sortie, the raw
+battle and battle-result responses, the sortie fleet and HQ level; not the admiral's name or id, exercises, resources or
+quests: `capture/db.ts` `uploadPending`), the server's origin and a button that turns it on; 閉じる hides the notice
+(`uploadNoticeClosed`). Capture into the observation log does not depend on the setting. A stored `kcsim:plugin` keeps
+its `autoUpload`.
+
+**Upgrading from the in-plugin UI** (first start, `src/settings.ts`): an upgrade whose old API base was the old
+production worker (`kc-sim-data.lumpoler.workers.dev`) or already the new host (`kc-sim.udama.net`) keeps its
+auto-upload setting, and its registration is moved to the new origin (same D1, so the client id stays valid).
 Every other upgrade (the old default `http://127.0.0.1:8787`, or any other server) starts with auto upload **off**, so
 nothing is sent to production without the user turning it on. The old UI's keys (`kcsim:settings`, `kcsim:cache:*`,
 `kcsim:tab`, `kcsim:map`, `kcsim:selectedPreset`) are removed; presets, registration and upload state are kept.
+
+## Release (npm)
+
+1. Bump `version` in `package.json` (semver; the only place it is kept). The web UI must accept the plugin's embed
+   protocol version before a release that changes it ("Embedding the web UI" → Versions).
+2. `bun install && bunx tsc --noEmit && bun test && bun run build`.
+3. Check the package: `cd ../poi-plugin-sim-build && npm pack --dry-run` lists exactly `LICENSE`, `README.md`,
+   `THIRD_PARTY_NOTICES`, `i18n/ja-JP.json`, `index.es`, `package.json`, `views/index.js` with the new version.
+4. `npm publish --access public` in `../poi-plugin-sim-build` (needs `npm login` as the package owner).
+5. Commit and tag `v<version>` (`git tag v0.4.0`), push with `--tags`. poi offers the update to installed users from
+   npm's `latest` tag.
 
 ## Resource history (資源)
 
@@ -196,7 +239,7 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
   poi's `sortie.combinedFlag` as the message's `combinedFlag` (0–3); `const.{$ships, $equips, $shipTypes,
   $equipTypes, $mapareas}`; and for the 任務 tab `quests` = `{list, active, records}`: the last 全て questlist (`api_no`,
   `api_state`, `api_type`, `api_progress_flag` only) that the plugin's reducer (`src/quests/reducer.ts`, exported as the
-  plugin's `reducer`, held by poi at `state.ext["poi-plugin-sim-build"]._`) saw this session, poi's
+  plugin's `reducer`, held by poi at `state.ext["poi-plugin-kc-sim"]._`) saw this session, poi's
   `info.quests.activeQuests` reduced to the same four fields, and poi's progress counters `info.quests.records`
   (`{key, description, count, required}` per sub-goal) plus the plugin's own counts for quests poi does not track (same
   shape, `source: "kcsim"`; see "Quest progress"). Everything else (the admiral's name and member id, including
@@ -251,3 +294,8 @@ Not yet checked in a real poi window: whether the iframe has no Node.js, the ori
 Previously checked with poi 12.0.1 (macOS) on 2026-10-22 using an isolated profile (`--user-data-dir`), not logged in.
 The resource history is checked against poi 12's reducer (`views/redux/info/resources.js`, read from the installed
 app) and its dispatch-before-event order by `bun dev/resources-smoke.ts`; not yet with a logged-in poi.
+The npm package 0.4.0 (`npm pack` output installed with `npm install --global-style` into an empty prefix) was loaded
+through poi 12.0.1's own `.es` babel hook (`babel-hook.js` from its `app.asar`) and rendered with poi's React 18.3.1
+and react-dom/server, including 送信設定 with a fresh localStorage (notice shown, auto upload off), without React
+errors; the views were also clicked through with React 18.3.1 in a browser. The bundle uses no React 19-only API
+(lucide-react's icons use `forwardRef`; react-redux 9 picks React 18's element symbols).

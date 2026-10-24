@@ -50,5 +50,19 @@ export const L = {
     reset: "既定に戻す",
     observations: "観測ログ",
     clearObservations: "観測ログを全削除",
+    autoUpload: "観測ログを自動送信",
+    notice: {
+      title: "自動送信 (初期設定はオフ)",
+      where: (origin: string) => `オンにすると、観測ログを ${origin} に送ります。`,
+      sent: [
+        "出撃した海域・マス・経路 (ゲームの api_req_map/start・next の応答)",
+        "戦闘と戦闘結果の応答 (敵編成、ドロップ、司令部の Lv・経験値を含む)",
+        "出撃した艦隊 (艦・Lv・装備・ステータス・燃料・弾薬) と司令部 Lv",
+      ],
+      notSent: "送らないもの: 提督名・提督 ID・ログイン情報、演習、資源と任務の記録",
+      local: "オフでも観測ログはこの PC に記録します。",
+      enable: "自動送信をオンにする",
+      close: "閉じる",
+    },
   },
 };

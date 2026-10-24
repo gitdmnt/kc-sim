@@ -18,7 +18,7 @@
 - 単一戦闘: 1 つのマスの 1 つの敵編成と戦った結果だけを計算します。
 - 海域: 海域のマップ、ルート分岐の条件、マスごとの敵編成と出現率。
 - 敵艦: 深海棲艦のステータスと装備。公開されていない回避・運などは、プレイヤーの観測から推定した値も表示します。
-- 観測ログ・送信設定 (プラグインのみ): プレイ中の戦闘を自動で記録し、サーバに送ります。送信は送信設定で止められます。
+- 観測ログ・送信設定 (プラグインのみ): プレイ中の戦闘を自動で記録します。サーバへの送信は初期設定でオフで、送信設定でオンにできます。
 
 **任務**
 
@@ -45,26 +45,27 @@ https://kc-sim.udama.net を開きます。poi のデータが無いので、出
 
 ### poi プラグイン
 
-[bun](https://bun.sh) 1.3 以上が必要です。プラグインはこのリポジトリからビルドして入れます。
+poi の 設定 → プラグイン で `poi-plugin-kc-sim` を入力してインストールし、poi を再起動すると、プラグイン一覧に「シミュ」が出ます。
+
+自分でビルドする場合は [bun](https://bun.sh) 1.3 以上が必要です。
 
 ```sh
 git clone https://github.com/gitdmnt/kc-sim.git
 cd kc-sim/poi-plugin-sim
 bun install
-bun run build        # ../poi-plugin-sim-build に出力
+bun run build        # ../poi-plugin-sim-build に出力 (npm の poi-plugin-kc-sim と同じ中身)
 ```
 
-ビルド出力を poi のプラグインとして登録します (macOS の例)。
+poi を終了してから、ビルド出力を poi のプラグインとして登録します (macOS の例。npm 版を入れている場合は先に外します)。
 
 ```sh
 cd "$HOME/Library/Application Support/poi/plugins"
 cp package.json package.json.bak
-npm pkg set dependencies.poi-plugin-sim-build="file:/絶対パス/kc-sim/poi-plugin-sim-build"
-ln -s /絶対パス/kc-sim/poi-plugin-sim-build node_modules/poi-plugin-sim-build   # 作られなかったときだけ
+npm install /絶対パス/kc-sim/poi-plugin-sim-build
 ```
 
 Windows は `%APPDATA%\poi\plugins`、Linux は `~/.config/poi/plugins` です。
-poi を再起動すると、プラグイン一覧に「シミュ」が出ます。
+以前の手順で `poi-plugin-sim-build` として登録した場合の切り替えは [poi-plugin-sim/README.md](poi-plugin-sim/README.md) の「Install into poi」にあります。
 
 - **ウィンドウモードで開いてください。** タブ表示ではシミュと任務の画面が出ません (観測ログ・送信設定・資源は使えます)。
 - 接続先は既定で https://kc-sim.udama.net です。シミュ → 送信設定 で変えられます。
