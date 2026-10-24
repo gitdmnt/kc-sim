@@ -36,6 +36,7 @@ const infoParts = (state: PoiState): unknown[] => [
   field(field(state.info, "quests"), "activeQuests"),
   field(field(state.info, "quests"), "records"),
   state.questList,
+  state.questCounts,
 ];
 
 export class EmbedBridge {
@@ -80,7 +81,7 @@ export class EmbedBridge {
     if (!constChanged && !infoChanged) return;
     const msg: PluginMessage = {
       src: EMBED_SOURCE, v: EMBED_VERSION, type: "state", info: projectInfo(this.latest.info),
-      quests: projectQuests(field(this.latest.info, "quests"), this.latest.questList),
+      quests: projectQuests(field(this.latest.info, "quests"), this.latest.questList, this.latest.questCounts),
     };
     if (constChanged) msg.const = projectConst(this.latest.const);
     const combinedFlag = projectCombinedFlag(this.latest.combinedFlag);

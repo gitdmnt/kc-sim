@@ -158,6 +158,23 @@ describe("requirements", () => {
     expect(owned.resolveEquip("１２ｃｍ単装砲")).toEqual([1]);
     expect(owned.resolveShip("ship", "扶桑")!.sort((a, b) => a - b)).toEqual([26, 286, 411]);
   });
+
+  test("override needs match master ids, ship types and equipment categories exactly", () => {
+    const g = buildQuestGraph([
+      q(1, [], {
+        category: "sortie", map: ["2-5", "3-5"], boss: true, result: "S", times: 2,
+        groups: [{ ship: "金剛改", shipIds: [209], flagship: true }, { stypes: [2], amount: 3 }],
+      }),
+      q(2, [], { category: "equipexchange", scraps: [{ name: "小口径主砲", amount: 3, equipTypes: [1] }], equipments: [{ name: "九六式艦戦", amount: 1, equipIds: [19] }] }),
+    ]);
+    const typed = { ...state, const: { ...master, $equips: { 1: { api_id: 1, api_name: "12cm単装砲", api_type: [1, 1, 1, 1, 0] }, 19: { api_id: 19, api_name: "九六式艦戦", api_type: [3, 5, 6, 6, 0] } } } };
+    const r = aggregateNeeds(g, [1, 2], new OwnershipIndex(rosterFromPoi(typed)!));
+    // 209 exactly (no remodel expansion); stype 2 counts both 吹雪 but not the abyssal 駆逐イ級
+    expect(r.ships.map((s) => [s.names.join("/"), s.amount, s.owned, s.ok])).toEqual([["金剛改", 1, 1, true], ["艦種2", 3, 2, false]]);
+    expect(r.equips.map((e) => [e.name, e.amount, e.owned, e.ok])).toEqual([["九六式艦戦", 1, 1, true], ["小口径主砲", 3, 2, false]]);
+    expect(describeRequirement(g.byId.get(1)!.requirements)).toEqual(["出撃 2-5/3-5 ボス S勝利以上 各 ×2", "  旗艦:金剛改、艦種2×3"]);
+    expect(describeRequirement({ category: "other", note: "未確認の条件" })).toEqual(["未確認の条件"]);
+  });
 });
 
 test("text helpers", () => {

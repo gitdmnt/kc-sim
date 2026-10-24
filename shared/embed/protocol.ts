@@ -29,7 +29,9 @@ export interface PoiState {
   combinedFlag?: unknown;
   /** Plugin side: the plugin's own reducer state (poi-plugin-sim/src/quests: the last questlist), raw */
   questList?: unknown;
-  /** Web side: what `projectQuests` made of poi's `info.quests` and `questList` */
+  /** Plugin side: sub-goals the plugin's own counter tracks (poi-plugin-sim/src/quests/counter.ts), by quest id */
+  questCounts?: Record<number, PoiQuestGoal[]>;
+  /** Web side: what `projectQuests` made of poi's `info.quests`, `questList` and `questCounts` */
   quests?: PoiQuests;
 }
 
@@ -41,12 +43,14 @@ export interface PoiQuestEntry {
   progress: number | null;
 }
 
-/** One sub-goal counted by poi's quest tracker (`info.quests.records[id][key]`). */
+/** One sub-goal counted by poi's quest tracker (`info.quests.records[id][key]`), or by kc-sim's own counter. */
 export interface PoiQuestGoal {
   key: string;
   description: string | null;
   count: number;
   required: number;
+  /** "kcsim": counted by the plugin (one-time quests poi does not track); absent: poi's tracker */
+  source?: "kcsim";
 }
 
 /** Quest state for the 任務 tab. */
@@ -55,7 +59,7 @@ export interface PoiQuests {
   list: PoiQuestEntry[] | null;
   /** poi's `info.quests.activeQuests` (in progress or done, reward not taken) */
   active: PoiQuestEntry[];
-  /** poi's `info.quests.records`: per-quest progress counted on every battle / expedition / ... (quests in poi's quest_goal.cson) */
+  /** Per-quest progress: poi's `info.quests.records` (counted on every battle / expedition / ..., quests in poi's quest_goal.cson), plus the plugin's own counts for active quests poi does not track (goals with source "kcsim") */
   records: Record<number, PoiQuestGoal[]>;
 }
 
@@ -178,14 +182,18 @@ const readGoal = (key: string, g: unknown): PoiQuestGoal | null => {
   const required = at(g, "required");
   if (typeof count !== "number" || typeof required !== "number" || !Number.isFinite(count) || !Number.isFinite(required)) return null;
   const description = at(g, "description");
-  return { key, description: typeof description === "string" ? description : null, count, required };
+  return {
+    key, description: typeof description === "string" ? description : null, count, required,
+    ...(at(g, "source") === "kcsim" ? { source: "kcsim" as const } : {}),
+  };
 };
 
 /**
  * Plugin side: poi's `info.quests` (activeQuests, records) and the plugin's questlist reducer state (`{list}`) as
  * PoiQuests. A record's sub-goals are its object-valued keys (poi also writes summary `count` / `required` numbers).
+ * `counted` (the plugin's own counter) fills in quests poi has no record for.
  */
-export const projectQuests = (infoQuests: unknown, questList: unknown): PoiQuests => {
+export const projectQuests = (infoQuests: unknown, questList: unknown, counted?: Record<number, PoiQuestGoal[]>): PoiQuests => {
   const active: PoiQuestEntry[] = [];
   const activeQuests = at(infoQuests, "activeQuests");
   if (isObject(activeQuests)) {
@@ -202,6 +210,9 @@ export const projectQuests = (infoQuests: unknown, questList: unknown): PoiQuest
       const goals = Object.entries(r).flatMap(([k, g]) => (isObject(g) ? (readGoal(k, g) ?? []) : []));
       if (goals.length > 0) records[Number(id)] = goals;
     }
+  }
+  for (const [id, goals] of Object.entries(counted ?? {}).slice(0, MAX_QUESTS)) {
+    if (!(Number(id) in records) && goals.length > 0) records[Number(id)] = goals.map((g) => ({ ...g, source: "kcsim" }));
   }
   return { list: readEntries(at(questList, "list")), active, records };
 };

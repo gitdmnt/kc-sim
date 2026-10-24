@@ -190,7 +190,7 @@ read.get("/equipments/:id", async (c) => {
 });
 
 // Quest master data (API.md "Quests"): the whole list in one response; the web caches it for a day.
-const QUEST_FIELDS = [["id", "id"], ["code", "code"], ["name", "name"], ["detail", "detail"], ["memo", "memo"], ["pre", "pre", "json"], ["requirements", "requirements", "json"]] as const;
+const QUEST_FIELDS = [["id", "id"], ["code", "code"], ["name", "name"], ["detail", "detail"], ["memo", "memo"], ["pre", "pre", "json"], ["requirements", "requirements", "json"], ["rewards", "rewards", "json"], ["override", "override", "json"]] as const;
 read.get("/quests", async (c) => {
   const [row, sources] = await Promise.all([
     c.env.DB.prepare(jsonArraySql(QUEST_FIELDS, "FROM quests ORDER BY id")).first<{ body: string }>(),

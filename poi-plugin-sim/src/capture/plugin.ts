@@ -15,6 +15,8 @@ import { CaptureSession } from "./session";
 import type { CapturedFleet, ShipSupply, SortieFleetFeatures } from "@shared/capture/types";
 import { ResourceRecorder, getResourceDb, notifyResourceRecorded, recordFromPoi } from "../resources";
 import type { ResourceStore } from "../resources";
+import { QuestCounter, getQuestProgressDb, notifyQuestProgress } from "../quests";
+import type { QuestProgressStore } from "../quests";
 
 const GLOBAL_KEY = "__kcsimCapture";
 
@@ -27,6 +29,8 @@ export interface StartCaptureOptions {
   autoUpload?: false | Partial<Omit<AutoUploadOptions, "db">>;
   /** 資源の推移の保存先 (テスト用)。false なら記録しない。既定は getResourceDb()。 */
   resources?: false | ResourceStore;
+  /** 任務の進捗カウンタの保存先 (テスト用)。false なら数えない。既定は getQuestProgressDb()。 */
+  quests?: false | QuestProgressStore;
 }
 
 interface Running {
@@ -154,12 +158,24 @@ export const startCapture = (opts: StartCaptureOptions = {}): ObservationDb => {
       })
     : undefined;
 
+  const questStore = opts.quests === false ? undefined : (opts.quests ?? getQuestProgressDb());
+  const questCounter = questStore
+    ? new QuestCounter({
+        store: questStore,
+        getState,
+        onChange: notifyQuestProgress,
+        onError: (e) => console.error("[kcsim] quest progress failed", e),
+      })
+    : undefined;
+
   const target = opts.target ?? window;
   const listener = (e: Event) => {
     const d = (e as CustomEvent).detail;
     if (d && typeof d.path === "string") {
       void session.handle(d.path, d.body, d.postBody);
       autoUploader?.onResponse(d.path);
+      // 例外は QuestCounter の onError が記録する
+      void questCounter?.handle(d.path, d.body, d.postBody);
       // poi は game.response の前に redux を更新しているので、ここで読む state はこの応答の反映後
       // (失敗は ResourceRecorder の onError が記録する)
       if (resources) {
@@ -180,6 +196,7 @@ export const startCapture = (opts: StartCaptureOptions = {}): ObservationDb => {
       target.removeEventListener("game.response", listener);
       void db.close();
       void resourceStore?.close?.();
+      void questStore?.close?.();
       delete g[GLOBAL_KEY];
     },
   };

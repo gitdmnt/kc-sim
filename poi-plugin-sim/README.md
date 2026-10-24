@@ -10,8 +10,10 @@ is the web app in [`../web`](../web), served by the data API's Cloudflare Worker
 - shows the **観測ログ** (observation log), **資源** (resource history) and **送信設定** (server URL, auto upload,
   registration) views,
 - **records the admiral's resources** (燃料 / 弾薬 / 鋼材 / ボーキ and the four materials) whenever they change, in
-  IndexedDB (`kcsim-resources`, kept on this machine, never uploaded or sent to the iframe), and
-- **embeds the web UI** (the simulator) in an iframe and hands it poi's fleets and master data with `postMessage`.
+  IndexedDB (`kcsim-resources`, kept on this machine, never uploaded or sent to the iframe),
+- **counts progress of one-time quests** poi's tracker does not cover, from the hand-authored quest conditions it
+  bundles (IndexedDB `kcsim-quests`), and
+- **embeds the web UI** (the simulator) in an iframe and hands it poi's fleets, master data and quest state with `postMessage`.
 
 The Rust engine lives in `../sim-core` (used by the web UI); the server in `../server`.
 
@@ -109,6 +111,29 @@ nothing is sent to production without the user turning it on. The old UI's keys 
   admiral selector when several have history. Only the 増減 table scrolls; the page does not. Without history (outside
   poi, or before the first port) it shows 「資源の記録がありません」.
 
+## Quest progress (任務カウンタ)
+
+poi counts only the quests of its `quest_goal.cson` (~130, essentially periodic ones). For the others, `startCapture`
+also runs a `QuestCounter` (`src/quests/counter.ts`) on every `game.response`:
+
+- **Which quests:** in progress in poi's `info.quests.activeQuests` (`api_state` 2), not in poi's `records`, and with
+  countable sub-goals in the bundled `shared/quest/overrides.json` (`shared/quest/progress.ts` `questGoals`; schema and
+  semantics in docs/QUEST_OVERRIDES.md). New overrides reach players with the next plugin build.
+- **Events:** `api_req_map/start` remembers the map, the sortie fleet (ships in order with master stype / ctype / level)
+  and the gauge number, `start` / `next` the cell and whether it is the boss (`api_event_id` 5 or `api_bosscell_no`),
+  `api_req_sortie|combined_battle/battleresult` counts the rank there; `api_req_practice/battle` + `battle_result`;
+  `api_req_mission/result` (success or great success; mission id from the fleet's `api_mission`, else by name);
+  `api_req_kousyou/createitem` (attempts), `createship`, `destroyitem2` / `destroyship` and `api_req_kaisou/powerup`
+  (the scrapped / consumed items are looked up in the state of the previous response, since poi removes them before the
+  event), `remodel_slot`, `api_req_kaisou/remodeling` (the new form = the old form's `api_aftershipid`), `hokyu/charge`,
+  `nyukyo/start`. Combined fleets are checked on the main fleet.
+- **Reset:** a quest's counts are deleted on `api_req_quest/clearitemget` and when a 全て questlist (tab 0) no longer
+  lists it. 「本日中」 goals restart at 05:00 JST.
+- **Storage:** IndexedDB `kcsim-quests`, one row per admiral (`{admiral, quests: {id: {goalKey: {count, day?}}}}`);
+  saves are announced on a `BroadcastChannel` (`kcsim-quest-progress`) so the plugin window re-reads them.
+- **To the web UI:** the panel (`src/poi/index.tsx`) turns the stored counts into goals for every active countable
+  quest (`countedGoals`) and the bridge merges them into `quests.records` with `source: "kcsim"` where poi has no record.
+
 ## Embedding the web UI
 
 Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every message is
@@ -138,7 +163,8 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
   `api_state`, `api_type`, `api_progress_flag` only) that the plugin's reducer (`src/quests/reducer.ts`, exported as the
   plugin's `reducer`, held by poi at `state.ext["poi-plugin-sim-build"]._`) saw this session, poi's
   `info.quests.activeQuests` reduced to the same four fields, and poi's progress counters `info.quests.records`
-  (`{key, description, count, required}` per sub-goal). Everything else (the admiral's name and member id, including
+  (`{key, description, count, required}` per sub-goal) plus the plugin's own counts for quests poi does not track (same
+  shape, `source: "kcsim"`; see "Quest progress"). Everything else (the admiral's name and member id, including
   `api_member_id` on each fleet, base distances, missions, resources, quest titles) is dropped, by the plugin before
   posting and again by the web UI on receipt. It goes to the iframe and nowhere else; the web UI never uploads it.
 - **Origins and senders:** the plugin posts with the server URL's origin as the target and accepts messages only from

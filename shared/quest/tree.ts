@@ -1,7 +1,7 @@
 // Quest prerequisite trees, player status inference and requirement aggregation for the web's 任務 tab.
 // Pure functions over GET /api/v1/quests (./types.ts) and the poi state the plugin forwards (../embed/protocol.ts).
 import type { PoiQuestEntry, PoiQuests } from "../embed/protocol";
-import type { QuestEntry, QuestItemReq, QuestRequirement } from "./types";
+import type { QuestEntry, QuestGroupReq, QuestItemReq, QuestRequirement } from "./types";
 
 export interface QuestGraph {
   byId: Map<number, QuestEntry>;
@@ -127,19 +127,33 @@ export const questStatuses = (graph: QuestGraph, quests: PoiQuests | null | unde
 
 export type ShipNeedKind = "ship" | "class";
 
-/** Ships one quest needs: any `amount` of the named ships / ship-type words (kind ship) or classes (kind class). */
+/** Master data a need names directly (overrides): exact ids, ship types, classes. A ship fits when it fits any list. */
+export interface ShipMatch {
+  shipIds?: number[];
+  stypes?: number[];
+  ctypes?: number[];
+}
+
+/**
+ * Ships one quest needs: any `amount` of the named ships / ship-type words (kind ship) or classes (kind class), or of
+ * the master data in `match` (overrides; names are then only for display).
+ */
 export interface ShipNeed {
   kind: ShipNeedKind;
   names: string[];
   amount: number;
   /** Used up (modernization material) rather than just present */
   consumed: boolean;
+  match?: ShipMatch;
 }
 
 /** Equipment one quest needs to own (prepared, equipped for conversion or scrapped: all leave or are tied up). */
 export interface EquipNeed {
   name: string;
   amount: number;
+  /** Overrides: any of these master ids / categories (api_type[2]) */
+  equipIds?: number[];
+  equipTypes?: number[];
 }
 
 export interface QuestNeeds {
@@ -161,18 +175,32 @@ const amountOf = (v: number | number[] | undefined): number => {
   return n.length > 0 ? Math.min(...n) : 1;
 };
 
+const matchOf = (g: ShipMatch): ShipMatch | undefined =>
+  g.shipIds || g.stypes || g.ctypes ? { ...(g.shipIds && { shipIds: g.shipIds }), ...(g.stypes && { stypes: g.stypes }), ...(g.ctypes && { ctypes: g.ctypes }) } : undefined;
+
 /** Ships and equipment named in one quest's requirements (and / then / or lists flattened). */
 export const questNeeds = (req: QuestRequirement | null): QuestNeeds => {
   const ships: ShipNeed[] = [];
   const equips: EquipNeed[] = [];
   const items = (v: unknown) => {
     for (const i of Array.isArray(v) ? (v as QuestItemReq[]) : []) {
-      if (typeof i?.name === "string" && (i.category === undefined || i.category === "装備")) equips.push({ name: i.name, amount: i.amount ?? 1 });
+      if (typeof i?.name !== "string" || (i.category !== undefined && i.category !== "装備")) continue;
+      equips.push({ name: i.name, amount: i.amount ?? 1, ...(i.equipIds && { equipIds: i.equipIds }), ...(i.equipTypes && { equipTypes: i.equipTypes }) });
     }
   };
-  const ship = (kind: ShipNeedKind, names: string[], amount: number, consumed = false) => {
+  const ship = (kind: ShipNeedKind, names: string[], amount: number, consumed = false, match?: ShipMatch) => {
     const useful = names.filter((n) => typeof n === "string" && !ANY_SHIP.includes(n));
-    if (useful.length > 0) ships.push({ kind, names: useful, amount, consumed });
+    if (match) ships.push({ kind: "ship", names: useful, amount, consumed, match });
+    else if (useful.length > 0) ships.push({ kind, names: useful, amount, consumed });
+  };
+  const group = (g: QuestGroupReq) => {
+    const amount = g.select ?? amountOf(g.amount);
+    const match = matchOf(g);
+    if (match) ship("ship", [...list(g.ship), ...list(g.shipclass)], amount, false, match);
+    else {
+      ship("ship", list(g.ship), amount);
+      ship("class", list(g.shipclass), amount);
+    }
   };
   const walk = (r: QuestRequirement) => {
     switch (r.category) {
@@ -191,24 +219,24 @@ export const questNeeds = (req: QuestRequirement | null): QuestNeeds => {
         return;
       case "modelconversion":
         for (const name of list(r.equipment)) equips.push({ name, amount: 1 });
-        for (const s of r.slots ?? []) equips.push({ name: s.equipment, amount: s.count ?? 1 });
+        for (const s of r.slots ?? []) equips.push({ name: s.equipment, amount: s.count ?? 1, ...(s.equipIds && { equipIds: s.equipIds }) });
         items(r.scraps);
         items(r.consumptions);
-        ship("ship", list(r.secretary), 1);
+        ship("ship", list(r.secretary), 1, false, r.secretaryIds ? { shipIds: r.secretaryIds } : undefined);
         return;
       case "modernization": {
-        if (typeof r.ship === "string") ship("ship", [r.ship], 1);
-        for (const c of Array.isArray(r.consumptions) ? (r.consumptions as { ship?: string[]; amount?: number }[]) : []) {
-          ship("ship", list(c.ship), (c.amount ?? 1) * (r.times ?? 1), true);
+        if (r.target) group(r.target);
+        else if (typeof r.ship === "string") ship("ship", [r.ship], 1, false, r.shipIds ? { shipIds: r.shipIds } : undefined);
+        for (const c of Array.isArray(r.consumptions) ? (r.consumptions as (ShipMatch & { ship?: string[]; amount?: number })[]) : []) {
+          ship("ship", list(c.ship), (c.amount ?? 1) * (r.times ?? 1), true, matchOf(c));
         }
         return;
       }
+      case "remodel":
+      case "other":
+        return;
     }
-    for (const g of r.groups ?? []) {
-      const amount = g.select ?? amountOf(g.amount);
-      ship("ship", list(g.ship), amount);
-      ship("class", list(g.shipclass), amount);
-    }
+    for (const g of r.groups ?? []) group(g);
   };
   if (req) walk(req);
   return { ships, equips };
@@ -231,7 +259,7 @@ export interface Roster {
   /** Master id of every owned equipment */
   equips: number[];
   masterShips: Record<string, MasterShip | null | undefined>;
-  masterEquips: Record<string, { api_id?: number; api_name?: string } | null | undefined>;
+  masterEquips: Record<string, { api_id?: number; api_name?: string; api_type?: number[] } | null | undefined>;
 }
 
 const values = (v: unknown): unknown[] => (v && typeof v === "object" ? Object.values(v) : []);
@@ -267,6 +295,8 @@ export class OwnershipIndex {
   private shipCount = new Map<number, number>();
   private equipCount = new Map<number, number>();
   private ships: MasterShip[];
+  /** Player equipment master ids with their category (api_type[2]) */
+  private equipTypes = new Map<number, number>();
 
   constructor(private roster: Roster) {
     this.ships = values(roster.masterShips).filter(
@@ -275,11 +305,29 @@ export class OwnershipIndex {
     for (const s of this.ships) if (s.api_name) push(this.shipsByName, nameKey(s.api_name), s.api_id!);
     for (const e of values(roster.masterEquips)) {
       const id = num(e, "api_id");
-      const name = (e as { api_name?: unknown } | null)?.api_name;
-      if (id !== undefined && id <= PLAYER_MAX_ID && typeof name === "string") push(this.equipsByName, nameKey(name), id);
+      if (id === undefined || id > PLAYER_MAX_ID) continue;
+      const { api_name: name, api_type: type } = e as { api_name?: unknown; api_type?: unknown };
+      if (typeof name === "string") push(this.equipsByName, nameKey(name), id);
+      if (Array.isArray(type) && typeof type[2] === "number") this.equipTypes.set(id, type[2]);
     }
     for (const id of roster.ships) this.shipCount.set(id, (this.shipCount.get(id) ?? 0) + 1);
     for (const id of roster.equips) this.equipCount.set(id, (this.equipCount.get(id) ?? 0) + 1);
+  }
+
+  /** Master ids fitting any list of `m` (overrides name master data directly; no remodel expansion). */
+  matchShips(m: ShipMatch): number[] {
+    return this.ships
+      .filter((s) => !!m.shipIds?.includes(s.api_id!) || !!m.stypes?.includes(s.api_stype ?? -1) || !!m.ctypes?.includes(s.api_ctype ?? -1))
+      .map((s) => s.api_id!);
+  }
+
+  /** Equipment master ids among `ids`, or of the categories `types` (api_type[2]). */
+  matchEquips(ids: number[] | undefined, types: number[] | undefined): number[] {
+    return [...this.equipTypes].filter(([id, t]) => !!ids?.includes(id) || !!types?.includes(t)).map(([id]) => id);
+  }
+
+  shipName(id: number): string | undefined {
+    return this.roster.masterShips[id]?.api_name;
   }
 
   /** The named form and every later remodel (api_aftershipid chain; remodel loops stop at a repeat). */
@@ -344,11 +392,15 @@ interface NeedRowBase {
 }
 export interface ShipNeedRow extends NeedRowBase {
   kind: ShipNeedKind;
+  /** Display names (for master-data needs without names: the ship names, or 艦種 / 艦型 numbers) */
   names: string[];
   consumed: boolean;
+  match?: ShipMatch;
 }
 export interface EquipNeedRow extends NeedRowBase {
   name: string;
+  equipIds?: number[];
+  equipTypes?: number[];
 }
 
 /**
@@ -366,13 +418,19 @@ export const aggregateNeeds = (
     const needs = questNeeds(graph.byId.get(id)?.requirements ?? null);
     for (const n of needs.ships) {
       const names = [...n.names].sort();
-      const key = `${n.kind}:${n.consumed ? "c" : ""}:${names.map(nameKey).join("/")}`;
+      const key = n.match
+        ? `m:${n.consumed ? "c" : ""}:${JSON.stringify([n.match.shipIds, n.match.stypes, n.match.ctypes].map((l) => l && [...l].sort((a, b) => a - b)))}`
+        : `${n.kind}:${n.consumed ? "c" : ""}:${names.map(nameKey).join("/")}`;
       const row = ships.get(key);
       if (row) {
         row.amount = n.consumed ? row.amount + n.amount : Math.max(row.amount, n.amount);
         if (!row.quests.includes(id)) row.quests.push(id);
+        if (row.names.length === 0) row.names = names;
       } else {
-        ships.set(key, { key, kind: n.kind, names, consumed: n.consumed, amount: n.amount, quests: [id], owned: null, ok: null, unresolved: [] });
+        ships.set(key, {
+          key, kind: n.kind, names, consumed: n.consumed, amount: n.amount, quests: [id], owned: null, ok: null, unresolved: [],
+          ...(n.match && { match: n.match }),
+        });
       }
     }
     for (const n of needs.equips) {
@@ -381,13 +439,32 @@ export const aggregateNeeds = (
       if (row) {
         row.amount += n.amount;
         if (!row.quests.includes(id)) row.quests.push(id);
+        row.equipIds ??= n.equipIds;
+        row.equipTypes ??= n.equipTypes;
       } else {
-        equips.set(key, { key, name: n.name, amount: n.amount, quests: [id], owned: null, ok: null, unresolved: [] });
+        equips.set(key, {
+          key, name: n.name, amount: n.amount, quests: [id], owned: null, ok: null, unresolved: [],
+          ...(n.equipIds && { equipIds: n.equipIds }), ...(n.equipTypes && { equipTypes: n.equipTypes }),
+        });
       }
     }
   }
+  for (const row of ships.values()) {
+    if (row.names.length > 0 || !row.match) continue;
+    const m = row.match;
+    row.names = [
+      ...(m.shipIds ?? []).map((i) => owned?.shipName(i) ?? `#${i}`),
+      ...(m.stypes ?? []).map((t) => `艦種${t}`),
+      ...(m.ctypes ?? []).map((t) => `艦型${t}`),
+    ];
+  }
   if (owned) {
     for (const row of ships.values()) {
+      if (row.match) {
+        row.owned = owned.ownedShips(owned.matchShips(row.match));
+        row.ok = row.owned >= row.amount;
+        continue;
+      }
       const ids = new Set<number>();
       for (const name of row.names) {
         const r = owned.resolveShip(row.kind, name);
@@ -400,7 +477,7 @@ export const aggregateNeeds = (
       }
     }
     for (const row of equips.values()) {
-      const r = owned.resolveEquip(row.name);
+      const r = row.equipIds || row.equipTypes ? owned.matchEquips(row.equipIds, row.equipTypes) : owned.resolveEquip(row.name);
       if (!r) {
         row.unresolved.push(row.name);
         continue;
@@ -424,21 +501,28 @@ export const questKind = (code: string | null): string => {
 
 const SIMPLE: Record<string, string> = {
   equipment: "装備開発", ship: "艦娘建造", scrapequipment: "装備廃棄", scrapship: "艦娘解体", modernization: "近代化改修",
-  improvement: "装備改修", resupply: "補給", repair: "入渠", battle: "出撃",
+  improvement: "装備改修", resupply: "補給", repair: "入渠", battle: "出撃", remodel: "改装",
 };
 const RESOURCE = ["燃料", "弾薬", "鋼材", "ボーキ"];
 
 const itemsText = (v: unknown): string =>
   (Array.isArray(v) ? (v as QuestItemReq[]) : []).map((i) => `${i.name}${i.amount ? `×${i.amount}` : ""}`).join("、");
 
+const groupText = (g: QuestGroupReq): string => {
+  const names = [...list(g.ship), ...list(g.shipclass)].join("/") || [...(g.shipIds ?? []).map((i) => `#${i}`), ...(g.stypes ?? []).map((t) => `艦種${t}`)].join("/");
+  const range = Array.isArray(g.amount) && g.amount.length > 1 && (g.amount[1] ?? 99) < 99 ? `${g.amount[0]}〜${g.amount[1]}隻` : "";
+  const amount = g.select ?? (g.amount === undefined ? undefined : amountOf(g.amount));
+  const role = g.flagship ? "旗艦:" : g.escort ? "僚艦:" : g.place ? `${g.place}番艦:` : "";
+  return `${role}${names}${range ? `×${range}` : amount && amount > 1 ? `×${amount}` : ""}${g.lv?.[0] ? ` Lv${g.lv[0]}+` : ""}${g.note ? ` (${g.note})` : ""}`;
+};
+
 const groupsText = (r: QuestRequirement): string =>
-  (r.groups ?? [])
-    .map((g) => {
-      const names = [...list(g.ship), ...list(g.shipclass)].join("/");
-      const amount = g.select ?? (g.amount === undefined ? undefined : amountOf(g.amount));
-      return `${g.flagship ? "旗艦:" : ""}${names}${amount && amount > 1 ? `×${amount}` : ""}${g.lv?.[0] ? ` Lv${g.lv[0]}+` : ""}${g.note ? ` (${g.note})` : ""}`;
-    })
-    .join("、");
+  [
+    ...(r.groups ?? []).map(groupText),
+    r.minShips ? `${r.minShips}隻以上` : "",
+    r.maxShips ? `${r.maxShips}隻以下` : "",
+    r.onlyGroups ? "他の艦不可" : "",
+  ].filter(Boolean).join("、");
 
 /** The structured clear conditions as short Japanese lines (nested lists indented with "・"). */
 export const describeRequirement = (req: QuestRequirement | null): string[] => {
@@ -455,17 +539,29 @@ export const describeRequirement = (req: QuestRequirement | null): string[] => {
         add(r.category === "or" ? "いずれか:" : r.category === "then" ? "順に:" : "すべて:", depth);
         for (const sub of r.list ?? []) walk(sub, depth + 1);
         return;
-      case "sortie":
-        add(`出撃 ${list(r.map).join("/") || "任意"}${r.boss ? " ボス" : ""}${r.result ? ` ${r.result === "クリア" ? "クリア" : `${r.result}勝利以上`}` : ""} ×${r.times ?? 1}${extra ? ` ${extra}` : ""}`, depth);
+      case "sortie": {
+        const where = r.cells ? ` ${r.node ?? "指定"}マス` : r.boss ? " ボス" : "";
+        const result = r.result ? ` ${r.result === "クリア" ? "クリア" : `${r.result}勝利以上`}` : r.cells || r.boss ? " 到達" : "";
+        const each = list(r.map).length > 1 ? (r.total ? " 合計" : " 各") : "";
+        add(`出撃 ${list(r.map).join("/") || "任意"}${where}${r.gauge ? ` (第${r.gauge}ゲージ)` : ""}${result}${each} ×${r.times ?? 1}${extra ? ` ${extra}` : ""}`, depth);
         break;
-      case "excercise":
-        add(`演習${r.victory ? "勝利" : ""} ×${r.times ?? 1}${r.daily ? " (同日中)" : ""}`, depth);
+      }
+      case "excercise": {
+        const min = r.result ?? (r.victory ? "B" : undefined);
+        add(`演習${min ? ` ${min}勝利以上` : ""} ×${r.times ?? 1}${r.daily ? " (同日中)" : ""}`, depth);
         break;
+      }
       case "expedition":
-        for (const o of r.objects ?? []) add(`遠征 ${list(o.id).join("/") || "任意"} 成功 ×${o.times}`, depth);
+        for (const o of r.objects ?? []) add(`遠征 ${o.name ?? (list(o.id).join("/") || "任意")} 成功 ×${o.times}`, depth);
         break;
       case "fleet":
         add(`編成${extra ? ` ${extra}` : ""}`, depth);
+        break;
+      case "remodel":
+        add(`改装 ×${r.times ?? 1}`, depth);
+        if (r.target) add(`  改装後: ${groupText(r.target)}`, depth);
+        break;
+      case "other":
         break;
       case "simple":
         add(`${SIMPLE[r.subcategory ?? ""] ?? r.subcategory ?? ""} ×${r.times ?? 1}`, depth);
@@ -474,10 +570,13 @@ export const describeRequirement = (req: QuestRequirement | null): string[] => {
         add(`${r.ship ?? "敵"}撃沈 ×${r.amount ?? 1}`, depth);
         break;
       case "modernization":
-        add(`近代化改修 ${r.ship ?? ""} ×${r.times ?? 1}`, depth);
+        add(`近代化改修 ${r.ship ?? (r.target ? groupText(r.target) : "")} ×${r.times ?? 1}`, depth);
+        for (const c of Array.isArray(r.consumptions) ? (r.consumptions as { ship?: string[]; amount?: number }[]) : []) {
+          add(`  素材: ${list(c.ship).join("/") || "指定艦"}×${c.amount ?? 1}/回`, depth);
+        }
         break;
       case "modelconversion":
-        add(`機種転換 ${[...list(r.equipment), ...(r.slots ?? []).map((s) => s.equipment)].join("/")}${r.secretary ? ` (秘書艦 ${list(r.secretary).join("/")})` : ""}`, depth);
+        add(`機種転換 ${[...list(r.equipment), ...(r.slots ?? []).map((s) => `${s.slot ? `第${s.slot}スロ ` : ""}${s.equipment}${s.maxmodified ? "★max" : typeof s.level === "number" ? `★${s.level}+` : ""}`)].join("/")}${r.secretary ? ` (秘書艦 ${list(r.secretary).join("/")})` : ""}`, depth);
         break;
       case "equipexchange":
         if (r.equipments) add(`準備: ${itemsText(r.equipments)}`, depth);
@@ -495,6 +594,7 @@ export const describeRequirement = (req: QuestRequirement | null): string[] => {
     if (r.scraps) add(`  廃棄: ${itemsText(r.scraps)}`, depth);
     if (Array.isArray(r.consumptions) && r.category !== "modernization") add(`  消費: ${itemsText(r.consumptions)}`, depth);
     if (r.resources?.some((x) => x > 0)) add(`  資源: ${r.resources.map((x, i) => (x > 0 ? `${RESOURCE[i]}${x}` : "")).filter(Boolean).join(" ")}`, depth);
+    if (r.note) add(r.category === "other" ? r.note : `  ※${r.note}`, depth);
   };
   walk(req, 0);
   return out;

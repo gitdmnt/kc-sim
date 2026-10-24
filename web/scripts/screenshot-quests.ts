@@ -1,6 +1,8 @@
 /**
  * 任務タブのスクリーンショット (docs/screenshots/17-quests.png, 1024×600) と、1280×800・1200×710・1024×600 で
- * ページも main もスクロールしないことの確認。`bun scripts/screenshot-quests.ts`
+ * ページも main もスクロールしないことの確認。続けて、手入力の達成条件を kc-sim プラグインが数えた単発任務の例
+ * (docs/screenshots/18-quest-progress.png: COUNTED_QUEST、既定 B182 を遂行中、サブ目標の途中まで数えた状態)。
+ * `bun scripts/screenshot-quests.ts`
  * 任務データは /api (中継先 127.0.0.1:8787、KCSIM_API で上書き) の GET /api/v1/quests: ローカル D1 に
  * `cd server && bun run ingest:quests` 済みであること。poi の代わりの state は同梱サンプルに、マスター全体
  * (@kancolle/data の api_start2) と、選んだ任務の前提の途中を遂行中にした例の任務状態 (デモ用) を足したもの。
@@ -14,12 +16,16 @@ import sample from "../src/sampleState.json";
 import type { PoiQuests } from "@shared/embed/protocol";
 import type { QuestsResponse } from "@shared/quest/types";
 import { buildQuestGraph, resolvePrerequisites } from "@shared/quest/tree";
+import { questGoals } from "@shared/quest/progress";
 
 const OUT = resolve(import.meta.dir, "../../docs/screenshots/17-quests.png");
+const OUT_COUNTED = resolve(import.meta.dir, "../../docs/screenshots/18-quest-progress.png");
 const PORT = 5213;
 const API = process.env.KCSIM_API ?? "http://127.0.0.1:8787";
 /** A88 最精鋭甲型駆逐艦、集結せよ！ (前提 40 件余り、艦娘・装備の条件つき) */
 const TARGET = Number(process.env.QUEST ?? 193);
+/** B182 見敵必殺！最精鋭大和型「第一戦隊」抜錨！ (手入力: 4 海域のボス S 勝利) */
+const COUNTED = Number(process.env.COUNTED_QUEST ?? 977);
 
 const findChromium = (): string => {
   if (process.env.CHROMIUM_PATH) return process.env.CHROMIUM_PATH;
@@ -70,7 +76,8 @@ const browser = await chromium.launch({ executablePath: findChromium() });
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
   page.on("pageerror", (e) => console.error("[pageerror]", e.message));
-  await page.route("**/__dev/state.json", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(devState) }));
+  let served: unknown = devState;
+  await page.route("**/__dev/state.json", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(served) }));
   await page.goto(`http://localhost:${PORT}/`);
   await page.evaluate((id) => {
     localStorage.clear();
@@ -97,6 +104,28 @@ try {
   }
   await page.screenshot({ path: OUT });
   console.log("saved", OUT);
+
+  // 単発任務を遂行中にし、プラグインのカウンタが数えた進捗 (source "kcsim") を例として入れる: 前半のサブ目標は達成済み
+  const goals = questGoals(graph.byId.get(COUNTED)?.requirements ?? null);
+  if (goals.length === 0) throw new Error(`${COUNTED}: no countable goals (needs an override with mechanical conditions)`);
+  const counted: PoiQuests = {
+    list: [{ id: COUNTED, state: 2, type: 4, progress: 1 }],
+    active: [{ id: COUNTED, state: 2, type: 4, progress: 1 }],
+    records: {
+      [COUNTED]: goals.map((g, i) => ({
+        key: g.key, description: g.description, required: g.required, source: "kcsim",
+        count: i < goals.length / 2 ? g.required : 0,
+      })),
+    },
+  };
+  served = { ...devState, quests: counted };
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.evaluate((id) => localStorage.setItem("kcsim:quest", String(id)), COUNTED);
+  await page.reload();
+  await page.getByText("進捗 (kc-sim):").waitFor({ timeout: 30_000 });
+  console.log(`${COUNTED}: ${goals.length} counted goals`);
+  await page.screenshot({ path: OUT_COUNTED });
+  console.log("saved", OUT_COUNTED);
 } finally {
   await browser.close();
   server.kill();

@@ -8,9 +8,38 @@ import type { PoiState } from "@shared/embed/protocol";
 import styles from "../../assets/styles.css?inline";
 import { PluginPanel } from "../panel/PluginPanel";
 import { questListOf } from "../quests/reducer";
+import { countedGoals, getQuestProgressDb, onQuestProgress } from "../quests";
+import type { QuestCounts } from "../quests";
+import { resourcesFromPoi } from "../resources";
+
+/** この提督の任務の進捗カウンタ (メインウィンドウの startCapture が数えて保存する)。保存の通知で読み直す */
+const useQuestCounts = (admiral: string | null): QuestCounts => {
+  const [counts, setCounts] = React.useState<QuestCounts>({});
+  const [version, setVersion] = React.useState(0);
+  React.useEffect(() => onQuestProgress((a) => a === admiral && setVersion((v) => v + 1)), [admiral]);
+  React.useEffect(() => {
+    if (!admiral) return;
+    let alive = true;
+    getQuestProgressDb().load(admiral).then(
+      (c) => alive && setCounts(c),
+      (e) => console.error("[kcsim] failed to load quest progress", e),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [admiral, version]);
+  return counts;
+};
 
 const PoiApp = ({ info, const: master, combinedFlag, questList }: PoiState) => {
-  const poiState = React.useMemo(() => ({ info, const: master, combinedFlag, questList }), [info, master, combinedFlag, questList]);
+  const counts = useQuestCounts(resourcesFromPoi({ info }).admiral);
+  const infoQuests = (info as { quests?: unknown } | undefined)?.quests;
+  // 日付が変わったときの「本日中」の数え直しは、次に state か進捗が変わったときに反映される
+  const questCounts = React.useMemo(() => countedGoals(infoQuests, counts, Date.now()), [infoQuests, counts]);
+  const poiState = React.useMemo(
+    () => ({ info, const: master, combinedFlag, questList, questCounts }),
+    [info, master, combinedFlag, questList, questCounts],
+  );
   return (
     // <style> はこのコンポーネントがマウントされている間だけ存在する (アンマウントで poi 本体に残らない)
     <>

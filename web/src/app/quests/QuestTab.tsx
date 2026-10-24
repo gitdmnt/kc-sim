@@ -32,13 +32,40 @@ const Dot = ({ status }: { status: QuestStatus }) => (
   <span role="img" aria-label={STATUS[status].label} title={STATUS[status].title} className={cx("size-2 shrink-0 rounded-full", STATUS[status].dot)} />
 );
 
-/** poi の進捗: 追跡カウンタ (records) があればその数、無ければゲームの 50% / 80% 表示。 */
+/** 進捗: 追跡カウンタ (poi の records、無ければ kc-sim プラグインのカウンタ) があればその数、無ければゲームの 50% / 80% 表示。 */
 const progressText = (entry: PoiQuestEntry | undefined, goals: PoiQuestGoal[] | undefined): string | null => {
   if (entry?.state === 3) return "達成";
   if (goals?.length) return goals.map((g) => `${goals.length > 1 && g.description ? `${g.description} ` : ""}${g.count}/${g.required}`).join(" · ");
   if (entry?.progress === 1) return "50%以上";
   if (entry?.progress === 2) return "80%以上";
   return null;
+};
+
+const progressSource = (goals: PoiQuestGoal[] | undefined) =>
+  goals?.some((g) => g.source === "kcsim") ? "kc-sim プラグインが数えた進捗 (手入力の達成条件から)" : "poi の任務トラッカー / ゲームの進捗表示";
+
+const REWARD_RESOURCES = ["燃料", "弾薬", "鋼材", "ボーキ"];
+
+/** 報酬 (手入力データのみ): 資源と、選択報酬は「n: A / B」にまとめる */
+const rewardsText = (r: QuestEntry["rewards"]): string | null => {
+  if (!r) return null;
+  const res = (r.resources ?? []).map((x, i) => (x > 0 ? `${REWARD_RESOURCES[i]}${x}` : "")).filter(Boolean);
+  const item = (i: { name: string; amount?: number }) => `${i.name}${i.amount && i.amount > 1 ? `×${i.amount}` : ""}`;
+  const fixed = (r.items ?? []).filter((i) => !i.choice).map(item);
+  const choices = [...new Set((r.items ?? []).flatMap((i) => i.choice ?? []))].map(
+    (c) => `選択${c}: ${(r.items ?? []).filter((i) => i.choice === c).map(item).join(" / ")}`,
+  );
+  const parts = [...res, ...fixed, ...choices];
+  return parts.length ? parts.join("、") : null;
+};
+
+const sourceHost = (url: string) => {
+  try {
+    const host = new URL(url).hostname;
+    return host === "zekamashi.net" ? "ぜかましねっと" : host;
+  } catch {
+    return url;
+  }
 };
 
 const label = (q: QuestEntry | undefined, id: number) => (q ? `${q.code ?? `#${id}`} ${q.name ?? ""}` : `不明な任務 #${id}`);
@@ -71,7 +98,7 @@ const QuestRow = ({
         <Dot status={status} />
         <span className="w-11 shrink-0 truncate text-xs tabular-nums text-ink-400">{q?.code ?? `#${id}`}</span>
         <span className="min-w-0 flex-1 truncate">{q?.name ?? `不明な任務 #${id}`}</span>
-        {progress && <span className="shrink-0 text-xs tabular-nums text-accent-400">{progress}</span>}
+        {progress && <span className="shrink-0 text-xs tabular-nums text-accent-400" title={progressSource(player.records[id])}>{progress}</span>}
       </button>
     </li>
   );
@@ -166,7 +193,9 @@ export const QuestTab = () => {
 
   const q = current === null ? undefined : graph.byId.get(current);
   const status = current === null ? "unknown" : (player.statuses.get(current) ?? "unknown");
-  const progress = current === null ? null : progressText(player.visible.get(current), player.records[current]);
+  const goals = current === null ? undefined : player.records[current];
+  const progress = current === null ? null : progressText(player.visible.get(current), goals);
+  const rewards = q ? rewardsText(q.rewards) : null;
   const unlocks = current === null ? [] : (graph.unlocks.get(current) ?? []);
   const allAfter = current === null ? 0 : descendants(graph, current).length;
   const pending = tree ? tree.order.filter((id) => id !== current && !FINISHED.includes(player.statuses.get(id) ?? "unknown")).length : 0;
@@ -224,10 +253,34 @@ export const QuestTab = () => {
               {q.requirements ? (
                 <pre className="font-sans text-xs whitespace-pre-wrap text-ink-300">{describeRequirement(q.requirements).join("\n")}</pre>
               ) : (
-                <p className="text-xs text-ink-500">構造化された達成条件なし (kcwiki-quest-data に未収録)</p>
+                <p className="text-xs text-ink-500">構造化された達成条件なし (kcwiki-quest-data・手入力データに未収録)</p>
+              )}
+              {rewards && <p className="text-xs text-ink-400">報酬: {rewards}</p>}
+              {q.override && (
+                <p className="text-xs text-ink-500">
+                  {q.override.fields.filter((f) => ["requirements", "pre", "rewards"].includes(f)).map((f) => ({ requirements: "達成条件", pre: "前提", rewards: "報酬" })[f]).join("・") || "内容"}
+                  は手入力{q.override.author === "llm" ? " (LLM 作成・未検証)" : ""}、参考:{" "}
+                  <a href={q.override.source} target="_blank" rel="noreferrer" className="text-accent-400 underline">{sourceHost(q.override.source)}</a>
+                  {q.override.note && ` — ${q.override.note}`}
+                </p>
               )}
               {progress && (
-                <p className="text-xs text-accent-400" title="poi の任務トラッカー / ゲームの進捗表示">進捗: {progress}</p>
+                <div className="text-xs text-accent-400" title={progressSource(goals)}>
+                  {goals && goals.length > 1 && player.visible.get(current!)?.state !== 3 ? (
+                    <>
+                      <p>進捗{goals[0]?.source === "kcsim" ? " (kc-sim)" : ""}:</p>
+                      <ul className="pl-3 tabular-nums">
+                        {goals.map((g) => (
+                          <li key={g.key} className={g.count >= g.required ? "text-ok-400" : undefined}>
+                            {g.description ?? g.key} {g.count}/{g.required}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <p>進捗{goals?.[0]?.source === "kcsim" ? " (kc-sim)" : ""}: {progress}</p>
+                  )}
+                </div>
               )}
             </div>
             <div className="flex min-h-0 flex-col">
@@ -258,7 +311,7 @@ export const QuestTab = () => {
         {needs && (
           <>
             <p className="text-xs text-ink-400">
-              前提を含む{poiQuests ? "未達成の" : ""}任務の条件から (kcwiki-quest-data)。{owned ? "" : "poi のデータが無いので所持は照合しません。"}
+              前提を含む{poiQuests ? "未達成の" : ""}任務の条件から (kcwiki-quest-data・手入力データ)。{owned ? "" : "poi のデータが無いので所持は照合しません。"}
             </p>
             <NeedList
               title="艦娘"

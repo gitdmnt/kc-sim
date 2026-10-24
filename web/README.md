@@ -104,16 +104,19 @@ random stream. Map, mode, conditions and 自動 persist in `kcsim:workspace`, th
 
 `src/app/quests/QuestTab.tsx`, over `GET /api/v1/quests` (cached 24 h, docs/DATA_SOURCES.md §14) and `shared/quest/tree.ts`.
 Three full-height cards that scroll inside (no page scroll at 1280×800 / 1200×710 / 1024×600, checked by
-`bun scripts/screenshot-quests.ts`, which also writes `docs/screenshots/17-quests.png`):
+`bun scripts/screenshot-quests.ts`, which also writes `docs/screenshots/17-quests.png` and `18-quest-progress.png`, a
+one-time quest with counts from the plugin):
 
 - **List:** search by code / name / id; a status dot per quest. The selection persists in `kcsim:quest`.
-- **Quest:** description, the structured clear conditions (kcwiki-quest-data, when it has the quest), poi's progress, and
+- **Quest:** description, the structured clear conditions (the hand-authored override, else kcwiki-quest-data), rewards
+  and the override's reference link (marked 「LLM 作成・未検証」 for LLM-authored entries), the progress, and
   the prerequisite tree: every ancestor quest, prerequisites first (by depth, then id), indented by depth. Cycles are cut at
   the closing edge and unknown ids shown as such (both noted under the tree). Clicking a row selects that quest.
 - **必要なもの:** ships and equipment named by the conditions of the tree's quests that are not yet cleared, merged (a ship
   need keeps the largest amount, equipment is summed because exchanges, conversions and scraps use it up), with 所持 /
   不足 counts from poi's ships and equipment (a named ship also matches its later remodels; ship-type words and classes
-  resolve through the master data; names the master lacks show 照合不可). Below: the quests this one unlocks (and the count
+  resolve through the master data; overrides name master ids, ship types, classes or equipment categories, which match
+  exactly; names the master lacks show 照合不可). Below: the quests this one unlocks (and the count
   of everything after it).
 
 Status (poi state `quests`, protocol.ts `PoiQuests`): 達成 / 遂行中 / 受注可 straight from the game's list; 達成済 (inferred:
@@ -123,11 +126,11 @@ matched against owned ships.
 
 Progress counts: poi already counts every relevant event for the quests in its `assets/data/quest_goal.cson` (130,
 essentially the dailies / weeklies / monthlies / quarterlies / yearlies) and keeps them in `info.quests.records`; the tab
-shows those counts (e.g. `2/5`, one per sub-goal) instead of counting again. Other quests show the game's own
-`api_progress_flag` (50% / 80%) or 達成. Counting one-time quests ourselves would need, per quest, the clear condition
-matched against every sortie (fleet composition by name / class / type, map, boss, rank), exercise, expedition,
-modernization, conversion and scrap event, i.e. re-implementing poi's tracker with goal data that does not exist for
-them (kcwiki-quest-data's conditions stop in 2023 and name ships in prose-like strings); it is not done.
+shows those counts (e.g. `2/5`, one per sub-goal) instead of counting again. For active quests poi does not track, the
+plugin counts the mechanical conditions of the hand-authored overrides itself (docs/QUEST_OVERRIDES.md; sortie boss /
+node ranks per map with fleet checks, exercises, expeditions, scraps, ...) and sends them as `records` goals with
+`source: "kcsim"`; the tab labels those 「進捗 (kc-sim)」 and lists one line per sub-goal. Other quests show the game's own
+`api_progress_flag` (50% / 80%) or 達成.
 
 ## Design system
 
