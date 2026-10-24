@@ -1,7 +1,8 @@
 # web
 
 The kc-sim web UI. Tabs: 出撃 (the workspace: map, fleet editor and results on one screen without page scroll),
-海域 (maps and routing), 敵艦 (enemy data), 推定 (the server's hidden-stat estimates), 設定. The simulation runs in the
+海域 (maps and routing), 敵艦 (enemy ships: one row per master id, elite / flagship marked, with stats, equipment and
+the server's hidden-stat estimates, [ESTIMATOR.md](../docs/ESTIMATOR.md) "UI"), 設定. The simulation runs in the
 browser (sim-core wasm in a Web Worker). The server's
 Cloudflare Worker serves `dist/` as static assets next to the data API, so the UI calls `/api/v1/*` on its own origin.
 The poi plugin (`../poi-plugin-sim`) embeds this page in an iframe and sends poi's fleets and master data with
@@ -32,12 +33,12 @@ when `/api` fails). Deploying: `cd ../server && bun run deploy` builds this firs
 Scripts: `bun run sample` (regenerate `src/sampleState.json` from `@kancolle/data`), `bun run screenshots`
 (`docs/screenshots/` or `SHOTS_DIR`, file prefix `SHOTS_PREFIX`; with the API down, e.g. `KCSIM_API=http://127.0.0.1:9`,
 it uses the static bundles; it fails if the 出撃 tab scrolls, page or tab content, at 1280×800, 1200×710 or 1024×600),
-`bun scripts/screenshot-estimate.ts`, `bun run audit [--offline]`.
+`bun run audit [--offline]`.
 
 ## 出撃 workspace
 
 Layout: no header inside poi (the plugin draws the one header: シミュレーション / 観測ログ / 送信設定); a title row when
-opened directly. The tabs 出撃 / 海域 / 敵艦 / 推定 / 設定 are a vertical bar (icon + name) on the left. Left column:
+opened directly. The tabs 出撃 / 海域 / 敵艦 / 設定 are a vertical bar (icon + name) on the left. Left column:
 編成 (preset selector + ⋯: name, HQ level, poi import of fleet 1–4 or 連合 = fleets 1 + 2, new / duplicate / IO / delete),
 艦隊 (通常艦隊 / 機動部隊 / 水上部隊 / 輸送護衛部隊 / 遊撃部隊) and the 主力 / 随伴 / 支援 / 友軍 / 基地 tabs above the fleet. Right column: the
 simulator toolbar in the order of use, left to right: 海域 (+ 難易度 for event maps), 出撃 / 単一戦闘 (with node and enemy

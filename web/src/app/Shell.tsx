@@ -3,7 +3,7 @@ import { Anchor, Compass, Map, Settings, Swords } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { STORAGE_PREFIX } from "../fleet";
 import { Badge, S, cx } from "../ui";
-import { EnemyHub } from "./enemy/EnemyHub";
+import { EnemyTab } from "./enemy/EnemyTab";
 import { MapTab } from "./map/MapTab";
 import { Workspace } from "./sim/Workspace";
 import { SettingsTab } from "./SettingsTab";
@@ -141,7 +141,7 @@ export const Shell = () => {
                 <Workspace />
               </div>
               {tab === "map" && <div className={pane}><MapTab /></div>}
-              {tab === "enemy" && <div className={pane}><EnemyHub /></div>}
+              {tab === "enemy" && <div className={pane}><EnemyTab /></div>}
               {tab === "settings" && <SettingsTab />}
             </div>
           </main>

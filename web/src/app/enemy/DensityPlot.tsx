@@ -2,7 +2,7 @@ import React from "react";
 import type { EstimateDensity as Density } from "@shared/data/types";
 
 const W = 360;
-const H = 96;
+const H = 112;
 const PAD = { l: 8, r: 8, t: 8, b: 4 };
 
 /** 表示範囲: 事後分布の 0.1%–99.9% と事前分布の中心 (+ 正規なら 5%–95%) を含む範囲。 */

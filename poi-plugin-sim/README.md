@@ -92,7 +92,7 @@ Protocol: [`shared/embed/protocol.ts`](../shared/embed/protocol.ts). Every messa
 
 - **One header row:** the plugin always draws the only header (シミュレーション / 観測ログ / 送信設定, inset 80 px on
   macOS for the window buttons), in the same place for every view. The embedded web UI draws no header: its own tabs
-  (出撃 / 海域 / 敵艦 / 推定 / 設定) are a vertical bar on its left. Protocol v2 removed v1's `hostViews` / `host` /
+  (出撃 / 海域 / 敵艦 / 設定) are a vertical bar on its left. Protocol v2 removed v1's `hostViews` / `host` /
   `open-view` (the web UI merging the plugin's views into its header); the web UI still accepts v1 plugins, which keep
   their own tab bar when no `ready` asks for the merge.
 

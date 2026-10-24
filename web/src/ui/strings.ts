@@ -4,7 +4,7 @@ export const S = {
   tabs: {
     sortie: "出撃",
     map: "海域",
-    enemy: "敵艦・推定",
+    enemy: "敵艦",
     settings: "設定",
   },
   common: {

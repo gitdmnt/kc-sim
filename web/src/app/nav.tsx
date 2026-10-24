@@ -10,9 +10,6 @@ export interface NavIntent {
   mode?: "sortie" | "battle";
   map?: string;
   node?: string;
-  /** enemy タブ: 開く区画 (敵艦の一覧 / サーバの推定値) と、推定値で選ぶ深海棲艦 */
-  view?: "ships" | "estimates";
-  shipId?: number;
 }
 
 interface NavApi {

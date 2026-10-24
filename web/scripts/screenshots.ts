@@ -159,8 +159,8 @@ try {
 
   const apiUp = await fetch(`${process.env.KCSIM_API ?? "http://127.0.0.1:8787"}/api/v1/health`).then((r) => r.ok, () => false);
   if (apiUp) {
-    await tab("敵艦・推定");
-    await page.getByPlaceholder("名前・ID で検索").fill("駆逐イ級");
+    await tab("敵艦");
+    await page.getByPlaceholder("検索").fill("駆逐イ級");
     await page.getByRole("button", { name: /駆逐イ級/ }).first().click();
     await page.waitForTimeout(500);
     await shot("11-enemy-detail", { fullPage: true });
