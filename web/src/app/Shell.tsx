@@ -119,10 +119,10 @@ export const Shell = () => {
     <NavProvider value={nav}>
       <div className="flex h-screen flex-col">
         {!embedded && (
-          <header className="flex h-10 shrink-0 items-center gap-2 border-b border-ink-800 pr-3 pl-12">
+          <header className="flex h-10 shrink-0 items-center gap-2 border-b border-ink-800 px-3">
             <Compass size={18} className="text-ink-400" aria-hidden />
             <h1 className="text-sm font-semibold text-ink-50">{S.appTitle}</h1>
-            <span className="text-xs text-ink-500 tabular-nums">v{__APP_VERSION__}</span>
+            <span className="ml-auto text-xs text-ink-500 tabular-nums">v{__APP_VERSION__}</span>
           </header>
         )}
         <div className="flex min-h-0 flex-1">
