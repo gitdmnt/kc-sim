@@ -52,9 +52,10 @@ when `/api` fails). Deploying: `cd ../server && bun run deploy` builds this firs
 
 Scripts: `bun run sample` (regenerate `src/sampleState.json` from `@kancolle/data`), `bun run screenshots`
 (`docs/screenshots/` or `SHOTS_DIR`, file prefix `SHOTS_PREFIX`; docs keep `23-web-sortie` only; with the API down, e.g.
-`KCSIM_API=http://127.0.0.1:9`, it uses the static bundles; it fails if the bars are not シミュ / 任務 / 設定 with
-出撃 / 海域 / 敵艦 / 計算設定, or if the 出撃 tab scrolls, page or tab content, at 1280×800, 1200×710 or 1024×600),
-`bun run audit [--offline]`.
+`KCSIM_API=http://127.0.0.1:9`, it uses the static bundles, and it takes map data from them when the API has no enemy
+comps for the shot's map (a local D1 without the KCNav ingest); it fails if the bars are not シミュ / 任務 / 設定 with
+出撃 / 海域 / 敵艦 / 計算設定, if the sample fleet never reaches the boss, or if the 出撃 tab scrolls, page or tab
+content, at 1280×800, 1200×710 or 1024×600), `bun run audit [--offline]`.
 
 ## 出撃 workspace
 

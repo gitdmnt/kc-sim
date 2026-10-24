@@ -9,8 +9,8 @@
  * (プラグインと iframe の中) がスクロールしない。
  * ブラウザは playwright のキャッシュにある chromium_headless_shell を使う (CHROMIUM_PATH で上書き可)。
  * 任務は Web UI の開発サーバが中継するデータ API (KCSIM_API、既定 127.0.0.1:8787) の /api/v1/quests を使う。
- * MAPS_FROM_BUNDLES=1 なら海域のデータ (/api/v1/views/map/*) だけ API を通さず、Web UI の代替の静的バンドル (/maps) を
- * 使わせる (手元の D1 に KCNav の敵編成が無いと出撃の結果が 0% になるため)。
+ * API に出撃を撮る海域 (MAP) の敵編成が無ければ (KCNav の敵編成を入れていない手元の D1)、海域のデータ
+ * (/api/v1/views/map/*) だけ API を通さず Web UI の代替の静的バンドル (/maps) を使わせる (そのままでは結果が 0%)。
  */
 import { chromium } from "playwright-core";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
@@ -28,6 +28,13 @@ const DOC = { width: 1024, height: 600 };
 const BUTTONS = { width: 120, height: 42 };
 /** 任務タブで選んでおく任務 (A88 最精鋭甲型駆逐艦、集結せよ！: 前提が多い) */
 const QUEST = 193;
+/** 出撃を撮る海域 (同梱サンプルの第1艦隊でボスに届く) */
+const MAP = "4-2";
+const API = process.env.KCSIM_API ?? "http://127.0.0.1:8787";
+type Boot = { maps: { key: string; compSetCount: number }[] };
+const apiHasComps = await fetch(`${API}/api/v1/views/boot`)
+  .then(async (r) => ((await r.json()) as Boot).maps.some((m) => m.key === MAP && m.compSetCount > 0))
+  .catch(() => false);
 
 const findChromium = (): string => {
   if (process.env.CHROMIUM_PATH) return process.env.CHROMIUM_PATH;
@@ -78,7 +85,10 @@ await context.addInitScript(
   },
   { quest: QUEST, webPort: WEB_PORT }
 );
-if (process.env.MAPS_FROM_BUNDLES) await context.route("**/api/v1/views/map/**", (r) => r.abort());
+if (!apiHasComps) {
+  console.log(`no enemy comps for ${MAP} in the data API (${API}): map data from the static bundles`);
+  await context.route("**/api/v1/views/map/**", (r) => r.abort());
+}
 const main = await context.newPage();
 for (const p of [main]) {
   p.on("pageerror", (e) => console.error("[pageerror]", e.message));
@@ -184,7 +194,7 @@ try {
   await web.locator("span[title^='この入力の']").waitFor({ timeout: 60_000 });
   // ボスに届く海域 (同梱サンプルの第1艦隊で) に替え、その結果が出るまで待つ (結果の欄が変わり、計算済みになる)
   const before = await webFrame().evaluate(() => (document.querySelector("[data-results]") as HTMLElement).innerText);
-  await web.getByLabel("海域").selectOption("4-2");
+  await web.getByLabel("海域").selectOption(MAP);
   await webFrame().waitForFunction(
     (prev) =>
       (document.querySelector("[data-results]") as HTMLElement).innerText !== prev &&
@@ -193,6 +203,9 @@ try {
     before,
     { timeout: 120_000 }
   );
+  // 敵編成の無い海域のデータでは戦闘 0 回の 0% になる (その結果を撮らない)
+  const results = await webFrame().evaluate(() => (document.querySelector("[data-results]") as HTMLElement).innerText);
+  if (/ボス到達\n0\.0%/.test(results)) throw new Error(`${MAP}: the sample fleet never reaches the boss (no enemy comps in the map data?)`);
   // 埋め込んだ Web UI は枠を描かない (左のバーも上の行もプラグインのもの 1 つだけ)
   if (await web.locator("[role=tablist][aria-orientation=vertical]").count()) throw new Error("the embedded web UI draws its activity bar");
   if (await web.getByRole("img", { name: "艦これ シミュレータ" }).count()) throw new Error("the embedded web UI draws its top row");

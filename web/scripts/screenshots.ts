@@ -3,6 +3,8 @@
  * `bun run screenshots`。出力は SHOTS_DIR (既定 docs/screenshots)、ファイル名の頭に SHOTS_PREFIX を付ける。
  * docs に置いているのは 23-web-sortie (ブラウザで開いた 出撃、1024×600) だけで、他は確認用。
  * データ API は vite が KCSIM_API (既定 127.0.0.1:8787) に中継し、落ちていれば静的バンドル (server/dist/maps) を使う。
+ * API に MAP の敵編成が無ければ (KCNav の敵編成を入れていない手元の D1)、海域のデータ (/api/v1/views/map/*) だけ
+ * API を通さず静的バンドルを使わせる (そのままでは出撃は戦闘 0 回で 0%、単一戦闘は計算できない)。
  * ブラウザは playwright のキャッシュにある chromium_headless_shell を使う (CHROMIUM_PATH で上書き可)。
  * 枠: 左のバーは シミュ / 任務 / 設定 (資源はプラグインだけ)、シミュの上のタブは 出撃 / 海域 / 敵艦 / 計算設定
  * (観測ログ・送信設定はプラグインだけ) であること。
@@ -22,6 +24,11 @@ const PORT = 5199;
 const URL = `http://localhost:${PORT}/`;
 /** 出撃結果を撮る海域 (同梱サンプルの第1艦隊でボスに届く) */
 const MAP = process.env.SHOTS_MAP ?? "4-2";
+const API = process.env.KCSIM_API ?? "http://127.0.0.1:8787";
+type Boot = { maps: { key: string; compSetCount: number }[] };
+const apiHasComps = await fetch(`${API}/api/v1/views/boot`)
+  .then(async (r) => ((await r.json()) as Boot).maps.some((m) => m.key === MAP && m.compSetCount > 0))
+  .catch(() => false);
 
 const findChromium = (): string => {
   if (process.env.CHROMIUM_PATH) return process.env.CHROMIUM_PATH;
@@ -43,6 +50,10 @@ const server = await startDevServer(PORT, process.env.KCSIM_API);
 const browser = await chromium.launch({ executablePath: findChromium() });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 page.on("pageerror", (e) => console.error("[pageerror]", e.message));
+if (!apiHasComps) {
+  console.log(`no enemy comps for ${MAP} in the data API (${API}): map data from the static bundles`);
+  await page.route("**/api/v1/views/map/**", (r) => r.abort());
+}
 
 const shot = async (name: string, opts: { fullPage?: boolean } = {}) => {
   await page.screenshot({ path: join(OUT, `${PREFIX}${name}.png`), fullPage: opts.fullPage ?? false });
@@ -113,6 +124,8 @@ try {
   if (await run.isEnabled()) throw new Error("実行 is enabled although the shown result is current");
   const kpi = await page.locator("[data-results]").first().innerText();
   console.log("---- sortie ----\n" + kpi.split("\n").slice(0, 24).join(" | "));
+  // 敵編成の無い海域のデータでは戦闘 0 回の 0% になる (その結果を撮らない)
+  if (/ボス到達\n0\.0%/.test(kpi)) throw new Error(`${MAP}: the sample fleet never reaches the boss (no enemy comps in the map data?)`);
   await checkNoScroll("1280x800");
   await shot("workspace-1280");
   // ブラウザで開いた 出撃 (docs、1024×600)
@@ -166,7 +179,9 @@ try {
   await waitResult(prev);
   await checkNoScroll("battle 1280x800");
   await shot("08-workspace-battle");
-  await page.getByRole("tab", { name: "出撃", exact: true }).first().click();
+  // モードを出撃に戻す (枠のタブ列の「出撃」でなく、main の中のモード切り替え)。単一戦闘の海域の一覧は API に敵編成の
+  // ある海域だけで、敵編成の無い手元の D1 では MAP しか無く、下の 自動 の確認で海域を変えられない
+  await page.locator("main").getByRole("tab", { name: "出撃", exact: true }).click();
 
   // 海域タブ
   await tab("海域");
@@ -177,7 +192,7 @@ try {
     await shot("09-map-routing");
   }
 
-  const apiUp = await fetch(`${process.env.KCSIM_API ?? "http://127.0.0.1:8787"}/api/v1/health`).then((r) => r.ok, () => false);
+  const apiUp = await fetch(`${API}/api/v1/health`).then((r) => r.ok, () => false);
   if (apiUp) {
     await tab("敵艦");
     await page.getByPlaceholder("検索").fill("駆逐イ級");

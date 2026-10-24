@@ -62,10 +62,11 @@ the plugin's views and their CSS scoped to `.kcsim`), `i18n/`. No wasm and no wo
 Other commands: `bun test`, `bunx tsc --noEmit`, `bun run dev` (below), `bun run screenshots` (starts both dev servers,
 writes `docs/screenshots/{05-log-list,06-log-detail,08-plugin-upload,19-plugin-embedded,20-plugin-resources,21-plugin-resources-delta,22-plugin-quests}.png`
 at 1024x600, with poi's macOS drag strip and window buttons drawn over the top left; the 資源 shots use generated
-history from `dev/resourcesSeed.ts` and the 任務 shot the local data API's quests. It fails unless the bar and the top
+history from `dev/resourcesSeed.ts` and the 任務 shot the local data API's quests; map data comes from the static
+bundles when the API has no enemy comps for 4-2 (a local D1 without the KCNav ingest). It fails unless the bar and the top
 row stay in place in every feature and view, no tab sits under the window buttons, the tabs in the drag strip are
 `no-drag`, the plugin's tabs switch the iframe's view and the iframe's own moves come back, the embedded web UI draws no
-bars, and no page (the plugin's or the iframe's) scrolls at 1280x800 / 1200x710 / 1024x600), `bun dev/resources-smoke.ts`
+bars, the 4-2 sortie reaches the boss, and no page (the plugin's or the iframe's) scrolls at 1280x800 / 1200x710 / 1024x600), `bun dev/resources-smoke.ts`
 (feeds a scripted sequence of API responses through `startCapture` the way poi does, and prints what was recorded, a
 restart and the thinning).
 
