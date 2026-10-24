@@ -13,8 +13,8 @@ const run = (entries: Record<string, unknown>) => {
 };
 
 describe("migrateLegacySettings", () => {
-  test("fresh install: auto upload off, production server, notice not closed", () => {
-    expect(run({}).settings).toEqual({ serverUrl: DEFAULT_SERVER_URL, autoUpload: false, uploadNoticeClosed: false });
+  test("fresh install: auto upload on, production server, notice not closed", () => {
+    expect(run({}).settings).toEqual({ serverUrl: DEFAULT_SERVER_URL, autoUpload: true, uploadNoticeClosed: false });
   });
 
   test("upgrade from the old default (127.0.0.1, no kcsim:settings): auto upload off", () => {

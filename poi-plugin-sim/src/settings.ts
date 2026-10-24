@@ -11,15 +11,15 @@ export const STORAGE_PREFIX = "kcsim:";
 export interface PluginSettings {
   /** Web UI を開き、観測を送るサーバ (server/ の Worker)。https、または手元の http のみ */
   serverUrl: string;
-  /** 観測データを自動でサーバに送信する (新規インストールではオフ) */
+  /** 観測データを自動でサーバに送信する (新規インストールではオン) */
   autoUpload: boolean;
-  /** 送信設定の「送信される内容」のお知らせを閉じた (自動送信がオフの間だけ出す) */
+  /** 送信設定の「送信される内容」のお知らせを閉じた (自動送信がオンの間だけ出す) */
   uploadNoticeClosed: boolean;
 }
 
 export const DEFAULT_SERVER_URL = "https://kc-sim.udama.net/";
 
-const DEFAULTS: PluginSettings = { serverUrl: DEFAULT_SERVER_URL, autoUpload: false, uploadNoticeClosed: false };
+const DEFAULTS: PluginSettings = { serverUrl: DEFAULT_SERVER_URL, autoUpload: true, uploadNoticeClosed: false };
 
 const KEY = `${STORAGE_PREFIX}plugin`;
 /** UI がプラグインにあった頃の設定 (apiBase, autoUpload, …) */
@@ -67,7 +67,7 @@ const fromStored = (v: Record<string, unknown>): PluginSettings => ({
 /**
  * 初回 (`kcsim:plugin` が無いとき) の設定を決め、使われなくなったキーを消す。
  *
- * - 新規インストール (`kcsim:` のキーが 1 つも無い): 既定値 (自動送信オフ、本番サーバ)。
+ * - 新規インストール (`kcsim:` のキーが 1 つも無い): 既定値 (自動送信オン、本番サーバ)。
  * - 旧版からの更新で、旧送信先が改名前の本番 (kc-sim-data): 旧 autoUpload を引き継ぎ、登録情報の送信先を新しい本番の
  *   オリジンに書き換える (同じ D1 なので clientId とトークンはそのまま使える)。
  * - それ以外の更新 (旧既定の 127.0.0.1 など、手元にしか送っていなかった): 黙って本番へ送り始めないよう自動送信をオフにする。

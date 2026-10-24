@@ -6,7 +6,7 @@ is the web app in [`../web`](../web), served by the data API's Cloudflare Worker
 
 - **captures** battle and map packets while you play (starts when poi loads the plugin, no window needed) and stores
   them in IndexedDB (`kcsim`),
-- **uploads** them to the server when 自動送信 is on (off for new installs; debounced after each battle result and on
+- **uploads** them to the server when 自動送信 is on (on for new installs; debounced after each battle result and on
   returning to port, with periodic retry and exponential backoff; one request per 60 s, per-install bearer token),
 - shows the **観測ログ** (observation log), **送信設定** (server URL, auto upload, registration) and **資源** (resource
   history) views,
@@ -137,9 +137,9 @@ observations are uploaded to its origin. Only `https://` URLs are accepted, plus
 and `[::1]` (a local `cd ../server && bun run dev` is `http://127.0.0.1:8787/` after `cd ../web && bun run build`).
 
 **Auto upload** (`src/settings.ts`): a fresh install (no `kcsim:` key in poi's localStorage) starts with auto upload
-**off**. While it is off, 送信設定 shows a notice with what an upload contains (the map packets of each sortie, the raw
+**on**. While it is on, 送信設定 shows a notice (until 閉じる) with what an upload contains (the map packets of each sortie, the raw
 battle and battle-result responses, the sortie fleet and HQ level; not the admiral's name or id, exercises, resources or
-quests: `capture/db.ts` `uploadPending`), the server's origin and a button that turns it on; 閉じる hides the notice
+quests: `capture/db.ts` `uploadPending`), the server's origin and a button that turns it off; 閉じる hides the notice
 (`uploadNoticeClosed`). Capture into the observation log does not depend on the setting. A stored `kcsim:plugin` keeps
 its `autoUpload`.
 
@@ -296,6 +296,6 @@ The resource history is checked against poi 12's reducer (`views/redux/info/reso
 app) and its dispatch-before-event order by `bun dev/resources-smoke.ts`; not yet with a logged-in poi.
 The npm package 0.4.0 (`npm pack` output installed with `npm install --global-style` into an empty prefix) was loaded
 through poi 12.0.1's own `.es` babel hook (`babel-hook.js` from its `app.asar`) and rendered with poi's React 18.3.1
-and react-dom/server, including 送信設定 with a fresh localStorage (notice shown, auto upload off), without React
+and react-dom/server, including 送信設定 with a fresh localStorage (notice shown, auto upload on), without React
 errors; the views were also clicked through with React 18.3.1 in a browser. The bundle uses no React 19-only API
 (lucide-react's icons use `forwardRef`; react-redux 9 picks React 18's element symbols).
