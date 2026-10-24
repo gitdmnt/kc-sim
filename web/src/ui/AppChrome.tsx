@@ -119,7 +119,7 @@ const ActivityBar = <F extends string, V extends string>({
             }}
             className={cx(
               // 選択中の印は左端の縦線 (VS Code と同じ)
-              "relative flex h-21 shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-400",
+              "relative flex h-21 shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 text-[10px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-400",
               "before:absolute before:inset-y-3 before:left-0 before:w-0.5 before:rounded-full",
               i === firstBottom && "mt-auto",
               active ? "text-ink-50 before:bg-accent-500" : "text-ink-500 hover:text-ink-200"
