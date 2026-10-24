@@ -24,7 +24,7 @@ version at its right end.
 
 | Feature (bar) | Views (top row) | Drawn by |
 |---|---|---|
-| シミュレーション | 出撃 / 海域 / 敵艦 / 観測ログ / 送信設定 / 計算設定 | 観測ログ, 送信設定: the plugin; the others: the iframe |
+| シミュ | 出撃 / 海域 / 敵艦 / 観測ログ / 送信設定 / 計算設定 | 観測ログ, 送信設定: the plugin; the others: the iframe |
 | 任務 | (title only) | the iframe |
 | 資源 | 推移 / 増減 (イベント) / 増減 (日別) (range, admiral and resource toggles stay in the view) | the plugin |
 | 設定 (gear, bottom) | (title only): the web UI's app-wide settings (sample data, deleting presets, data cache, reset) | the iframe |

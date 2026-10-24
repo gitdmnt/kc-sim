@@ -109,7 +109,7 @@ try {
   await page.getByText("1番艦を追加").waitFor();
   const tabs = await chromeTabs();
   console.log("chrome:", JSON.stringify(tabs));
-  if (tabs.bar.join() !== "シミュレーション,任務,設定" || tabs.top.join() !== "出撃,海域,敵艦,計算設定") throw new Error(`unexpected chrome: ${JSON.stringify(tabs)}`);
+  if (tabs.bar.join() !== "シミュ,任務,設定" || tabs.top.join() !== "出撃,海域,敵艦,計算設定") throw new Error(`unexpected chrome: ${JSON.stringify(tabs)}`);
   await shot("00-workspace-empty");
 
   // poi の第1艦隊 (6 隻) を取り込み、海域を選ぶ → 自動で計算される

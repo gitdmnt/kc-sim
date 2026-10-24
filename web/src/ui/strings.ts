@@ -3,7 +3,7 @@ export const S = {
   appTitle: "艦これ シミュレータ",
   /** 画面の枠 (app/nav.tsx): アクティビティバーの機能と、上の行のローカルタブ。プラグインだけの画面 (観測ログ・送信設定・資源) も含む */
   nav: {
-    sim: "シミュレーション",
+    sim: "シミュ",
     simTitle: "シミュレーション",
     quests: "任務",
     resources: "資源",

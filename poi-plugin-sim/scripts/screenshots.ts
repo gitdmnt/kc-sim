@@ -232,12 +232,12 @@ try {
   await page.mouse.click(logTab!.x + logTab!.width / 2, 10);
   if (!(await isSelected("観測ログ"))) throw new Error("観測ログ tab not clickable within the drag strip");
   await tab("出撃");
-  await assertClearOfWindowButtons("シミュレーション / 出撃");
+  await assertClearOfWindowButtons("シミュ / 出撃");
   await page.waitForTimeout(300);
   await shot("19-plugin-embedded");
   const chrome = await chromeBoxes();
   console.log("chrome:", chrome);
-  await atEverySize("シミュレーション / 出撃", true);
+  await atEverySize("シミュ / 出撃", true);
 
   // プラグインのタブで iframe の画面が変わり、Web UI 側の遷移 (海域 →「出撃シミュ」) はプラグインのタブに戻ってくる
   await tab("海域");
@@ -277,7 +277,7 @@ try {
   await page.waitForTimeout(200);
   await shot("05-log-list");
   if ((await chromeBoxes()) !== chrome) throw new Error(`chrome moved on 観測ログ: ${chrome} → ${await chromeBoxes()}`);
-  await atEverySize("シミュレーション / 観測ログ", false);
+  await atEverySize("シミュ / 観測ログ", false);
   await page.setViewportSize(DOC);
   await page.locator("tbody tr").first().click();
   await page.getByText("攻撃イベント").waitFor();
