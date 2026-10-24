@@ -38,7 +38,7 @@ export const PluginPanel = ({ poiState }: { poiState: PoiState }) => {
     <div className="kcsim">
       <div className="flex h-screen flex-col">
         <ToastProvider>
-          <div className={cx("flex shrink-0 items-center border-b border-ink-800", IS_MAC ? "pr-3 pl-32" : "px-3")}>
+          <div className={cx("flex shrink-0 items-center border-b border-ink-800", IS_MAC ? "pr-12 pl-32" : "px-3")}>
             <Tabs tabs={TABS} value={tab} onChange={setTab} size="sm" className={cx("min-w-0 flex-1", NO_DRAG_TABS)} />
             <span className="shrink-0 pl-3 text-xs text-ink-500 tabular-nums">v{__APP_VERSION__}</span>
           </div>
