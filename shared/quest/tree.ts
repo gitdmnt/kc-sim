@@ -62,19 +62,54 @@ export const resolvePrerequisites = (graph: QuestGraph, target: number): Prerequ
   return { order, depth, missing: missing.sort((a, b) => a - b), cycleEdges };
 };
 
-/** Every quest reachable from `id` over unlock edges (excluding `id`), ascending. */
-export const descendants = (graph: QuestGraph, id: number): number[] => {
-  const seen = new Set<number>([id]);
-  const queue = [id];
-  while (queue.length > 0) {
-    for (const next of graph.unlocks.get(queue.shift()!) ?? []) {
-      if (seen.has(next)) continue;
-      seen.add(next);
-      queue.push(next);
-    }
-  }
-  seen.delete(id);
-  return [...seen].sort((a, b) => a - b);
+/**
+ * One row of the prerequisite outline: a direct prerequisite of the row above it at one level less (the target's own
+ * prerequisites are level 0). A quest is listed in full where the outline first reaches it; later occurrences are
+ * one-line references to that row, so shared ancestors are not repeated.
+ */
+export interface OutlineRow {
+  id: number;
+  /** Quest ids from a direct prerequisite of the target down to this row; `path.join("/")` is the row key */
+  path: number[];
+  /** Key of the row showing this quest in full; set on a reference (which has no children) */
+  ref?: string;
+  /** Rows directly below (0 for references and quests without prerequisites) */
+  children: number;
+  /** Every quest below this row, transitively and without repeats, ascending (empty on references) */
+  under: number[];
+  /** Per level 0 … depth (this row last): whether the row on this path at that level has a later sibling (guide lines) */
+  more: boolean[];
+}
+
+/**
+ * The prerequisites of `target` as an outline in pre-order (prerequisites ascending by id). Edges back into the current
+ * path (cycles) are left out; unknown ids are leaf rows.
+ */
+export const prerequisiteOutline = (graph: QuestGraph, target: number): OutlineRow[] => {
+  const rows: OutlineRow[] = [];
+  const full = new Map<number, string>();
+  const visit = (id: number, path: number[], more: boolean[]) => {
+    const pre = [...new Set((graph.byId.get(id)?.pre ?? []).map((p) => p.id))]
+      .filter((p) => p !== target && !path.includes(p))
+      .sort((a, b) => a - b);
+    pre.forEach((p, i) => {
+      const at = [...path, p];
+      const row: OutlineRow = { id: p, path: at, children: 0, under: [], more: [...more, i < pre.length - 1] };
+      rows.push(row);
+      const ref = full.get(p);
+      if (ref !== undefined) {
+        row.ref = ref;
+        return;
+      }
+      full.set(p, at.join("/"));
+      row.under = resolvePrerequisites(graph, p).order.filter((x) => x !== p).sort((a, b) => a - b);
+      const before = rows.length;
+      visit(p, at, row.more);
+      row.children = rows.slice(before).filter((r) => r.path.length === at.length + 1).length;
+    });
+  };
+  visit(target, [], []);
+  return rows;
 };
 
 // ---- Player status ----

@@ -53,7 +53,7 @@ const statuses = new Map<number, QuestStatus>([
 const of = (id: number, listSeen = false) => questDoability(graph, id, statuses, listSeen, owned);
 
 test("unlocked and every named ship owned (a remodel counts for its base form)", () => {
-  expect(of(1)).toEqual({ gate: "open", doable: true, blockers: [], ships: [], equips: [], unchecked: [] });
+  expect(of(1)).toEqual({ gate: "open", doable: true, ships: [], equips: [], unchecked: [] });
 });
 
 test("a missing ship, missing equipment and a short ship-type count are not doable", () => {
@@ -68,26 +68,26 @@ test("a missing ship, missing equipment and a short ship-type count are not doab
   expect(stype.ships.map((r) => [r.names, r.owned, r.amount])).toEqual([[["艦種2"], 2, 3]]);
 });
 
-test("遂行中 and 達成 quests are unlocked; 未開放 and 達成済 are not, with the uncleared prerequisites", () => {
+test("遂行中 and 達成 quests are unlocked; 未開放 and 達成済 are not", () => {
   expect(of(14)).toMatchObject({ gate: "open", doable: true });
   expect(of(20)).toMatchObject({ gate: "open", doable: false });
-  expect(of(15)).toMatchObject({ gate: "locked", doable: false, blockers: [16] });
-  expect(of(17)).toMatchObject({ gate: "cleared", doable: false, blockers: [] });
+  expect(of(15)).toMatchObject({ gate: "locked", doable: false });
+  expect(of(17)).toMatchObject({ gate: "cleared", doable: false });
 });
 
 test("不明 counts as unlocked only when every prerequisite is inferred 達成済 and the 全て list was not seen", () => {
-  expect(of(5)).toMatchObject({ gate: "inferred", doable: true, blockers: [] });
+  expect(of(5)).toMatchObject({ gate: "inferred", doable: true });
   // the game's full list lacks it: cleared earlier or not offered
   expect(of(5, true)).toMatchObject({ gate: "unknown", doable: false });
-  expect(of(6)).toMatchObject({ gate: "unknown", doable: false, blockers: [12] });
+  expect(of(6)).toMatchObject({ gate: "unknown", doable: false });
   // no prerequisites: nothing to infer from
-  expect(of(7)).toMatchObject({ gate: "unknown", doable: false, blockers: [] });
+  expect(of(7)).toMatchObject({ gate: "unknown", doable: false });
 });
 
 test("conditions that cannot be checked leave the quest doable, marked unchecked", () => {
   expect(of(8)).toMatchObject({ doable: true, unchecked: ["母港で秘書艦を変える"] });
   expect(of(9)).toMatchObject({ doable: true, unchecked: ["達成条件のデータなし"] });
-  expect(of(13)).toMatchObject({ doable: true, unchecked: ["照合不可: 謎の艦"] });
+  expect(of(13)).toMatchObject({ doable: true, unchecked: ["マスターに無い名前: 謎の艦"] });
 });
 
 test("an or-list is doable when one alternative is; else the shortfall of the closest one", () => {

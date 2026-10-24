@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { PoiQuests } from "../embed/protocol";
 import type { QuestEntry, QuestRequirement } from "./types";
 import {
-  OwnershipIndex, aggregateNeeds, buildQuestGraph, descendants, describeRequirement, questNeeds, questStatuses,
+  OwnershipIndex, aggregateNeeds, buildQuestGraph, describeRequirement, prerequisiteOutline, questNeeds, questStatuses,
   resolvePrerequisites, rosterFromPoi,
 } from "./tree";
 
@@ -54,10 +54,30 @@ describe("resolvePrerequisites", () => {
     expect(resolvePrerequisites(graph, 5000)).toMatchObject({ order: [5000], missing: [5000] });
   });
 
-  test("descendants (reverse view)", () => {
+  test("unlock edges (reverse view)", () => {
     expect(graph.unlocks.get(101)).toEqual([102, 103, 107]);
-    expect(descendants(graph, 103)).toEqual([104, 105, 108]);
-    expect(descendants(graph, 106)).toEqual([107]);
+  });
+});
+
+describe("prerequisiteOutline", () => {
+  test("children are direct prerequisites; a shared ancestor is listed once, then referenced", () => {
+    const rows = prerequisiteOutline(graph, 105);
+    expect(rows.map((r) => [r.path.join("/"), r.ref ?? null, r.children, r.more])).toEqual([
+      ["104", null, 2, [false]],
+      ["104/102", null, 1, [false, true]],
+      ["104/102/101", null, 0, [false, true, false]],
+      ["104/103", null, 1, [false, false]],
+      ["104/103/101", "104/102/101", 0, [false, false, false]],
+    ]);
+    expect(rows.map((r) => r.under)).toEqual([[101, 102, 103], [101], [], [101], []]);
+  });
+
+  test("leaves out edges back into the path; unknown ids are leaves", () => {
+    expect(prerequisiteOutline(graph, 106).map((r) => r.path.join("/"))).toEqual(["107", "107/101"]);
+    const rows = prerequisiteOutline(graph, 108);
+    expect(rows.map((r) => r.id)).toEqual([105, 104, 102, 101, 103, 101, 999]);
+    expect(rows.at(-1)).toMatchObject({ id: 999, children: 0, under: [], more: [false] });
+    expect(prerequisiteOutline(graph, 5000)).toEqual([]);
   });
 });
 

@@ -299,7 +299,7 @@ async function main(cmd: string | undefined, args: string[]) {
         setRank(requirements);
         const entry = {
           id: q.id, code: q.code ?? undefined, source: "https://github.com/kcwikizh/kcwiki-quest-data", author: "script",
-          date: new Date().toISOString().slice(0, 10), note: "kcwiki-quest-data の条件を master id に変換", requirements,
+          date: new Date().toISOString().slice(0, 10), requirements,
         };
         const parsed = questOverride.safeParse(entry);
         const goals = questGoals(requirements as QuestRequirement).length;

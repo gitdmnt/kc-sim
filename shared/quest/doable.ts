@@ -15,8 +15,6 @@ export interface Doability {
   gate: DoableGate;
   /** Gate open or inferred, and nothing the roster could be checked against is short */
   doable: boolean;
-  /** Direct prerequisites not inferred 達成済 (gates locked and unknown) */
-  blockers: number[];
   /** Needs the roster falls short of: of the `or` alternative closest to satisfied; only checked past the gate */
   ships: ShipNeedRow[];
   equips: EquipNeedRow[];
@@ -58,7 +56,7 @@ const check = (id: number, req: QuestRequirement, owned: OwnershipIndex) => {
   return {
     ships: ships.filter((r) => r.ok === false),
     equips: equips.filter((r) => r.ok === false),
-    unchecked: [...freeText(req), ...(unresolved.length > 0 ? [`照合不可: ${unresolved.join("、")}`] : [])],
+    unchecked: [...freeText(req), ...(unresolved.length > 0 ? [`マスターに無い名前: ${unresolved.join("、")}`] : [])],
   };
 };
 
@@ -75,17 +73,17 @@ export const questDoability = (
 ): Doability => {
   const status = statuses.get(id) ?? "unknown";
   const pre = graph.byId.get(id)?.pre.map((p) => p.id) ?? [];
-  const blockers = pre.filter((p) => statuses.get(p) !== "cleared");
+  const blocked = pre.some((p) => statuses.get(p) !== "cleared");
   const gate: DoableGate = OPEN.includes(status)
     ? "open"
     : status === "unknown"
-      ? !listSeen && pre.length > 0 && blockers.length === 0 ? "inferred" : "unknown"
+      ? !listSeen && pre.length > 0 && !blocked ? "inferred" : "unknown"
       : status === "cleared" ? "cleared" : "locked";
   if (gate !== "open" && gate !== "inferred") {
-    return { gate, doable: false, blockers: gate === "cleared" ? [] : blockers, ships: [], equips: [], unchecked: [] };
+    return { gate, doable: false, ships: [], equips: [], unchecked: [] };
   }
   const req = graph.byId.get(id)?.requirements ?? null;
-  if (!req) return { gate, doable: true, blockers: [], ships: [], equips: [], unchecked: ["達成条件のデータなし"] };
+  if (!req) return { gate, doable: true, ships: [], equips: [], unchecked: ["達成条件のデータなし"] };
   // The fully checked satisfied alternative, else a satisfied one with unchecked parts, else the fewest shortfalls
   const best = alternatives(req)
     .map((alt) => check(id, alt, owned))
@@ -93,5 +91,5 @@ export const questDoability = (
       const short = (x: typeof a) => x.ships.length + x.equips.length;
       return short(b) < short(a) || (short(b) === short(a) && b.unchecked.length < a.unchecked.length) ? b : a;
     });
-  return { gate, doable: best.ships.length + best.equips.length === 0, blockers: [], ...best };
+  return { gate, doable: best.ships.length + best.equips.length === 0, ...best };
 };

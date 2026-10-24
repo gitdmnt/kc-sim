@@ -1,5 +1,5 @@
 // Facets of the 任務 list (web/src/app/quests/QuestTab.tsx): frequency and category from the wiki code, status from
-// the player's quest state (./tree.ts questStatuses), 実施可能のみ (./doable.ts). An empty facet selection means "all".
+// the player's quest state (./tree.ts questStatuses), 実施可能 (./doable.ts). An empty facet selection means "all".
 import type { QuestEntry } from "./types";
 import type { QuestStatus } from "./tree";
 import type { Doability } from "./doable";
@@ -48,14 +48,14 @@ export interface QuestFilter {
   freq: QuestFrequency[];
   cat: QuestCategory[];
   status: StatusGroup[];
-  /** 実施可能のみ (./doable.ts) */
+  /** 実施可能 (./doable.ts) */
   doable: boolean;
 }
 export const EMPTY_QUEST_FILTER: QuestFilter = { freq: [], cat: [], status: [], doable: false };
 
 /**
  * A stored filter (localStorage JSON); unknown values are dropped, anything malformed is the empty filter. The former
- * 未達成 ("open", unlocked or locked) becomes 未開放 + 未達成; filters saved before 実施可能のみ load with it off.
+ * 未達成 ("open", unlocked or locked) becomes 未開放 + 未達成; filters saved before 実施可能 load with it off.
  */
 export const parseQuestFilter = (v: unknown): QuestFilter => {
   const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
@@ -80,7 +80,7 @@ export interface QuestFacetCounts {
 export interface QuestFilterContext {
   /** Each quest's status; absent without poi's quest state (the status facet is then ignored) */
   statusOf?: (id: number) => QuestStatus;
-  /** Each quest's 実施可能; absent without poi's quest state and roster (実施可能のみ is then ignored) */
+  /** Each quest's 実施可能; absent without poi's quest state and roster (the 実施可能 filter is then ignored) */
   doableOf?: (id: number) => Doability;
   /** The text search */
   match?: (q: QuestEntry) => boolean;

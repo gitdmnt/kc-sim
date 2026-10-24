@@ -60,9 +60,9 @@ test("facets combine with each other and the text match; counts are per facet", 
   expect(text.counts.cat).toMatchObject({ B: 1, F: 1, A: 0 });
 });
 
-test("実施可能のみ combines with the other facets; counts the 不明 quests it leaves out", () => {
+test("実施可能 combines with the other facets; counts the 不明 quests it leaves out", () => {
   const d = (doable: boolean, gate: DoableGate = doable ? "open" : "locked"): Doability =>
-    ({ gate, doable, blockers: [], ships: [], equips: [], unchecked: [] });
+    ({ gate, doable, ships: [], equips: [], unchecked: [] });
   const DOABLE: Record<number, Doability> = { 2: d(true), 3: d(true), 5: d(false, "unknown"), 7: d(true, "inferred") };
   const doableOf = (id: number) => DOABLE[id] ?? d(false);
   const on = { ...EMPTY_QUEST_FILTER, doable: true };

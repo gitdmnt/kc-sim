@@ -2794,7 +2794,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-1",
@@ -2809,7 +2808,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-2",
@@ -2824,7 +2822,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-2",
@@ -2871,7 +2868,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -2924,7 +2920,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "3-1",
@@ -2959,7 +2954,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -3023,7 +3017,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -3051,7 +3044,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "4-2",
@@ -3082,7 +3074,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -3130,7 +3121,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -3171,7 +3161,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -3219,7 +3208,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "or",
       "list": [
@@ -3313,7 +3301,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -3363,7 +3350,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "3-1",
@@ -3413,7 +3399,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "3-2",
@@ -3460,7 +3445,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "4-4",
@@ -3484,7 +3468,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-5",
@@ -3531,7 +3514,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "5-2",
@@ -3571,7 +3553,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "4-3",
@@ -3609,7 +3590,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "5-1",
@@ -3634,7 +3614,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "5-2",
@@ -3657,7 +3636,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-1",
@@ -3702,7 +3680,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-2",
@@ -3741,7 +3718,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "4-2",
@@ -3792,7 +3768,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "5-1",
@@ -3853,7 +3828,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-5",
@@ -3901,7 +3875,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -3952,7 +3925,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-5",
@@ -4004,7 +3976,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "3-1",
@@ -4051,7 +4022,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-4",
@@ -4098,7 +4068,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-2",
@@ -4157,7 +4126,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -4199,7 +4167,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "5-1",
@@ -4255,7 +4222,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-5",
@@ -4303,7 +4269,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -4336,7 +4301,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "5-1",
@@ -4400,7 +4364,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-5",
@@ -4448,7 +4411,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "3-2",
@@ -4511,7 +4473,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "3-2",
@@ -4575,7 +4536,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -4619,7 +4579,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -4662,7 +4621,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -4746,7 +4704,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-5",
@@ -4761,7 +4718,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "5-2",
@@ -4811,7 +4767,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "3-1",
@@ -4856,7 +4811,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-2",
@@ -4898,7 +4852,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -4928,7 +4881,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -4970,7 +4922,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -5029,7 +4980,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-4",
@@ -5082,7 +5032,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-4",
@@ -5148,7 +5097,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -5189,7 +5137,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-5",
@@ -5249,7 +5196,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -5292,7 +5238,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -5333,7 +5278,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 1
@@ -5345,7 +5289,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 2,
@@ -5359,7 +5302,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 3,
@@ -5373,7 +5315,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5387,7 +5328,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5401,7 +5341,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5415,7 +5354,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 8,
@@ -5429,7 +5367,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5443,7 +5380,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "then",
       "list": [
@@ -5501,7 +5437,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5535,7 +5470,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5558,7 +5492,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 2,
@@ -5588,7 +5521,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5619,7 +5551,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 3,
@@ -5649,7 +5580,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5678,7 +5608,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 8,
@@ -5692,7 +5621,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5717,7 +5645,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5757,7 +5684,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5798,7 +5724,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 3,
@@ -5831,7 +5756,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5864,7 +5788,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "excercise",
       "times": 4,
@@ -5887,7 +5810,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -5903,7 +5825,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -5921,7 +5842,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -5939,7 +5859,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -5957,7 +5876,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -5975,7 +5893,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -5993,7 +5910,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6011,7 +5927,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6029,7 +5944,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6047,7 +5961,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6065,7 +5978,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6083,7 +5995,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6101,7 +6012,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6119,7 +6029,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6142,7 +6051,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6165,7 +6073,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6194,7 +6101,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6237,7 +6143,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6261,7 +6166,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6289,7 +6193,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6336,7 +6239,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6369,7 +6271,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6397,7 +6298,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -6435,7 +6335,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "resupply",
@@ -6448,7 +6347,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "repair",
@@ -6461,7 +6359,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "ship",
@@ -6474,7 +6371,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "equipment",
@@ -6487,7 +6383,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "scrapship",
@@ -6500,7 +6395,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "scrapequipment",
@@ -6514,7 +6408,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "scrapequipment",
@@ -6528,7 +6421,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "scrapequipment",
@@ -6542,7 +6434,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "scrapequipment",
@@ -6556,7 +6447,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "equipment": "九七式艦攻(友永隊)",
@@ -6577,7 +6467,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "equipment": "九九式艦爆(江草隊)",
@@ -6598,7 +6487,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "equipment": "零戦52型丙(六〇一空)",
@@ -6619,7 +6507,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "scrapequipment",
@@ -6633,7 +6520,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "improvement",
@@ -6646,7 +6532,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -6705,7 +6590,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -6767,7 +6651,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "equipment": "九七式艦攻(村田隊)",
@@ -6795,7 +6678,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "secretary": [
@@ -6829,7 +6711,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "scrapequipment",
@@ -6843,7 +6724,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "scrapequipment",
@@ -6857,7 +6737,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "equipment": "零式艦戦21型(熟練)",
@@ -6878,7 +6757,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "equipment": "零式艦戦52型(熟練)",
@@ -6907,7 +6785,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "equipment": "零式艦戦21型(熟練)",
@@ -6936,7 +6813,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "equipment": "零戦52型丙(付岩井小隊)",
@@ -6965,7 +6841,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "equipment": "零戦21型(付岩本小隊)",
@@ -6994,7 +6869,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "equipment": "零戦52型甲(付岩本小隊)",
@@ -7023,7 +6897,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "scrapequipment",
@@ -7037,7 +6910,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "scrapequipment",
@@ -7051,7 +6923,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "scrapequipment",
       "list": [
@@ -7078,7 +6949,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "equipments": [
@@ -7114,7 +6984,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "equipments": [
@@ -7157,7 +7026,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -7190,7 +7058,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "equipments": [
@@ -7233,7 +7100,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "equipments": [
@@ -7269,7 +7135,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -7301,7 +7166,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "equipments": [
@@ -7343,7 +7207,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "equipments": [
@@ -7386,7 +7249,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "equipments": [
@@ -7429,7 +7291,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -7468,7 +7329,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -7507,7 +7367,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -7533,7 +7392,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -7559,7 +7417,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -7586,7 +7443,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -7612,7 +7468,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -7664,7 +7519,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -7690,7 +7544,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -7751,7 +7604,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -7812,7 +7664,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -7872,7 +7723,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -7920,7 +7770,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -7953,7 +7802,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -7986,7 +7834,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -8050,7 +7897,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -8109,7 +7955,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -8198,7 +8043,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -8262,7 +8106,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "equipments": [
@@ -8314,7 +8157,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "equipments": [
@@ -8366,7 +8208,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -8406,7 +8247,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -8446,7 +8286,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -8493,7 +8332,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "equipexchange",
       "scraps": [
@@ -8540,7 +8378,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -8604,7 +8441,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "modelconversion",
       "slots": [
@@ -8670,7 +8506,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "modernization",
@@ -8683,7 +8518,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "simple",
       "subcategory": "modernization",
@@ -8696,7 +8530,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "3-1",
@@ -8728,7 +8561,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-5",
@@ -8760,7 +8592,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -8809,7 +8640,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "6-3",
@@ -8824,7 +8654,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-3",
@@ -8855,7 +8684,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-4",
@@ -8870,7 +8698,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -8896,7 +8723,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "3-5",
@@ -8920,7 +8746,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "4-1",
@@ -8964,7 +8789,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "4-5",
@@ -9001,7 +8825,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -9028,7 +8851,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-4",
@@ -9059,7 +8881,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-5",
@@ -9089,7 +8910,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-4",
@@ -9120,7 +8940,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-3",
@@ -9151,7 +8970,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -9210,7 +9028,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-5",
@@ -9259,7 +9076,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-5",
@@ -9308,7 +9124,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "6-3",
@@ -9323,7 +9138,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "5-3",
@@ -9338,7 +9152,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-1",
@@ -9353,7 +9166,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -9387,7 +9199,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "1-4",
@@ -9415,7 +9226,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-4",
@@ -9464,7 +9274,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-5",
@@ -9512,7 +9321,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-2",
@@ -9550,7 +9358,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -9589,7 +9396,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "3-3",
@@ -9630,7 +9436,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "2-4",
@@ -9658,7 +9463,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "5-5",
@@ -9702,7 +9506,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "6-1",
@@ -9741,7 +9544,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "5-3",
@@ -9765,7 +9567,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -9826,7 +9627,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -9873,7 +9673,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -9920,7 +9719,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -9966,7 +9764,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -10001,7 +9798,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -10166,7 +9962,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -10223,7 +10018,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -10291,7 +10085,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -10388,7 +10181,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -10434,7 +10226,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -10479,7 +10270,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "6-5",
@@ -10504,7 +10294,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -10543,7 +10332,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -10640,7 +10428,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -10727,7 +10514,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -10770,7 +10556,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "and",
       "list": [
@@ -10822,7 +10607,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "3-2",
@@ -10873,7 +10657,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -10922,7 +10705,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -10950,7 +10732,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": "6-5",
@@ -10981,7 +10762,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -11016,7 +10796,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -11050,7 +10829,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -11096,7 +10874,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -11129,7 +10906,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -11164,7 +10940,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -11199,7 +10974,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換 (ランクは KC3 の A勝利以上)",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -11253,7 +11027,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -11322,7 +11095,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "expedition",
       "objects": [
@@ -11360,7 +11132,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -11394,7 +11165,6 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "script",
     "date": "2026-10-24",
-    "note": "kcwiki-quest-data の条件を master id に変換",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -11430,7 +11200,7 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "kcwiki の条件を手で master id に変換 (空母=正規/装甲/軽空母)",
+    "note": "空母=正規/装甲/軽空母",
     "requirements": {
       "category": "sortie",
       "map": "3-5",
@@ -11456,7 +11226,7 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "kcwiki の条件を手で master id に変換 (空母=正規/装甲/軽空母)",
+    "note": "空母=正規/装甲/軽空母",
     "requirements": {
       "category": "sortie",
       "map": "3-3",
@@ -11500,7 +11270,7 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "kcwiki の条件を手で master id に変換 (正規空母旗艦+正規空母1, 軽空母不可; A勝利)",
+    "note": "正規空母旗艦+正規空母1, 軽空母不可; A勝利",
     "requirements": {
       "category": "excercise",
       "times": 3,
@@ -11539,7 +11309,7 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "kcwiki の条件を手で master id に変換 (空母=正規/装甲/軽空母; S勝利)",
+    "note": "空母=正規/装甲/軽空母; S勝利",
     "requirements": {
       "category": "excercise",
       "times": 3,
@@ -11571,7 +11341,7 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "kcwiki の条件を手で master id に変換 (空母=正規/装甲/軽空母; S勝利)",
+    "note": "空母=正規/装甲/軽空母; S勝利",
     "requirements": {
       "category": "excercise",
       "times": 6,
@@ -11603,7 +11373,7 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "kcwiki の条件を手で master id に変換 (旗艦は空母系または水母)",
+    "note": "旗艦は空母系または水母",
     "requirements": {
       "category": "sortie",
       "map": [
@@ -11637,7 +11407,7 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "kcwiki の条件を手で master id に変換 (戦艦2・軽空母1, 正規空母不可, 航戦は戦艦に数えない)",
+    "note": "戦艦2・軽空母1, 正規空母不可, 航戦は戦艦に数えない",
     "requirements": {
       "category": "sortie",
       "map": "3-5",
@@ -11686,7 +11456,7 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "kcwiki の条件を手で master id に変換 (7-2 は第2ボス M)",
+    "note": "7-2 は第2ボス M",
     "requirements": {
       "category": "and",
       "list": [
@@ -11738,7 +11508,7 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "kcwiki の条件を手で master id に変換 (改修先は正規/装甲空母, 素材は空母系5隻)",
+    "note": "改修先は正規/装甲空母, 素材は空母系5隻",
     "requirements": {
       "category": "modernization",
       "times": 2,
@@ -11778,7 +11548,7 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "kcwiki の条件を手で master id に変換 (旗艦 Lv90〜99 の任意艦)",
+    "note": "旗艦 Lv90〜99 の任意艦",
     "requirements": {
       "category": "sortie",
       "map": "2-3",
@@ -11826,7 +11596,7 @@
     "source": "https://github.com/kcwikizh/kcwiki-quest-data",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "kcwiki の条件を手で master id に変換 (旗艦 Lv100 以上の任意艦)",
+    "note": "旗艦 Lv100 以上の任意艦",
     "requirements": {
       "category": "sortie",
       "map": "4-3",
@@ -14358,7 +14128,7 @@
     "source": "https://zekamashi.net/kancolle-kouryaku/nitieibei-batubyou/",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "米英艦3隻以上、軽空母・装甲空母を含め空母不可。onlyGroupsで空母を除外",
+    "note": "米英艦3隻以上、軽空母・装甲空母を含め空母不可",
     "requirements": {
       "category": "and",
       "list": [
@@ -20166,7 +19936,7 @@
     "source": "https://zekamashi.net/kancolle-kouryaku/nansei-kiti/",
     "author": "llm",
     "date": "2026-10-24",
-    "note": "grants the south-west base air corps slot",
+    "note": "達成で南西方面の基地航空隊が開放される",
     "requirements": {
       "category": "and",
       "list": [

@@ -23,35 +23,3 @@ export const rewardSummary = (r: QuestRewards | null | undefined): string | null
   ];
   return parts.length ? parts.join("、") : null;
 };
-
-export interface RewardTotal {
-  /** Summed resources of the quests that list them */
-  resources: number[];
-  /** Summed fixed items by name, largest first */
-  items: { name: string; amount: number }[];
-  /** Quests with 選択報酬 (not summed) */
-  withChoices: number;
-  /** Quests without rewards data, or without resources */
-  unknown: number;
-}
-
-/** Fixed rewards of several quests summed (e.g. along a prerequisite path); 選択報酬 are only counted. */
-export const sumRewards = (list: readonly (QuestRewards | null | undefined)[]): RewardTotal => {
-  const resources = [0, 0, 0, 0];
-  const items = new Map<string, number>();
-  let withChoices = 0;
-  let unknown = 0;
-  for (const r of list) {
-    if (!r?.resources) unknown++;
-    r?.resources?.forEach((x, i) => (resources[i]! += x));
-    const { fixed, choices } = rewardGroups(r);
-    for (const i of fixed) items.set(i.name, (items.get(i.name) ?? 0) + (i.amount ?? 1));
-    if (choices.length) withChoices++;
-  }
-  return {
-    resources,
-    items: [...items].map(([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name)),
-    withChoices,
-    unknown,
-  };
-};

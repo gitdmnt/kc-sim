@@ -129,32 +129,43 @@ random stream. Map, mode, conditions and 自動 persist in `kcsim:workspace`, th
 Three full-height cards that scroll inside (no page scroll at 1280×800 / 1200×710 / 1024×600, checked by
 `bun scripts/screenshot-quests.ts`, which also writes `docs/screenshots/17-quests.png`, `18-quest-progress.png`, a
 one-time quest with counts from the plugin, `19-quest-filters.png`, a filtered list and a quest with 選択報酬, and
-`24-quest-doable.png`, 実施可能のみ on with poi state injected, all at 1024×600):
+`24-quest-doable.png`, 実施可能 on with poi state injected, all at 1024×600). The tab shows only what the user cannot
+infer from the UI itself: no boxed status badges, no captions that restate what is visible, no provenance chatter.
 
 - **List:** search by code / name / id, combined with three dropdown filters (`QuestFilters.tsx` over
-  `shared/quest/filter.ts`): 頻度 (単発 / デイリー / ウィークリー / マンスリー / クォータリー / イヤリー / 期間限定) and 種別
-  (A 編成 … G 改装, その他), both from the wiki code (`Bq3`, `2610B3`, `L2610F2`, `Cs8` 季節限定 → 期間限定), and 状況
-  (未開放 = not unlocked yet, 未達成 = 受注可, 遂行中 = 遂行中・達成, 達成済, 不明; only shown with poi's quest state). Each option shows how
-  many quests it would leave given the other filters and the search. Below them the 「実施可能のみ」 toggle (defined
-  below) with how many quests it would leave given the other filters; when on, it notes how many 不明 quests it left out (the tooltip says
-  why). Without poi's quest state and roster it is disabled (「poi 接続時のみ」). Filters persist in `kcsim:questFilter`
-  (a saved `open`, the former 未達成 = 受注可・未開放, loads as 未開放 + 未達成; a saved filter without `doable` loads with
-  the toggle off), the selection in `kcsim:quest`. A status dot per quest, a check mark on 実施可能 quests (「条件未確認」
-  instead when some condition could not be checked); the row tooltip has the description, conditions and a reward summary.
-- **Quest:** description, the structured clear conditions (the hand-authored override, else kcwiki-quest-data), with
-  poi's data whether the quest is 実施可能 and why not (未開放 with the uncleared prerequisites as links, 達成済,
-  開放状況が不明, 不足 ships / equipment with owned/needed, conditions that could not be checked), rewards
-  (`QuestRewards.tsx`: coloured resources, items, one boxed row per 選択報酬 group; the KC3 memo's `[獲]` part is hidden
-  then) with the sum of the fixed rewards along the open prerequisite path (`sumRewards`), the override's reference
-  link (marked 「LLM 作成・未検証」 for LLM-authored entries), the progress, and
-  the prerequisite tree: every ancestor quest, prerequisites first (by depth, then id), indented by depth. Cycles are cut at
-  the closing edge and unknown ids shown as such (both noted under the tree). Clicking a row selects that quest.
-- **必要なもの:** ships and equipment named by the conditions of the tree's quests that are not yet cleared, merged (a ship
-  need keeps the largest amount, equipment is summed because exchanges, conversions and scraps use it up), with 所持 /
-  不足 counts from poi's ships and equipment (a named ship also matches its later remodels; ship-type words and classes
-  resolve through the master data; overrides name master ids, ship types, classes or equipment categories, which match
-  exactly; names the master lacks show 照合不可). Below: the quests this one unlocks (and the count
-  of everything after it).
+  `shared/quest/filter.ts`): 種別 (単発 / デイリー / ウィークリー / マンスリー / クォータリー / イヤリー / 期間限定; key
+  `freq`) and 分類 (A 編成 … G 改装, その他; key `cat`), both from the wiki code (`Bq3`, `2610B3`, `L2610F2`, `Cs8` 季節限定
+  → 期間限定), and 状況 (未開放 = not unlocked yet, 未達成 = 受注可, 遂行中 = 遂行中・達成, 達成済, 不明; only shown with
+  poi's quest state). Each option shows how many quests it would leave given the other filters and the search. Below
+  them the 「実施可能」 toggle (defined below) with how many quests it would leave given the other filters; when on, it
+  notes how many 不明 quests it left out. Without poi's quest state and roster it is disabled (「poi 接続時のみ」).
+  Filters persist in `kcsim:questFilter` (a saved `open`, the former 未達成 = 受注可・未開放, loads as 未開放 + 未達成; a
+  saved filter without `doable` loads with the toggle off), the selection in `kcsim:quest`. A status dot per quest, a
+  check mark on 実施可能 quests (「条件未確認」 instead when some condition could not be checked); the row tooltip has the
+  description, conditions and a reward summary.
+- **Quest:** 種別 and the status (dot + text) in the header; description, the structured clear conditions (the
+  override, else kcwiki-quest-data) and the override's `note`; with poi's data, the shortfall of a quest that is not
+  実施可能 (「不足: 潜水空母/潜水艦 0/2」) and conditions that could not be checked, as plain text; rewards
+  (`QuestRewards.tsx`, plain text: resources with a coloured dot and the number in the normal colour, fixed items joined
+  by 「、」, one 「選択1: A / B / C」 line per 選択報酬 group; the KC3 memo's `[獲]` part is hidden then); the progress; the
+  prerequisite tree (below); and at the bottom one 「出典:」 line linking the sources this quest's data came from (the
+  override's reference page, kcwiki-quest-data, KC3Kai, kcanotify).
+- **Prerequisite tree** (`PrerequisiteTree.tsx` over `prerequisiteOutline` in `shared/quest/tree.ts`): an outline in
+  which a row's children are its direct prerequisites, one fixed indent step (with guide lines) per level; siblings share
+  a level and are ordered by id. The graph is a DAG, so a quest reached a second time (a shared ancestor) is a one-line
+  muted reference (↰) instead of a repeated subtree; clicking it opens the branches down to the full row, scrolls to it
+  and highlights it. Rows with prerequisites have a ▸ toggle; a closed row shows how many quests it hides (「+12」). Open
+  at first: the first two levels and every branch leading to a 受注可 / 遂行中 quest (the player's frontier); closed: every
+  branch whose quests are all 達成済 / 達成, and anything deeper. 「すべて開く」 / 「畳む」 switch between everything and
+  that default. This keeps the 40+-quest chains (A88, B117) to a dozen rows at first instead of a 16-level staircase.
+  Cycles are cut at the closing edge and unknown ids shown as such (both noted under the tree). Clicking a row selects
+  that quest.
+- **必要なもの:** 「未達成の前提任務を含む」: ships and equipment named by the conditions of the tree's quests that are not
+  yet cleared, merged (a ship need keeps the largest amount, equipment is summed because exchanges, conversions and
+  scraps use it up), each with owned/needed as plain text (「1/2」, muted; red when short; 「×2」 without poi data;
+  「?/2」 when a name does not resolve) from poi's ships and equipment (a named ship also matches its later remodels;
+  ship-type words and classes resolve through the master data; overrides name master ids, ship types, classes or
+  equipment categories, which match exactly). Below: 後続任務, the quests this one unlocks.
 
 Status (poi state `quests`, protocol.ts `PoiQuests`): 達成 / 遂行中 / 受注可 straight from the game's list; 達成済 (inferred:
 an ancestor of a listed quest) and 未開放 (inferred: after a listed one-time quest). Without the 全て list (poi restarted,
@@ -164,7 +175,7 @@ matched against owned ships.
 実施可能 (`shared/quest/doable.ts` `questDoability`), only with poi's quest state and roster:
 
 1. **Unlocked:** status 受注可, 遂行中 or 達成 (the 未達成 and 遂行中 groups). 不明 counts as unlocked only while poi has not
-   seen the 全て list and the quest has prerequisites that are all inferred 達成済 (shown 「開放済みとみなす」); with the
+   seen the 全て list and the quest has prerequisites that are all inferred 達成済; with the
    全て list a quest missing from it is not takeable (cleared earlier or not offered), and a quest without prerequisites
    gives nothing to infer from. Every other 不明 quest is left out and counted (「不明 N 件は除外」). Inferred quests may
    already be cleared (one-time) or out of season (期間限定): opening the 全て list settles them.
@@ -174,7 +185,7 @@ matched against owned ships.
    `and` / `then` list of `or`s: one combination); a quest that misses shows the shortfall of the closest alternative.
    Levels, ★, 熟練 and fleet positions are not checked.
 3. **条件未確認:** a quest without structured conditions, a free-text `other` condition, or a name the master data lacks
-   (照合不可) cannot be checked; such a quest still counts as 実施可能 and is marked 「条件未確認」.
+   cannot be checked; such a quest still counts as 実施可能 and is marked 「条件未確認」 (the detail lists those conditions).
 
 Progress counts: poi already counts every relevant event for the quests in its `assets/data/quest_goal.cson` (130,
 essentially the dailies / weeklies / monthlies / quarterlies / yearlies) and keeps them in `info.quests.records`; the tab
