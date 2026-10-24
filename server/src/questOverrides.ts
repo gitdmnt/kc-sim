@@ -20,7 +20,8 @@ const resources = z.array(z.number().int().min(0)).length(4).optional();
 const group = z.strictObject({
   ship: z.union([z.string(), z.array(z.string())]).optional(),
   shipclass: z.union([z.string(), z.array(z.string())]).optional(),
-  amount: z.union([count, z.tuple([z.number().int().min(0), count])]).optional(),
+  /** at least n, or [min, max]; [0, 0] = none of these may be in the fleet */
+  amount: z.union([count, z.tuple([z.number().int().min(0), z.number().int().min(0)])]).optional(),
   flagship: z.literal(true).optional(),
   lv: z.tuple([z.number().int().min(1), z.number().int().min(1)]).optional(),
   select: count.optional(),

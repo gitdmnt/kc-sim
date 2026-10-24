@@ -8,16 +8,22 @@
 //   bun scripts/quest-ref.ts quest <id|code|name...> merged upstream entry + override of a quest (name: substring)
 //   bun scripts/quest-ref.ts cells <W-M> <letter...> game cell ids (api_no) entering a node letter, for `cells`
 //   bun scripts/quest-ref.ts missing [kind]     quests with no structured conditions (kind: once|limited|y|q|m|w|d)
-//   bun scripts/quest-ref.ts check              validates the override file against the master data
+//   bun scripts/quest-ref.ts check [file]       validates the override file (or a staging file) against the master data
+//   bun scripts/quest-ref.ts merge <file...>    staging files into the override file (same id: replaced; new: appended)
+//   bun scripts/quest-ref.ts from-kcwiki <kind> <out.json>  kcwiki conditions with names -> overrides with master ids
+//                                               (unambiguous ones to out.json, the rest with reasons to out.todo.json)
 //
 // zekamashi.net is fetched politely: one request at a time, at least FETCH_GAP_MS apart (across invocations, through
 // a timestamp file), each page cached forever under server/.tmp/zekamashi. Their text stays there (gitignored); the
 // override file only holds our own structured data and the source URL.
-import { mkdir } from "node:fs/promises";
+import { mkdir, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { questGoals } from "../../shared/quest/progress";
+import type { QuestRequirement } from "../../shared/quest/types";
 import { fetchGithub, type GithubFile } from "./lib/fetch";
 import { kc3QuestMeta, kc3QuestTranslations, kcwikiQuestData, mergeQuests } from "../src/quests";
-import { parseQuestOverrides, QUEST_OVERRIDES_PATH } from "../src/questOverrides";
+import { parseQuestOverrides, questOverride, QUEST_OVERRIDES_PATH } from "../src/questOverrides";
+import { kcwikiConverter } from "./lib/kcwiki-ids";
 import { nameKey } from "../../shared/quest/tree";
 
 const TMP = join(import.meta.dir, "..", ".tmp");
@@ -33,22 +39,43 @@ const cachePath = (url: string): string => {
   return join(ZEKAMASHI, slug.endsWith(".xml") ? slug : `${slug}.html`);
 };
 
-/** The page from the cache, else one polite request (waits until FETCH_GAP_MS after the previous one). */
+/**
+ * The page from the cache, else one polite request (waits until FETCH_GAP_MS after the previous one). Concurrent
+ * quest-ref processes (several authors at once) take turns through a lock directory, so requests stay sequential.
+ */
 export async function zekamashi(url: string): Promise<string> {
   const path = cachePath(url);
   const cached = Bun.file(path);
   if (await cached.exists()) return cached.text();
   await mkdir(ZEKAMASHI, { recursive: true });
-  const stamp = Bun.file(join(ZEKAMASHI, ".last-fetch"));
-  const last = (await stamp.exists()) ? Number(await stamp.text()) : 0;
-  const wait = last + FETCH_GAP_MS - Date.now();
-  if (wait > 0) await Bun.sleep(wait);
-  const res = await fetch(url, { headers: { "User-Agent": UA } });
-  await Bun.write(stamp, String(Date.now()));
-  if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
-  const body = await res.text();
-  await Bun.write(path, body);
-  return body;
+  const lock = join(ZEKAMASHI, ".lock");
+  for (let tries = 0; ; tries++) {
+    try {
+      await mkdir(lock);
+      break;
+    } catch {
+      // a lock older than a minute belongs to a crashed process
+      const age = Date.now() - ((await stat(lock).catch(() => null))?.mtimeMs ?? Date.now());
+      if (age > 60_000 || tries > 600) await rm(lock, { recursive: true, force: true });
+      await Bun.sleep(500);
+    }
+  }
+  try {
+    // another process may have fetched it while we waited
+    if (await Bun.file(path).exists()) return Bun.file(path).text();
+    const stamp = Bun.file(join(ZEKAMASHI, ".last-fetch"));
+    const last = (await stamp.exists()) ? Number(await stamp.text()) : 0;
+    const wait = last + FETCH_GAP_MS - Date.now();
+    if (wait > 0) await Bun.sleep(wait);
+    const res = await fetch(url, { headers: { "User-Agent": UA } });
+    await Bun.write(stamp, String(Date.now()));
+    if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
+    const body = await res.text();
+    await Bun.write(path, body);
+    return body;
+  } finally {
+    await rm(lock, { recursive: true, force: true });
+  }
 }
 
 const decode = (s: string) =>
@@ -96,6 +123,9 @@ interface Master {
   ships: { api_id: number; api_name: string; api_stype: number; api_ctype?: number; api_aftershipid?: string }[];
   equips: { api_id: number; api_name: string; api_type: number[] }[];
   stypes: { api_id: number; api_name: string }[];
+  missions: { api_id: number; api_disp_no?: string; api_name: string }[];
+  equipTypes: { api_id: number; api_name: string }[];
+  useitems: { api_id: number; api_name: string }[];
 }
 async function master(): Promise<Master> {
   const j = (await cachedJson("start2.json", { owner: "Tibowl", repo: "api_start2", ref: "master", path: "start2.json" })) as Record<string, unknown>;
@@ -104,6 +134,9 @@ async function master(): Promise<Master> {
     ships: (d.api_mst_ship as Master["ships"]).filter((s) => s.api_id <= 1500),
     equips: (d.api_mst_slotitem as Master["equips"]).filter((e) => e.api_id <= 1500),
     stypes: d.api_mst_stype as Master["stypes"],
+    missions: d.api_mst_mission as Master["missions"],
+    equipTypes: d.api_mst_slotitem_equiptype as Master["equipTypes"],
+    useitems: d.api_mst_useitem as Master["useitems"],
   };
 }
 
@@ -211,8 +244,10 @@ async function main(cmd: string | undefined, args: string[]) {
       return;
     }
     case "check": {
+      // check [file]: the override file, or a staging file in the same format (merged later with `merge`)
       const m = await master();
-      const overrides = parseQuestOverrides(await Bun.file(QUEST_OVERRIDES_PATH).json());
+      const overrides = parseQuestOverrides(await Bun.file(args[0] ?? QUEST_OVERRIDES_PATH).json());
+      const missions = new Set(m.missions.map((x) => x.api_id));
       const ships = new Map(m.ships.map((s) => [s.api_id, s.api_name]));
       const equips = new Map(m.equips.map((e) => [e.api_id, e.api_name]));
       const quests = new Set((await upstream()).map((q) => q.id));
@@ -224,17 +259,78 @@ async function main(cmd: string | undefined, args: string[]) {
           const ids = Array.isArray(x) ? x : [x];
           if (/^(shipIds|flagshipIds|secretaryIds|shipId)$/.test(k)) {
             for (const id of ids) if (!ships.has(id as number)) (bad++, console.log(`${where}.${k}: unknown ship ${id}`));
+          } else if (k === "objects") {
+            for (const o of ids as { id?: number | number[] }[]) {
+              for (const id of [o.id ?? []].flat()) if (!missions.has(id)) (bad++, console.log(`${where}.objects: unknown expedition ${id}`));
+            }
           } else if (/^(equipIds|equipId)$/.test(k)) {
             for (const id of ids) if (!equips.has(id as number)) (bad++, console.log(`${where}.${k}: unknown equipment ${id}`));
           } else walk(x, `${where}.${k}`);
         }
       };
+      let countable = 0;
       for (const o of overrides) {
         if (!quests.has(o.id)) console.log(`${o.id}: not in the upstream quest list (kept as a new quest)`);
         walk(o, String(o.id));
+        if (questGoals((o.requirements as QuestRequirement | undefined) ?? null).length > 0) countable++;
       }
-      console.log(`${overrides.length} overrides, ${bad} unknown ids`);
+      console.log(`${overrides.length} overrides (${countable} with countable goals), ${bad} unknown ids`);
       if (bad) process.exit(1);
+      return;
+    }
+    case "from-kcwiki": {
+      // kcwiki-quest-data conditions of one quest kind (once / y / ...) as overrides with master ids, for the quests that
+      // have something countable and no override yet
+      const [kind, out] = args;
+      if (!kind || !out) throw new Error("from-kcwiki <kind> <out.json>");
+      const convert = kcwikiConverter(await master());
+      const done = new Set(parseQuestOverrides(await Bun.file(QUEST_OVERRIDES_PATH).json()).map((o) => o.id));
+      const ok: unknown[] = [];
+      const todo: unknown[] = [];
+      for (const q of await upstream()) {
+        if (!q.requirements || done.has(q.id) || kindOf(q.code) !== kind || q.requirements.category === "a-gou") continue;
+        const { requirements, problems } = convert(q.requirements);
+        // kcwiki has no rank for exercises ("victory" = B); the game text / KC3 memo name 【S判定】 / A勝利 when it matters
+        const rank = /【([SA])判定】|([SA])勝利/.exec(`${q.detail ?? ""} ${q.memo ?? ""}`);
+        const setRank = (r: Record<string, unknown>) => {
+          if (["and", "or", "then"].includes(r.category as string)) (r.list as Record<string, unknown>[]).forEach(setRank);
+          else if (r.category === "excercise" && rank) r.result = rank[1] ?? rank[2];
+        };
+        setRank(requirements);
+        const entry = {
+          id: q.id, code: q.code ?? undefined, source: "https://github.com/kcwikizh/kcwiki-quest-data", author: "script",
+          date: new Date().toISOString().slice(0, 10), note: "kcwiki-quest-data の条件を master id に変換", requirements,
+        };
+        const parsed = questOverride.safeParse(entry);
+        const goals = questGoals(requirements as QuestRequirement).length;
+        if (parsed.success && problems.length === 0 && goals > 0) ok.push(entry);
+        else if (goals > 0 || problems.length > 0) {
+          const zod = parsed.success ? [] : parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+          todo.push({ id: q.id, code: q.code, name: q.name, problems: [...problems, ...zod], kcwiki: q.requirements, converted: requirements });
+        }
+      }
+      await mkdir(dirname(out), { recursive: true });
+      await Bun.write(out, `${JSON.stringify(ok, null, 2)}\n`);
+      await Bun.write(out.replace(/\.json$/, ".todo.json"), `${JSON.stringify(todo, null, 2)}\n`);
+      console.log(`${ok.length} converted, ${todo.length} to check by hand`);
+      return;
+    }
+    case "merge": {
+      // merge <file...>: staging files into the override file; an id already there is replaced in place, new ids are
+      // appended (existing entries never move, so concurrent authors rebase cleanly)
+      const list = parseQuestOverrides(await Bun.file(QUEST_OVERRIDES_PATH).json());
+      let replaced = 0;
+      let added = 0;
+      for (const file of args) {
+        for (const o of parseQuestOverrides(await Bun.file(file).json())) {
+          const i = list.findIndex((x) => x.id === o.id);
+          if (i >= 0) (list[i] = o, replaced++);
+          else (list.push(o), added++);
+        }
+      }
+      parseQuestOverrides(list);
+      await Bun.write(QUEST_OVERRIDES_PATH, `${JSON.stringify(list, null, 2)}\n`);
+      console.log(`${added} added, ${replaced} replaced, ${list.length} overrides`);
       return;
     }
     default:

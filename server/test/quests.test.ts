@@ -90,7 +90,6 @@ test("the override schema is strict", () => {
 test("shared/quest/overrides.json is valid", async () => {
   const list = parseQuestOverrides(await Bun.file(QUEST_OVERRIDES_PATH).json());
   expect(list.length).toBeGreaterThan(0);
-  expect(list.map((o) => o.id)).toEqual([...list.map((o) => o.id)].sort((a, b) => a - b));
 });
 
 test("kcwiki text fallback turns <br> into newlines; malformed kcwiki entries are rejected", () => {
