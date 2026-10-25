@@ -1,6 +1,6 @@
 /**
  * プリセット / 敵編成 → sim-core の BattleInput への変換 (純粋関数)。
- * 規約は docs/SIM_INTERFACE.md "Conventions" に従う: 艦の stats は「装備なし・装備ボーナスなし」。
+ * 規約は private notes SIM_INTERFACE "Conventions" に従う: 艦の stats は「装備なし・装備ボーナスなし」。
  */
 import type {
   BaseRaidInput,

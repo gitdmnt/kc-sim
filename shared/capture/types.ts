@@ -64,7 +64,7 @@ export interface CapturedMapInfo {
   cellId: number;
   /**
    * cellId の文字列。ノード名 (A, B…) はクライアントでは解決しない: サーバが edges (edge_id = 行き先の
-   * cell 番号) から引く (docs/API.md §3)。古い記録には解決済みの名前が入っていることがある。
+   * cell 番号) から引く (private notes API §3)。古い記録には解決済みの名前が入っていることがある。
    */
   node: string;
   difficulty: number | null;

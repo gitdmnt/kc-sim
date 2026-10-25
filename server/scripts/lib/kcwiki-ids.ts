@@ -1,4 +1,4 @@
-// kcwiki-quest-data requirements -> override requirements with master ids (docs/QUEST_OVERRIDES.md "From kcwiki").
+// kcwiki-quest-data requirements -> override requirements with master ids (private notes QUEST_OVERRIDES "From kcwiki").
 // kcwiki names ships by master name (a name also accepts the later remodels, as the 任務 tab reads it) or by
 // ship-type word, and equipment by name. The counter needs master data, so every name is resolved here; anything
 // that has no unambiguous reading is reported as a problem for hand-checking instead of being guessed.

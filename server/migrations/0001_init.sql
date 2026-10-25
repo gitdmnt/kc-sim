@@ -1,4 +1,4 @@
--- kc-sim data platform schema (docs/DATA_SOURCES.md §9, docs/API.md). JSON columns are TEXT.
+-- kc-sim data platform schema (private notes DATA_SOURCES §9, private notes API). JSON columns are TEXT.
 
 CREATE TABLE sources (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

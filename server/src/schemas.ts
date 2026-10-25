@@ -1,4 +1,4 @@
-// zod validation for write / admin request bodies (docs/API.md §3, §4).
+// zod validation for write / admin request bodies (private notes API §3, §4).
 import * as z from "zod";
 import { parseMapKey } from "./maps";
 
@@ -86,7 +86,7 @@ export const sortieRecord = z.object({
 }).strict();
 export type SortieRecord = z.infer<typeof sortieRecord>;
 
-// ---- POST /api/v1/observations (docs/API.md §3) ----
+// ---- POST /api/v1/observations (private notes API §3) ----
 // The request only stages the body's items (SQLite checks the envelope: ingest/upload.ts stageUpload). The
 // jobs run checks each staged observation on its own with `observationInput`, so one malformed observation is
 // rejected (rule "schema") without failing the others. Other envelope keys (a legacy `clientId`) are ignored.

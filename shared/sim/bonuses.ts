@@ -22,7 +22,7 @@ export interface EventBonusEntry {
   [key: string]: unknown;
 }
 
-/** `GET /api/v1/maps/{map}/bonuses` の応答 (docs/API.md)。 */
+/** `GET /api/v1/maps/{map}/bonuses` の応答 (private notes API)。 */
 export interface EventBonusResponse {
   map: string;
   date: string | null;
@@ -46,7 +46,7 @@ export interface NodeBonus<T> {
  * accEvaType)、dmgHalf=命中は dmg と同じ・回避は 1+(dmg−1)/2。
  * auto (既定) は、データのどこかに acc/eva があれば data (kancolle-replay も acc/eva のあるデータでは data を既定にする)、
  * 無ければ dmgHalf。dmgHalf は 2026 夏イベ (62) の実戦闘 916 件の命中で合わせた: 特効艦の昼砲撃・航空攻撃の命中と、
- * 特効艦への敵の命中が実測に合う (docs/VALIDATION.md §4)。ゲームの特効は命中項・回避項にも掛かる (wikiwiki 命中と回避について)。
+ * 特効艦への敵の命中が実測に合う (private notes VALIDATION §4)。ゲームの特効は命中項・回避項にも掛かる (wikiwiki 命中と回避について)。
  */
 export type AccEvaMode = "auto" | "data" | "none" | "dmg" | "half" | "dmgHalf";
 

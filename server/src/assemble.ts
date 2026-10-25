@@ -1,5 +1,5 @@
 // Row -> API JSON mapping shared by the read API (src/routes/read.ts) and the static bundle export
-// (scripts/export-bundle.ts), so both emit identical shapes (docs/API.md §2).
+// (scripts/export-bundle.ts), so both emit identical shapes (private notes API §2).
 import { mapName } from "./maps";
 
 type Row = Record<string, unknown>;
@@ -61,7 +61,7 @@ export function routingDocJson(head: Row, rules: Row[]) {
 }
 
 export const ROUTING_INFERRED_COLS = "map_id, sorties, generated_at, doc";
-/** Where a map's routing document comes from (docs/API.md §2): hand-authored rules, or inferred from observations. */
+/** Where a map's routing document comes from (private notes API §2): hand-authored rules, or inferred from observations. */
 export interface RoutingMeta { provenance: "hand" | "inferred"; generatedAt: string | null; sortieCount: number | null }
 /**
  * The routing document of a map and its provenance: hand-authored rules (routing_maps + routing_rules) win, else

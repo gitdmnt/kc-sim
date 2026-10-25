@@ -10,7 +10,7 @@ const KEY = "kancolle-replay-shipdata";
 
 /**
  * kcSHIPDATA stat key -> estimates.stat. TACC is kcsim's innate *torpedo* accuracy (`tacc`), not the
- * general hidden accuracy `acc`, which only the estimator produces (docs/API.md §2).
+ * general hidden accuracy `acc`, which only the estimator produces (private notes API §2).
  */
 export const HIDDEN_STATS = { EV: "ev", ASW: "asw", LOS: "los", LUK: "luck", TACC: "tacc" } as const;
 /** kancolle-replay STAT_UNKNOWN codes (js/simulator-ui/fleet-editor.js) -> estimates.confidence */

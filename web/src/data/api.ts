@@ -6,7 +6,7 @@ import type { EventBonusResponse } from "@shared/sim/bonuses";
 import type { QuestsResponse } from "@shared/quest/types";
 import type { ApiEquipment, ApiShip, EnemyCompsResponse, EstimatesResponse, MapDetail, MapSummary, ShipDetail } from "@shared/data/types";
 
-// 画面ごとの応答 (docs/API.md「Views」)。どれも個別の API の応答をまとめたもの
+// 画面ごとの応答 (private notes API「Views」)。どれも個別の API の応答をまとめたもの
 
 /** `GET /api/v1/views/boot`: どの画面も使う一覧 (海域・深海装備・装備ボーナス)。 */
 export interface BootView {
@@ -190,7 +190,7 @@ export class DataApi {
   boot() {
     return this.get<BootView>("/api/v1/views/boot");
   }
-  /** 1 海域の一式 (1 リクエスト)。敵編成の出典は API の既定ポリシー: 観測 (poi-observed) が minObserved 件以上なら観測、でなければ KCNav (API.md §2)。 */
+  /** 1 海域の一式 (1 リクエスト)。敵編成の出典は API の既定ポリシー: 観測 (poi-observed) が minObserved 件以上なら観測、でなければ KCNav (private notes API §2)。 */
   mapView(key: string, minObserved?: number) {
     const q = minObserved === undefined ? "" : `?minObserved=${minObserved}`;
     return this.get<MapView>(`/api/v1/views/map/${encodeURIComponent(key)}${q}`);

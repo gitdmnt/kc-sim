@@ -1,4 +1,4 @@
-// Admin API (docs/API.md §4): KCNav queue control, routing uploads, poi-observed aggregation, the server
+// Admin API (private notes API §4): KCNav queue control, routing uploads, poi-observed aggregation, the server
 // estimator, the background jobs, clients and validation records. Behind Cloudflare Access (auth/access.ts).
 // The jobs run in GitHub Actions (scripts/run-jobs.ts); the job endpoints here run the same code in the worker on
 // demand, budgeted (src/budget.ts): /jobs/run, /ingest/run and /estimate/run until their queues are empty or the
@@ -50,7 +50,7 @@ export function adminRoutes(deps: AdminDeps) {
     return c.json(await runJobs(c.env.DB, deps, { budgetMs, estimator: false }));
   });
 
-  // Server estimator (docs/ESTIMATOR.md "Server job"). Body (all optional): {rebuild, shipIds, budgetMs}.
+  // Server estimator (private notes ESTIMATOR "Server job"). Body (all optional): {rebuild, shipIds, budgetMs}.
   app.post("/estimate/run", async (c) => {
     const parsed = estimateRunRequest.safeParse(await c.req.json().catch(() => ({})));
     if (!parsed.success) return c.json({ error: "validation failed", issues: parsed.error.issues }, 400);
@@ -95,7 +95,7 @@ export function adminRoutes(deps: AdminDeps) {
     return c.json({ clientId, deleted: r.deleted, rejections: res[0]?.meta.changes ?? 0, client: (res[1]?.meta.changes ?? 0) > 0, maps: r.maps.map(mapName), estimatorReset: ships });
   });
 
-  // poi-observed aggregation (docs/API.md §4): one budgeted step.
+  // poi-observed aggregation (private notes API §4): one budgeted step.
   app.post("/aggregate/run", async (c) => {
     const budgetMs = budgetParam(c.req.query("budgetMs"), PASS_MS);
     if (budgetMs === null) return c.json({ error: "budgetMs must be a number in (0, 60000]" }, 400);

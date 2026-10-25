@@ -1,4 +1,4 @@
-// poi-observed aggregation CLI. Talks to the running worker's admin API (docs/API.md §4). Usage:
+// poi-observed aggregation CLI. Talks to the running worker's admin API (private notes API §4). Usage:
 //   bun scripts/aggregate.ts rebuild [--maps 1-5,7-4]   clear the aggregates and mark every stored observation pending
 //   bun scripts/aggregate.ts run [--budget-ms 5] [--all] fold pending observations (one budgeted step, or until none left)
 //   bun scripts/aggregate.ts status                     observation counts, layouts, mismatch counts

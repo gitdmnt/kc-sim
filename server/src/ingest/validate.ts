@@ -1,4 +1,4 @@
-// Server-side re-derivation and validation of uploaded observations (docs/API.md §3 "Validation").
+// Server-side re-derivation and validation of uploaded observations (private notes API §3 "Validation").
 // Battle enemies, attack events and sortie cells are re-derived from the raw game responses with the
 // shared capture parser; client-computed summaries are only cross-checked. Each finding has an action:
 // reject (not stored), quarantine (stored, excluded from aggregation and estimation) or flag (stored, used).

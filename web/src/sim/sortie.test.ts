@@ -87,7 +87,7 @@ const bundle: MapBundle = {
   ],
   edges: [], routing,
   enemyComps: { A: [{ difficulty: 0, retrievedAt: "x", periodStart: null, periodEnd: null, totalCount: 10, source: "kcnav", comps: [{ id: 1, formation: 4, count: 10, weight: 1, airpower: [], main: [{ shipId: 1501, level: 1, hp: 20, fp: 5, tp: 15, aa: 6, ar: 5, equips: [1501] }], escort: [] }] }] },
-  // API.md §5: 平坦な Ship & { estimates, best }
+  // private notes API §5: 平坦な Ship & { estimates, best }
   ships: { "1501": { id: 1501, name: "イ", nameEn: null, yomi: null, stype: 2, ctype: null, speed: 10, range: 1, slotNum: 1, isAbyssal: true, hp: 20, fp: 5, tp: 15, aa: 6, ar: 5, luck: null, maxStats: null, slots: [0], equips: [1501], flags: null, estimates: [], best: { ev: { value: 14, confidence: "datamined", source: "s" } } } },
   equipments: { "1501": { id: 1501, name: "砲", type: [1, 1, 1, 1, 0], typeId: 1, icon: 1, fp: 1, tp: 0, aa: 0, ar: 0, bomb: 0, asw: 0, los: 0, acc: 0, ev: 0, luck: 0, range: 1, radius: null, cost: null, isAbyssal: true } as any },
 };

@@ -6,7 +6,7 @@ import { QuestProgressDb } from "./store";
 import type { QuestCounts, QuestProgressStore } from "./store";
 import { projectQuests } from "@shared/embed/protocol";
 
-// Synthetic quests in the override format (docs/QUEST_OVERRIDES.md)
+// Synthetic quests in the override format (private notes QUEST_OVERRIDES)
 const SORTIE = 9001;
 const EXERCISE = 9002;
 const SCRAP = 9003;

@@ -1,5 +1,5 @@
 // KCNav per-battle records: `GET /api/routing/maps/{m}/edges/{e,…}/battles?start&end&page&perPage`
-// (docs/DATA_SOURCES.md §1 "Battles"). One page holds up to 50 battles of the edges' node, each with the
+// (private notes DATA_SOURCES §1 "Battles"). One page holds up to 50 battles of the edges' node, each with the
 // player's fleet (ships with level, equipment, displayed stats, fuel/ammo/morale; land bases) and the raw
 // game packets of the day and night battle. The outcome is recomputed from the packets: KCNav's own
 // `results` miss damage (2026-10-23: 7-4 P day results disagreed with the night packet's starting HP in

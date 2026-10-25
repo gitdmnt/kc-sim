@@ -1,5 +1,5 @@
 // Realistic-fleet sorties + per-node battle cross-check against kancolle-replay's kcsim
-// (docs/VALIDATION.md §3).
+// (private notes VALIDATION §3).
 //
 // Friend fleets are built from kcSHIPDATA Lv99 stats with real equipment (data API); enemies, map and
 // routing come from the plugin's own pipeline (loadMapData + buildSortieInput), exactly as in the UI.

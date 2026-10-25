@@ -1,4 +1,4 @@
-// Routing validation against KCNav nodesummary edge counts (docs/VALIDATION.md §2).
+// Routing validation against KCNav nodesummary edge counts (private notes VALIDATION §2).
 //
 // KCNav counts mix every fleet that matched the filter, so no single "representative" fleet can be
 // compared with them. Instead the routing evaluator (simulateSortie, wasm pkg, routing only) runs a
@@ -11,7 +11,7 @@
 // Reads the snapshots stored by the server queue (D1 table kcnav_edge_counts, read-only, no
 // KCNav request) and GET /api/v1/maps/{m} for edges and routing.
 //
-//   bun validation/routing-vs-kcnav.ts            # query D1 + API, save snapshot, rewrite docs/VALIDATION.md
+//   bun validation/routing-vs-kcnav.ts            # query D1 + API, save snapshot, rewrite private notes VALIDATION
 //   bun validation/routing-vs-kcnav.ts --offline  # reuse validation/kcnav-snapshot.json
 //
 // Needs `wasm-pack build --target web` (pkg/) and, unless --offline, the local server on :8787.

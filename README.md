@@ -80,10 +80,8 @@ Windows は `%APPDATA%\poi\plugins`、Linux は `~/.config/poi/plugins` です�
 (cd poi-plugin-sim && bun install && bun run build)
 ```
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): 構成とデータの流れ
-- [docs/WORKFLOW.md](docs/WORKFLOW.md): ローカルでの開発とテスト
-- デプロイ手順: 非公開のメモ (リポジトリには含めない)
-- [web/README.md](web/README.md)、[poi-plugin-sim/README.md](poi-plugin-sim/README.md): Web UI とプラグインの詳細
+- [web/README.md](web/README.md)、[poi-plugin-sim/README.md](poi-plugin-sim/README.md)、[sim-core/README.md](sim-core/README.md): Web UI、プラグイン、戦闘エンジンの詳細
+- 設計メモ・検証記録・デプロイ手順はリポジトリに含めていません。コードのコメントにある「private notes 〇〇」はその非公開のメモを指します。
 
 
 非公式のファンツールです。ゲームの運営とは関係ありません。

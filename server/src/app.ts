@@ -11,7 +11,7 @@ import { adminRoutes, type AdminDeps } from "./routes/admin";
 /** `cache` replaces caches.default (tests). */
 export function createApp(deps: AdminDeps & { cache?: Cache }) {
   const app = new Hono<{ Bindings: Env }>();
-  // CORS is open: GETs are public, and writes are gated by bearer tokens, not by origin (docs/API.md).
+  // CORS is open: GETs are public, and writes are gated by bearer tokens, not by origin (private notes API).
   app.use("/api/*", cors({
     origin: "*", exposeHeaders: ["Retry-After", "ETag", "X-Cache", "X-Routing-Provenance", "X-Routing-Generated-At", "X-Routing-Sortie-Count"], maxAge: 86400,
   }));

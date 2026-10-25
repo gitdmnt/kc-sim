@@ -1,7 +1,7 @@
 /**
  * game.response を受けて戦闘観測レコードと出撃 (経路) レコードを組み立てる。poi / DOM には依存せず、
  * 艦隊スナップショットの取得 (getFleet) と保存先 (sink) は外から注入する。
- * マス番号 (api_no) からノード名への変換はしない (サーバが edges から引く。docs/API.md §3)。
+ * マス番号 (api_no) からノード名への変換はしない (サーバが edges から引く。private notes API §3)。
  */
 import { extractAttackEvents, extractBattleResult, extractCellData, extractEnemy, extractMapCell } from "@shared/capture/parser";
 import type {

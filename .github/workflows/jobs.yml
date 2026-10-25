@@ -69,7 +69,7 @@ jobs:
         working-directory: server
         run: bun install --frozen-lockfile
 
-      # Event bonuses (kancolle-replay js/data/bonus + server/data/event-bonuses.json, DATA_SOURCES.md §12):
+      # Event bonuses (kancolle-replay js/data/bonus + server/data/event-bonuses.json, private notes DATA_SOURCES §12):
       # ~15 s, one GitHub tree listing + ~35 raw files, one D1 batch. A failure must not block the jobs.
       - name: Event bonuses
         working-directory: server
@@ -78,7 +78,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: bun run ingest:event-bonus
 
-      # Quest master data (KC3Kai quests_meta + kc3-translations + kcwiki-quest-data, DATA_SOURCES.md §14): ~5 s,
+      # Quest master data (KC3Kai quests_meta + kc3-translations + kcwiki-quest-data, private notes DATA_SOURCES §14): ~5 s,
       # three raw files + three commit lookups, one D1 batch replacing `quests`. Clients cache GET /quests for a day.
       - name: Quests
         working-directory: server

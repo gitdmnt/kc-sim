@@ -1,8 +1,8 @@
-// Routing rule DSL (docs/ROUTING_DSL.md). This zod schema is the single source of truth;
+// Routing rule DSL (private notes ROUTING_DSL). This zod schema is the single source of truth;
 // `bun scripts/routing-schema.ts` emits the JSON Schema used by the Rust evaluator's tests.
 import * as z from "zod";
 
-/** Base ship types (api_mst_stype ids in ROUTING_DSL.md §3). */
+/** Base ship types (api_mst_stype ids in private notes ROUTING_DSL §3). */
 export const SHIP_TYPES = {
   DE: 1, DD: 2, CL: 3, CLT: 4, CA: 5, CAV: 6, CVL: 7, FBB: 8, BB: 9, BBV: 10,
   CV: 11, XBB: 12, SS: 13, SSV: 14, AP: 15, AV: 16, LHA: 17, CVB: 18, AR: 19,
@@ -24,7 +24,7 @@ export const SHIP_GROUPS = {
 } as const satisfies Record<string, readonly ShipTypeCode[]>;
 export type ShipGroupCode = keyof typeof SHIP_GROUPS;
 
-/** Equipment groups by api_type[2] (category) unless stated (ROUTING_DSL.md §4). */
+/** Equipment groups by api_type[2] (category) unless stated (private notes ROUTING_DSL §4). */
 export const EQUIP_GROUPS = {
   RADAR: { types: [12, 13, 93] },
   SURFACE_RADAR: { types: [12, 13, 93], minLos: 5 },

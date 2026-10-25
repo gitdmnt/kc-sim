@@ -1,5 +1,5 @@
 -- KCNav per-battle records (`GET /api/routing/maps/{m}/edges/{e,…}/battles`, job kind `battles`) for the battle
--- accuracy harness (sim-core/validation/battle-accuracy.ts, docs/VALIDATION.md §4). One row per KCNav battle id:
+-- accuracy harness (sim-core/validation/battle-accuracy.ts, private notes VALIDATION §4). One row per KCNav battle id:
 -- the entry as received (`raw`: player fleet with displayed stats, land bases, day and night game packets) and the
 -- fields the harness filters and scores on, recomputed from the packets (src/kcnav/battles.ts normalizeBattle).
 -- The page's cached body (kcnav_cache) is replaced by a stub listing the stored ids, so the raw JSON is kept once.

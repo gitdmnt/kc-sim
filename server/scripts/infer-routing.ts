@@ -1,4 +1,4 @@
-// Routing from our own poi sortie observations (docs/ROUTING_INFERENCE.md), run daily by GitHub Actions
+// Routing from our own poi sortie observations (private notes ROUTING_INFERENCE), run daily by GitHub Actions
 // (.github/workflows/jobs.yml) against production D1 (D1_REMOTE=1; locally the wrangler D1 file). Sends no KCNav
 // request. Per map, on the sorties of its newest layout:
 //   - maps without hand-authored rules: infer a routing document (≥ --min-sorties usable sorties), validate it

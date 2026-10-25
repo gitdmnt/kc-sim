@@ -1,4 +1,4 @@
-// Server estimator CLI (docs/ESTIMATOR.md "Server job"). Talks to the worker's admin API. Usage:
+// Server estimator CLI (private notes ESTIMATOR "Server job"). Talks to the worker's admin API. Usage:
 //   bun scripts/estimate.ts run [--budget-ms 5] [--all]   one budgeted run; --all repeats until nothing is left
 //   bun scripts/estimate.ts rebuild [--ships 1501,1502]   forget grids (all or some ships), then refold
 //   bun scripts/estimate.ts status

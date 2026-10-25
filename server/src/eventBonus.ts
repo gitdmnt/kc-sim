@@ -1,5 +1,5 @@
 // Event bonus files (kancolle-replay js/data/bonus/{W-M}.json, MIT, and the manual server/data/event-bonuses.json)
-// -> flat rows for GET /maps/{map}/bonuses (docs/API.md §2).
+// -> flat rows for GET /maps/{map}/bonuses (private notes API §2).
 import * as z from "zod";
 
 const nodeFilter = { nodes: z.array(z.string()).optional(), nodesExclude: z.array(z.string()).optional() };

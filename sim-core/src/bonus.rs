@@ -92,7 +92,7 @@ impl Bonus {
     /// Accuracy multiplier on the hit fraction (kcsim `getBonusAcc` × plane `bonusSpecialAccP`).
     /// Airstrikes (`air`) take the ship multiplier too, unlike kcsim (`getBonusAcc(…, isAir)` skips
     /// untyped entries): event-62 packets show the airstrike hit rate rising with the attacker's bonus
-    /// (docs/VALIDATION.md §4).
+    /// (private notes VALIDATION §4).
     #[inline]
     pub fn acc(&self, planes: &[i32], air: bool) -> f64 {
         self.ship.acc * plane_mod(&self.planes, planes, air, |m| m.acc)

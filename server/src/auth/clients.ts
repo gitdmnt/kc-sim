@@ -1,4 +1,4 @@
-// Per-install upload clients (docs/API.md §3 "Clients and limits"): token issuance with per-IP limits,
+// Per-install upload clients (private notes API §3 "Clients and limits"): token issuance with per-IP limits,
 // bearer authentication, the 1-per-60-s observation gate, and the per-IP write limit.
 import type { MiddlewareHandler } from "hono";
 import type { Env } from "../env";

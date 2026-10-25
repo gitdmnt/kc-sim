@@ -1,4 +1,4 @@
-/** ROUTING_DSL (docs/ROUTING_DSL.md) を日本語の説明に変換する。表示専用の純粋関数。 */
+/** ROUTING_DSL (private notes ROUTING_DSL) を日本語の説明に変換する。表示専用の純粋関数。 */
 import type { Predicate, Rule } from "@shared/data/types";
 
 const TYPE_NAME: Record<string, string> = {

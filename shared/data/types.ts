@@ -1,4 +1,4 @@
-/** docs/API.md §2 の応答型 (camelCase)。 */
+/** private notes API §2 の応答型 (camelCase)。 */
 
 export type NodeType =
   | "start" | "battle" | "boss" | "night_battle" | "air_battle" | "air_raid" | "night_to_day"
@@ -42,7 +42,7 @@ export interface MapEdge {
 
 export type RoutingProvenance = "hand" | "inferred";
 
-/** Where `MapDetail.routing` comes from (docs/API.md §2). generatedAt / sortieCount only for inferred documents. */
+/** Where `MapDetail.routing` comes from (private notes API §2). generatedAt / sortieCount only for inferred documents. */
 export interface RoutingMeta {
   provenance: RoutingProvenance;
   generatedAt: string | null;
@@ -69,7 +69,7 @@ export interface MapDetail {
   enemyCompNodes: string[];
 }
 
-// ---- ROUTING_DSL (docs/ROUTING_DSL.md) ----
+// ---- ROUTING_DSL (private notes ROUTING_DSL) ----
 
 export interface Predicate {
   m?: string;
@@ -198,7 +198,7 @@ export interface ApiShip {
 export type Confidence = "observed" | "datamined" | "db_estimate" | "placeholder" | "unknown";
 /**
  * 隠しステータス。`acc` = 全攻撃に効く汎用の隠し命中 (推定器だけが出す) → hiddenAccuracy、
- * `tacc` = 雷撃だけに効く基礎命中 (kcsim TACC) → torpedoAccuracy (docs/API.md §2)。
+ * `tacc` = 雷撃だけに効く基礎命中 (kcsim TACC) → torpedoAccuracy (private notes API §2)。
  */
 export type HiddenStat = "ev" | "asw" | "los" | "luck" | "acc" | "tacc";
 
@@ -295,7 +295,7 @@ export interface ApiEquipment {
   isAbyssal: boolean;
 }
 
-// ---- static bundle (docs/API.md §5) ----
+// ---- static bundle (private notes API §5) ----
 
 export interface MapBundle {
   format: "kc-sim-map-bundle";
@@ -308,7 +308,7 @@ export interface MapBundle {
   /** node letter → API と同じ出典ポリシーで選んだ set (難易度ごと) */
   enemyComps: Record<string, EnemyCompSet[]>;
   enemyCompSelection?: Record<string, CompSelection[]>;
-  /** 平坦な `Ship & {estimates, best}` (API.md §5)。ShipDetail 形にも対応 */
+  /** 平坦な `Ship & {estimates, best}` (private notes API §5)。ShipDetail 形にも対応 */
   ships: Record<string, ShipDetail | (ShipDetail["ship"] & Pick<ShipDetail, "estimates" | "best">)>;
   equipments: Record<string, ApiEquipment>;
 }

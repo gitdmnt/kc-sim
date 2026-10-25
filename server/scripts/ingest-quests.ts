@@ -1,4 +1,4 @@
-// Quest master data (docs/DATA_SOURCES.md §14) -> quests. Four GitHub files (~1.6 MB) and the hand-authored
+// Quest master data (private notes DATA_SOURCES §14) -> quests. Four GitHub files (~1.6 MB) and the hand-authored
 // overrides (shared/quest/overrides.json), one D1 batch; run daily by .github/workflows/jobs.yml so clients read the
 // merged list from the worker instead of the upstream repos.
 import { execStatements } from "./lib/d1";

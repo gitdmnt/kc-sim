@@ -1,4 +1,4 @@
-//! Routing rule DSL evaluator (docs/ROUTING_DSL.md v1). The document is parsed from JSON into a
+//! Routing rule DSL evaluator (private notes ROUTING_DSL v1). The document is parsed from JSON into a
 //! compiled form (node letters interned, ship-type groups expanded to bit masks, flags resolved)
 //! and validated on the way: unknown keys, metrics, ship types or equipment groups, a last rule with
 //! `when`, bad `random` weights, non-descending `los` thresholds and unknown destinations are errors.

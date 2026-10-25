@@ -1,6 +1,6 @@
 //! KanColle single-node battle engine for Monte-Carlo simulation, compiled to wasm.
 //!
-//! Contract: `docs/SIM_INTERFACE.md` / `sim_core_types.d.ts`. Combat formulas are ported from
+//! Contract: private notes SIM_INTERFACE / `sim_core_types.d.ts`. Combat formulas are ported from
 //! KC3Kai/kancolle-replay (MIT, © 2016 fourinone41) and cross-checked with en.kancollewiki.net.
 
 pub mod aaci;

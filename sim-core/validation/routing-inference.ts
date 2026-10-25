@@ -1,4 +1,4 @@
-// Synthetic recovery test for routing rule inference (docs/ROUTING_INFERENCE.md §4).
+// Synthetic recovery test for routing rule inference (private notes ROUTING_INFERENCE §4).
 //
 // Ground truth = the hand-written seed rules (server/seed/routing). Random fleets (half archetypes from
 // fleets.ts, half random compositions; random LoS gear, drums, landing craft, radar, sonar, ship ids)

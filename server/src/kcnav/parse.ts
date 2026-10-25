@@ -1,4 +1,4 @@
-// Pure parsers for KCNav (tsunkit.net) responses. Shapes: docs/DATA_SOURCES.md §1.
+// Pure parsers for KCNav (tsunkit.net) responses. Shapes: private notes DATA_SOURCES §1.
 import * as z from "zod";
 import { nodeTypeFromEvent, normalizeLetter } from "../maps";
 

@@ -1,7 +1,7 @@
 //! Sortie (海域周回) simulator: routing evaluator + chained battles with state carry-over,
 //! retreat policy with command-facility evacuation (護衛退避), node effects, land-base waves, base
 //! air raids, support and friend fleets, resource accounting and gauge estimation. Contract:
-//! docs/SIM_INTERFACE.md "Sortie". A combined friend fleet is carried node to node as one side
+//! private notes SIM_INTERFACE "Sortie". A combined friend fleet is carried node to node as one side
 //! (main ships, then escort ships). Enemy comps with an `escort` are fought as enemy combined fleets.
 
 pub mod model;

@@ -1,4 +1,4 @@
-// Battle accuracy against real battles recorded by KCNav (docs/VALIDATION.md §4).
+// Battle accuracy against real battles recorded by KCNav (private notes VALIDATION §4).
 //
 // Every stored KCNav battle (D1 kcnav_battles, src/kcnav/battles.ts) becomes a sim-core BattleInput the way the web
 // UI builds one (shared/sim/adapter): the player's fleet from KCNav's displayed stats (buildFriendShips: naked =
@@ -11,7 +11,7 @@
 //
 // Online it reads D1 (production with D1_REMOTE=1, read-only) and GET /api/v1/ships/{id} on DATA_API (default
 // https://kc-sim.udama.net), and saves the inputs to .tmp/battle-accuracy-input.json; --offline reuses that file
-// (to compare engine versions on the same battles). Rewrites the generated block of docs/VALIDATION.md §4 and
+// (to compare engine versions on the same battles). Rewrites the generated block of private notes VALIDATION §4 and
 // sim-core/validation/battle-accuracy-summary.json, printing the change against the previous summary.
 // Needs sim-core/pkg (`bun run build:wasm`).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -295,7 +295,7 @@ function build(r: Row): Built | string {
   // bonuses (our fit data, as kcsim `loadEquips` with MECHANICS.eqBonus), HP as sent. The packet has no improvements,
   // EV/ASW/LoS or luck; they are set the way kancolle-replay imports a KCNav friend fleet (simulator-ui/convert.js
   // `kcnavToSaveShips`): see FRIEND_IMPROVE, luck at the ship's maximum (kcSHIPDATA LUKmax), EV/ASW/LoS from kcSHIPDATA
-  // scaled to the level. Max luck fits the packets' cut-in rates (VALIDATION.md §4).
+  // scaled to the level. Max luck fits the packets' cut-in rates (private notes VALIDATION §4).
   let friendFleetIn: FriendFleetInput | undefined;
   let friendShips: PresetShip[] | undefined;
   const fi = s.yasen_rawapi?.api_friendly_info ?? p.api_friendly_info;

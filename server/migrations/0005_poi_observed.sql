@@ -1,5 +1,5 @@
 -- poi-observed: map graph, routes and enemy comps aggregated from the plugin's own captures
--- (docs/API.md §3 "Aggregation", DATA_SOURCES.md §9). Aggregates key on raw game cell numbers (api_no);
+-- (private notes API §3 "Aggregation", private notes DATA_SOURCES §9). Aggregates key on raw game cell numbers (api_no);
 -- node letters are resolved through `edges` (edge_id = destination cell no) only when materialising.
 
 -- Uploads: raw cell, layout key and sortie record; aggregation bookkeeping (idempotency + rebuild).

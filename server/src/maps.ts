@@ -18,7 +18,7 @@ export function parseMapKey(key: string): { id: number; world: number; no: numbe
 export const mapName = (id: number) => `${Math.floor(id / 10)}-${id % 10}`;
 
 /**
- * Canonical node letter (docs/ROUTING_DSL.md §1): KC3 "Start" / "Start 2" and KCNav numeric start
+ * Canonical node letter (private notes ROUTING_DSL §1): KC3 "Start" / "Start 2" and KCNav numeric start
  * spots "1", "2" become "Start" (single start) or "Start1", "Start2" (several starts).
  */
 export function normalizeLetter(label: string, multipleStarts: boolean): string {

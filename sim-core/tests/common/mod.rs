@@ -148,7 +148,7 @@ pub fn battle(friend: FleetInput, enemy: FleetInput, kind: BattleKind) -> Battle
 
 pub const FIXTURE_1_5: &str = include_str!("../fixtures/1-5.api.json");
 
-/// Reference conversion of API.md shapes into `SortieInput` (what the UI does).
+/// Reference conversion of private notes API shapes into `SortieInput` (what the UI does).
 pub fn sortie_input_from_api(api: &serde_json::Value, friend: FleetInput, difficulty: u64) -> sim_core::sortie::model::SortieInput {
     use serde_json::{json, Value};
     let formation = |id: u64| ["lineAhead", "doubleLine", "diamond", "echelon", "lineAbreast", "vanguard"][(id.clamp(1, 6) - 1) as usize];

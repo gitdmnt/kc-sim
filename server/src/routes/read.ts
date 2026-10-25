@@ -1,4 +1,4 @@
-// Read API (docs/API.md §2). Row -> JSON mapping lives in ../assemble.ts (shared with the bundle export).
+// Read API (private notes API §2). Row -> JSON mapping lives in ../assemble.ts (shared with the bundle export).
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { mapName, parseMapKey } from "../maps";
@@ -189,7 +189,7 @@ read.get("/equipments/:id", async (c) => {
   return e ? c.json({ equipment: equipJson(e) }) : c.json({ error: "equipment not found" }, 404);
 });
 
-// Quest master data (API.md "Quests"): the whole list in one response; the web caches it for a day.
+// Quest master data (private notes API "Quests"): the whole list in one response; the web caches it for a day.
 const QUEST_FIELDS = [["id", "id"], ["code", "code"], ["name", "name"], ["detail", "detail"], ["memo", "memo"], ["pre", "pre", "json"], ["requirements", "requirements", "json"], ["rewards", "rewards", "json"], ["override", "override", "json"]] as const;
 read.get("/quests", async (c) => {
   const [row, sources] = await Promise.all([
@@ -228,7 +228,7 @@ export async function fitBonusList(db: D1Database) {
 
 read.get("/fit-bonuses", async (c) => c.json({ fitBonuses: await fitBonusList(c.env.DB) }));
 
-// Server estimator posteriors (docs/API.md §2 "Estimates"): one row per ship × stat.
+// Server estimator posteriors (private notes API §2 "Estimates"): one row per ship × stat.
 const ESTIMATED_STATS = ["ev", "acc", "luck"];
 /** Densities are ~2 KB per row and D1 hands them to the worker as JSON it must parse: ≤ 50 ships (~300 KB) per request. */
 const MAX_DENSITY_SHIPS = 50;

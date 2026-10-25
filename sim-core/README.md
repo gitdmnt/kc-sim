@@ -2,8 +2,8 @@
 
 艦これの戦闘・出撃エンジン(Rust → wasm)。モンテカルロ法で勝率・ランク率・ルーティング・ゲージを求める。
 単艦隊または連合艦隊(機動 / 水上 / 輸送護衛)の自艦隊と、単一の敵艦隊の戦闘を扱い、基地航空隊の波状攻撃にも対応する。
-JSON/TypeScript の契約は `../docs/SIM_INTERFACE.md` にある(機械可読なコピーは
-`sim_core_types.d.ts` で、`pkg/sim_core.d.ts` に埋め込まれる)。
+JSON/TypeScript の契約の機械可読な定義は `sim_core_types.d.ts` にあり、`pkg/sim_core.d.ts` に埋め込まれる
+(説明つきの契約書 SIM_INTERFACE は非公開のメモ)。
 
 ```ts
 simulateBattle(input: BattleInput, count: number, seed: number): SimulationSummary
@@ -19,8 +19,8 @@ simulateSortie(input: SortieInput, count: number, seed: number): SortieSummary  
 wasm-pack build --target web            # -> pkg/
 cargo test                              # unit + integration tests (routing tests read ../server/seed/routing)
 cargo test --release --test bench -- --nocapture --test-threads=1   # throughput (battles/s, sorties/s, µs per 201×101 hitProbabilityGrid; asserts >= 50k battles/s); one at a time, or the benches share cores
-bun validation/routing-vs-kcnav.ts [--offline]  # routing vs KCNav edge counts -> ../docs/VALIDATION.md (needs pkg/)
-KCR_DIR=<kancolle-replay checkout> bun validation/battle-vs-kcsim.ts  # realistic sorties + per-node battles vs kcsim -> ../docs/VALIDATION.md §3
+bun validation/routing-vs-kcnav.ts [--offline]  # routing vs KCNav edge counts -> the private VALIDATION notes (needs pkg/ and the local file)
+KCR_DIR=<kancolle-replay checkout> bun validation/battle-vs-kcsim.ts  # realistic sorties + per-node battles vs kcsim -> the private VALIDATION notes §3
 ```
 
 ## 構成
@@ -40,9 +40,9 @@ KCR_DIR=<kancolle-replay checkout> bun validation/battle-vs-kcsim.ts  # realisti
 | `src/sortie/` | 出撃ループ(マスの処理、撤退、状態の引き継ぎ)、集計、ゲージの推定。`model.rs` は出撃の JSON 型 |
 | `src/lib.rs` | wasm-bindgen のエクスポート |
 | `tests/` | エンジンの挙動、ランク規則、JSON 契約、公表されている数値との整合確認、連合艦隊 + 基地航空隊(`combined.rs`)、ルーティング(全シード文書、開始規則、ゴールデンルート、連合艦隊の指標)、出撃(`fixtures/1-5.api.json` による 1-5 のエンドツーエンド。ローカルサーバ API を 1 回だけ取得したもの)、ベンチマーク |
-| `validation/` | KCNav とのルーティング比較ハーネスとそのデータスナップショット(`docs/VALIDATION.md`) |
+| `validation/` | KCNav とのルーティング比較ハーネスとそのデータスナップショット(結果は非公開の検証メモに書き出す) |
 
-メカニクスと既知の簡略化の一覧は `../docs/SIM_INTERFACE.md` にある。
+メカニクスと既知の簡略化の一覧は非公開のメモ (SIM_INTERFACE) にある。
 
 ## 出典
 

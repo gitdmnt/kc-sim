@@ -1,6 +1,6 @@
 // Progress counting for quests whose (override) conditions are mechanical: which sub-goals a requirement has, and how
 // much one game event advances each. Pure; the poi plugin turns API responses into QuestEvents and stores the counts
-// (poi-plugin-sim/src/quests/counter.ts). Schema and semantics: docs/QUEST_OVERRIDES.md.
+// (poi-plugin-sim/src/quests/counter.ts). Schema and semantics: private notes QUEST_OVERRIDES.
 import type { QuestGroupReq, QuestItemReq, QuestRequirement } from "./types";
 
 /** One ship as the counter sees it (master data resolved by the caller). */

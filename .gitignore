@@ -37,7 +37,12 @@ logs/
 .idea/
 .vscode/
 
-# purged from history: old data-worker scratch, and the deployment notes (production account and infra
-# details), which are kept privately
-data-worker/.tmp/
-docs/DEPLOY.md
+# Kept privately, purged from history: the old data-worker, the docs (design notes, validation records, deployment
+# notes; code comments cite them as "private notes X"), and screenshots no README uses. The validation and
+# screenshot scripts still write into these local files.
+data-worker/
+docs/*.md
+docs/screenshots/*
+!docs/screenshots/19-plugin-embedded.png
+!docs/screenshots/20-plugin-resources.png
+!docs/screenshots/25-quest-tree.png

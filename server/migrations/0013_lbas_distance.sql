@@ -1,4 +1,4 @@
--- LBAS distance per cell: api_cell_data[].api_distance of the poi captures (docs/DATA_SOURCES.md §13).
+-- LBAS distance per cell: api_cell_data[].api_distance of the poi captures (private notes DATA_SOURCES §13).
 ALTER TABLE poi_cells ADD COLUMN lbas_distance INTEGER;
 
 -- Backfill from the newest api_cell_data kept per layout.

@@ -1,6 +1,6 @@
-// Hand-authored quest overrides (shared/quest/overrides.json, docs/QUEST_OVERRIDES.md): our own structured clear
+// Hand-authored quest overrides (shared/quest/overrides.json, private notes QUEST_OVERRIDES): our own structured clear
 // conditions, prerequisites and rewards for quests whose upstream data is missing or stale, authored with
-// zekamashi.net (ぜかましねっと艦これ) as the reference (docs/DATA_SOURCES.md §14). Validated strictly so typos fail the
+// zekamashi.net (ぜかましねっと艦これ) as the reference (private notes DATA_SOURCES §14). Validated strictly so typos fail the
 // ingest and the tests instead of silently not counting. The requirement shape is the kcwiki-quest-data vocabulary
 // plus the override-only fields of shared/quest/types.ts.
 import { join } from "node:path";

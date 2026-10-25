@@ -1,4 +1,4 @@
-// Write API (docs/API.md §3): client registration and observation uploads. Every write passes the per-IP
+// Write API (private notes API §3): client registration and observation uploads. Every write passes the per-IP
 // limit; uploads need a client bearer token, are admitted at most once per 60 s per client and are only staged
 // here (the jobs run validates and stores them: src/jobs.ts, scripts/run-jobs.ts).
 import { Hono } from "hono";

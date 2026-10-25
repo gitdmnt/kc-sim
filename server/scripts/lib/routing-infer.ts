@@ -1,4 +1,4 @@
-// Routing rule inference from observed sorties (docs/ROUTING_INFERENCE.md). Offline only: runs in
+// Routing rule inference from observed sorties (private notes ROUTING_INFERENCE). Offline only: runs in
 // scripts / CI, never in the Worker (Free plan, 10 ms CPU per request).
 //
 // Per branching node, the samples are (fleet features + visited nodes) → next node. A CHAID-style

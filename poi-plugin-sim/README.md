@@ -188,8 +188,8 @@ poi が数えるのは、`quest_goal.cson` の任務(約 130 件。実質的に�
 `game.response` のたびに `QuestCounter`(`src/quests/counter.ts`)も実行する。
 
 - **対象の任務:** poi の `info.quests.activeQuests` で進行中(`api_state` 2)で、poi の `records` になく、同梱の
-  `shared/quest/overrides.json` に数えられるサブゴールがあるもの(`shared/quest/progress.ts` の `questGoals`。スキーマと
-  意味は docs/QUEST_OVERRIDES.md)。新しいオーバーライドは、次のプラグインのビルドでプレイヤーに届く。
+  `shared/quest/overrides.json` に数えられるサブゴールがあるもの(`shared/quest/progress.ts` の `questGoals`。スキーマは
+  `server/src/questOverrides.ts` の zod 定義)。新しいオーバーライドは、次のプラグインのビルドでプレイヤーに届く。
 - **イベント:** `api_req_map/start` はマップ、出撃艦隊(艦を順に、マスターの stype / ctype / レベルつき)、
   ゲージ番号を覚える。`start` / `next` はセルと、それがボスかどうか(`api_event_id` 5 または `api_bosscell_no`)を覚える。
   `api_req_sortie|combined_battle/battleresult` は、そこでのランクを数える。`api_req_practice/battle` + `battle_result`。

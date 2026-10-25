@@ -1,5 +1,5 @@
 /**
- * データ API への観測送信の認証と送信間隔 (docs/API.md §3)。
+ * データ API への観測送信の認証と送信間隔 (private notes API §3)。
  *
  * - トークンは `POST /api/v1/clients` で発行され、サーバごとに別。必要になったとき (未送信があるとき) に
  *   登録して localStorage に保存する。API の URL が変わったら捨てて登録し直す。

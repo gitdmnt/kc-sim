@@ -1,4 +1,4 @@
-// Screen-level read API (docs/API.md "Views"): one request per screen of the web UI, each body the union of the
+// Screen-level read API (private notes API "Views"): one request per screen of the web UI, each body the union of the
 // per-resource responses it replaces (built by the same helpers in ./read.ts). Cached like every GET (src/cache.ts).
 import { Hono } from "hono";
 import type { Env } from "../env";

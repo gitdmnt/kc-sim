@@ -130,7 +130,7 @@ export const losEquipScore = (e: LosEquip): number => {
 };
 
 /**
- * 判定式(33) (docs/ROUTING_DSL.md §5)。`cn` は分岐点係数 (1-4)。連合艦隊は両艦隊の艦を渡し、
+ * 判定式(33) (private notes ROUTING_DSL §5)。`cn` は分岐点係数 (1-4)。連合艦隊は両艦隊の艦を渡し、
  * 末尾の項の定数 (`fullSize`) を 12 にする。小数第 2 位で切り捨てる (sim-core routing::los33 と同じ)。
  */
 export const mapLos33 = (ships: LosShip[], hqLevel: number, cn = 1, fullSize = 6): number => {

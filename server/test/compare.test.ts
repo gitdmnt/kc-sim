@@ -16,7 +16,7 @@ const doc: RoutingDoc = {
 };
 
 test("verified 1-1 nodesummary shape parses", () => {
-  // Response observed 2026-10-22 (docs/DATA_SOURCES.md §1).
+  // Response observed 2026-10-22 (private notes DATA_SOURCES §1).
   const runs = parseNodeSummary({ result: { "0": { runs: 125494 }, "1": { runs: 125494, lockTags: [0] }, "2": { runs: 31269, lockTags: [0] }, "3": { runs: 90130, lockTags: [0] } }, retrieved: "x" });
   expect(runs).toEqual([{ edgeId: 0, runs: 125494 }, { edgeId: 1, runs: 125494 }, { edgeId: 2, runs: 31269 }, { edgeId: 3, runs: 90130 }]);
 });

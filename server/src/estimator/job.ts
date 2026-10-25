@@ -1,4 +1,4 @@
-// Server-side hidden-stat estimator (docs/ESTIMATOR.md "Server job"), in three stages that each charge the CPU
+// Server-side hidden-stat estimator (private notes ESTIMATOR "Server job"), in three stages that each charge the CPU
 // cost model (src/budget.ts) and stop when the next unit would not fit; the queues keep the rest:
 //  1. count: pending (battle observation, enemy ship) pairs of `observation_ships` become attack rolls
 //     (shared/estimate/observe), counted per (ship, role, canonical query signature) in `estimator_rolls`.

@@ -1,4 +1,4 @@
-// Helpers for hand-authoring server/data/quest-overrides.json (docs/QUEST_OVERRIDES.md). Nothing here is shipped.
+// Helpers for hand-authoring server/data/quest-overrides.json (private notes QUEST_OVERRIDES). Nothing here is shipped.
 //
 //   bun scripts/quest-ref.ts fetch <url>        zekamashi page -> server/.tmp/zekamashi/ (cached; never re-fetched)
 //   bun scripts/quest-ref.ts text <url>         readable text of a cached (else fetched) page, for reading only

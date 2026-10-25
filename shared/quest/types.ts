@@ -1,8 +1,8 @@
-// Quest master data served at GET /api/v1/quests (docs/API.md "Quests", docs/DATA_SOURCES.md §14).
+// Quest master data served at GET /api/v1/quests (private notes API "Quests", private notes DATA_SOURCES §14).
 // Merged by the server's ingest (server/src/quests.ts) from KC3Kai quests_meta.json (prerequisite edges),
 // kc3-translations data/jp/quests.json (code, name, description, memo), kcwiki-quest-data (structured requirements)
 // and kcanotify-gamedata quests-jp.json (rewards), then the hand-authored overrides (./overrides.json,
-// docs/QUEST_OVERRIDES.md) on top.
+// private notes QUEST_OVERRIDES) on top.
 
 /** Which file asserts a prerequisite edge. */
 export type QuestEdgeSource = "kc3" | "kcwiki" | "override";

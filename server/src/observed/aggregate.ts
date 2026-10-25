@@ -1,4 +1,4 @@
-// Incremental aggregation of poi observations into the `poi-observed` source (docs/API.md §3 "Aggregation").
+// Incremental aggregation of poi observations into the `poi-observed` source (private notes API §3 "Aggregation").
 //
 // Every observation is folded into the poi_* counters exactly once: each statement of an observation is
 // guarded by `observations.aggregated_at IS NULL` and the batch ends by setting aggregated_at, so a D1 batch

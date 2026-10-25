@@ -1,4 +1,4 @@
-// Quest rewards from the upstream files (docs/DATA_SOURCES.md §14), merged in ./quests.ts after the overrides:
+// Quest rewards from the upstream files (private notes DATA_SOURCES §14), merged in ./quests.ts after the overrides:
 //   antest1/kcanotify-gamedata files/quests-jp.json (MIT, maintained): resources and a one-line reward text per quest
 //   kcwikizh/kcwiki-quest-data data.json (MIT, stale since 2022–23): reward_fuel.. and structured reward_other
 //   KC3Kai/kc3-translations data/jp/quests.json `memo` (MIT): the "[獲]" lines, items only (no resources)

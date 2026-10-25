@@ -1,4 +1,4 @@
--- Deployment hardening (docs/API.md §3, §4, private deployment notes): per-install tokens, validation records,
+-- Deployment hardening (private notes API §3, §4, private deployment notes): per-install tokens, validation records,
 -- server-side estimation, GET cache versioning.
 
 -- Per-install upload clients. The bearer token is stored only as its SHA-256 (hex); the issuing IP only as

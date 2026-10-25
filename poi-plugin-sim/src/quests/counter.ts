@@ -1,6 +1,6 @@
 /**
  * 単発任務などの進捗カウンタ。poi の任務トラッカー (quest_goal.cson) はほぼ定期任務しか数えないので、手入力の
- * 任務データ (shared/quest/overrides.json、docs/QUEST_OVERRIDES.md) で条件が機械的に判定できる任務を、
+ * 任務データ (shared/quest/overrides.json、private notes QUEST_OVERRIDES) で条件が機械的に判定できる任務を、
  * game.response から自分で数える。startCapture (capture/plugin.ts) が応答ごとに `handle` を呼ぶ。
  *
  * - 数えるのは遂行中 (poi の info.quests.activeQuests で api_state 2) で、poi の records に無い任務だけ

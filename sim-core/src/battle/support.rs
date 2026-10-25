@@ -3,7 +3,7 @@
 //! `supportPhase`, `supportASW`, `airstrikeSupportASW`, `airstrike(…, issupport)`,
 //! `AADefenceBombersAndAirstrike(…, issupport)`, `compareAP`, `AADefenceFighters`) and
 //! `js/kcships.js` (`Fleet.getSupportType`, `Fleet.supportChance`), MIT © fourinone41. Checked
-//! against wikiwiki.jp 支援艦隊; differences are listed in docs/SIM_INTERFACE.md.
+//! against wikiwiki.jp 支援艦隊; differences are listed in private notes SIM_INTERFACE.
 //!
 //! The support fleet takes the friend side's place for the phase ([`Battle::with_fleet`]): events
 //! carry the support ship index and damage is credited to the support ship, not to a friend MVP.

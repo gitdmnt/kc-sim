@@ -1,4 +1,4 @@
-//! The JSON shape documented in docs/SIM_INTERFACE.md (camelCase keys, camelCase enum values).
+//! The JSON shape documented in private notes SIM_INTERFACE (camelCase keys, camelCase enum values).
 use sim_core::model::*;
 use sim_core::query::{damage_distribution, hit_probability};
 use sim_core::sim::{run_battle, simulate};

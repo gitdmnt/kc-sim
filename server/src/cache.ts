@@ -1,4 +1,4 @@
-// GET /api/v1/* response cache (docs/API.md "Conventions"). Every write that changes API output bumps
+// GET /api/v1/* response cache (private notes API "Conventions"). Every write that changes API output bumps
 // kv_state.data_version; the version is part of the cache key, so an entry written before a bump is never
 // served after it. Clients get Cache-Control max-age=300 and ETag "dv<version>" (304 on If-None-Match): a
 // 200 body is determined by (URL, version), so no body hash is needed.

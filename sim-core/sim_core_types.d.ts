@@ -2,7 +2,7 @@
 //
 // This file is the single source of truth for the wasm API types: it is embedded
 // verbatim into the wasm-pack generated `pkg/sim_core.d.ts` (via
-// `typescript_custom_section`) and documented in `docs/SIM_INTERFACE.md`.
+// `typescript_custom_section`) and documented in private notes SIM_INTERFACE.
 // Keep it in sync with `src/model.rs` (serde, camelCase).
 
 /** Fleet formation. The `combined*` ones are the cruising formations (第一〜第四警戒航行序列) of a
@@ -338,7 +338,7 @@ export interface BattleOptions {
    *  night (no cut-ins). Default false. */
   atoll?: boolean;
   /** Trigger-rate overrides (percent) of the fleet special attacks; absent fields use the
-   *  defaults (level / luck formulas or kcsim's fixed rates, see SIM_INTERFACE.md). */
+   *  defaults (level / luck formulas or kcsim's fixed rates, see private notes SIM_INTERFACE). */
   specialAttackRates?: SpecialAttackRates;
 }
 
@@ -730,7 +730,7 @@ export interface DamageDistribution {
 // --------------------------------------------------------------- sortie ----
 
 /**
- * ROUTING_DSL document (docs/ROUTING_DSL.md) exactly as served by
+ * ROUTING_DSL document (private notes ROUTING_DSL) exactly as served by
  * `GET /api/v1/maps/{map}/routing`. Validated by the engine (unknown keys / metrics → Error).
  */
 export interface RoutingDocument {

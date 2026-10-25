@@ -1,4 +1,4 @@
--- Quest master data with prerequisite edges and structured requirements (docs/DATA_SOURCES.md §14), merged by
+-- Quest master data with prerequisite edges and structured requirements (private notes DATA_SOURCES §14), merged by
 -- src/quests.ts from KC3Kai quests_meta.json, kc3-translations data/jp/quests.json and kcwiki-quest-data.
 -- Replaced wholesale by scripts/ingest-quests.ts (daily, .github/workflows/jobs.yml).
 CREATE TABLE quests (

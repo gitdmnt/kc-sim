@@ -1,4 +1,4 @@
-//! Routing evaluator (docs/ROUTING_DSL.md) against the server seed documents.
+//! Routing evaluator (private notes ROUTING_DSL) against the server seed documents.
 use std::collections::HashMap;
 
 use serde_json::{json, Value};

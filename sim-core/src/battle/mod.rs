@@ -870,7 +870,7 @@ impl<'a> Battle<'a> {
         // Morale cost of entering the battle (wikiwiki 疲労度): taken before combat, so a ship
         // needs 53 to fight a day battle sparkled — except when either side is a combined fleet:
         // the state is judged first and the cost taken after the day battle (sparkled from 50;
-        // the KCNav packets show it, docs/VALIDATION.md §4).
+        // the KCNav packets show it, private notes VALIDATION §4).
         let mut entry_cost_due = !night_only && (self.combined.is_some() || self.ecombined);
         if !night_only && !entry_cost_due {
             self.entry_morale_cost();

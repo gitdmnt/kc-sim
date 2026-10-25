@@ -29,7 +29,7 @@ export interface ListBattlesQuery {
   limit?: number;
 }
 
-/** サーバが 1 リクエストで受け付ける観測数の上限 (docs/API.md §3) */
+/** サーバが 1 リクエストで受け付ける観測数の上限 (private notes API §3) */
 export const MAX_OBSERVATIONS_PER_REQUEST = 100;
 
 /** fetch のうち使う部分 (typeof fetch は Bun で preconnect を要求するので、関数だけを求める) */
@@ -223,7 +223,7 @@ export class ObservationDb implements ObservationSink {
   }
 
   /**
-   * 未送信の戦闘と終わった出撃を、1 回の POST で `${apiBase}/api/v1/observations` に送る (docs/API.md §3)。
+   * 未送信の戦闘と終わった出撃を、1 回の POST で `${apiBase}/api/v1/observations` に送る (private notes API §3)。
    * 1 リクエストは最大 MAX_OBSERVATIONS_PER_REQUEST 件かつ JSON が MAX_REQUEST_BYTES 未満になるまで古い順に詰める。
    * 戦闘が先。2xx なら送った分を送信済みにする (サーバは受け取って溜め、検証は後で行う)。map が null の戦闘
    * (演習等) は送らず、送信済み扱いにする。MAX_OBSERVATION_BYTES を超える 1 件はサーバが拒否するので捨てる (送信済み扱い)。
@@ -322,7 +322,7 @@ export const STALE_SORTIE_MS = 6 * 60 * 60 * 1000;
 const uploadableSortie = (s: CapturedSortie, now: number): boolean =>
   s.cells.length > 0 && (s.endKind !== null || now - s.updatedAt >= STALE_SORTIE_MS);
 
-/** 出撃 1 件 = kind "sortie" の観測 1 件 (docs/API.md §3)。 */
+/** 出撃 1 件 = kind "sortie" の観測 1 件 (private notes API §3)。 */
 export const sortieObservation = (s: CapturedSortie) => ({
   clientObsId: s.id,
   observedAt: new Date(s.startedAt).toISOString(),

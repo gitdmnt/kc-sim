@@ -1,4 +1,4 @@
--- KCNav nodesummary snapshots (per-edge run counts) for routing validation (docs/API.md §4, ROUTING_DSL.md §7).
+-- KCNav nodesummary snapshots (per-edge run counts) for routing validation (private notes API §4, private notes ROUTING_DSL §7).
 CREATE TABLE kcnav_edge_counts (
   map_id INTEGER NOT NULL,
   query TEXT NOT NULL,                 -- query string of the nodesummary request (filters + window), '' if none

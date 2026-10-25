@@ -90,7 +90,7 @@ export const CompsPanel = ({ sets, names, selection }: { sets: EnemyCompSet[]; n
 
   const diffs = [...new Set(sets.map((s) => s.difficulty))].sort();
   const diff = difficulty !== null && diffs.includes(difficulty) ? difficulty : diffs[diffs.length - 1];
-  // 同じ難易度は最新の取得を使う (API.md)
+  // 同じ難易度は最新の取得を使う (private notes API)
   const set = sets.filter((s) => s.difficulty === diff).sort((a, b) => b.retrievedAt.localeCompare(a.retrievedAt))[0];
   const comps = [...set.comps].sort((a, b) => b.weight - a.weight);
 

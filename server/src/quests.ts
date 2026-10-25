@@ -1,4 +1,4 @@
-// Quest master data (docs/DATA_SOURCES.md §14) -> `quests` rows for GET /api/v1/quests (docs/API.md "Quests").
+// Quest master data (private notes DATA_SOURCES §14) -> `quests` rows for GET /api/v1/quests (private notes API "Quests").
 //   KC3Kai src/data/quests_meta.json        `unlock` lists (MIT): the maintained prerequisite graph
 //   KC3Kai/kc3-translations data/jp/quests  code, name, description, memo (MIT; the memo's "[獲]" line: last-resort rewards)
 //   kcwikizh/kcwiki-quest-data data.json    structured requirements, rewards and its own `prerequisite` lists (MIT, stale)

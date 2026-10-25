@@ -1,4 +1,4 @@
--- Routing inferred from poi sortie observations (docs/ROUTING_INFERENCE.md), written by the GitHub Actions routing
+-- Routing inferred from poi sortie observations (private notes ROUTING_INFERENCE), written by the GitHub Actions routing
 -- job (scripts/infer-routing.ts --write). Hand-authored rules (routing_maps / routing_rules) always win: the API
 -- serves an inferred document only for maps without them.
 

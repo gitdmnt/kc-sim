@@ -1,4 +1,4 @@
-// Source preference for enemy comp sets (docs/API.md §2 enemy-comps): poi-observed when the node has
+// Source preference for enemy comp sets (private notes API §2 enemy-comps): poi-observed when the node has
 // enough own encounters, else KCNav. Shared by the read API and the bundle export.
 import { OBSERVED_SOURCE } from "./aggregate";
 

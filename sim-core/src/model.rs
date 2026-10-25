@@ -1,4 +1,4 @@
-//! JSON contract (serde, camelCase). Mirrors `sim_core_types.d.ts`; see `docs/SIM_INTERFACE.md`.
+//! JSON contract (serde, camelCase). Mirrors `sim_core_types.d.ts`; see private notes SIM_INTERFACE.
 
 use serde::{Deserialize, Serialize};
 
