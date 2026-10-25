@@ -142,18 +142,52 @@ describe("caps and per-IP write limit", () => {
     expect((await h.call("GET", "/api/v1/health")).status).toBe(200);
   });
 
-  test("CORS: open, preflight allows Authorization, Retry-After is readable", async () => {
-    const pre = await h.call("OPTIONS", "/api/v1/observations", {
-      headers: { Origin: "file://", "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "authorization,content-type" },
+  test("write CORS: only poi's origins, POST with Authorization/Content-Type; reads stay open", async () => {
+    const pre = (origin: string, reqHeaders = "authorization,content-type") => h.call("OPTIONS", "/api/v1/observations", {
+      headers: { Origin: origin, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": reqHeaders },
     });
-    expect(pre.status).toBe(204);
-    expect(pre.headers.get("Access-Control-Allow-Origin")).toBe("*");
-    expect(pre.headers.get("Access-Control-Allow-Headers")?.toLowerCase()).toContain("authorization");
+    for (const origin of ["null", "file://"]) {
+      const ok = await pre(origin);
+      expect(ok.status).toBe(204);
+      expect(ok.headers.get("Access-Control-Allow-Origin")).toBe(origin);
+      expect(ok.headers.get("Access-Control-Allow-Headers")).toBe("Authorization,Content-Type");
+      expect(ok.headers.get("Access-Control-Allow-Methods")).toBe("POST");
+    }
+    expect((await pre("https://evil.example")).headers.get("Access-Control-Allow-Origin")).toBeNull();
+    // a requested User-Agent header is not echoed back, so a browser cannot spoof it
+    expect((await pre("null", "user-agent")).headers.get("Access-Control-Allow-Headers")).toBe("Authorization,Content-Type");
     const { token } = await h.register();
     await upload(token, [obs()]);
     const limited = await upload(token, [obs()]);
-    expect(limited.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(limited.headers.get("Access-Control-Allow-Origin")).toBe("null");
     expect(limited.headers.get("Access-Control-Expose-Headers")).toContain("Retry-After");
+    const read = await h.call("GET", "/api/v1/health", { headers: { Origin: "https://example.org" } });
+    expect(read.headers.get("Access-Control-Allow-Origin")).toBe("*");
+  });
+
+  test("writes without poi's Origin or an Electron User-Agent → 403 and a log line; nothing registered", async () => {
+    const logs: string[] = [];
+    const log = console.log;
+    console.log = (s: string) => void logs.push(s);
+    try {
+      const cases: [Record<string, string>, string][] = [
+        [{ Origin: "", "User-Agent": "curl/8.7.1" }, "no_origin"],
+        [{ Origin: "https://evil.example" }, "origin"],
+        [{ "User-Agent": "Mozilla/5.0 Chrome/130.0 Safari/537.36", "Sec-Fetch-Site": "cross-site" }, "user_agent"],
+      ];
+      for (const [headers, reason] of cases) {
+        const r = await h.call("POST", "/api/v1/clients", { headers });
+        expect(r.status).toBe(403);
+        expect(JSON.parse(logs.at(-1)!)).toMatchObject({ write_rejected: reason, path: "/api/v1/clients" });
+      }
+      expect(JSON.parse(logs.at(-1)!)).toMatchObject({ origin: "null", sfs: "cross-site" });
+      const { token } = await h.register();
+      expect((await h.call("POST", "/api/v1/observations", { token, body: { observations: [obs()] }, headers: { Origin: "" } })).status).toBe(403);
+    } finally {
+      console.log = log;
+    }
+    expect(await h.db.prepare("SELECT COUNT(*) AS n FROM clients").first()).toEqual({ n: 1 });
+    expect(await h.db.prepare("SELECT COUNT(*) AS n FROM upload_items").first()).toEqual({ n: 0 });
   });
 });
 

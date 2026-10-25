@@ -33,6 +33,12 @@ export interface Harness {
 
 export const T0 = Date.UTC(2026, 9, 10, 3, 0, 0);
 
+/** Headers of a request from poi's renderer (a file:// page in Electron). */
+export const POI_HEADERS = {
+  Origin: "null",
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) poi/12.0.1 Chrome/120.0.0.0 Electron/28.0.0 Safari/537.36",
+};
+
 export function harness(o: { env?: Partial<Env>; access?: VerifyDeps; cache?: Cache } = {}): Harness {
   const db = createTestD1();
   const limiter = new FakeLimiter();
@@ -44,8 +50,9 @@ export function harness(o: { env?: Partial<Env>; access?: VerifyDeps; cache?: Ca
   const clock = { t: T0 };
   const app = createApp({ gridFn: bunGrid, now: () => clock.t, access: o.access, cache: o.cache });
   const call: Harness["call"] = async (method, path, opt = {}) => {
-    const headers: Record<string, string> = { "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.7", ...opt.headers };
+    const headers: Record<string, string> = { "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.7", ...POI_HEADERS, ...opt.headers };
     if (opt.token) headers.Authorization = `Bearer ${opt.token}`;
+    for (const [k, v] of Object.entries(headers)) if (v === "") delete headers[k]; // "" = leave the header out
     const res = await app.request(`http://${opt.host ?? "localhost"}${path}`, {
       method, headers, body: opt.raw ?? (opt.body === undefined ? undefined : JSON.stringify(opt.body)),
     }, env);
@@ -57,7 +64,12 @@ export function harness(o: { env?: Partial<Env>; access?: VerifyDeps; cache?: Ca
     if (r.status !== 201) throw new Error(`register: ${r.status} ${JSON.stringify(r.json)}`);
     return r.json;
   };
-  const fetchApp = async (url: string, init?: RequestInit) => app.request(url, init, env);
+  // what poi's renderer adds to the plugin's fetch (the plugin itself sets neither)
+  const fetchApp = async (url: string, init?: RequestInit) => {
+    const headers = new Headers(init?.headers as Record<string, string> | undefined);
+    for (const [k, v] of Object.entries({ ...POI_HEADERS, "CF-Connecting-IP": "203.0.113.7" })) if (!headers.has(k)) headers.set(k, v);
+    return app.request(url, { ...init, headers }, env);
+  };
   return { db, env, limiter, clock, call, register, fetch: fetchApp };
 }
 
