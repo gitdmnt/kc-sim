@@ -30,10 +30,11 @@ describe("IP bans and bulk purge", () => {
     const { token } = await h.register(ip);
     const r = await h.call("POST", `/admin/ips/${await ipHashOf(ip)}/ban`, { body: { reason: "sybils" } });
     expect(r.json).toMatchObject({ banned: true });
-    expect((await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": ip } })).status).toBe(403);
+    expect(await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": ip } })).toMatchObject({ status: 403, json: { error: "banned" } });
     // the client's registration address is banned, whatever address it uploads from
     h.clock.t += 61_000;
-    expect((await h.call("POST", "/api/v1/observations", { token, body: { observations: linked() }, headers: { "CF-Connecting-IP": "203.0.113.99" } })).status).toBe(403);
+    expect(await h.call("POST", "/api/v1/observations", { token, body: { observations: linked() }, headers: { "CF-Connecting-IP": "203.0.113.99" } }))
+      .toMatchObject({ status: 403, json: { error: "banned" } });
     expect((await h.call("DELETE", `/admin/ips/${await ipHashOf(ip)}/ban`)).json).toMatchObject({ unbanned: true });
     expect((await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": ip } })).status).toBe(201);
   });

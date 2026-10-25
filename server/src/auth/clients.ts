@@ -3,6 +3,13 @@
 import type { MiddlewareHandler } from "hono";
 import type { Env } from "../env";
 
+/**
+ * `error` codes of the write 403s. The plugin keeps its token and retries later on ORIGIN_REJECTED (a request it
+ * cannot change), and stops sending on BANNED.
+ */
+export const ORIGIN_REJECTED = "origin_rejected";
+export const BANNED = "banned";
+
 export const ISSUE_LIMITS = [
   { windowMs: 60 * 60_000, max: 3 },
   { windowMs: 24 * 60 * 60_000, max: 10 },
@@ -86,7 +93,7 @@ export const requireClient: MiddlewareHandler<{ Bindings: Env; Variables: Client
      FROM clients WHERE token_hash = ?1`,
   ).bind(await sha256Hex(m[1]!), ipHash).first<{ id: string; banned_at: string | null; ip_banned: number }>();
   if (!row) return c.json({ error: "unknown token" }, 401);
-  if (row.banned_at || row.ip_banned) return c.json({ error: "client is banned" }, 403);
+  if (row.banned_at || row.ip_banned) return c.json({ error: BANNED, message: "this client is banned" }, 403);
   c.set("clientId", row.id);
   return next();
 };

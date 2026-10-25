@@ -62,17 +62,31 @@ export interface UploadBatch {
   remaining: number;
 }
 
-/** 非 2xx の応答。`retryAfterMs` は Retry-After (秒) を読んだもの。無い・読めなければ null。 */
+/**
+ * 非 2xx の応答。`retryAfterMs` は Retry-After (秒) を読んだもの。無い・読めなければ null。
+ * `code` は JSON 本文の `error` (サーバの理由コード、例: "banned"・"origin_rejected")。無ければ null。
+ */
 export class UploadHttpError extends Error {
   constructor(
     readonly status: number,
     statusText: string,
-    readonly retryAfterMs: number | null = null
+    readonly retryAfterMs: number | null = null,
+    readonly code: string | null = null
   ) {
     super(`Upload failed: ${status} ${statusText}`);
     this.name = "UploadHttpError";
   }
 }
+
+/** 応答本文の `error` コード。JSON でない・無ければ null。 */
+export const errorCode = async (res: Pick<Response, "json">): Promise<string | null> => {
+  try {
+    const body: unknown = await res.json();
+    return body && typeof body === "object" && "error" in body && typeof body.error === "string" ? body.error : null;
+  } catch {
+    return null;
+  }
+};
 
 /** Retry-After ヘッダ (秒数) をミリ秒にする。HTTP 日付形式は使わない。 */
 export const parseRetryAfter = (value: string | null | undefined): number | null => {
@@ -284,7 +298,7 @@ export class ObservationDb implements ObservationSink {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${opts.token}` },
       body: `{"observations":[${bodies.join(",")}]}`,
     });
-    if (!res.ok) throw new UploadHttpError(res.status, res.statusText, parseRetryAfter(res.headers?.get("Retry-After")));
+    if (!res.ok) throw new UploadHttpError(res.status, res.statusText, parseRetryAfter(res.headers?.get("Retry-After")), await errorCode(res));
     await markSent(...sentOf(batch));
     return { sent: batch.length, remaining: pending.length - batch.length - dropped.length };
   }

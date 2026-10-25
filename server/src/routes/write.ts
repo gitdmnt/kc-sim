@@ -3,7 +3,7 @@
 // here (the jobs run validates and stores them: src/jobs.ts, scripts/run-jobs.ts).
 import { Hono, type MiddlewareHandler } from "hono";
 import type { Env } from "../env";
-import { claimPostSlot, issueClient, limitWritesPerIp, requestIpHash, requireClient, type ClientVars } from "../auth/clients";
+import { BANNED, claimPostSlot, issueClient, limitWritesPerIp, ORIGIN_REJECTED, requestIpHash, requireClient, type ClientVars } from "../auth/clients";
 import { checkQuota, MAX_BODY_BYTES, MAX_OBSERVATIONS_PER_REQUEST, stageUpload } from "../ingest/upload";
 
 /** Env flags are strings; "1" and "true" turn them on. */
@@ -28,7 +28,7 @@ const requirePoi: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
   console.log(JSON.stringify({
     write_rejected: reason, path: c.req.path, origin: origin ?? null, ua: ua.slice(0, 200), sfs: c.req.header("Sec-Fetch-Site") ?? null,
   }));
-  return c.json({ error: "writes are accepted only from the kc-sim poi plugin" }, 403);
+  return c.json({ error: ORIGIN_REJECTED, message: "writes are accepted only from the kc-sim poi plugin" }, 403);
 };
 
 export interface WriteDeps { now: () => number }
@@ -74,7 +74,7 @@ export function writeRoutes(deps: WriteDeps) {
     if (!ipHash) return c.json({ error: "server misconfigured: IP_HASH_SALT is not set" }, 500);
     const r = await issueClient(c.env.DB, ipHash, deps.now());
     if (!r.ok) {
-      if ("banned" in r) return c.json({ error: "registrations from this address are blocked" }, 403);
+      if ("banned" in r) return c.json({ error: BANNED, message: "registrations from this address are blocked" }, 403);
       c.header("Retry-After", String(r.retryAfter));
       return c.json({ error: "too many clients registered from this address", retryAfter: r.retryAfter }, 429);
     }

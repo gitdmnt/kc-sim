@@ -3,7 +3,7 @@ import { IDBFactory } from "fake-indexeddb";
 import { beforeEach, describe, expect, test } from "bun:test";
 import { MAX_OBSERVATION_BYTES, MAX_OBSERVATIONS_PER_REQUEST, MAX_REQUEST_BYTES, ObservationDb } from "./db";
 import type { CapturedBattle } from "@shared/capture/types";
-import { UPLOAD_INTERVAL_MS, createUploadClient, memoryStore } from "./uploadClient";
+import { REJECTED_RETRY_MS, UPLOAD_INTERVAL_MS, createUploadClient, memoryStore } from "./uploadClient";
 
 const BASE = "http://api.test";
 
@@ -27,15 +27,17 @@ interface Req {
   body: { observations: { clientObsId: string; kind: string }[] };
 }
 
+interface Override { status: number; retryAfter?: string; body?: unknown }
+
 /** サーバの代役。handler が null を返したら 200 (登録なら新しいトークン)。 */
 const setup = () => {
   let t = 1_000_000;
   const requests: Req[] = [];
   const server = {
     registers: 0,
-    /** 観測 POST ごとに呼ばれる。{status, retryAfter} を返すとその応答にする。 */
-    onObservations: null as null | ((r: Req) => { status: number; retryAfter?: string } | null),
-    onRegister: null as null | (() => { status: number; retryAfter?: string } | null),
+    /** 観測 POST ごとに呼ばれる。{status, retryAfter, body} を返すとその応答にする。 */
+    onObservations: null as null | ((r: Req) => Override | null),
+    onRegister: null as null | (() => Override | null),
   };
   const respond = (r: { status: number; retryAfter?: string }, body: unknown = {}) =>
     ({
@@ -55,12 +57,12 @@ const setup = () => {
     requests.push(req);
     if (url.endsWith("/api/v1/clients")) {
       const over = server.onRegister?.();
-      if (over) return respond(over);
+      if (over) return respond(over, over.body);
       server.registers += 1;
       return respond({ status: 201 }, { clientId: `c-${server.registers}`, token: `tok-${server.registers}` });
     }
     const over = server.onObservations?.(req);
-    return respond(over ?? { status: 202 }, { queued: 1, duplicates: 0, pending: 1 });
+    return over ? respond(over, over.body) : respond({ status: 202 }, { queued: 1, duplicates: 0, pending: 1 });
   }) as unknown as typeof fetch;
   const store = memoryStore();
   const client = createUploadClient({ store, fetch: fakeFetch, now: () => t });
@@ -301,6 +303,36 @@ describe("401: token no longer valid", () => {
     expect(s.registrations()).toHaveLength(2);
     expect(s.posts()).toHaveLength(2);
     expect(await db.countPending(s.now())).toBe(1);
+  });
+});
+
+describe("403 origin_rejected: the server did not accept poi's request", () => {
+  const rejected = { status: 403, body: { error: "origin_rejected", message: "writes are accepted only from the kc-sim poi plugin" } };
+  test("an upload keeps the token and the data, is not a ban, and is retried after 6 h", async () => {
+    const s = setup();
+    await addBattles(1);
+    s.server.onObservations = () => rejected;
+    expect(await s.client.send(db, BASE)).toEqual({ status: "deferred", until: s.now() + REJECTED_RETRY_MS, reason: "rejected" });
+    expect(s.client.state(BASE)).toEqual({ kind: "registered", clientId: "c-1" });
+    expect(await db.countPending(s.now())).toBe(1);
+    s.server.onObservations = null;
+    s.advance(REJECTED_RETRY_MS - 1);
+    expect((await s.client.send(db, BASE)).status).toBe("deferred");
+    s.advance(1);
+    expect(await s.client.send(db, BASE)).toMatchObject({ status: "sent", sent: 1 });
+    expect(s.registrations()).toHaveLength(1);
+  });
+
+  test("a rejected registration is deferred the same way; other 403 bodies are still a ban", async () => {
+    const s = setup();
+    await addBattles(1);
+    s.server.onRegister = () => rejected;
+    expect(await s.client.send(db, BASE)).toEqual({ status: "deferred", until: s.now() + REJECTED_RETRY_MS, reason: "rejected" });
+    expect(s.client.state(BASE)).toEqual({ kind: "none" });
+    s.server.onRegister = null;
+    s.advance(REJECTED_RETRY_MS);
+    s.server.onObservations = () => ({ status: 403, body: { error: "banned" } });
+    expect(await s.client.send(db, BASE)).toEqual({ status: "banned" });
   });
 });
 

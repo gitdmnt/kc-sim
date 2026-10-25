@@ -321,6 +321,24 @@ describe("200-observation cap", () => {
   });
 });
 
+describe("403 origin_rejected", () => {
+  test("keeps sending later (not banned), shows when; a success clears it", async () => {
+    const { clock, calls, state, up } = setup();
+    const H6 = 6 * 60 * MIN;
+    state.outcome = () => ({ status: "deferred", until: clock.now() + H6, reason: "rejected" });
+    await clock.advance(5_000);
+    expect(calls).toHaveLength(1);
+    expect(up.status()).toMatchObject({ rejectedUntil: 5_000 + H6, lastError: null });
+    state.outcome = null;
+    await clock.advance(H6 - 1);
+    expect(calls).toHaveLength(1);
+    await clock.advance(1);
+    expect(calls).toHaveLength(2);
+    expect(up.status().rejectedUntil).toBeNull();
+    up.stop();
+  });
+});
+
 describe("403 (banned)", () => {
   test("stops sending and reports why", async () => {
     const { clock, calls, state, up } = setup();

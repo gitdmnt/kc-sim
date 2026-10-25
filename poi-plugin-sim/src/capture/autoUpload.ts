@@ -6,6 +6,7 @@
  *   間隔の間に溜まった分は次の送信でまとめて送る。保留が残っていれば間隔が空き次第続きを送る。
  * - 保留が残っている限り、一定間隔で再試行する。
  * - 429 は Retry-After の時刻に再試行する (失敗として数えない)。403 (拒否) は送信を止める。
+ * - 403 origin_rejected (送信元を受け付けなかった) は止めず、uploadClient が決めた時刻 (6 時間後) に再試行する。
  * - 失敗 (オフライン / 5xx) は指数バックオフ (上限あり)。poi には例外を投げず、キャプチャも止めない。
  * - 送信は常に 1 本だけ (single-flight)。
  *
@@ -35,10 +36,12 @@ export interface AutoUploadStatus {
   lastSuccessAt: number | null;
   lastError: string | null;
   lastErrorAt: number | null;
+  /** 403 origin_rejected で待っているとき、次に送る時刻。送信に成功すると null */
+  rejectedUntil: number | null;
 }
 
 const STATUS_KEY = `${STORAGE_PREFIX}autoUploadStatus`;
-const EMPTY_STATUS: AutoUploadStatus = { lastSuccessAt: null, lastError: null, lastErrorAt: null };
+const EMPTY_STATUS: AutoUploadStatus = { lastSuccessAt: null, lastError: null, lastErrorAt: null, rejectedUntil: null };
 
 export const AUTO_UPLOAD_STATUS_KEY = STATUS_KEY;
 
@@ -159,12 +162,13 @@ export const startAutoUpload = (opts: AutoUploadOptions): AutoUploader => {
         if (out.status === "sent") {
           failures = 0;
           blockedUntil = out.nextAt;
-          setStatus({ lastSuccessAt: now(), lastError: null, lastErrorAt: null });
+          setStatus({ lastSuccessAt: now(), lastError: null, lastErrorAt: null, rejectedUntil: null });
           // 1 回に入りきらなかった分は次に送れるようになった時点で続ける
           if (out.remaining > 0 && !stopped) schedule(Math.max(0, out.nextAt - now()));
         } else if (out.status === "deferred") {
-          // 429 や自分の送信間隔。失敗ではないのでバックオフしない。
+          // 429・自分の送信間隔・origin_rejected。失敗ではないのでバックオフしない。
           blockedUntil = out.until;
+          if (out.reason === "rejected") setStatus({ rejectedUntil: out.until });
           if (!stopped) schedule(Math.max(0, out.until - now()));
         } else if (out.status === "banned") {
           clearDebounce();

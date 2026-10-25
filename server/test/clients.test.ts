@@ -70,7 +70,7 @@ describe("bearer auth and ban", () => {
     expect((await upload(token, [obs()])).status).toBe(202);
     expect((await h.call("POST", `/admin/clients/${clientId}/ban`, { body: { reason: "test" } })).json).toEqual({ clientId, banned: true });
     h.clock.t += 120_000;
-    expect((await upload(token, [obs()])).status).toBe(403);
+    expect(await upload(token, [obs()])).toMatchObject({ status: 403, json: { error: "banned" } });
     expect((await h.call("POST", "/admin/clients/c_nope/ban")).status).toBe(404);
     expect(await h.db.prepare("SELECT ban_reason FROM clients WHERE id = ?1").bind(clientId).first()).toEqual({ ban_reason: "test" });
   });
@@ -177,7 +177,7 @@ describe("caps and per-IP write limit", () => {
       ];
       for (const [headers, reason] of cases) {
         const r = await h.call("POST", "/api/v1/clients", { headers });
-        expect(r.status).toBe(403);
+        expect(r).toMatchObject({ status: 403, json: { error: "origin_rejected" } });
         expect(JSON.parse(logs.at(-1)!)).toMatchObject({ write_rejected: reason, path: "/api/v1/clients" });
       }
       expect(JSON.parse(logs.at(-1)!)).toMatchObject({ origin: "null", sfs: "cross-site" });

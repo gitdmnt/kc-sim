@@ -5,14 +5,20 @@
  *   登録して localStorage に保存する。API の URL が変わったら捨てて登録し直す。
  * - 送信は 60 秒に 1 回、1 リクエスト 100 件・256 KiB まで (db.ts)。送信しようとした時刻から 60 秒は次を送らない。
  *   429 は Retry-After の時刻まで待つ (失敗ではない)。401 は 1 度だけ再登録して送り直す。403 は停止する。
+ *   ただし 403 `origin_rejected` (サーバが poi からの送信と認めなかった。プラグイン側では直せない) は停止せず、
+ *   トークンも未送信も残したまま REJECTED_RETRY_MS 後に送り直す。
  * - 状態 (トークン・次に送れる時刻) は localStorage にあるので、メインウィンドウの自動送信と
  *   プラグインウィンドウの手動送信が同じ間隔を共有する。
  */
 import { STORAGE_PREFIX } from "../settings";
-import { UploadHttpError, parseRetryAfter } from "./db";
+import { UploadHttpError, errorCode, parseRetryAfter } from "./db";
 import type { FetchFn, ObservationDb } from "./db";
 
 export const UPLOAD_INTERVAL_MS = 60_000;
+/** 403 `origin_rejected` のあと、次に送るまでの時間 */
+export const REJECTED_RETRY_MS = 6 * 60 * 60_000;
+/** サーバの 403 の理由コード: 送信元 (Origin / User-Agent) を受け付けなかった */
+export const ORIGIN_REJECTED = "origin_rejected";
 
 export interface Credentials {
   /** 末尾の `/` を除いた登録先 */
@@ -92,12 +98,15 @@ export type SendOutcome =
   /** 未送信なし (登録も送信もしていない) */
   | { status: "idle" }
   | { status: "sent"; sent: number; remaining: number; nextAt: number }
-  /** 送らなかった。`until` (epoch ms) まで待つ。limiter = 自分の 60 秒間隔、server = 429 の Retry-After。 */
-  | { status: "deferred"; until: number; reason: "limiter" | "server" }
+  /**
+   * 送らなかった。`until` (epoch ms) まで待つ。limiter = 自分の 60 秒間隔、server = 429 の Retry-After、
+   * rejected = 403 origin_rejected (REJECTED_RETRY_MS 後に送り直す)。
+   */
+  | { status: "deferred"; until: number; reason: "limiter" | "server" | "rejected" }
   /** 403: このクライアントは拒否された。送信を止める。 */
   | { status: "banned" };
 
-export type RegisterOutcome = { status: "registered"; clientId: string } | { status: "deferred"; until: number };
+export type RegisterOutcome = { status: "registered"; clientId: string } | { status: "deferred"; until: number; rejected?: boolean };
 
 export type RegistrationState = { kind: "none" } | { kind: "registered"; clientId: string } | { kind: "banned"; clientId: string };
 
@@ -131,13 +140,21 @@ export const createUploadClient = (opts: UploadClientOptions = {}): UploadClient
     return c && c.apiBase === base ? c : null;
   };
 
-  const register = async (base: string): Promise<Credentials | { until: number }> => {
+  /** 403 origin_rejected: 次に送れる時刻を REJECTED_RETRY_MS 後にする。 */
+  const deferRejected = () => {
+    const until = now() + REJECTED_RETRY_MS;
+    store.setNextAt(until);
+    return until;
+  };
+
+  const register = async (base: string): Promise<Credentials | { until: number; rejected?: boolean }> => {
     const res = await rawFetch(`${base}/api/v1/clients`, { method: "POST" });
     if (res.status === 429) {
       const until = now() + (parseRetryAfter(res.headers?.get("Retry-After")) ?? UPLOAD_INTERVAL_MS);
       store.setNextAt(until);
       return { until };
     }
+    if (res.status === 403 && (await errorCode(res)) === ORIGIN_REJECTED) return { until: deferRejected(), rejected: true };
     if (!res.ok) throw new Error(`Registration failed: ${res.status} ${res.statusText}`);
     const body = (await res.json()) as { clientId?: unknown; token?: unknown } | null;
     if (typeof body?.clientId !== "string" || typeof body.token !== "string" || !body.token) {
@@ -171,7 +188,7 @@ export const createUploadClient = (opts: UploadClientOptions = {}): UploadClient
     for (;;) {
       if (!creds) {
         const r = await register(base);
-        if ("until" in r) return { status: "deferred", until: r.until, reason: "server" };
+        if ("until" in r) return { status: "deferred", until: r.until, reason: r.rejected ? "rejected" : "server" };
         creds = r;
       }
       try {
@@ -185,6 +202,7 @@ export const createUploadClient = (opts: UploadClientOptions = {}): UploadClient
           creds = null;
           continue;
         }
+        if (e.status === 403 && e.code === ORIGIN_REJECTED) return { status: "deferred", until: deferRejected(), reason: "rejected" };
         if (e.status === 403) {
           store.setCredentials({ ...creds, banned: true });
           return { status: "banned" };
@@ -210,7 +228,7 @@ export const createUploadClient = (opts: UploadClientOptions = {}): UploadClient
       const base = normalizeApiBase(apiBase);
       store.setCredentials(null);
       const r = await register(base);
-      return "until" in r ? { status: "deferred", until: r.until } : { status: "registered", clientId: r.clientId };
+      return "until" in r ? { status: "deferred", until: r.until, ...(r.rejected ? { rejected: true } : {}) } : { status: "registered", clientId: r.clientId };
     },
     state: (apiBase) => {
       const c = credsFor(normalizeApiBase(apiBase));

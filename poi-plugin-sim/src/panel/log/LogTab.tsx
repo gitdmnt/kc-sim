@@ -68,6 +68,7 @@ export const LogTab = ({ catalog }: { catalog: Catalog }) => {
     try {
       const out = await getUploadClient().send(db, apiBase);
       if (out.status === "sent") toast.push(L.log.uploadDone(out.sent, out.remaining), "ok");
+      else if (out.status === "deferred" && out.reason === "rejected") toast.push(L.log.uploadRejected(new Date(out.until).toLocaleString()), "info");
       else if (out.status === "deferred") toast.push(L.log.uploadWait(Math.max(1, Math.ceil((out.until - Date.now()) / 1000))), "info");
       else if (out.status === "banned") toast.push(L.log.uploadBanned, "danger");
       await load();

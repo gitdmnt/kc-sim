@@ -9,19 +9,23 @@ import { L } from "./strings";
 import { useRegistration } from "./useUploadClient";
 
 /**
- * 送信の状況を 1 行で: 停止 > エラー > 未送信 > 送信済みの順に一番重要な 1 つをアイコン (形で区別) と短い文で出す。
- * 詳細 (エラー文・最終成功時刻・登録 ID) は title。色は付けない。
+ * 送信の状況を 1 行で: 停止 > 送信元の拒否 (再試行待ち) > エラー > 未送信 > 送信済みの順に一番重要な 1 つをアイコン
+ * (形で区別) と短い文で出す。詳細 (エラー文・最終成功時刻・登録 ID) は title。色は付けない。
  */
-const UploadStatusLine = ({ banned, error, pending, lastSuccess, clientId }: { banned: boolean; error: string | null; pending: number; lastSuccess: string | null; clientId: string | null }) => {
+const UploadStatusLine = ({ banned, rejectedUntil, error, pending, lastSuccess, clientId }: {
+  banned: boolean; rejectedUntil: string | null; error: string | null; pending: number; lastSuccess: string | null; clientId: string | null;
+}) => {
   const [icon, text, title] = banned
     ? [<Ban key="i" size={14} aria-hidden />, L.log.uploadBanned, null]
-    : error
-      ? [<CircleAlert key="i" size={14} aria-hidden />, pending ? `送信エラー · 未送信 ${pending}` : "送信エラー", error]
-      : pending
-        ? [<Clock key="i" size={14} aria-hidden />, `未送信 ${pending}`, lastSuccess && `最終成功: ${lastSuccess}`]
-        : lastSuccess
-          ? [<Check key="i" size={14} aria-hidden />, "送信済み", `最終成功: ${lastSuccess}`]
-          : [null, null, null];
+    : rejectedUntil
+      ? [<Clock key="i" size={14} aria-hidden />, `${L.log.uploadRejected(rejectedUntil)}${pending ? ` · 未送信 ${pending}` : ""}`, lastSuccess && `最終成功: ${lastSuccess}`]
+      : error
+        ? [<CircleAlert key="i" size={14} aria-hidden />, pending ? `送信エラー · 未送信 ${pending}` : "送信エラー", error]
+        : pending
+          ? [<Clock key="i" size={14} aria-hidden />, `未送信 ${pending}`, lastSuccess && `最終成功: ${lastSuccess}`]
+          : lastSuccess
+            ? [<Check key="i" size={14} aria-hidden />, "送信済み", `最終成功: ${lastSuccess}`]
+            : [null, null, null];
   if (!text) return null;
   return (
     <span className="flex items-center gap-1 text-sm text-ink-300" title={[title, clientId && `登録 ID: ${clientId}`].filter(Boolean).join("\n") || undefined}>
@@ -164,6 +168,7 @@ export const UploadSettings = () => {
           />
           <UploadStatusLine
             banned={regKind === "banned"}
+            rejectedUntil={upload.status.rejectedUntil === null ? null : formatTime(upload.status.rejectedUntil)}
             error={upload.status.lastError ? `${upload.status.lastError} (${formatTime(upload.status.lastErrorAt)})` : null}
             pending={upload.pending ?? 0}
             lastSuccess={upload.status.lastSuccessAt === null ? null : formatTime(upload.status.lastSuccessAt)}

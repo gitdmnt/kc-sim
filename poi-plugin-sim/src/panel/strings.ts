@@ -19,6 +19,7 @@ export const L = {
     uploadDone: (n: number, remaining = 0) => (remaining > 0 ? `${n} 件を送信しました (残り ${remaining} 件は次回)` : `${n} 件を送信しました`),
     uploadWait: (sec: number) => `次の送信まで ${sec} 秒`,
     uploadBanned: "送信停止中",
+    uploadRejected: (at: string) => `サーバが送信元を受け付けませんでした · ${at} に再試行`,
     uploadFail: "送信に失敗しました",
     empty: "観測ログがありません",
     detail: "戦闘詳細",
