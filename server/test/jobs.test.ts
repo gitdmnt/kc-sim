@@ -5,28 +5,30 @@ import { readFileSync } from "node:fs";
 import { bunGrid } from "../scripts/lib/sim-core";
 import { RUN_D1_CALLS, RUN_MS } from "../src/budget";
 import { runJobs } from "../src/jobs";
-import { battleResponse, fleet, harness, LAYOUT_15, seedBasic, type Harness } from "./helpers";
+import { battleResponse, fleet, harness, LAYOUT_15, seedBasic, sortieOf, type Harness } from "./helpers";
 
 let h: Harness;
 const deps = { gridFn: bunGrid, now: () => h.clock.t };
 const count = async (sql: string) => (await h.db.prepare(sql).first<{ n: number }>())!.n;
 const lock = async () => (await h.db.prepare("SELECT value FROM kv_state WHERE key = 'jobs_lock_until'").first<{ value: string }>())!.value;
 
-/** Stages `uploads` × 50 battles (one request per 60 s); nothing is processed yet. */
+/** Stages `uploads` × 50 observations (49 battles and their sortie, one request per 60 s); nothing is processed yet. */
 async function stage(uploads: number) {
   const { token } = await h.register();
   let seq = 0;
   for (let u = 0; u < uploads; u++) {
     h.clock.t += 61_000;
-    const observations = Array.from({ length: 50 }, () => {
+    // 7 battles at each of cells 1-7 (a sortie cell lists at most 8)
+    const battles = Array.from({ length: 49 }, (_, i) => {
       seq++;
       return {
-        clientObsId: `b${seq}`, observedAt: new Date(h.clock.t - 86_400_000 + seq * 1000).toISOString(), map: "1-5", cell: 1,
+        clientObsId: `b${seq}`, observedAt: new Date(h.clock.t - 86_400_000 + seq * 1000).toISOString(), map: "1-5", cell: 1 + Math.floor(i / 7),
         layout: LAYOUT_15, difficulty: 0, kind: "battle", fleet: fleet(),
-        raw: { path: "api_req_sortie/battle", visitId: `visit-${seq}`, sortieId: null, raw: battleResponse([1501, 1502, 1502]), result: null },
+        raw: { path: "api_req_sortie/battle", visitId: `visit-${seq}`, sortieId: null as string | null, raw: battleResponse([1501, 1502, 1502]), result: null },
       };
     });
-    const r = await h.call("POST", "/api/v1/observations", { token, body: { observations } });
+    seq++;
+    const r = await h.call("POST", "/api/v1/observations", { token, body: { observations: [...battles, sortieOf(battles)] } });
     expect(r.status).toBe(202);
   }
   return seq;

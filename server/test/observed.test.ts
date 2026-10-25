@@ -8,7 +8,7 @@ import {
 import { Budget } from "../src/budget";
 import { selectCompSets } from "../src/observed/select";
 import {
-  battleResponse, drainJobs, EDGES_15, ENEMIES, fleet, FRIENDS, harness, LAYOUT_15 as LAYOUT, seedBasic, uploadAndProcess, type Harness, type UploadOutcome,
+  battleResponse, drainJobs, EDGES_15, ENEMIES, fleet, FRIENDS, harness, LAYOUT_15 as LAYOUT, mapPackets, seedBasic, sortieOf, uploadAndProcess, type Harness, type UploadOutcome,
 } from "./helpers";
 
 const EVENTS_15: Record<string, number> = { A: 4, B: 6, C: 4, D: 4, E: 4, F: 4, G: 6, H: 4, I: 4, J: 5 };
@@ -48,18 +48,18 @@ const battle = (cell: number, ids: number[], formation = 1, extra: Record<string
 };
 const cell = (no: number, from: number | null, eventId: number, next: number, battles: string[] = []) =>
   ({ no, from, colorNo: eventId === 5 ? 5 : 4, eventId, eventKind: 1, bossCellNo: 12, next, selectCells: null, battles });
-/** Start → A(1) → D(4) → F(6) → G(7) → J(12), boss. No raw map packets (flagged sortie_no_raw, still used). */
-const sortie = (battles: string[] = [], extra: Record<string, unknown> = {}) => ({
-  clientObsId: `s${++seq}`, observedAt: at(seq), map: "1-5", layout: LAYOUT, difficulty: 0, kind: "sortie",
-  fleet: fleet(),
-  sortie: {
-    deckId: 1, combined: 0, endKind: "boss", endedAt: at(seq + 1),
-    cells: [cell(1, null, 4, 1), cell(4, 1, 4, 2), cell(6, 4, 4, 2), cell(7, 6, 6, 1), cell(12, 7, 5, 0, battles)],
-    cellData: LAYOUT.map((no) => ({ no, colorNo: no === 0 ? 0 : 4, passed: 1, ...(no === 7 ? { distance: 3 } : {}) })),
-    features: { stypes: [2, 2, 2], speed: 10, los: null, hqLevel: 120 },
-  },
-  ...extra,
-});
+/** Start → A(1) → D(4) → F(6) → G(7) → J(12), boss; `post` adds the raw map packets (`raw: null` leaves them out). */
+const sortie = (battles: string[] = [], extra: Record<string, unknown> = {}) => {
+  const cells = [cell(1, null, 4, 1), cell(4, 1, 4, 2), cell(6, 4, 4, 2), cell(7, 6, 6, 1), cell(12, 7, 5, 0, battles)];
+  const layout = (extra.layout as number[] | null | undefined) === undefined ? LAYOUT : (extra.layout as number[] | null);
+  const cellData = layout?.map((no) => ({ no, colorNo: no === 0 ? 0 : 4, passed: 1, ...(no === 7 ? { distance: 3 } : {}) })) ?? null;
+  return {
+    clientObsId: `s${++seq}`, observedAt: at(seq), map: "1-5", layout: LAYOUT, difficulty: 0, kind: "sortie",
+    fleet: fleet(),
+    sortie: { deckId: 1, combined: 0, endKind: "boss", endedAt: at(seq + 1), cells, cellData, features: { stypes: [2, 2, 2], speed: 10, los: null, hqLevel: 120 } },
+    ...extra,
+  };
+};
 
 // Response shapes the assertions read (the API is the system under test; the casts below are unchecked).
 interface CompJson { count: number; weight: number; formation: number | null; main: { shipId: number }[] }
@@ -78,10 +78,35 @@ let db: D1Database;
 /** Registered clients by test name → {clientId, token}. */
 let clients: Map<string, { clientId: string; token: string }>;
 const call = <T = unknown>(method: string, path: string, body?: unknown) => h.call<T>(method, path, { body });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Obs = Record<string, any>;
+/**
+ * What the plugin does before an upload: a sortie carries the raw map packets of its (final) cells, and lists the
+ * battles fought at its cells, which carry its id. Battles at cells no sortie of the upload visits stay unlinked.
+ */
+const finalize = (observations: unknown[]) => {
+  const list = observations as Obs[];
+  const sorties = list.filter((o) => o?.kind === "sortie" && Array.isArray(o.sortie?.cells));
+  for (const b of list) {
+    if (b?.kind !== "battle" || sorties.some((s) => s.sortie.cells.some((c: Obs) => c.battles.includes(b.clientObsId)))) continue;
+    const c = sorties.find((s) => s.map === b.map)?.sortie.cells.find((x: Obs) => x.no === b.cell && x.battles.length < 8);
+    if (c) c.battles = [...c.battles, b.clientObsId];
+  }
+  for (const s of sorties) {
+    if (!("raw" in s)) s.raw = { packets: mapPackets(Number(s.map.split("-")[0]) * 10 + Number(s.map.split("-")[1]), s.sortie.cells, s.sortie.cellData) };
+    for (const c of s.sortie.cells) {
+      for (const id of c.battles) {
+        const b = list.find((x) => x?.kind === "battle" && x.clientObsId === id);
+        if (b) b.raw.sortieId = s.clientObsId;
+      }
+    }
+  }
+  return list;
+};
 /** One upload per call (the clock moves past the 60 s gate), processed by the jobs. */
 const post = async (name: string, observations: unknown[]) => {
   if (!clients.has(name)) clients.set(name, await h.register(`198.51.100.${clients.size + 1}`));
-  const r: UploadJson = await uploadAndProcess(h, clients.get(name)!.token, observations);
+  const r: UploadJson = await uploadAndProcess(h, clients.get(name)!.token, finalize(observations));
   return { status: r.status, json: r };
 };
 const rows = (sql: string) => db.prepare(sql).all<Record<string, unknown>>().then((r) => r.results);
@@ -191,23 +216,24 @@ describe("aggregation", () => {
     const s = sortie([b[0]!.clientObsId, night.clientObsId]);
     const r = await post("poi-a", [...b, night, s]);
     expect(r.status).toBe(202);
-    expect(r.json).toMatchObject({ accepted: 7, duplicates: 0, rejected: [], quarantined: 0 });
-    expect((await rows("SELECT COUNT(*) AS n FROM observations WHERE aggregated_at IS NOT NULL AND agg_error IS NULL"))[0]!.n).toBe(7);
+    // the battle at cell 10 is not on the sortie's route: it stays quarantined 'unlinked'
+    expect(r.json).toMatchObject({ accepted: 7, duplicates: 0, rejected: [], quarantined: 1 });
+    expect((await rows("SELECT COUNT(*) AS n FROM observations WHERE aggregated_at IS NOT NULL AND agg_error IS NULL"))[0]!.n).toBe(6);
 
     // letters are resolved on the server from the cell (edge_id = destination cell)
     expect((await rows("SELECT node_letter FROM observations WHERE kind = 'battle' ORDER BY id")).map((x) => x.node_letter)).toEqual(["J", "J", "J", "J", "A", "J"]);
     const snap = await snapshot();
-    expect(snap.layouts).toEqual([{ map_id: 15, layout: LAYOUT.join(","), version: 1, sorties: 1, encounters: 5, first_seen: at(1), last_seen: at(7), boss_cell: 12 }]);
+    expect(snap.layouts).toEqual([{ map_id: 15, layout: LAYOUT.join(","), version: 1, sorties: 1, encounters: 4, first_seen: at(1), last_seen: at(7), boss_cell: 12 }]);
     const j = snap.sets.filter((x) => x.node_letter === "J");
-    expect(j.map((x) => [x.signature, x.count, x.weight, x.total_count, x.cell_nos, x.ships])).toEqual([
-      ["4|1530,1501,1501|", 3, 0.75, 4, "[10,12]", "[1530,1501,1501]"],
-      ["4|1530,1502,1502|", 1, 0.25, 4, "[10,12]", "[1530,1502,1502]"],
+    expect(j.map((x) => [x.signature, x.count, x.total_count, x.cell_nos, x.ships])).toEqual([
+      ["4|1530,1501,1501|", 2, 3, "[12]", "[1530,1501,1501]"],
+      ["4|1530,1502,1502|", 1, 3, "[12]", "[1530,1502,1502]"],
     ]);
     expect(j[0]).toMatchObject({ layout: 1, period_start: at(1), period_end: "" });
     expect(snap.edges.map((e) => [e.from_cell, e.to_cell, e.count])).toEqual([[0, 1, 1], [1, 4, 1], [4, 6, 1], [6, 7, 1], [7, 12, 1]]);
     expect(snap.cells.find((c) => c.cell_no === 12)).toMatchObject({ visits: 1, is_boss: 1, event_id: 5 });
     expect(snap.cells.find((c) => c.cell_no === 2)).toMatchObject({ visits: 0, color_no: 4 });
-    expect(snap.sorties).toEqual([{ map_id: 15, layout: LAYOUT.join(","), end_kind: "boss", cells: "[1,4,6,7,12]", battles: 2, features: expect.any(String) }]);
+    expect(snap.sorties).toEqual([{ map_id: 15, layout: LAYOUT.join(","), end_kind: "boss", cells: "[1,4,6,7,12]", battles: 5, features: expect.any(String) }]);
     // fleet features are re-derived from the fleet snapshot and master data, not taken from the client
     expect(JSON.parse(snap.sorties[0]!.features as string)).toMatchObject({ stypes: [2, 2, 2], escortStypes: null, speed: 10, hqLevel: 120 });
     expect(snap.mismatches).toEqual([]);
@@ -277,16 +303,17 @@ describe("aggregation", () => {
   });
 
   test("unusable observations are rejected; event maps without a difficulty only feed the graph", async () => {
+    const ev = { ...battle(3, COMP_X), map: "60-1", difficulty: null, layout: null };
     const r = await post("poi-a", [
       battle(12, [], 1), // no ships
       { ...battle(5, COMP_X), cell: null, node: "E" }, // legacy letter without a cell
-      { ...battle(3, COMP_X), map: "60-1", difficulty: null, layout: null },
+      ev, sortieOf([ev]),
     ]);
-    expect(r.json.accepted).toBe(1);
+    expect(r.json.accepted).toBe(2);
     expect(r.json.rejected.map((x) => x.rule).sort()).toEqual(["raw_invalid", "schema"]);
     const snap = await snapshot();
     expect(snap.comps).toEqual([]);
-    expect((await rows("SELECT COUNT(*) AS n FROM observations WHERE aggregated_at IS NOT NULL AND agg_error IS NULL"))[0]!.n).toBe(1);
+    expect((await rows("SELECT COUNT(*) AS n FROM observations WHERE aggregated_at IS NOT NULL AND agg_error IS NULL"))[0]!.n).toBe(2);
   });
 });
 
@@ -302,8 +329,8 @@ describe("gauge, drops, FCF retreats, striking force", () => {
     Object.assign(s.sortie, sortieExtra);
     return s;
   };
-  /** Findings besides the `sortie_no_raw` flag of these packet-less test sorties. */
-  const findings = () => rows("SELECT rule, action FROM observation_rejections WHERE rule <> 'sortie_no_raw' ORDER BY id");
+  /** Findings of the uploads. */
+  const findings = () => rows("SELECT rule, action FROM observation_rejections ORDER BY id");
   const storedSortie = async () => JSON.parse((await rows("SELECT sortie FROM observations WHERE kind = 'sortie' ORDER BY id DESC LIMIT 1"))[0]!.sortie as string);
 
   test("an upload with drops lands in poi_drop_counts keyed by map, layout, difficulty, cell and rank", async () => {
@@ -342,7 +369,10 @@ describe("gauge, drops, FCF retreats, striking force", () => {
   });
 
   test("event maps count drops per difficulty; an unknown rank is not counted", async () => {
-    const ev = (difficulty: number | null) => ({ ...withResults([res("S", 10), null, null]), map: "60-1", difficulty, layout: null });
+    const ev = (difficulty: number | null) => {
+      const s = withResults([res("S", 10), null, null]);
+      return { ...s, map: "60-1", difficulty, layout: null, sortie: { ...s.sortie, cellData: null } };
+    };
     await post("poi-a", [ev(2), ev(2), ev(4), ev(null)]);
     expect((await snapshot()).drops.map((d) => [d.map_id, d.layout, d.difficulty, d.ship_id, d.count])).toEqual([[601, "", 2, 10, 2], [601, "", 4, 10, 1]]);
   });
@@ -422,7 +452,7 @@ describe("API", () => {
   });
 
   test("enemy-comps: source per set, policy with minObserved, source and since; map detail", async () => {
-    await post("poi-a", [battle(12, COMP_X), battle(12, COMP_X), battle(11, COMP_Y), sortie()]);
+    await post("poi-a", [battle(12, COMP_X), battle(12, COMP_X), battle(12, COMP_Y), sortie()]);
     const comps = (query = "") => call<CompsJson>("GET", `/api/v1/maps/1-5/nodes/J/enemy-comps${query}`);
     const auto = await comps();
     expect(auto.json).toMatchObject({ minObserved: 30, source: "auto", selection: [{ difficulty: 0, source: "kcnav", observedCount: 3, minObserved: 30 }] });
@@ -430,7 +460,7 @@ describe("API", () => {
     const low = await comps("?minObserved=3");
     expect(low.json.selection[0]).toMatchObject({ source: "poi-observed", observedCount: 3 });
     expect(low.json.sets).toHaveLength(1);
-    expect(low.json.sets[0]).toMatchObject({ source: "poi-observed", totalCount: 3, layout: 1, cells: [11, 12], periodEnd: null });
+    expect(low.json.sets[0]).toMatchObject({ source: "poi-observed", totalCount: 3, layout: 1, cells: [12], periodEnd: null });
     expect(low.json.sets[0]!.comps.map((c) => [c.weight, c.main.map((m) => m.shipId)])).toEqual([
       [2 / 3, COMP_X], [1 / 3, COMP_Y],
     ]);

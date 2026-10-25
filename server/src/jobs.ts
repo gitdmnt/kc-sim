@@ -8,7 +8,7 @@
 // next jobs run, within about a day.
 import type { GridFn } from "../../shared/estimate/forward";
 import { Budget, COST, PASS_MS, RUN_MS } from "./budget";
-import { runEstimator, type EstimatorResult } from "./estimator/job";
+import { PENDING_OBSERVATIONS, runEstimator, type EstimatorResult } from "./estimator/job";
 import { ingestPending, type IngestResult } from "./ingest/upload";
 import { aggregationBacklog, foldPending, materializeDirty, type AggregateResult } from "./observed/aggregate";
 
@@ -78,7 +78,7 @@ async function storeStages(db: D1Database, budget: Budget, now: number, ingestSh
 async function hasWork(db: D1Database, budget: Budget): Promise<boolean> {
   const r = await db.prepare(
     `SELECT EXISTS (SELECT 1 FROM upload_items) OR EXISTS (SELECT 1 FROM observations WHERE aggregated_at IS NULL AND quarantine IS NULL)
-       OR EXISTS (SELECT 1 FROM poi_dirty_maps) OR EXISTS (SELECT 1 FROM observation_ships WHERE est_at IS NULL)
+       OR EXISTS (SELECT 1 FROM poi_dirty_maps) OR EXISTS (${PENDING_OBSERVATIONS})
        OR EXISTS (SELECT 1 FROM estimator_rolls) OR EXISTS (SELECT 1 FROM estimator_accum WHERE dirty_since IS NOT NULL) AS work`,
   ).first<{ work: number }>();
   budget.charge(COST.d1Call, 1);

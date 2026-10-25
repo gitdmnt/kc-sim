@@ -12,7 +12,7 @@ import { captureFromRun, syntheticWorld, type SyntheticRecord } from "../../shar
 import type { EstimateResult } from "../../shared/estimate/types";
 import { compactDensity } from "../src/estimator/job";
 import { bunGrid } from "../scripts/lib/sim-core";
-import { harness, LAYOUT_15, seedEdges15, seedMaster, seedSynthetic, T0, uploadAndProcess, type Harness } from "./helpers";
+import { harness, LAYOUT_15, seedEdges15, seedMaster, seedSynthetic, sortieOf, T0, uploadAndProcess, type Harness } from "./helpers";
 
 const gun = (id: number, fp: number, acc: number): EquipmentInput => ({ id, types: [1, 1, 2, 2, 0], stats: { firepower: fp, accuracy: acc, range: 2 } });
 const smallGun = (id: number): EquipmentInput => ({ id, types: [1, 1, 1, 1, 0], stats: { firepower: 2, accuracy: 1, range: 1 } });
@@ -55,7 +55,7 @@ const simulate = (battles: number, seed: number): SyntheticRecord[] => {
 /** Upload items as the plugin sends them (≤ 100 per request and ≤ 256 KiB, one request per 60 s). */
 const toUpload = (r: SyntheticRecord) => ({
   clientObsId: r.battle.id, observedAt: new Date(r.battle.capturedAt).toISOString(), map: "1-5", cell: 1, layout: LAYOUT_15, difficulty: 0,
-  kind: "battle", fleet: r.battle.fleet, raw: { path: r.battle.path, visitId: r.battle.visitId, sortieId: null, raw: r.battle.raw, result: null },
+  kind: "battle", fleet: r.battle.fleet, raw: { path: r.battle.path, visitId: r.battle.visitId, sortieId: null as string | null, raw: r.battle.raw, result: null },
 });
 
 interface EstimatesJson {
@@ -67,12 +67,16 @@ let h: Harness;
 let token: string;
 let clientId: string;
 let first: SyntheticRecord[];
+/** Uploads the battles with one sortie per cell visit (day + night); `accepted` etc. count the battles. */
 const upload = async (records: SyntheticRecord[]) => {
   const out = { accepted: 0, rejected: 0, quarantined: 0 };
   for (let i = 0; i < records.length; i += 40) {
-    const r = await uploadAndProcess(h, token, records.slice(i, i + 40).map(toUpload));
+    const battles = records.slice(i, i + 40).map(toUpload);
+    const visits = [...new Set(battles.map((b) => b.raw.visitId))];
+    const sorties = visits.map((v) => sortieOf(battles.filter((b) => b.raw.visitId === v)));
+    const r = await uploadAndProcess(h, token, [...battles, ...sorties]);
     expect(r.status).toBe(202);
-    out.accepted += r.accepted;
+    out.accepted += r.accepted - sorties.length;
     out.rejected += r.rejected.length;
     out.quarantined += r.quarantined;
   }

@@ -225,6 +225,13 @@ const TYPICAL_OBS_KB = 8;
 interface FitLoader { prepare: () => Promise<number>; load: () => Promise<FitEntry[]> }
 
 /**
+ * Pending queue rows of observations the estimator may count now: battles waiting for their sortie (quarantine
+ * 'unlinked', released by it) stay queued.
+ */
+export const PENDING_OBSERVATIONS = `SELECT DISTINCT s.observation_id FROM observation_ships s JOIN observations q ON q.id = s.observation_id
+  WHERE s.est_at IS NULL AND COALESCE(q.quarantine, '') <> 'unlinked'`;
+
+/**
  * One count step over the oldest pending observations whose cumulative cost fits (SQLite sums it). Returns false
  * when nothing is pending or the next observation does not fit; it is then counted by a run with more budget left.
  */
@@ -236,7 +243,7 @@ async function countStep(db: D1Database, budget: Budget, fit: FitLoader, now: st
     `SELECT id, client_id, observed_at, map_id, cell_no, difficulty, fleet, enemy, raw, quarantine, bytes FROM (
        SELECT o.*, length(CAST(o.raw AS BLOB)) + length(CAST(o.fleet AS BLOB)) AS bytes,
          SUM(?1 + ?2 * (length(CAST(o.raw AS BLOB)) + length(CAST(o.fleet AS BLOB))) / 1024.0) OVER (ORDER BY o.id) AS cost
-       FROM observations o WHERE o.id IN (SELECT DISTINCT observation_id FROM observation_ships WHERE est_at IS NULL ORDER BY observation_id LIMIT 50))
+       FROM observations o WHERE o.id IN (${PENDING_OBSERVATIONS} ORDER BY s.observation_id LIMIT 50))
      WHERE cost <= ?3 ORDER BY id`,
   ).bind(COST.estimateObservation, OBS_KB, budget.left - fixed).all<ObsRow>();
   budget.charge(COST.d1Call, 1);
@@ -399,7 +406,7 @@ async function summarizeStep(db: D1Database, budget: Budget, now: string, epsilo
   const { results } = await db.prepare(
     `SELECT ship_id, axes, ll_ev, ll_acc, n_ev, n_acc FROM estimator_accum WHERE dirty_since IS NOT NULL
        AND (EXISTS (SELECT 1 FROM estimator_accum WHERE dirty_since <= ?2) OR NOT (EXISTS (SELECT 1 FROM upload_items)
-         OR EXISTS (SELECT 1 FROM observation_ships WHERE est_at IS NULL) OR EXISTS (SELECT 1 FROM estimator_rolls)))
+         OR EXISTS (${PENDING_OBSERVATIONS}) OR EXISTS (SELECT 1 FROM estimator_rolls)))
      ORDER BY dirty_since, ship_id LIMIT ?1`,
   ).bind(limit, cutoff).all<{ ship_id: number; axes: string; ll_ev: string | null; ll_acc: string | null; n_ev: number; n_acc: number }>();
   budget.charge(COST.d1Call, 1);
@@ -498,7 +505,7 @@ export async function runEstimator(db: D1Database, opts: EstimatorOptions): Prom
 /** Queue sizes for the admin status and run responses. */
 export async function estimatorBacklog(db: D1Database) {
   const r = await db.prepare(
-    `SELECT (SELECT COUNT(DISTINCT observation_id) FROM observation_ships WHERE est_at IS NULL) AS observations,
+    `SELECT (SELECT COUNT(*) FROM (${PENDING_OBSERVATIONS})) AS observations,
        (SELECT COUNT(*) FROM estimator_rolls) AS signatures, (SELECT COUNT(*) FROM estimator_accum WHERE dirty_since IS NOT NULL) AS dirtyShips`,
   ).first<{ observations: number; signatures: number; dirtyShips: number }>();
   return r ?? { observations: 0, signatures: 0, dirtyShips: 0 };

@@ -171,9 +171,35 @@ const INSERT_OBSERVATIONS = `INSERT INTO observations (client_id, client_obs_id,
 // Rows stored by this batch are the ones whose uploaded_at is their item's request time (duplicates keep theirs).
 const FRESH = "o.client_id = ?1 AND o.client_obs_id = json_extract(j.value, '$.id') AND o.uploaded_at = json_extract(j.value, '$.uploadedAt')";
 
+export const UNLINKED = "unlinked";
+
+// 'unlinked' battles (waiting for their sortie) are queued for the estimator too; it skips them until released.
 const INSERT_SHIPS = `INSERT INTO observation_ships (observation_id, ship_id)
-  SELECT o.id, s.value FROM json_each(?2) j JOIN observations o ON ${FRESH} AND o.quarantine IS NULL, json_each(json_extract(j.value, '$.ships')) s
+  SELECT o.id, s.value FROM json_each(?2) j JOIN observations o ON ${FRESH} AND (o.quarantine IS NULL OR o.quarantine = '${UNLINKED}'),
+    json_each(json_extract(j.value, '$.ships')) s
   WHERE true ON CONFLICT DO NOTHING`;
+
+/** A stored sortie releases its client's battles that wait for it ({id, cell, sortie, layout} per listed battle). */
+const RELEASE_BATTLES = `UPDATE observations
+  SET quarantine = NULL, layout = (SELECT json_extract(j.value, '$.layout') FROM json_each(?2) j WHERE json_extract(j.value, '$.id') = observations.client_obs_id)
+  WHERE client_id = ?1 AND kind = 'battle' AND quarantine = '${UNLINKED}'
+    AND EXISTS (SELECT 1 FROM json_each(?2) j WHERE json_extract(j.value, '$.id') = observations.client_obs_id
+      AND json_extract(j.value, '$.cell') = observations.cell_no AND json_extract(j.value, '$.sortie') = json_extract(observations.raw, '$.sortieId'))`;
+
+interface SortieLink { cells: { no: number; battles: string[] }[]; layout: string }
+
+/** The client's stored, usable sorties that battles of `obs` name (sortieId). */
+async function linkedSorties(db: D1Database, clientId: string, obs: ObservationInput[]): Promise<Map<string, SortieLink>> {
+  const wanted = [...new Set(obs.flatMap((o) => (o.kind === "battle" && o.raw.sortieId ? [o.raw.sortieId] : [])))];
+  const out = new Map<string, SortieLink>();
+  if (!wanted.length) return out;
+  const { results } = await db.prepare(
+    `SELECT client_obs_id, sortie, layout FROM observations
+     WHERE client_id = ?1 AND kind = 'sortie' AND quarantine IS NULL AND sortie IS NOT NULL AND client_obs_id IN (SELECT value FROM json_each(?2))`,
+  ).bind(clientId, JSON.stringify(wanted)).all<{ client_obs_id: string; sortie: string; layout: string | null }>();
+  for (const r of results) out.set(r.client_obs_id, { cells: (JSON.parse(r.sortie) as SortieLink).cells, layout: r.layout ?? "" });
+  return out;
+}
 
 const INSERT_FINDINGS = `INSERT INTO observation_rejections (client_id, client_obs_id, kind, map_id, rule, action, detail, observation_id, created_at)
   SELECT ?1, json_extract(j.value, '$.id'), json_extract(j.value, '$.kind'), json_extract(j.value, '$.map'), json_extract(j.value, '$.rule'),
@@ -205,35 +231,60 @@ async function ingestItems(db: D1Database, clientId: string, staged: StagedRow[]
 
   const obs = parsed.map((p) => p.o);
   const ids = referencedIds(obs);
-  const [master, graphs, days] = await Promise.all([
+  const [master, graphs, days, storedSorties] = await Promise.all([
     loadMaster(db, ids.ships, ids.equips),
     loadGraphs(db, [...ids.maps]),
     dayPackets(db, clientId, obs),
+    linkedSorties(db, clientId, obs),
   ]);
-  budget.charge(0, 6);
+  budget.charge(0, 7);
   const ctx = { now, master, maps: graphs, dayPacket: (v: string) => days.get(v) };
+  const verdicts = parsed.map(({ o, uploadedAt }) => ({ o, uploadedAt, ...validateObservation(o, ctx) }));
+  // Sorties of this group that can link battles (stored unquarantined), then the client's stored ones.
+  const sorties = new Map<string, SortieLink>();
+  for (const v of verdicts) {
+    if (v.o.kind === "sortie" && v.derived.sortie && !v.findings.some((x) => x.action !== "flag")) {
+      sorties.set(v.o.clientObsId, { cells: v.derived.sortie.cells, layout: layoutKey(v.derived.layout) });
+    }
+  }
+  for (const [id, s] of storedSorties) if (!sorties.has(id)) sorties.set(id, s);
   const rows: Record<string, unknown>[] = [];
   const ships: { id: string; uploadedAt: string; ships: number[] }[] = [];
+  const releases: { id: string; cell: number; sortie: string; layout: string }[] = [];
   let quarantined = 0;
-  for (const { o, uploadedAt } of parsed) {
-    const { findings: f, derived } = validateObservation(o, ctx);
+  for (const { o, uploadedAt, findings: f, derived } of verdicts) {
     const meta = { id: o.clientObsId, kind: o.kind, map: o.map, uploadedAt };
     const rejects = f.filter((x) => x.action === "reject");
     if (rejects.length) {
       findings.push(...rejects.map((x) => ({ ...meta, ...x })));
       continue;
     }
+    let layout = layoutKey(derived.layout);
+    if (o.kind === "battle") {
+      // A battle counts only with the sortie that lists it at its cell; its layout is then the sortie's.
+      const sortieId = o.raw.sortieId ?? null;
+      const s = sortieId === null ? undefined : sorties.get(sortieId);
+      if (s && s.cells.some((c) => c.no === o.cell && c.battles.includes(o.clientObsId))) layout = s.layout;
+      else {
+        f.push({
+          rule: UNLINKED, action: "quarantine",
+          detail: sortieId === null ? "battle without a sortie" : s ? `sortie ${sortieId} does not list this battle at cell ${o.cell}` : `waiting for sortie ${sortieId}`,
+        });
+      }
+    } else if (derived.sortie && sorties.has(o.clientObsId)) {
+      for (const c of derived.sortie.cells) for (const b of c.battles) releases.push({ id: b, cell: c.no, sortie: o.clientObsId, layout });
+    }
     findings.push(...f.map((x) => ({ ...meta, ...x })));
     const quarantine = [...new Set(f.filter((x) => x.action === "quarantine").map((x) => x.rule))].join(",") || null;
     if (quarantine) quarantined++;
     rows.push({
       id: o.clientObsId, uploadedAt, observedAt: new Date(o.observedAt).toISOString(), map: o.map, kind: o.kind,
-      difficulty: o.difficulty ?? null, fleet: o.fleet ?? null, layout: layoutKey(derived.layout), quarantine,
+      difficulty: o.difficulty ?? null, fleet: o.fleet ?? null, layout, quarantine,
       ...(o.kind === "battle"
         ? { cell: o.cell, enemy: derived.enemy, raw: { path: o.raw.path, visitId: o.raw.visitId, sortieId: o.raw.sortieId ?? null, raw: o.raw.raw, result: o.raw.result ?? null } }
         : { cell: null, sortie: derived.sortie, raw: o.raw ?? null }),
     });
-    if (!quarantine && derived.estimableShips.length) ships.push({ id: o.clientObsId, uploadedAt, ships: derived.estimableShips });
+    if ((!quarantine || quarantine === UNLINKED) && derived.estimableShips.length) ships.push({ id: o.clientObsId, uploadedAt, ships: derived.estimableShips });
   }
 
   const processedAt = new Date(now).toISOString();
@@ -242,6 +293,7 @@ async function ingestItems(db: D1Database, clientId: string, staged: StagedRow[]
   const res = await db.batch([
     ...obsChunks.map((p) => db.prepare(INSERT_OBSERVATIONS).bind(clientId, p)),
     ...chunkJson(ships).map((p) => db.prepare(INSERT_SHIPS).bind(clientId, p)),
+    ...chunkJson(releases).map((p) => db.prepare(RELEASE_BATTLES).bind(clientId, p)),
     ...chunkJson(findingRows).map((p) => db.prepare(INSERT_FINDINGS).bind(clientId, p, processedAt)),
     db.prepare("DELETE FROM upload_items WHERE id IN (SELECT value FROM json_each(?1))").bind(JSON.stringify(staged.map((s) => s.id))),
   ]);

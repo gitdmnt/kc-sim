@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { AttackEvent } from "../../shared/capture/types";
 import { battlePacket } from "../../shared/estimate/synthetic";
-import { battleResponse, ENEMIES, fleet, FRIENDS, harness, LAYOUT_15, seedBasic, uploadAndProcess, type Harness } from "./helpers";
+import { battleResponse, ENEMIES, fleet, FRIENDS, harness, LAYOUT_15, mapPackets, seedBasic, sortieOf, uploadAndProcess, type Harness } from "./helpers";
 
 let h: Harness;
 let token: string;
@@ -20,18 +20,24 @@ const battle = (o: { raw?: Record<string, unknown>; path?: string; visitId?: str
   return {
     clientObsId: `b${++n}`, observedAt: new Date(h.clock.t - 60_000).toISOString(), map: "1-5", cell: 1, layout: LAYOUT_15, difficulty: 0,
     kind: "battle", fleet: fleet(),
-    raw: { path: path ?? "api_req_sortie/battle", visitId: visitId ?? `v${n}`, sortieId: null, raw: raw ?? battleResponse([1501, 1502]), result: null },
+    raw: { path: path ?? "api_req_sortie/battle", visitId: visitId ?? `v${n}`, sortieId: null as string | null, raw: raw ?? battleResponse([1501, 1502]), result: null },
     ...rest,
   };
 };
 const cellOf = (no: number, from: number | null, eventId: number, next: number) =>
-  ({ no, from, colorNo: 4, eventId, eventKind: 1, bossCellNo: 12, next, selectCells: null, battles: [] });
-const sortie = (o: Record<string, unknown> = {}) => ({
-  clientObsId: `s${++n}`, observedAt: new Date(h.clock.t - 60_000).toISOString(), map: "1-5", layout: LAYOUT_15, difficulty: 0, kind: "sortie",
-  fleet: fleet(),
-  sortie: { deckId: 1, combined: 0, endKind: "boss", endedAt: null, cells: [cellOf(1, null, 4, 1), cellOf(4, 1, 4, 2)], cellData: null, features: null },
-  ...o,
-});
+  ({ no, from, colorNo: 4, eventId, eventKind: 1, bossCellNo: 12, next, selectCells: null, battles: [] as string[] });
+const sortie = (o: Record<string, unknown> = {}) => {
+  const cells = (o.sortie as { cells?: ReturnType<typeof cellOf>[] } | undefined)?.cells ?? [cellOf(1, null, 4, 1), cellOf(4, 1, 4, 2)];
+  return {
+    clientObsId: `s${++n}`, observedAt: new Date(h.clock.t - 60_000).toISOString(), map: "1-5", layout: LAYOUT_15, difficulty: 0, kind: "sortie",
+    fleet: fleet(),
+    sortie: { deckId: 1, combined: 0, endKind: "boss", endedAt: null, cells, cellData: null, features: null },
+    raw: { packets: mapPackets(15, cells) },
+    ...o,
+  };
+};
+/** Battles plus the sortie that links them (a battle alone is quarantined 'unlinked'). */
+const linked = (...battles: ReturnType<typeof battle>[]) => [...battles, sortieOf(battles)];
 const upload = async (observations: unknown[]) => {
   const r = await uploadAndProcess(h, token, observations);
   expect(r.status).toBe(202);
@@ -49,15 +55,15 @@ const rejects = async (o: { clientObsId: string }, rule: string) => {
   expect(await h.db.prepare("SELECT COUNT(*) AS n FROM observations WHERE client_obs_id = ?1").bind(o.clientObsId).first()).toEqual({ n: 0 });
 };
 const quarantines = async (o: { clientObsId: string }, rule: string) => {
-  const r = await upload([o]);
-  expect(r).toMatchObject({ accepted: 1, quarantined: 1, rejected: [] });
+  const r = await upload("cell" in o ? linked(o as ReturnType<typeof battle>) : [o]);
+  expect(r).toMatchObject({ quarantined: 1, rejected: [] });
   const row = await h.db.prepare("SELECT quarantine FROM observations WHERE client_obs_id = ?1").bind(o.clientObsId).first<{ quarantine: string }>();
   expect(row?.quarantine?.split(",")).toContain(rule);
   expect((await findings("quarantine")).find((f) => f.client_obs_id === o.clientObsId)).toMatchObject({ rule, stored: 1 });
 };
 const flags = async (o: { clientObsId: string }, rule: string) => {
-  const r = await upload([o]);
-  expect(r).toMatchObject({ accepted: 1, rejected: [] });
+  const r = await upload("cell" in o ? linked(o as ReturnType<typeof battle>) : [o]);
+  expect(r).toMatchObject({ rejected: [] });
   expect(r.flagged).toBeGreaterThan(0);
   expect((await findings("flag")).filter((f) => f.client_obs_id === o.clientObsId).map((f) => f.rule)).toContain(rule);
   expect(await h.db.prepare("SELECT quarantine FROM observations WHERE client_obs_id = ?1").bind(o.clientObsId).first()).toEqual({ quarantine: null });
@@ -71,16 +77,53 @@ const hit = (attackerSide: "friend" | "enemy", attackerIdx: number, defenderIdx:
 describe("accepted", () => {
   test("a clean battle and sortie are stored with the server-derived enemy; nothing recorded", async () => {
     const b = battle({ enemy: { ships: [{ masterId: 999 }] } }); // client summary is ignored (cross-check flag only)
-    const r = await upload([b, sortie({ raw: { packets: [
+    const s = sortie({ raw: { packets: [
       { path: "api_req_map/start", body: { api_maparea_id: 1, api_mapinfo_no: 5, api_no: 1, api_event_id: 4, api_next: 1, api_cell_data: LAYOUT_15.map((no) => ({ api_no: no })) } },
       { path: "api_req_map/next", body: { api_maparea_id: 1, api_mapinfo_no: 5, api_no: 4, api_from_no: 1, api_event_id: 4, api_next: 2 } },
-    ] } })]);
+    ] } });
+    s.sortie.cells[0]!.battles.push(b.clientObsId);
+    b.raw.sortieId = s.clientObsId;
+    const r = await upload([b, s]);
     expect(r).toMatchObject({ accepted: 2, rejected: [], quarantined: 0 });
     const enemy = JSON.parse((await h.db.prepare("SELECT enemy FROM observations WHERE client_obs_id = ?1").bind(b.clientObsId).first<{ enemy: string }>())!.enemy);
     expect(enemy.ships.map((s: { masterId: number; maxHp: number }) => [s.masterId, s.maxHp])).toEqual([[1501, 20], [1502, 24]]);
     expect((await findings()).map((f) => f.rule)).toEqual(["client_mismatch"]);
     // the battle is queued for the estimator, per enemy ship
     expect((await h.db.prepare("SELECT ship_id FROM observation_ships ORDER BY ship_id").all()).results).toEqual([{ ship_id: 1501 }, { ship_id: 1502 }]);
+  });
+});
+
+describe("battle ↔ sortie linkage", () => {
+  test("a battle without its sortie is quarantined 'unlinked' (still queued, not estimated) until the sortie releases it", async () => {
+    const b = battle();
+    const s = sortieOf([b]);
+    expect(await upload([b])).toMatchObject({ accepted: 1, quarantined: 1 });
+    expect(await h.db.prepare("SELECT quarantine, layout FROM observations WHERE client_obs_id = ?1").bind(b.clientObsId).first()).toEqual({ quarantine: "unlinked", layout: LAYOUT_15.join(",") });
+    expect(await h.db.prepare("SELECT COUNT(*) AS n FROM poi_comp_counts").first()).toEqual({ n: 0 });
+    expect(await h.db.prepare("SELECT COUNT(*) AS n FROM observation_ships WHERE est_at IS NULL").first()).toEqual({ n: 2 });
+    expect(await upload([s])).toMatchObject({ accepted: 1, quarantined: 0 });
+    expect(await h.db.prepare("SELECT quarantine FROM observations WHERE client_obs_id = ?1").bind(b.clientObsId).first()).toEqual({ quarantine: null });
+    expect(await h.db.prepare("SELECT SUM(count) AS n FROM poi_comp_counts").first()).toEqual({ n: 1 });
+  });
+
+  test("the battle's layout is the sortie's; a battle the sortie does not list, or with no sortie id, stays unlinked", async () => {
+    const b = battle();
+    const stray = battle({ cell: 4 });
+    const orphan = battle();
+    const s = sortieOf([b]);
+    b.layout = [0, 1]; // the client's claim; the sortie's api_cell_data decides
+    stray.raw.sortieId = s.clientObsId;
+    const r = await upload([b, stray, orphan, s]);
+    expect(r).toMatchObject({ accepted: 4, quarantined: 2 });
+    const q = (id: string) => h.db.prepare("SELECT quarantine, layout FROM observations WHERE client_obs_id = ?1").bind(id).first();
+    expect(await q(b.clientObsId)).toEqual({ quarantine: null, layout: LAYOUT_15.join(",") });
+    expect(await q(stray.clientObsId)).toMatchObject({ quarantine: "unlinked" });
+    expect(await q(orphan.clientObsId)).toMatchObject({ quarantine: "unlinked" });
+  });
+
+  test("enemy_slots: a loadout other than the master's is quarantined on normal maps, flagged on event maps", async () => {
+    await quarantines(battle({ raw: battleResponse([1501], 1, { api_eSlot: [[1506, -1, -1, -1, -1]] }) }), "enemy_slots");
+    await flags(battle({ map: "60-1", difficulty: 4, layout: null, cell: 3, raw: battleResponse([1501], 1, { api_eSlot: [[1506, -1, -1, -1, -1]] }) }), "enemy_slots");
   });
 });
 
@@ -157,8 +200,8 @@ describe("quarantine (stored, not aggregated, not estimated)", () => {
     const day = battlePacket({ path: "api_req_sortie/battle", formation: [1, 1, 1], friend, enemy, startHp: [[30, 31, 32], [20]], events: [hit("friend", 0, 0, 5)] });
     const nightOk = battleResponse([1501], 1, { api_e_nowhps: [15] });
     const nightBad = battleResponse([1501], 1, { api_e_nowhps: [20] });
-    const r = await upload([battle({ raw: day, visitId: "visit-1" }), battle({ raw: nightOk, visitId: "visit-1", path: "api_req_battle_midnight/battle" })]);
-    expect(r).toMatchObject({ accepted: 2, quarantined: 0 });
+    const r = await upload(linked(battle({ raw: day, visitId: "visit-1" }), battle({ raw: nightOk, visitId: "visit-1", path: "api_req_battle_midnight/battle" })));
+    expect(r).toMatchObject({ accepted: 3, quarantined: 0 });
     // the day battle is found among stored observations too
     await quarantines(battle({ raw: nightBad, visitId: "visit-1", path: "api_req_battle_midnight/battle" }), "hp_progression");
   });
@@ -173,8 +216,8 @@ describe("flag only (stored and used)", () => {
     const s = sortie({ sortie: { ...sortie().sortie, cells: [cellOf(1, null, 4, 1), cellOf(4, 1, 4, 2), cellOf(6, 4, 4, 2), cellOf(12, 6, 5, 0)] } });
     await flags(s, "edge_unknown");
   });
-  test("sortie_no_raw and client_mismatch", async () => {
-    await flags(sortie(), "sortie_no_raw");
+  test("sortie_no_raw (quarantined) and client_mismatch", async () => {
+    await quarantines(sortie({ raw: null }), "sortie_no_raw");
     const s = sortie({ raw: { packets: [
       { path: "api_req_map/start", body: { api_maparea_id: 1, api_mapinfo_no: 5, api_no: 1, api_next: 1 } },
       { path: "api_req_map/next", body: { api_maparea_id: 1, api_mapinfo_no: 5, api_no: 2, api_from_no: 1, api_next: 0 } },

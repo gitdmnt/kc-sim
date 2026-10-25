@@ -13,7 +13,8 @@ export type Action = "reject" | "quarantine" | "flag";
 export type Rule =
   | "schema" | "too_large" | "timestamp" | "map_unknown" | "difficulty" | "cell_unknown" | "edge_unknown" | "map_graph_unknown"
   | "raw_invalid" | "raw_mismatch" | "formation" | "enemy_ship_unknown" | "enemy_stats" | "equipment_unknown" | "friend_ship"
-  | "fleet_mismatch" | "hp_progression" | "client_mismatch" | "sortie_no_raw" | "drop_unknown" | "drop_no_battle" | "drop_rank";
+  | "fleet_mismatch" | "hp_progression" | "client_mismatch" | "sortie_no_raw" | "drop_unknown" | "drop_no_battle" | "drop_rank"
+  | "enemy_slots" | "unlinked";
 export interface Finding { rule: Rule; action: Action; detail: string }
 
 export const MAX_AGE_MS = 30 * 24 * 60 * 60_000;
@@ -110,6 +111,12 @@ function checkEnemy(enemy: CapturedEnemy, ctx: ValidationContext, isEvent: boole
     }
     for (const id of s.slots ?? []) {
       if (id > 0 && !ctx.master.equips.has(id)) out.push({ rule: "equipment_unknown", action: "reject", detail: `enemy equipment ${id}` });
+    }
+    // An abyssal ship's loadout is fixed per master id; event ships are often newer than the master data.
+    const loadout = row.equips === null ? null : JSON.stringify(JSON.parse(row.equips));
+    const slots = JSON.stringify((s.slots ?? []).filter((id) => id > 0));
+    if (loadout !== null && s.slots && slots !== loadout) {
+      out.push({ rule: "enemy_slots", action: isEvent ? "flag" : "quarantine", detail: `enemy ship ${s.masterId}: equipment ${slots} != ${loadout}` });
     }
   }
 }
@@ -328,7 +335,7 @@ function validateSortie(o: SortieObservationInput, ctx: ValidationContext): Verd
   let cellData = o.sortie.cellData ?? null;
   const packets = o.raw?.packets;
   if (!packets) {
-    out.push({ rule: "sortie_no_raw", action: "flag", detail: "no raw map packets; client cells validated as sent" });
+    out.push({ rule: "sortie_no_raw", action: "quarantine", detail: "no raw map packets: the cells cannot be re-derived" });
   } else {
     const fromRaw = packets.map((p) => extractMapCell(p.body));
     const area = Math.floor(o.map / 10);

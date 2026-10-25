@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { cacheKey, dataVersion } from "../src/cache";
-import { battleResponse, drainJobs, fleet, harness, LAYOUT_15, seedBasic, type Harness } from "./helpers";
+import { battleResponse, drainJobs, fleet, harness, LAYOUT_15, seedBasic, sortieOf, type Harness } from "./helpers";
 
 /** Cache API double (caches.default): stores responses by URL. */
 class FakeCache implements Cache {
@@ -76,12 +76,12 @@ describe("versioned GET cache", () => {
     h.clock.t += 61_000;
     const ob = {
       clientObsId: "x1", observedAt: new Date(h.clock.t - 60_000).toISOString(), map: "1-5", cell: 1, layout: LAYOUT_15, difficulty: 0,
-      kind: "battle", fleet: fleet(), raw: { path: "api_req_sortie/battle", visitId: "v", sortieId: null, raw: battleResponse([1501], 1, {
+      kind: "battle", fleet: fleet(), raw: { path: "api_req_sortie/battle", visitId: "v", sortieId: null as string | null, raw: battleResponse([1501], 1, {
         // one shelling hit: an evasion roll for 1501, so the estimator has something to fold
         api_hougeki1: { api_at_eflag: [0], api_at_list: [0], api_at_type: [0], api_df_list: [[0]], api_si_list: [[-1]], api_cl_list: [[1]], api_damage: [[3]] },
       }), result: null },
     };
-    expect((await h.call("POST", "/api/v1/observations", { token, body: { observations: [ob] } })).status).toBe(202);
+    expect((await h.call("POST", "/api/v1/observations", { token, body: { observations: [ob, sortieOf([ob])] } })).status).toBe(202);
     await drainJobs(h);
     const v1 = await v();
     expect(v1).toBeGreaterThan(v0); // the jobs ingested it and aggregation materialised map 1-5

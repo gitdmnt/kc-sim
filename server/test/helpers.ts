@@ -119,7 +119,7 @@ export async function uploadAndProcess(h: Harness, token: string, observations: 
 
 export interface ShipSeed {
   id: number; stype?: number; abyssal?: boolean; hp?: number | null; fp?: number | null; tp?: number | null; aa?: number | null; ar?: number | null;
-  luck?: number | null; slots?: number[]; speed?: number; range?: number; fuelMax?: number;
+  luck?: number | null; slots?: number[]; speed?: number; range?: number; fuelMax?: number; equips?: number[];
 }
 export interface EquipSeed {
   id: number; type?: number[]; fp?: number; tp?: number; aa?: number; ar?: number; acc?: number; ev?: number; asw?: number; los?: number;
@@ -130,10 +130,11 @@ export async function seedMaster(db: D1Database, o: { ships?: ShipSeed[]; equips
   const now = "2026-10-01T00:00:00Z";
   await db.batch([
     ...(o.ships ?? []).map((s) => db.prepare(
-      `INSERT INTO ships (id, name, stype, speed, range, slot_num, is_abyssal, hp, fp, tp, aa, ar, luck, slots, fuel_max, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)`,
+      `INSERT INTO ships (id, name, stype, speed, range, slot_num, is_abyssal, hp, fp, tp, aa, ar, luck, slots, fuel_max, equips, updated_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)`,
     ).bind(s.id, `ship ${s.id}`, s.stype ?? 2, s.speed ?? 10, s.range ?? 1, s.slots?.length ?? 3, (s.abyssal ?? s.id > 1500) ? 1 : 0,
-      s.hp ?? null, s.fp ?? null, s.tp ?? null, s.aa ?? null, s.ar ?? null, s.luck ?? null, JSON.stringify(s.slots ?? [0, 0, 0]), s.fuelMax ?? null, now)),
+      s.hp ?? null, s.fp ?? null, s.tp ?? null, s.aa ?? null, s.ar ?? null, s.luck ?? null, JSON.stringify(s.slots ?? [0, 0, 0]), s.fuelMax ?? null,
+      s.equips ? JSON.stringify(s.equips) : null, now)),
     ...(o.equips ?? []).map((e) => db.prepare(
       `INSERT INTO equipments (id, name, type, type_id, icon, fp, tp, aa, ar, bomb, asw, los, acc, ev, luck, range, is_abyssal, updated_at)
        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)`,
@@ -200,7 +201,7 @@ export const FRIENDS = [{ id: 10, hp: 30 }, { id: 11, hp: 31 }, { id: 12, hp: 32
 export async function seedBasic(db: D1Database) {
   await seedMaster(db, {
     ships: [
-      ...Object.entries(ENEMIES).map(([id, e]) => ({ id: Number(id), hp: e.hp, fp: e.params[0], tp: e.params[1], aa: e.params[2], ar: e.params[3] })),
+      ...Object.entries(ENEMIES).map(([id, e]) => ({ id: Number(id), hp: e.hp, fp: e.params[0], tp: e.params[1], aa: e.params[2], ar: e.params[3], equips: e.slots })),
       ...FRIENDS.map((f) => ({ id: f.id, hp: f.hp, fp: 10, tp: 20, aa: 10, ar: 10, luck: 10 })),
     ],
     equips: [{ id: 1505 }, { id: 1506, type: [1, 2, 2, 2, 0] }, { id: 2 }, { id: 3, type: [1, 2, 2, 2, 0] }],
@@ -234,5 +235,54 @@ export function battleResponse(ids: number[], formation = 1, extra: Record<strin
       startHp: [friend.map((s) => s.maxHp), enemy.map((s) => s.maxHp)], events: [],
     }),
     ...extra,
+  };
+}
+
+// ---- sorties: the raw map packets the plugin uploads, and battles linked to their sortie ----
+
+export interface CellIn {
+  no: number; from?: number | null; colorNo?: number | null; eventId?: number | null; eventKind?: number | null;
+  bossCellNo?: number | null; next?: number | null; selectCells?: number[] | null;
+}
+export interface CellDataIn { no: number; colorNo?: number | null; passed?: number | null; distance?: number | null }
+
+/** api_req_map/start, then one api_req_map/next per further cell, that re-derive to `cells` (and `cellData`). */
+export const mapPackets = (mapId: number, cells: CellIn[], cellData?: CellDataIn[] | null) =>
+  cells.map((c, i) => ({
+    path: i === 0 ? "api_req_map/start" : "api_req_map/next",
+    body: {
+      api_maparea_id: Math.floor(mapId / 10), api_mapinfo_no: mapId % 10, api_no: c.no,
+      ...(c.from != null ? { api_from_no: c.from } : {}),
+      api_color_no: c.colorNo ?? null, api_event_id: c.eventId ?? null, api_event_kind: c.eventKind ?? null,
+      api_bosscell_no: c.bossCellNo ?? null, api_next: c.next ?? null,
+      ...(c.selectCells ? { api_select_route: { api_select_cells: c.selectCells } } : {}),
+      ...(i === 0 && cellData ? {
+        api_cell_data: cellData.map((d) => ({ api_no: d.no, api_color_no: d.colorNo ?? null, api_passed: d.passed ?? null, ...(d.distance != null ? { api_distance: d.distance } : {}) })),
+      } : {}),
+    },
+  }));
+
+interface BattleIn { clientObsId: string; cell: number; observedAt: string; map: string; layout?: unknown; difficulty?: unknown; fleet?: unknown; raw: { sortieId?: string | null } }
+
+/**
+ * The sortie observation (with raw packets) that visits the cells of `battles` in order and lists them; sets each
+ * battle's sortieId. Without it a battle is quarantined 'unlinked'.
+ */
+export function sortieOf(battles: BattleIn[], id = `sortie-${battles[0]!.clientObsId}`) {
+  const first = battles[0]!;
+  const mapId = Number(first.map.split("-")[0]) * 10 + Number(first.map.split("-")[1]);
+  const nos = [...new Set(battles.map((b) => b.cell))];
+  const cells = nos.map((no, i) => ({
+    no, from: i === 0 ? null : nos[i - 1]!, colorNo: 4, eventId: 4, eventKind: 1, bossCellNo: null, next: i === nos.length - 1 ? 0 : 1, selectCells: null,
+    battles: battles.filter((b) => b.cell === no).map((b) => b.clientObsId),
+  }));
+  for (const b of battles) b.raw.sortieId = id;
+  const layout = Array.isArray(first.layout) ? (first.layout as number[]) : null;
+  const cellData = layout?.map((no) => ({ no, colorNo: 4, passed: 0 })) ?? null;
+  return {
+    clientObsId: id, observedAt: first.observedAt, map: first.map, ...(layout ? { layout } : {}), difficulty: first.difficulty ?? null,
+    kind: "sortie", fleet: first.fleet ?? null,
+    sortie: { deckId: 1, combined: 0, endKind: "unknown", endedAt: null, cells, cellData, features: null },
+    raw: { packets: mapPackets(mapId, cells, cellData) },
   };
 }
