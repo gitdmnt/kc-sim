@@ -12,13 +12,11 @@ simulateSortie(input: SortieInput, count: number, seed: number): SortieSummary  
 
 ## ビルドとテスト
 
-```sh
-wasm-pack build --target web            # -> pkg/
-cargo test                              # unit + integration tests (routing tests read ../server/seed/routing)
-cargo test --release --test bench -- --nocapture --test-threads=1   # throughput (battles/s, sorties/s, µs per 201×101 hitProbabilityGrid; asserts >= 50k battles/s); one at a time, or the benches share cores
-bun validation/routing-vs-kcnav.ts [--offline]  # routing vs KCNav edge counts -> the private VALIDATION notes (needs pkg/ and the local file)
-KCR_DIR=<kancolle-replay checkout> bun validation/battle-vs-kcsim.ts  # realistic sorties + per-node battles vs kcsim -> the private VALIDATION notes §3
-```
+- `wasm-pack build --target web`: `pkg/` に出力する。
+- `cargo test`: 単体テストと結合テスト(ルーティングのテストは `../server/seed/routing` を読む)。
+- `cargo test --release --test bench -- --nocapture --test-threads=1`: スループット(battles/s、sorties/s、201×101 の `hitProbabilityGrid` 1 回の µs。50k battles/s 以上を assert する)。ベンチどうしでコアを取り合うので、1 つずつ実行する。
+- `bun validation/routing-vs-kcnav.ts [--offline]`: ルーティングを KCNav の辺の数と比べ、結果を非公開の VALIDATION メモに書く(`pkg/` とローカルのファイルが必要)。
+- `KCR_DIR=<kancolle-replay checkout> bun validation/battle-vs-kcsim.ts`: 現実的な出撃とマスごとの戦闘を kcsim と比べ、結果を非公開の VALIDATION メモの §3 に書く。
 
 ## 構成
 

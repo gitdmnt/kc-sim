@@ -21,12 +21,13 @@ VS Code 風の構成で、ブラウザとプラグインは 1 つのモデル(`s
 
 ```sh
 bun install
-bun run dev                    # vite on http://localhost:5173, /api → http://127.0.0.1:8787 (KCSIM_API to change)
-bun run build                  # wasm-pack (../sim-core) + vite → dist/
-SKIP_WASM_BUILD=1 bun run build   # reuse an existing ../sim-core/pkg (also for dev)
+bun run dev
+bun run build
 bun test
 bun run typecheck
 ```
+
+`bun run dev` は vite を http://localhost:5173 で起動し、`/api` を http://127.0.0.1:8787 に転送する(転送先は `KCSIM_API` で変える)。`bun run build` は wasm-pack(`../sim-core`)と vite で `dist/` に出力する。`SKIP_WASM_BUILD=1 bun run build` は既存の `../sim-core/pkg` を使う(`bun run dev` でも同じ)。
 
 `bun run dev` は待ち受けを始める前に `../sim-core/pkg` をビルドし、`../sim-core/src`、`Cargo.toml`、`Cargo.lock`、`sim_core_types.d.ts` が変わるたび(編集や `git merge` / `pull`)に再ビルドする。新しい pkg ができるとページを再読み込みし、ビルドに失敗するとエラーをオーバーレイに出す。HMR で TypeScript だけがすぐ更新されるため、再ビルドしないと、新しいランナーが古い wasm の出力しないサマリのフィールドを読んでしまう。`SKIP_WASM_BUILD=1` のときは既存の pkg を配信し、変更を監視しない。
 

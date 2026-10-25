@@ -41,8 +41,10 @@ poi の「設定 → プラグイン」で `poi-plugin-kc-sim` を入力して�
 git clone https://github.com/gitdmnt/kc-sim.git
 cd kc-sim/poi-plugin-sim
 bun install
-bun run build        # ../poi-plugin-sim-build に出力 (npm の poi-plugin-kc-sim と同じ中身)
+bun run build
 ```
+
+出力先は `../poi-plugin-sim-build` で、中身は npm の `poi-plugin-kc-sim` と同じです。
 
 poi を終了してから、ビルド出力をプラグインとして登録します。npm 版を入れている場合は、先にアンインストールしておきます。次は macOS の例です。
 
@@ -71,12 +73,12 @@ Windows は `%APPDATA%\poi\plugins`、Linux は `~/.config/poi/plugins` です�
 
 ## 開発者向け
 
-必要なもの: bun 1.3 以上、Rust (`wasm32-unknown-unknown` ターゲット) と `wasm-pack`。リポジトリのルートで実行します。1 行目は初回だけ必要です。2 つの dev サーバは別々の端末で起動します。
+必要なもの: bun 1.3 以上、Rust (`wasm32-unknown-unknown` ターゲット) と `wasm-pack`。リポジトリのルートで実行します。1 行目は初回だけ必要です。2 つの dev サーバ (データ API は http://127.0.0.1:8787、Web UI は http://localhost:5173) は別々の端末で起動します。
 
 ```sh
 (cd server && bun install && cp .dev.vars.example .dev.vars && bun run build:wasm && bun run migrate && bun run ingest)
-(cd server && bun run dev)                     # データ API: http://127.0.0.1:8787
-(cd web && bun install && bun run dev)         # Web UI: http://localhost:5173
+(cd server && bun run dev)
+(cd web && bun install && bun run dev)
 (cd poi-plugin-sim && bun install && bun run build)
 ```
 

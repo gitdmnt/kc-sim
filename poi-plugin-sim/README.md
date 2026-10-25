@@ -33,7 +33,7 @@ Rust のエンジンは `../sim-core`(Web UI が使う)に、サーバは `../se
 ```sh
 cd poi-plugin-sim
 bun install
-bun run build        # prebuild: (cd ../web && bun install --frozen-lockfile)
+bun run build
 ```
 
 プラグインのビューとクロームは、Web UI の部品とスタイルシート(`../web/src`)を使う。その Tailwind CSS は `../web/node_modules` から解決されるので、`bun run build` と `bun run dev` は先に `../web` の依存を入れる(`bun run deps:web`)。`../web/src` から import した `react`、`react-dom`、`lucide-react` は、このパッケージ側のコピーに解決される(`vite.config.ts` の `resolve.dedupe`)。React が 2 つ読み込まれるとフックが壊れるためである。
@@ -80,12 +80,12 @@ wasm もワーカーも含まない。シミュレーションは Web UI で動�
 
 ユーザーは poi → 設定 → プラグイン で、npm から `poi-plugin-kc-sim` をインストールする(poi がプラグインのディレクトリで `npm install` を実行する)。
 
-開発時は、npm のリリース版の代わりにビルドの出力をリンクする。poi は `~/Library/Application Support/poi/plugins/node_modules/poi-plugin-*` からプラグインを読み込む(macOS。Windows は `%APPDATA%\poi\plugins\node_modules`、Linux は `~/.config/poi/plugins/node_modules`)。先に poi を終了しておく。`file:` 依存にしておけば、poi 自身が `npm install` を実行してもリンクは消えない。
+開発時は、npm のリリース版の代わりにビルドの出力をリンクする。poi は `~/Library/Application Support/poi/plugins/node_modules/poi-plugin-*` からプラグインを読み込む(macOS。Windows は `%APPDATA%\poi\plugins\node_modules`、Linux は `~/.config/poi/plugins/node_modules`)。先に poi を終了しておく。次の手順は `package.json` を退避してから、`npm install` で `"poi-plugin-kc-sim": "file:…"` の依存とシンボリックリンク `node_modules/poi-plugin-kc-sim` を加える。`file:` 依存にしておけば、poi 自身が `npm install` を実行してもリンクは消えない。
 
 ```sh
 cd "$HOME/Library/Application Support/poi/plugins"
-cp package.json package.json.bak            # back up first
-npm install /ABSOLUTE/PATH/TO/poi-plugin-sim-build   # adds "poi-plugin-kc-sim": "file:…" and the symlink node_modules/poi-plugin-kc-sim
+cp package.json package.json.bak
+npm install /ABSOLUTE/PATH/TO/poi-plugin-sim-build
 ```
 
 poi を再起動すると、プラグインドロワー(プラグインタブの隣のシェブロン)に「シミュ」(ほかの言語では *kc-sim*)が現れる。再ビルドした内容はそのまま反映される(poi を再起動するか、プラグインのリロードを使う)。リンクと npm のリリース版は同じパッケージなので、両方は入れない(`npm uninstall poi-plugin-kc-sim` でどちらも削除できる)。
