@@ -1,9 +1,11 @@
 # sim-core
 
-艦これの戦闘・出撃エンジン(Rust → wasm)。モンテカルロ法で勝率・ランク率・ルーティング・ゲージを求める。
-単艦隊または連合艦隊(機動 / 水上 / 輸送護衛)の自艦隊と、単一の敵艦隊の戦闘を扱い、基地航空隊の波状攻撃にも対応する。
-JSON/TypeScript の契約の機械可読な定義は `sim_core_types.d.ts` にあり、`pkg/sim_core.d.ts` に埋め込まれる
-(説明つきの契約書 SIM_INTERFACE は非公開のメモ)。
+艦これの戦闘と出撃を計算するエンジン(Rust で書き、wasm にビルドする)。
+モンテカルロ法で勝率、ランク率、ルーティング、ゲージを求める。
+単艦隊または連合艦隊(機動、水上、輸送護衛)の自艦隊と、単一の敵艦隊との戦闘を扱う。
+基地航空隊の波状攻撃も計算する。
+JSON と TypeScript の契約は `sim_core_types.d.ts` に機械可読な形で定義してあり、`pkg/sim_core.d.ts` に埋め込まれる。
+説明つきの契約書(SIM_INTERFACE)は非公開のメモである。
 
 ```ts
 simulateBattle(input: BattleInput, count: number, seed: number): SimulationSummary
@@ -39,16 +41,14 @@ KCR_DIR=<kancolle-replay checkout> bun validation/battle-vs-kcsim.ts  # realisti
 | `src/routing.rs` | ROUTING_DSL のパーサ / 検証器 / 評価器、索敵式 33 |
 | `src/sortie/` | 出撃ループ(マスの処理、撤退、状態の引き継ぎ)、集計、ゲージの推定。`model.rs` は出撃の JSON 型 |
 | `src/lib.rs` | wasm-bindgen のエクスポート |
-| `tests/` | エンジンの挙動、ランク規則、JSON 契約、公表されている数値との整合確認、連合艦隊 + 基地航空隊(`combined.rs`)、ルーティング(全シード文書、開始規則、ゴールデンルート、連合艦隊の指標)、出撃(`fixtures/1-5.api.json` による 1-5 のエンドツーエンド。ローカルサーバ API を 1 回だけ取得したもの)、ベンチマーク |
-| `validation/` | KCNav とのルーティング比較ハーネスとそのデータスナップショット(結果は非公開の検証メモに書き出す) |
+| `tests/` | エンジンの挙動、ランク規則、JSON 契約、公表値との照合、連合艦隊と基地航空隊(`combined.rs`)、ルーティング(全シード文書、開始規則、ゴールデンルート、連合艦隊の指標)、出撃(`fixtures/1-5.api.json` を使う 1-5 のエンドツーエンド。ローカルサーバの API から 1 回だけ取得したもの)、ベンチマーク |
+| `validation/` | KCNav とルーティングを比べるハーネスと、比較用のデータスナップショット(結果は非公開の検証メモに書き出す) |
 
-メカニクスと既知の簡略化の一覧は非公開のメモ (SIM_INTERFACE) にある。
+メカニクスと既知の簡略化は非公開のメモ(SIM_INTERFACE)にまとめてある。
 
 ## 出典
 
-戦闘式、定数、フェーズの論理は
-[KC3Kai/kancolle-replay](https://github.com/KC3Kai/kancolle-replay)(`js/kcsim.js`、`js/kcsimcombined.js`、
-`js/kcships.js`、`js/kcEQDATA.js`)から移植し、[en.kancollewiki.net](https://en.kancollewiki.net/) と照合した。
+戦闘式、定数、フェーズの処理は [KC3Kai/kancolle-replay](https://github.com/KC3Kai/kancolle-replay)(`js/kcsim.js`、`js/kcsimcombined.js`、`js/kcships.js`、`js/kcEQDATA.js`)から移植し、[en.kancollewiki.net](https://en.kancollewiki.net/) と照合した。
 戦闘ランクの規則は KC3Kai の `BattlePrediction` と ElectronicObserver の `kcmemo.md` に従う。
 
 kancolle-replay は MIT ライセンスで配布されている。
