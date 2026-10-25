@@ -67,10 +67,14 @@ let h: Harness;
 let token: string;
 let clientId: string;
 let first: SyntheticRecord[];
-/** Uploads the battles with one sortie per cell visit (day + night); `accepted` etc. count the battles. */
+/**
+ * Uploads the battles with one sortie per cell visit (day + night), one upload per day (each stays below the
+ * per-client daily cap per enemy ship); `accepted` etc. count the battles.
+ */
 const upload = async (records: SyntheticRecord[]) => {
   const out = { accepted: 0, rejected: 0, quarantined: 0 };
   for (let i = 0; i < records.length; i += 40) {
+    h.clock.t += 86_400_000;
     const battles = records.slice(i, i + 40).map(toUpload);
     const visits = [...new Set(battles.map((b) => b.raw.visitId))];
     const sorties = visits.map((v) => sortieOf(battles.filter((b) => b.raw.visitId === v)));

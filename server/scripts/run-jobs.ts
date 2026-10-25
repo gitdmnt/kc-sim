@@ -56,7 +56,7 @@ switch (positionals[0]) {
       "| stage | done | left |",
       "|---|---|---|",
       `| ingest | ${sum((r) => r.ingest?.ingested)} stored, ${sum((r) => r.ingest?.rejected)} rejected, ${sum((r) => r.ingest?.duplicates)} duplicates | ${last?.ingest?.remaining ?? 0} |`,
-      `| aggregation | ${sum((r) => r.aggregation?.aggregated)} folded, ${sum((r) => r.aggregation?.failed)} failed | ${last?.aggregation?.remaining ?? 0} (dirty maps ${last?.aggregation?.dirtyMaps ?? 0}) |`,
+      `| aggregation | ${sum((r) => r.aggregation?.aggregated)} folded, ${sum((r) => r.aggregation?.failed)} failed, ${sum((r) => r.aggregation?.capped)} over client caps, ${sum((r) => r.promoted)} clients trusted | ${last?.aggregation?.remaining ?? 0} (dirty maps ${last?.aggregation?.dirtyMaps ?? 0}) |`,
       `| estimator | ${sum((r) => r.estimator?.observations)} observations, ${sum((r) => r.estimator?.gridCalls)} grids, ${sum((r) => r.estimator?.summarized)} ships summarized | – |`,
       "",
       `D1 calls: ${sum((r) => r.d1Calls)}.`,

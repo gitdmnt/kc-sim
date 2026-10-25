@@ -2,7 +2,7 @@
 //  1. edge check: KCNav map routes (cached `map` jobs, live game data) vs the D1 edge list (KC3 edges.json;
 //     ingest keeps KC3's edge on an id conflict, so mismatches only show up here);
 //  2. branch check: rules vs per-edge run counts, see compareRouting. Counts come from KCNav nodesummary
-//     (kcnav_edge_counts) or, with --source poi-observed, from our own captures (poi_edge_counts, newest
+//     (kcnav_edge_counts) or, with --source poi-observed, from our own captures (poi_edge_counts, current
 //     layout, all difficulties; edge id = destination cell number).
 // Fetch KCNav counts first with
 //   bun run kcnav enqueue --maps 1-5,5-5 --kinds nodesummary [--start …] [--filters minSpeed=10]
@@ -48,9 +48,9 @@ console.log(`edge check: ${checked.length} KCNav map routes compared, ${edgeMism
 // 2. Branch check.
 const counts = observed
   ? await query<{ map_id: number; query: string; edge_id: number; runs: number; retrieved_at: string }>(
-    // Newest layout per map; runs per destination cell; edge 0 = sorties (as in nodesummary).
+    // Current layout per map; runs per destination cell; edge 0 = sorties (as in nodesummary).
     `WITH cur AS (SELECT l.map_id, l.layout, l.sorties, l.last_seen FROM poi_layouts l
-       WHERE l.version = (SELECT MAX(version) FROM poi_layouts x WHERE x.map_id = l.map_id))
+       WHERE l.current = 1)
      SELECT e.map_id, 'poi-observed' AS query, e.to_cell AS edge_id, SUM(e.count) AS runs, cur.last_seen AS retrieved_at
        FROM poi_edge_counts e JOIN cur ON cur.map_id = e.map_id AND cur.layout = e.layout GROUP BY e.map_id, e.to_cell
      UNION ALL SELECT map_id, 'poi-observed', 0, sorties, last_seen FROM cur ORDER BY 1`,

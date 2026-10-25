@@ -1,6 +1,7 @@
 // Routing from our own poi sortie observations (private notes ROUTING_INFERENCE), run daily by GitHub Actions
 // (.github/workflows/jobs.yml) against production D1 (D1_REMOTE=1; locally the wrangler D1 file). Sends no KCNav
-// request. Per map, on the sorties of its newest layout:
+// request. Per map, on the folded sorties (trusted clients, within their caps) of its current layout, from at least
+// MIN_REPORTERS distinct reporters:
 //   - maps without hand-authored rules: infer a routing document (≥ --min-sorties usable sorties), validate it
 //     against the map's edges and, with --write, store it in routing_inferred (served by the API);
 //   - maps with hand-authored rules: check the observations against them (moves the rules cannot produce, branch
@@ -12,6 +13,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { ROUTING_HEAD_COLS, ROUTING_RULE_COLS, routingDocJson } from "../src/assemble";
+import { MIN_REPORTERS } from "../src/auth/trust";
 import { bumpDataVersion } from "../src/cache";
 import { mapName, parseMapKey } from "../src/maps";
 import { routingDoc } from "../src/routing/schema";
@@ -34,7 +36,9 @@ const db = openD1();
 const now = new Date().toISOString();
 /** Observation rows per page: fleet + sortie JSON are a few KB each. */
 const PAGE = 200;
-const USABLE = "kind = 'sortie' AND quarantine IS NULL AND sortie IS NOT NULL AND fleet IS NOT NULL AND difficulty IS NOT NULL";
+// Folded sorties only: from trusted clients, within their daily caps (src/auth/trust.ts), never quarantined.
+const USABLE = `kind = 'sortie' AND quarantine IS NULL AND aggregated_at IS NOT NULL AND agg_error IS NULL
+  AND sortie IS NOT NULL AND fleet IS NOT NULL AND difficulty IS NOT NULL`;
 
 const maps = (await db.prepare(`SELECT map_id, COUNT(*) AS n FROM observations WHERE ${USABLE} GROUP BY map_id ORDER BY map_id`)
   .all<{ map_id: number; n: number }>()).results.filter((m) => !wanted || wanted.includes(m.map_id));
@@ -51,13 +55,14 @@ let wrote = false;
 
 for (const { map_id: mapId } of maps) {
   const map = mapName(mapId);
-  const layoutRow = await db.prepare("SELECT layout FROM poi_layouts WHERE map_id = ?1 ORDER BY version DESC LIMIT 1").bind(mapId).first<{ layout: string }>();
+  const layoutRow = await db.prepare("SELECT layout FROM poi_layouts WHERE map_id = ?1 ORDER BY current DESC, version DESC LIMIT 1").bind(mapId).first<{ layout: string }>();
   const layout = layoutRow?.layout ?? "";
-  const rows: { id: number; difficulty: number | null; fleet: string; sortie: string }[] = [];
+  const rows: { id: number; difficulty: number | null; fleet: string; sortie: string; ip_hash: string | null }[] = [];
   for (let after = 0; ;) {
     const page = (await db.prepare(
-      `SELECT id, difficulty, fleet, sortie FROM observations WHERE map_id = ?1 AND ${USABLE} AND COALESCE(layout, '') = ?2 AND id > ?3 ORDER BY id LIMIT ${PAGE}`,
-    ).bind(mapId, layout, after).all<{ id: number; difficulty: number | null; fleet: string; sortie: string }>()).results;
+      `SELECT id, difficulty, fleet, sortie, (SELECT ip_hash FROM clients c WHERE c.id = client_id) AS ip_hash FROM observations
+       WHERE map_id = ?1 AND ${USABLE} AND COALESCE(layout, '') = ?2 AND id > ?3 ORDER BY id LIMIT ${PAGE}`,
+    ).bind(mapId, layout, after).all<{ id: number; difficulty: number | null; fleet: string; sortie: string; ip_hash: string | null }>()).results;
     rows.push(...page);
     if (page.length < PAGE) break;
     after = page.at(-1)!.id;
@@ -128,8 +133,9 @@ for (const { map_id: mapId } of maps) {
     continue;
   }
 
-  if (samples.length < minSorties) {
-    line.result = `not inferred: ${samples.length} usable sorties (< ${minSorties})`;
+  const reporters = new Set(rows.map((r) => r.ip_hash)).size;
+  if (samples.length < minSorties || reporters < MIN_REPORTERS) {
+    line.result = `not inferred: ${samples.length} usable sorties (< ${minSorties}) from ${reporters} reporter(s) (< ${MIN_REPORTERS})`;
     continue;
   }
   const res = inferRouting(map, edges, samples, {

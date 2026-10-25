@@ -1,5 +1,6 @@
 // Source preference for enemy comp sets (private notes API §2 enemy-comps): poi-observed when the node has
-// enough own encounters, else KCNav. Shared by the read API and the bundle export.
+// enough own encounters from enough distinct reporters, else KCNav. Shared by the read API and the bundle export.
+import { MIN_REPORTERS } from "../auth/trust";
 import { OBSERVED_SOURCE } from "./aggregate";
 
 export const DEFAULT_MIN_OBSERVED = 30;
@@ -9,6 +10,8 @@ export type SourcePref = (typeof SOURCE_PREFS)[number];
 interface CompLike { count: number; weight: number; lastSeen?: unknown }
 interface SetLike<C extends CompLike> {
   difficulty: unknown; periodEnd: string | null; totalCount: unknown; source: unknown; comps: C[];
+  /** poi-observed: distinct reporters of the set */
+  reporters?: unknown;
 }
 
 export interface Selection {
@@ -17,15 +20,17 @@ export interface Selection {
   source: string | null;
   /** Encounters in the current-layout poi-observed set (0 if none). */
   observedCount: number;
+  /** Distinct reporters of that set (0 if none). */
+  observedReporters: number;
   minObserved: number;
 }
 
 /**
  * - `since` drops KCNav sets that ended before it and poi-observed comps last seen before it
  *   (weights and totalCount are renormalised).
- * - Per difficulty, `auto` returns the current-layout poi-observed set when its count ≥ minObserved, else the
- *   other sources' sets, else the poi-observed set; `kcnav` / `poi-observed` force one side; `all` returns
- *   every set (selection still reports what `auto` would pick).
+ * - Per difficulty, `auto` returns the current-layout poi-observed set when its count ≥ minObserved and at least
+ *   MIN_REPORTERS distinct reporters fed it, else the other sources' sets, else the poi-observed set;
+ *   `kcnav` / `poi-observed` force one side; `all` returns every set (selection still reports what `auto` would pick).
  */
 export function selectCompSets<C extends CompLike, S extends SetLike<C>>(
   sets: S[], opts: { minObserved: number; prefer: SourcePref; since?: string | null },
@@ -45,13 +50,16 @@ export function selectCompSets<C extends CompLike, S extends SetLike<C>>(
     const observed = mine.find((s) => s.source === OBSERVED_SOURCE && !s.periodEnd);
     const others = mine.filter((s) => s.source !== OBSERVED_SOURCE);
     const n = (observed?.totalCount as number | undefined) ?? 0;
-    const auto = observed && n >= opts.minObserved ? [observed] : others.length ? others : observed ? [observed] : [];
+    const reporters = (observed?.reporters as number | undefined) ?? 0;
+    const auto = observed && n >= opts.minObserved && reporters >= MIN_REPORTERS ? [observed] : others.length ? others : observed ? [observed] : [];
     const chosen = opts.prefer === "all" ? mine
       : opts.prefer === "kcnav" ? others
       : opts.prefer === OBSERVED_SOURCE ? (observed ? [observed] : [])
       : auto;
     const picked = opts.prefer === "all" ? auto : chosen;
-    selection.push({ difficulty: d, source: (picked[0]?.source as string | undefined) ?? null, observedCount: n, minObserved: opts.minObserved });
+    selection.push({
+      difficulty: d, source: (picked[0]?.source as string | undefined) ?? null, observedCount: n, observedReporters: reporters, minObserved: opts.minObserved,
+    });
     out.push(...chosen);
   }
   return { sets: out, selection };

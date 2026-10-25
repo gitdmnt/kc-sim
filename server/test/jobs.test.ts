@@ -1,5 +1,5 @@
 // The jobs run (src/jobs.ts, run by scripts/run-jobs.ts in GitHub Actions): one run drains every queue in passes,
-// stops at its budget and resumes with the next run; an idle run makes one read.
+// stops at its budget and resumes with the next run; an idle run makes two statements (client promotion, queue probe).
 import { beforeEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { bunGrid } from "../scripts/lib/sim-core";
@@ -48,9 +48,9 @@ describe("jobs run", () => {
     expect(readFileSync(new URL("../src/index.ts", import.meta.url), "utf8")).not.toContain("scheduled");
   });
 
-  test("an idle run makes one read and takes no lease", async () => {
+  test("an idle run promotes clients and probes the queues (two statements) and takes no lease", async () => {
     const r = await runJobs(h.db, deps);
-    expect(r).toMatchObject({ busy: false, idle: true, passes: 0, d1Calls: 1 });
+    expect(r).toMatchObject({ busy: false, idle: true, promoted: 0, passes: 0, d1Calls: 2 });
     expect(await lock()).toBe("0");
   });
 

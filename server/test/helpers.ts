@@ -25,8 +25,11 @@ export interface Harness {
   clock: { t: number };
   call: <T = Record<string, unknown>>(method: string, path: string, o?: { body?: unknown; token?: string; headers?: Record<string, string>; host?: string; raw?: string }) =>
     Promise<{ status: number; json: T; headers: Headers }>;
-  /** Registers a client (POST /api/v1/clients) from `ip`. */
-  register: (ip?: string) => Promise<{ clientId: string; token: string }>;
+  /**
+   * Registers a client (POST /api/v1/clients) from `ip`. It is then marked trusted, as if its probation were over
+   * (src/auth/trust.ts), unless `probation` is set.
+   */
+  register: (ip?: string, o?: { probation?: boolean }) => Promise<{ clientId: string; token: string }>;
   /** fetch() into the app (for client code that takes a fetch function). */
   fetch: (url: string, init?: RequestInit) => Promise<Response>;
 }
@@ -59,9 +62,10 @@ export function harness(o: { env?: Partial<Env>; access?: VerifyDeps; cache?: Ca
     const text = await res.text();
     return { status: res.status, json: (text ? JSON.parse(text) : null) as never, headers: res.headers };
   };
-  const register = async (ip = "203.0.113.7") => {
+  const register: Harness["register"] = async (ip = "203.0.113.7", o = {}) => {
     const r = await call<{ clientId: string; token: string }>("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": ip } });
     if (r.status !== 201) throw new Error(`register: ${r.status} ${JSON.stringify(r.json)}`);
+    if (!o.probation) await db.prepare("UPDATE clients SET trusted_at = ?2 WHERE id = ?1").bind(r.json.clientId, new Date(clock.t).toISOString()).run();
     return r.json;
   };
   // what poi's renderer adds to the plugin's fetch (the plugin itself sets neither)

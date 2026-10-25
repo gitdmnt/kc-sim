@@ -191,10 +191,10 @@ admin.post("/aggregate/rebuild", async (c) => {
 admin.get("/aggregate/status", async (c) => {
   const db = c.env.DB;
   const [obs, errors, layouts, mismatches] = await Promise.all([
-    db.prepare(`SELECT kind, COUNT(*) AS n, SUM(aggregated_at IS NULL) AS pending, SUM(agg_error IS NOT NULL) AS failed
-      FROM observations GROUP BY kind ORDER BY kind`).all(),
-    db.prepare("SELECT id, client_id, client_obs_id, kind, agg_error FROM observations WHERE agg_error IS NOT NULL ORDER BY id LIMIT 50").all(),
-    db.prepare("SELECT map_id, layout, version, sorties, encounters, first_seen, last_seen FROM poi_layouts ORDER BY map_id, version").all<{ map_id: number }>(),
+    db.prepare(`SELECT kind, COUNT(*) AS n, SUM(aggregated_at IS NULL) AS pending, SUM(agg_error IS NOT NULL AND agg_error <> 'client_cap') AS failed,
+      SUM(COALESCE(agg_error = 'client_cap', 0)) AS capped FROM observations GROUP BY kind ORDER BY kind`).all(),
+    db.prepare("SELECT id, client_id, client_obs_id, kind, agg_error FROM observations WHERE agg_error IS NOT NULL AND agg_error <> 'client_cap' ORDER BY id LIMIT 50").all(),
+    db.prepare("SELECT map_id, layout, version, current, sorties, encounters, first_seen, last_seen FROM poi_layouts ORDER BY map_id, version").all<{ map_id: number }>(),
     db.prepare("SELECT map_id, kind, COUNT(*) AS n FROM poi_graph_mismatches GROUP BY map_id, kind ORDER BY map_id, kind").all<{ map_id: number }>(),
   ]);
   return c.json({

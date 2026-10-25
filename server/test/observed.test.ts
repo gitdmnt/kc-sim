@@ -189,14 +189,16 @@ describe("pure helpers", () => {
     expect(graphMismatches({ edges: [], nodes, observedEdges: [oe(0, 1)], cells: [] })).toEqual([]);
   });
 
-  test("source policy: threshold, forced sources, since", () => {
-    const set = (source: string, total: number, periodEnd: string | null = null, difficulty = 0) => ({
-      difficulty, periodEnd, totalCount: total, source,
+  test("source policy: threshold, distinct reporters, forced sources, since", () => {
+    const set = (source: string, total: number, periodEnd: string | null = null, difficulty = 0, reporters = 2) => ({
+      difficulty, periodEnd, totalCount: total, source, reporters,
       comps: [{ count: total - 1, weight: (total - 1) / total, lastSeen: "2026-10-10T00:00:00Z" }, { count: 1, weight: 1 / total, lastSeen: "2026-09-01T00:00:00Z" }],
     });
     const sets = [set("kcnav", 100), set("poi-observed", 31), set("poi-observed", 500, "2026-01-01")];
     expect(selectCompSets(sets, { minObserved: 30, prefer: "auto" }).sets.map((s) => s.source)).toEqual(["poi-observed"]);
-    expect(selectCompSets(sets, { minObserved: 30, prefer: "auto" }).selection).toEqual([{ difficulty: 0, source: "poi-observed", observedCount: 31, minObserved: 30 }]);
+    expect(selectCompSets(sets, { minObserved: 30, prefer: "auto" }).selection).toEqual([{ difficulty: 0, source: "poi-observed", observedCount: 31, observedReporters: 2, minObserved: 30 }]);
+    // one reporter, however many encounters, does not override KCNav
+    expect(selectCompSets([set("kcnav", 100), set("poi-observed", 5000, null, 0, 1)], { minObserved: 30, prefer: "auto" }).sets.map((s) => s.source)).toEqual(["kcnav"]);
     expect(selectCompSets(sets, { minObserved: 32, prefer: "auto" }).sets.map((s) => s.source)).toEqual(["kcnav"]);
     expect(selectCompSets(sets, { minObserved: 32, prefer: "all" })).toMatchObject({ sets: { length: 3 }, selection: [{ source: "kcnav" }] });
     expect(selectCompSets(sets, { minObserved: 0, prefer: "kcnav" }).sets.map((s) => s.source)).toEqual(["kcnav"]);
@@ -452,15 +454,17 @@ describe("API", () => {
   });
 
   test("enemy-comps: source per set, policy with minObserved, source and since; map detail", async () => {
-    await post("poi-a", [battle(12, COMP_X), battle(12, COMP_X), battle(12, COMP_Y), sortie()]);
+    // two reporters (clients from different addresses): observed comps may override KCNav
+    await post("poi-a", [battle(12, COMP_X), battle(12, COMP_X), sortie()]);
+    await post("poi-b", [battle(12, COMP_Y), sortie()]);
     const comps = (query = "") => call<CompsJson>("GET", `/api/v1/maps/1-5/nodes/J/enemy-comps${query}`);
     const auto = await comps();
-    expect(auto.json).toMatchObject({ minObserved: 30, source: "auto", selection: [{ difficulty: 0, source: "kcnav", observedCount: 3, minObserved: 30 }] });
+    expect(auto.json).toMatchObject({ minObserved: 30, source: "auto", selection: [{ difficulty: 0, source: "kcnav", observedCount: 3, observedReporters: 2, minObserved: 30 }] });
     expect(auto.json.sets.map((s) => s.source)).toEqual(["kcnav"]);
     const low = await comps("?minObserved=3");
     expect(low.json.selection[0]).toMatchObject({ source: "poi-observed", observedCount: 3 });
     expect(low.json.sets).toHaveLength(1);
-    expect(low.json.sets[0]).toMatchObject({ source: "poi-observed", totalCount: 3, layout: 1, cells: [12], periodEnd: null });
+    expect(low.json.sets[0]).toMatchObject({ source: "poi-observed", totalCount: 3, layout: 1, cells: [12], reporters: 2, periodEnd: null });
     expect(low.json.sets[0]!.comps.map((c) => [c.weight, c.main.map((m) => m.shipId)])).toEqual([
       [2 / 3, COMP_X], [1 / 3, COMP_Y],
     ]);
@@ -488,9 +492,9 @@ describe("API", () => {
       expect.objectContaining({ node: "J", difficulty: 0, source: "kcnav", totalCount: 100, layout: null }),
       expect.objectContaining({ node: "J", difficulty: 0, source: "poi-observed", totalCount: 3, layout: 1 }),
     ]);
-    expect(detail.observed.layout).toMatchObject({ version: 1, cellCount: 13, sorties: 1, encounters: 3, bossCell: 12, bossLetter: "J" });
-    expect(detail.observed.edges[0]).toEqual({ from: 0, to: 1, fromLetter: "Start", toLetter: "A", count: 1 });
-    expect(detail.observed.cells.find((c) => c.no === 7)).toMatchObject({ letter: "G", eventId: 6, visits: 1 });
+    expect(detail.observed.layout).toMatchObject({ version: 1, cellCount: 13, sorties: 2, encounters: 3, bossCell: 12, bossLetter: "J" });
+    expect(detail.observed.edges[0]).toEqual({ from: 0, to: 1, fromLetter: "Start", toLetter: "A", count: 2 });
+    expect(detail.observed.cells.find((c) => c.no === 7)).toMatchObject({ letter: "G", eventId: 6, visits: 2 });
     expect(detail.observed.mismatches).toEqual([]);
     expect(detail.observed.cells.find((c) => c.no === 7)).toMatchObject({ lbasDistance: 3 });
     expect(detail.nodes.find((n) => n.letter === "G")).toMatchObject({ lbasDistance: 3 });
@@ -507,7 +511,7 @@ describe("API", () => {
     await drainJobs(h);
     expect((await call("POST", "/admin/aggregate/rebuild", { maps: ["x"] })).status).toBe(400);
     const status = (await call<StatusJson>("GET", "/admin/aggregate/status")).json;
-    expect(status.observations).toEqual([{ kind: "battle", n: 1, pending: 0, failed: 0 }, { kind: "sortie", n: 1, pending: 0, failed: 0 }]);
+    expect(status.observations).toEqual([{ kind: "battle", n: 1, pending: 0, failed: 0, capped: 0 }, { kind: "sortie", n: 1, pending: 0, failed: 0, capped: 0 }]);
     expect(status.layouts[0]).toMatchObject({ map: "1-5", version: 1, sorties: 1, encounters: 1 });
   });
 });
@@ -577,10 +581,12 @@ test("end to end: captured sorties -> uploadPending -> GET enemy-comps returns o
   // the night fixture does not continue these day battles (and has no friend HP): kept but quarantined
   expect(await db.prepare("SELECT COUNT(*) AS n FROM observations WHERE quarantine IS NOT NULL").first()).toEqual({ n: 40 });
 
-  const r = (await call<CompsJson>("GET", "/api/v1/maps/1-5/nodes/J/enemy-comps")).json;
-  expect(r.selection).toEqual([{ difficulty: 0, source: "poi-observed", observedCount: 40, minObserved: 30 }]);
+  // one reporter: `auto` keeps KCNav (MIN_REPORTERS); the observed set is there for source=poi-observed
+  expect((await call<CompsJson>("GET", "/api/v1/maps/1-5/nodes/J/enemy-comps")).json.selection)
+    .toEqual([{ difficulty: 0, source: "kcnav", observedCount: 40, observedReporters: 1, minObserved: 30 }]);
+  const r = (await call<CompsJson>("GET", "/api/v1/maps/1-5/nodes/J/enemy-comps?source=poi-observed")).json;
   expect(r.sets).toHaveLength(1);
-  expect(r.sets[0]).toMatchObject({ source: "poi-observed", totalCount: 40, cells: [12], layout: 1 });
+  expect(r.sets[0]).toMatchObject({ source: "poi-observed", totalCount: 40, cells: [12], layout: 1, reporters: 1 });
   expect(r.sets[0]!.comps.map((c) => [c.main.map((s) => s.shipId), c.formation, c.count, c.weight]))
     .toEqual([[COMP_X, 4, 30, 0.75], [COMP_Y, 4, 10, 0.25]]);
   // the start cell's comps are observed too (n=40 at A)

@@ -149,17 +149,19 @@ export interface EnemyCompSet {
   retrievedAt: string;
   /** "kcnav" | "poi-observed" (自分たちの観測の集計) など */
   source: string;
-  /** poi-observed のみ: 海域レイアウトの版と、このノードにまとめたマス番号 */
+  /** poi-observed のみ: 海域レイアウトの版と、このノードにまとめたマス番号、観測した別々の報告者 (IP) の数 */
   layout?: number;
   cells?: number[];
+  reporters?: number;
   comps: EnemyComp[];
 }
 
-/** 難易度ごとの出典の選択 (観測数 ≥ minObserved なら poi-observed、でなければ KCNav)。 */
+/** 難易度ごとの出典の選択 (観測数 ≥ minObserved かつ報告者 ≥ 2 なら poi-observed、でなければ KCNav)。 */
 export interface CompSelection {
   difficulty: number;
   source: string | null;
   observedCount: number;
+  observedReporters?: number;
   minObserved: number;
 }
 
