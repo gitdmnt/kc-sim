@@ -9,6 +9,8 @@
 //       selected kinds) is empty, N requests were sent, or the next request would start after the time is up
 //   bun scripts/run-jobs.ts enqueue '<json>'
 //       queues KCNav jobs straight into D1 (src/kcnav/enqueue.ts; same body as POST /admin/kcnav/enqueue)
+//   bun scripts/run-jobs.ts alerts
+//       write statistics of the last 24 h (src/ops.ts writeStats); exits 1 when an alert trips
 // All append a summary to $GITHUB_STEP_SUMMARY when set.
 import { parseArgs } from "node:util";
 import { RUN_D1_CALLS, RUN_MS } from "../src/budget";
@@ -21,6 +23,7 @@ import { openD1, productionConfig } from "./lib/d1-database";
 import { bunGrid } from "./lib/sim-core";
 import { appendSummary } from "./lib/summary";
 import { flagOn } from "../src/routes/write";
+import { writeStats } from "../src/ops";
 
 const { positionals, values } = parseArgs({
   args: Bun.argv.slice(2),
@@ -97,7 +100,20 @@ switch (positionals[0]) {
     console.log(JSON.stringify(await enqueue({ DB: db } as Env, body), null, 2));
     break;
   }
+  case "alerts": {
+    // Write statistics of the last 24 h (src/ops.ts); a tripped alert fails the step, so GitHub notifies the owner.
+    const { stats, alerts } = await writeStats(db, Date.now());
+    console.log(stamp(), JSON.stringify({ stats, alerts }));
+    appendSummary([
+      `### Writes, last 24 h (${target})`, "",
+      `${stats.newClients} new clients from ${stats.newClientAddresses} addresses; ${stats.probation} on probation, ${stats.banned} banned.`,
+      `${stats.stored} observations stored, ${stats.rejected} rejected, ${stats.quarantined} quarantined; ${stats.stagedItems ?? 0} staged (${Math.round((stats.stagedBytes ?? 0) / 2 ** 20)} MiB).`,
+      "", ...(alerts.length ? ["**Alerts**", "", ...alerts.map((a) => `- ${a}`)] : ["No alerts."]),
+    ].join("\n"));
+    if (alerts.length) process.exit(1);
+    break;
+  }
   default:
-    console.error("usage: bun scripts/run-jobs.ts run [--minutes 25] [--no-estimator] | kcnav [--minutes 25] [--only k,… | --skip k,…] [--max N] | enqueue '<json>'");
+    console.error("usage: bun scripts/run-jobs.ts run [--minutes 25] [--no-estimator] | kcnav [--minutes 25] [--only k,… | --skip k,…] [--max N] | enqueue '<json>' | alerts");
     process.exit(2);
 }

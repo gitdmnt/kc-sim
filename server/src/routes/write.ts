@@ -74,6 +74,7 @@ export function writeRoutes(deps: WriteDeps) {
     if (!ipHash) return c.json({ error: "server misconfigured: IP_HASH_SALT is not set" }, 500);
     const r = await issueClient(c.env.DB, ipHash, deps.now());
     if (!r.ok) {
+      if ("banned" in r) return c.json({ error: "registrations from this address are blocked" }, 403);
       c.header("Retry-After", String(r.retryAfter));
       return c.json({ error: "too many clients registered from this address", retryAfter: r.retryAfter }, 429);
     }

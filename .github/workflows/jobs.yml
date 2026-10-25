@@ -97,6 +97,13 @@ jobs:
         working-directory: server
         run: bun scripts/run-jobs.ts kcnav --skip battles --minutes 25
 
+      # Upload spikes, a growing backlog, sybil waves (src/ops.ts ALERTS): a tripped alert fails this step, and GitHub
+      # mails the owner about the failed scheduled run. Runs even when an earlier step failed.
+      - name: Write alerts
+        if: ${{ !cancelled() }}
+        working-directory: server
+        run: bun scripts/run-jobs.ts alerts
+
   routing:
     needs: jobs
     # !cancelled() lets it run when `jobs` failed or was skipped (dispatch with task=routing); a plain `needs` would skip it.

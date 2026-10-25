@@ -126,7 +126,7 @@ export async function stageUpload(db: D1Database, clientId: string, body: string
 
 export interface IngestResult { ingested: number; duplicates: number; rejected: number; flagged: number; quarantined: number; remaining: number }
 
-async function loadGraphs(db: D1Database, mapIds: number[]): Promise<Map<number, MapGraph>> {
+export async function loadGraphs(db: D1Database, mapIds: number[]): Promise<Map<number, MapGraph>> {
   const ids = JSON.stringify(mapIds);
   const inMaps = "IN (SELECT value FROM json_each(?1))";
   const [maps, edges, cells] = await Promise.all([
@@ -142,7 +142,7 @@ async function loadGraphs(db: D1Database, mapIds: number[]): Promise<Map<number,
 }
 
 /** Day battle responses by visitId: from these observations, else from the client's stored observations. */
-async function dayPackets(db: D1Database, clientId: string, obs: ObservationInput[]): Promise<Map<string, Record<string, unknown>>> {
+export async function dayPackets(db: D1Database, clientId: string, obs: ObservationInput[]): Promise<Map<string, Record<string, unknown>>> {
   const out = new Map<string, Record<string, unknown>>();
   for (const o of obs) if (o.kind === "battle" && o.raw.path === "api_req_sortie/battle") out.set(o.raw.visitId, o.raw.raw);
   const missing = obs.flatMap((o) => (o.kind === "battle" && o.raw.path === "api_req_battle_midnight/battle" && !out.has(o.raw.visitId) ? [o.raw.visitId] : []));

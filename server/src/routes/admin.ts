@@ -6,7 +6,7 @@
 // remaining). Rebuilds and deletions only reset and leave the work to the next jobs run.
 import { Hono } from "hono";
 import { requireAccess, type VerifyDeps } from "../auth/access";
-import { banClient } from "../auth/clients";
+import { banClient, banIp } from "../auth/clients";
 import { Budget, PASS_MS, RUN_MS } from "../budget";
 import { bumpDataVersion } from "../cache";
 import type { Env } from "../env";
@@ -17,7 +17,9 @@ import { enqueue } from "../kcnav/enqueue";
 import { reparseCached, tick } from "../kcnav/tick";
 import { aggregatePending, deleteClientObservations, resetStatements } from "../observed/aggregate";
 import { countRules, validateRoutingDoc } from "../routing/validate";
-import { banRequest, enqueueRequest, estimateRunRequest } from "../schemas";
+import { revalidate } from "../ingest/revalidate";
+import { MAX_PURGE_CLIENTS, purgeClients, writeStats } from "../ops";
+import { banRequest, enqueueRequest, estimateRunRequest, purgeRequest } from "../schemas";
 import { flagOn } from "./write";
 
 export interface AdminDeps extends JobDeps {
@@ -85,16 +87,73 @@ export function adminRoutes(deps: AdminDeps) {
   // Deletes a client entirely: staged items, observations (resetting the aggregates of their maps and the ships
   // they fed; the next jobs run refolds what remains), validation records and the client row (its token stops working).
   app.delete("/clients/:id", async (c) => {
-    const db = c.env.DB;
     const clientId = c.req.param("id");
-    const ships = await forgetClientObservations(db, clientId);
-    const r = await deleteClientObservations(db, clientId);
-    const res = await db.batch([
-      db.prepare("DELETE FROM observation_rejections WHERE client_id = ?1").bind(clientId),
-      db.prepare("DELETE FROM clients WHERE id = ?1").bind(clientId),
-    ]);
-    return c.json({ clientId, deleted: r.deleted, rejections: res[0]?.meta.changes ?? 0, client: (res[1]?.meta.changes ?? 0) > 0, maps: r.maps.map(mapName), estimatorReset: ships });
+    const exists = await c.env.DB.prepare("SELECT 1 FROM clients WHERE id = ?1").bind(clientId).first();
+    const r = await purgeClients(c.env.DB, [clientId], { ban: false, reason: null, now: new Date(deps.now()).toISOString() });
+    return c.json({ clientId, deleted: r.deleted, client: !!exists, maps: r.maps.map(mapName), estimatorReset: r.estimatorReset });
   });
+
+  // Clients by registration address (salted IP hash) and/or registration time (epoch ms), with what they uploaded:
+  // finds a wave of sybils to purge. ?ipHash=&createdFrom=&createdTo=&probation=1
+  app.get("/clients", async (c) => {
+    const num = (v: string | undefined) => (v === undefined ? null : Number(v));
+    const { results } = await c.env.DB.prepare(
+      `SELECT c.id, c.ip_hash, c.created_at, c.trusted_at, c.banned_at, c.ban_reason, c.quota_items,
+         (SELECT COUNT(*) FROM observations o WHERE o.client_id = c.id) AS observations,
+         (SELECT COUNT(*) FROM observations o WHERE o.client_id = c.id AND o.quarantine IS NOT NULL) AS quarantined,
+         (SELECT COUNT(*) FROM observation_rejections r WHERE r.client_id = c.id AND r.action = 'reject') AS rejected,
+         (SELECT COUNT(*) FROM upload_items u WHERE u.client_id = c.id) AS staged
+       FROM clients c WHERE (?1 IS NULL OR c.ip_hash = ?1) AND (?2 IS NULL OR c.created_at >= ?2) AND (?3 IS NULL OR c.created_at <= ?3)
+         AND (?4 IS NULL OR c.trusted_at IS NULL) ORDER BY c.created_at DESC LIMIT 500`,
+    ).bind(c.req.query("ipHash") ?? null, num(c.req.query("createdFrom")), num(c.req.query("createdTo")), c.req.query("probation") ? 1 : null).all();
+    return c.json({ clients: results });
+  });
+
+  // Purges a set of clients (ids, or everything from one registration address and/or time window) and by default
+  // bans them; `banIp` also blocks the address. Body: {clientIds?, ipHash?, createdFrom?, createdTo?, ban?, banIp?, reason?}
+  app.post("/clients/purge", async (c) => {
+    const parsed = purgeRequest.safeParse(await c.req.json().catch(() => ({})));
+    if (!parsed.success) return c.json({ error: "validation failed", issues: parsed.error.issues }, 400);
+    const p = parsed.data;
+    const db = c.env.DB;
+    const { results } = await db.prepare(
+      `SELECT id FROM clients WHERE (?1 IS NULL OR id IN (SELECT value FROM json_each(?1))) AND (?2 IS NULL OR ip_hash = ?2)
+         AND (?3 IS NULL OR created_at >= ?3) AND (?4 IS NULL OR created_at <= ?4) ORDER BY created_at LIMIT ?5`,
+    ).bind(p.clientIds ? JSON.stringify(p.clientIds) : null, p.ipHash ?? null, p.createdFrom ?? null, p.createdTo ?? null, MAX_PURGE_CLIENTS + 1)
+      .all<{ id: string }>();
+    if (results.length > MAX_PURGE_CLIENTS) return c.json({ error: `more than ${MAX_PURGE_CLIENTS} clients match: narrow the selection`, max: MAX_PURGE_CLIENTS }, 400);
+    const now = new Date(deps.now()).toISOString();
+    if (p.banIp && p.ipHash) await banIp(db, p.ipHash, p.reason ?? null, now);
+    const r = await purgeClients(db, results.map((x) => x.id), { ban: p.ban, reason: p.reason ?? null, now });
+    return c.json({ ...r, clientIds: results.map((x) => x.id), maps: r.maps.map(mapName), ipBanned: !!(p.banIp && p.ipHash) });
+  });
+
+  // Blocks / unblocks a registration or request address (salted IP hash): no registration, uploads 403, no promotion.
+  app.post("/ips/:ipHash/ban", async (c) => {
+    const parsed = banRequest.safeParse(await c.req.json().catch(() => ({})));
+    if (!parsed.success) return c.json({ error: "validation failed", issues: parsed.error.issues }, 400);
+    await banIp(c.env.DB, c.req.param("ipHash"), parsed.data.reason ?? null, new Date(deps.now()).toISOString());
+    return c.json({ ipHash: c.req.param("ipHash"), banned: true });
+  });
+  app.delete("/ips/:ipHash/ban", async (c) => {
+    const r = await c.env.DB.prepare("DELETE FROM banned_ips WHERE ip_hash = ?1").bind(c.req.param("ipHash")).run();
+    return c.json({ ipHash: c.req.param("ipHash"), unbanned: (r.meta.changes ?? 0) > 0 });
+  });
+
+  // Re-validates stored observations under the current rules (src/ingest/revalidate.ts), one page per call: repeat
+  // with ?after=<next> until next is null. The next jobs run refolds the reset maps and ships.
+  app.post("/observations/revalidate", async (c) => {
+    const after = Number(c.req.query("after") ?? 0);
+    const limit = Number(c.req.query("limit") ?? 100);
+    if (!Number.isInteger(after) || after < 0 || !Number.isInteger(limit) || limit < 1 || limit > 500) {
+      return c.json({ error: "after must be an observation id, limit in 1..500" }, 400);
+    }
+    const r = await revalidate(c.env.DB, after, limit);
+    return c.json({ ...r, maps: r.maps.map(mapName) });
+  });
+
+  // Write statistics of the last 24 h and the alerts they trip (as the jobs run's `alerts` step reports them).
+  app.get("/writes/status", async (c) => c.json(await writeStats(c.env.DB, deps.now())));
 
   // poi-observed aggregation (private notes API §4): one budgeted step.
   app.post("/aggregate/run", async (c) => {

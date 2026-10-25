@@ -187,5 +187,16 @@ export const estimateRunRequest = z.object({
   budgetMs: z.number().positive().max(60_000).optional(),
 }).strict();
 
-/** POST /admin/clients/{id}/ban */
+/** POST /admin/clients/{id}/ban, POST /admin/ips/{ipHash}/ban */
 export const banRequest = z.object({ reason: z.string().max(200).optional() }).strict();
+
+/** POST /admin/clients/purge: at least one selector. */
+export const purgeRequest = z.object({
+  clientIds: z.array(z.string().min(1).max(64)).min(1).max(100).optional(),
+  ipHash: z.string().regex(/^[0-9a-f]{64}$/).optional(),
+  createdFrom: z.int().min(0).optional(),
+  createdTo: z.int().min(0).optional(),
+  ban: z.boolean().default(true),
+  banIp: z.boolean().default(false),
+  reason: z.string().max(200).optional(),
+}).strict().refine((p) => p.clientIds || p.ipHash || p.createdFrom !== undefined || p.createdTo !== undefined, { message: "select clients by clientIds, ipHash or createdFrom/createdTo" });
