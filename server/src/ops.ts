@@ -40,16 +40,14 @@ export const ALERTS = {
   newClientAddresses: 10,
   stagedItems: 5000,
   stagedBytes: 64 * 1024 * 1024,
-  /** items of the busiest client in its current 24 h quota window */
-  topClientItems: 2000,
   /** rejected / (stored + rejected), once at least `minProcessed` items were processed */
   rejectShare: 0.3,
   minProcessed: 200,
 };
 
 export interface WriteStats {
-  newClients: number; newClientAddresses: number; probation: number; banned: number;
-  stagedItems: number; stagedBytes: number; topClientItems: number;
+  newClients: number; newClientAddresses: number; banned: number;
+  stagedItems: number; stagedBytes: number;
   stored: number; rejected: number; quarantined: number;
 }
 
@@ -60,11 +58,9 @@ export async function writeStats(db: D1Database, now: number): Promise<{ stats: 
   const r = await db.prepare(
     `SELECT (SELECT COUNT(*) FROM clients WHERE created_at > ?1) AS newClients,
        (SELECT COUNT(DISTINCT ip_hash) FROM clients WHERE created_at > ?1) AS newClientAddresses,
-       (SELECT COUNT(*) FROM clients WHERE trusted_at IS NULL AND banned_at IS NULL) AS probation,
        (SELECT COUNT(*) FROM clients WHERE banned_at IS NOT NULL) AS banned,
-       (SELECT CAST(value AS INTEGER) FROM kv_state WHERE key = 'staged_items') AS stagedItems,
-       (SELECT CAST(value AS INTEGER) FROM kv_state WHERE key = 'staged_bytes') AS stagedBytes,
-       (SELECT COALESCE(MAX(quota_items), 0) FROM clients WHERE quota_start > ?1) AS topClientItems,
+       (SELECT COUNT(*) FROM upload_items) AS stagedItems,
+       (SELECT COALESCE(SUM(bytes), 0) FROM upload_items) AS stagedBytes,
        (SELECT COUNT(*) FROM observations WHERE uploaded_at > ?2) AS stored,
        (SELECT COUNT(*) FROM observation_rejections WHERE created_at > ?2 AND action = 'reject') AS rejected,
        (SELECT COUNT(*) FROM observation_rejections WHERE created_at > ?2 AND action = 'quarantine' AND rule <> 'unlinked') AS quarantined`,
@@ -77,7 +73,6 @@ export async function writeStats(db: D1Database, now: number): Promise<{ stats: 
     stats.newClientAddresses > a.newClientAddresses && `${stats.newClientAddresses} addresses registered clients in 24 h (> ${a.newClientAddresses})`,
     (stats.stagedItems ?? 0) > a.stagedItems && `${stats.stagedItems} staged items waiting (> ${a.stagedItems})`,
     (stats.stagedBytes ?? 0) > a.stagedBytes && `${Math.round((stats.stagedBytes ?? 0) / 2 ** 20)} MiB staged (> ${a.stagedBytes / 2 ** 20} MiB)`,
-    stats.topClientItems > a.topClientItems && `one client staged ${stats.topClientItems} items in its quota window (> ${a.topClientItems})`,
     processed >= a.minProcessed && stats.rejected / processed > a.rejectShare &&
       `${Math.round((100 * stats.rejected) / processed)} % of ${processed} items processed in 24 h were rejected (> ${a.rejectShare * 100} %)`,
   ].filter((x): x is string => typeof x === "string");

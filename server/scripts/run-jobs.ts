@@ -106,7 +106,7 @@ switch (positionals[0]) {
     console.log(stamp(), JSON.stringify({ stats, alerts }));
     appendSummary([
       `### Writes, last 24 h (${target})`, "",
-      `${stats.newClients} new clients from ${stats.newClientAddresses} addresses; ${stats.probation} on probation, ${stats.banned} banned.`,
+      `${stats.newClients} new clients from ${stats.newClientAddresses} addresses; ${stats.banned} banned.`,
       `${stats.stored} observations stored, ${stats.rejected} rejected, ${stats.quarantined} quarantined; ${stats.stagedItems ?? 0} staged (${Math.round((stats.stagedBytes ?? 0) / 2 ** 20)} MiB).`,
       "", ...(alerts.length ? ["**Alerts**", "", ...alerts.map((a) => `- ${a}`)] : ["No alerts."]),
     ].join("\n"));

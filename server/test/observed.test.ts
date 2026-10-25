@@ -446,8 +446,6 @@ describe("API", () => {
     const r = await post("c", [{ ...sortie(), sortie: undefined }, { ...battle(1, COMP_X), kind: "sortie" }, bad, battle(1, COMP_X)]);
     expect(r.status).toBe(202);
     expect(r.json).toMatchObject({ accepted: 1, rejected: [{ rule: "schema" }, { rule: "schema" }, { rule: "schema" }] });
-    expect((await h.call("POST", "/api/v1/observations", { token: clients.get("c")!.token, body: { observations: [] } })).status).toBe(429);
-    h.clock.t += 61_000;
     expect((await h.call("POST", "/api/v1/observations", { token: clients.get("c")!.token, body: { observations: [] } })).status).toBe(400);
   });
 

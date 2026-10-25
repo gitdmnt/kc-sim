@@ -1,5 +1,5 @@
-// Per-install upload clients (private notes API §3 "Clients and limits"): token issuance with per-IP limits,
-// bearer authentication, the 1-per-60-s observation gate, and the per-IP write limit.
+// Per-install upload clients (private notes API §3 "Clients and limits"): token issuance, bearer
+// authentication and the per-IP write limit.
 import type { MiddlewareHandler } from "hono";
 import type { Env } from "../env";
 
@@ -9,12 +9,6 @@ import type { Env } from "../env";
  */
 export const ORIGIN_REJECTED = "origin_rejected";
 export const BANNED = "banned";
-
-export const ISSUE_LIMITS = [
-  { windowMs: 60 * 60_000, max: 3 },
-  { windowMs: 24 * 60 * 60_000, max: 10 },
-] as const;
-export const POST_INTERVAL_MS = 60_000;
 
 const hex = (buf: ArrayBuffer) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 const b64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -49,66 +43,28 @@ export async function requestIpHash(env: Env, ip: string | undefined): Promise<s
   return hashIp(ipKey(ip ?? "unknown"), env.IP_HASH_SALT);
 }
 
-export type IssueResult = { ok: true; clientId: string; token: string } | { ok: false; retryAfter: number } | { ok: false; banned: true };
-
-/**
- * Issues `{clientId, token}`: 32 random bytes (base64url), stored as SHA-256. One conditional INSERT checks
- * both per-IP windows and the IP ban list, so concurrent requests cannot exceed them.
- */
-export async function issueClient(db: D1Database, ipHash: string, now: number): Promise<IssueResult> {
+/** Issues `{clientId, token}`: 32 random bytes (base64url), stored as SHA-256. One INSERT. */
+export async function issueClient(db: D1Database, ipHash: string, now: number): Promise<{ clientId: string; token: string }> {
   const clientId = `c_${randomB64url(16)}`;
   const token = randomB64url(32);
-  const [hour, day] = ISSUE_LIMITS;
-  const r = await db.prepare(
-    `INSERT INTO clients (id, token_hash, ip_hash, created_at)
-     SELECT ?1, ?2, ?3, ?4
-     WHERE (SELECT COUNT(*) FROM clients WHERE ip_hash = ?3 AND created_at > ?4 - ?5) < ?6
-       AND (SELECT COUNT(*) FROM clients WHERE ip_hash = ?3 AND created_at > ?4 - ?7) < ?8
-       AND NOT EXISTS (SELECT 1 FROM banned_ips WHERE ip_hash = ?3)`,
-  ).bind(clientId, await sha256Hex(token), ipHash, now, hour.windowMs, hour.max, day.windowMs, day.max).run();
-  if ((r.meta.changes ?? 0) > 0) return { ok: true, clientId, token };
-  if (await db.prepare("SELECT 1 FROM banned_ips WHERE ip_hash = ?1").bind(ipHash).first()) return { ok: false, banned: true };
-  // Seconds until the oldest issuance of the full window leaves it.
-  const { results } = await db.prepare("SELECT created_at FROM clients WHERE ip_hash = ?1 AND created_at > ?2 ORDER BY created_at DESC")
-    .bind(ipHash, now - day.windowMs).all<{ created_at: number }>();
-  const freeAt = ISSUE_LIMITS.map(({ windowMs, max }) => {
-    const inWindow = results.filter((x) => x.created_at > now - windowMs);
-    return inWindow.length >= max ? inWindow[max - 1]!.created_at + windowMs : now;
-  });
-  return { ok: false, retryAfter: Math.max(1, Math.ceil((Math.max(...freeAt) - now) / 1000)) };
+  await db.prepare("INSERT INTO clients (id, token_hash, ip_hash, created_at) VALUES (?1, ?2, ?3, ?4)")
+    .bind(clientId, await sha256Hex(token), ipHash, now).run();
+  return { clientId, token };
 }
 
 export interface ClientVars { clientId: string }
 
-/**
- * `Authorization: Bearer <token>` → `c.var.clientId`; 401 for unknown tokens, 403 for banned clients and for
- * banned addresses (the client's registration address or the request's).
- */
+/** `Authorization: Bearer <token>` → `c.var.clientId` (one read); 401 for unknown tokens, 403 for banned clients. */
 export const requireClient: MiddlewareHandler<{ Bindings: Env; Variables: ClientVars }> = async (c, next) => {
   const m = /^Bearer ([A-Za-z0-9_-]{43})$/.exec(c.req.header("Authorization") ?? "");
   if (!m) return c.json({ error: "missing or malformed bearer token (POST /api/v1/clients issues one)" }, 401);
-  const ipHash = await requestIpHash(c.env, c.req.header("CF-Connecting-IP"));
-  const row = await c.env.DB.prepare(
-    `SELECT id, banned_at, EXISTS (SELECT 1 FROM banned_ips b WHERE b.ip_hash IN (clients.ip_hash, ?2)) AS ip_banned
-     FROM clients WHERE token_hash = ?1`,
-  ).bind(await sha256Hex(m[1]!), ipHash).first<{ id: string; banned_at: string | null; ip_banned: number }>();
+  const row = await c.env.DB.prepare("SELECT id, banned_at FROM clients WHERE token_hash = ?1")
+    .bind(await sha256Hex(m[1]!)).first<{ id: string; banned_at: string | null }>();
   if (!row) return c.json({ error: "unknown token" }, 401);
-  if (row.banned_at || row.ip_banned) return c.json({ error: BANNED, message: "this client is banned" }, 403);
+  if (row.banned_at) return c.json({ error: BANNED, message: "this client is banned" }, 403);
   c.set("clientId", row.id);
   return next();
 };
-
-/**
- * Admits one POST /observations per client per POST_INTERVAL_MS: an atomic conditional UPDATE of
- * `clients.last_post_at`. Returns 0 when admitted, else the seconds to wait.
- */
-export async function claimPostSlot(db: D1Database, clientId: string, now: number): Promise<number> {
-  const r = await db.prepare("UPDATE clients SET last_post_at = ?2 WHERE id = ?1 AND last_post_at <= ?2 - ?3")
-    .bind(clientId, now, POST_INTERVAL_MS).run();
-  if ((r.meta.changes ?? 0) > 0) return 0;
-  const row = await db.prepare("SELECT last_post_at FROM clients WHERE id = ?1").bind(clientId).first<{ last_post_at: number }>();
-  return Math.max(1, Math.ceil(((row?.last_post_at ?? now) + POST_INTERVAL_MS - now) / 1000));
-}
 
 /**
  * Per-IP limit on every write request (Workers Rate Limiting binding, keyed by the salted IP hash). The
@@ -132,10 +88,10 @@ export async function banClient(db: D1Database, clientId: string, reason: string
   return (r.meta.changes ?? 0) > 0;
 }
 
-/** Blocks an address (salted IP hash): no registration from it, 403 for its clients and its requests, no promotion. */
-export async function banIp(db: D1Database, ipHash: string, reason: string | null, now: string): Promise<void> {
-  await db.batch([
-    db.prepare("INSERT INTO banned_ips (ip_hash, reason, banned_at) VALUES (?1, ?2, ?3) ON CONFLICT DO UPDATE SET reason = excluded.reason").bind(ipHash, reason, now),
-    db.prepare("UPDATE clients SET banned_at = COALESCE(banned_at, ?2), ban_reason = COALESCE(ban_reason, ?3) WHERE ip_hash = ?1").bind(ipHash, now, reason),
-  ]);
+/** Bans (`ban`) or unbans every client registered from an address (salted IP hash). Returns how many changed. */
+export async function setIpBan(db: D1Database, ipHash: string, ban: boolean, reason: string | null, now: string): Promise<number> {
+  const r = ban
+    ? await db.prepare("UPDATE clients SET banned_at = COALESCE(banned_at, ?2), ban_reason = COALESCE(ban_reason, ?3) WHERE ip_hash = ?1").bind(ipHash, now, reason).run()
+    : await db.prepare("UPDATE clients SET banned_at = NULL, ban_reason = NULL WHERE ip_hash = ?1 AND banned_at IS NOT NULL").bind(ipHash).run();
+  return r.meta.changes ?? 0;
 }

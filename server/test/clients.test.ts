@@ -1,8 +1,6 @@
-// Per-install tokens, per-IP issuance limits, bearer auth, ban, the 1-per-60-s upload gate (injected clock),
-// the per-IP write limiter, body caps and CORS (src/auth/clients.ts, src/routes/write.ts).
+// Per-install tokens, bearer auth, ban, the per-IP write limiter, body caps and CORS (src/auth/clients.ts, src/routes/write.ts).
 import { beforeEach, describe, expect, test } from "bun:test";
 import { hashIp, ipKey, sha256Hex } from "../src/auth/clients";
-import { CLIENT_DAY_ITEMS, QUOTA_WINDOW_MS, STAGED_MAX_ITEMS } from "../src/ingest/upload";
 import { battleResponse, drainJobs, fleet, harness, LAYOUT_15, seedBasic, uploadAndProcess, type Harness } from "./helpers";
 
 let h: Harness;
@@ -26,34 +24,10 @@ describe("POST /api/v1/clients", () => {
     expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(Buffer.from(token, "base64url")).toHaveLength(32);
     const row = await h.db.prepare("SELECT * FROM clients WHERE id = ?1").bind(clientId).first<Record<string, unknown>>();
-    expect(row).toMatchObject({ token_hash: await sha256Hex(token), ip_hash: await hashIp("198.51.100.4", "test-salt"), last_post_at: 0, banned_at: null });
+    expect(row).toMatchObject({ token_hash: await sha256Hex(token), ip_hash: await hashIp("198.51.100.4", "test-salt"), banned_at: null });
     const dump = JSON.stringify(row);
     expect(dump).not.toContain(token);
     expect(dump).not.toContain("198.51.100.4");
-  });
-
-  test("per-IP limits: 3 per hour, 10 per day, with Retry-After; other IPs unaffected", async () => {
-    const ip = "198.51.100.9";
-    for (let i = 0; i < 3; i++) {
-      await h.register(ip);
-      h.clock.t += 60_000;
-    }
-    const fourth = await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": ip } });
-    expect(fourth.status).toBe(429);
-    // the first issuance (3 min ago) leaves the hour window in 57 min
-    expect(fourth.headers.get("Retry-After")).toBe(String(57 * 60));
-    expect((await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": "198.51.100.10" } })).status).toBe(201);
-    // hourly windows pass, the daily cap of 10 still applies
-    for (let i = 3; i < 10; i++) {
-      h.clock.t += 61 * 60_000;
-      await h.register(ip);
-    }
-    h.clock.t += 61 * 60_000;
-    const eleventh = await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": ip } });
-    expect(eleventh.status).toBe(429);
-    expect(Number(eleventh.headers.get("Retry-After"))).toBeGreaterThan(3600);
-    h.clock.t += 24 * 60 * 60_000;
-    expect((await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": ip } })).status).toBe(201);
   });
 
   test("fails closed without IP_HASH_SALT", async () => {
@@ -80,33 +54,6 @@ describe("bearer auth and ban", () => {
     expect((await upload(token, [obs()], { clientId: "someone-else" })).json).toMatchObject({ queued: 1, duplicates: 0 });
     await drainJobs(h);
     expect((await h.db.prepare("SELECT DISTINCT client_id FROM observations").all()).results).toEqual([{ client_id: clientId }]);
-  });
-});
-
-describe("1 POST per 60 s per token", () => {
-  test("second upload within 60 s → 429 + Retry-After, body not processed; admitted again after 60 s", async () => {
-    const a = await h.register();
-    const b = await h.register("198.51.100.20");
-    expect((await upload(a.token, [obs()])).status).toBe(202);
-    h.clock.t += 45_000;
-    // not even parsed: invalid JSON gets 429, not 400, and nothing is stored
-    const second = await h.call("POST", "/api/v1/observations", { token: a.token, raw: "{not json" });
-    expect(second.status).toBe(429);
-    expect(second.headers.get("Retry-After")).toBe("15");
-    expect(second.json).toMatchObject({ retryAfter: 15 });
-    expect((await upload(a.token, [obs()])).status).toBe(429);
-    // other clients have their own slot
-    expect((await upload(b.token, [obs()])).status).toBe(202);
-    h.clock.t += 15_000;
-    expect((await upload(a.token, [obs()])).status).toBe(202);
-    await drainJobs(h);
-    expect((await h.db.prepare("SELECT COUNT(*) AS n FROM observations").first())).toEqual({ n: 3 });
-  });
-
-  test("concurrent uploads: exactly one is admitted", async () => {
-    const { token } = await h.register();
-    const results = await Promise.all([upload(token, [obs()]), upload(token, [obs()]), upload(token, [obs()])]);
-    expect(results.map((r) => r.status).sort()).toEqual([202, 429, 429]);
   });
 });
 
@@ -157,7 +104,7 @@ describe("caps and per-IP write limit", () => {
     // a requested User-Agent header is not echoed back, so a browser cannot spoof it
     expect((await pre("null", "user-agent")).headers.get("Access-Control-Allow-Headers")).toBe("Authorization,Content-Type");
     const { token } = await h.register();
-    await upload(token, [obs()]);
+    h.limiter.block = true;
     const limited = await upload(token, [obs()]);
     expect(limited.headers.get("Access-Control-Allow-Origin")).toBe("null");
     expect(limited.headers.get("Access-Control-Expose-Headers")).toContain("Retry-After");
@@ -191,40 +138,19 @@ describe("caps and per-IP write limit", () => {
   });
 });
 
-describe("IPv6 keys, quotas, backlog cap, kill switch", () => {
+describe("IPv6 keys, kill switches", () => {
   test("IPv6 addresses of one /64 share a key; IPv4-mapped IPv6 is the IPv4 address", async () => {
     expect(ipKey("2001:db8:1:2:aaaa::1")).toBe("2001:db8:1:2::/64");
     expect(ipKey("2001:0db8:0001:0002:ffff:1:2:3")).toBe("2001:db8:1:2::/64");
     expect(ipKey("2001:db8::5")).toBe("2001:db8:0:0::/64");
     expect(ipKey("::ffff:192.0.2.1")).toBe("192.0.2.1");
     expect(ipKey("192.0.2.1")).toBe("192.0.2.1");
-    for (let i = 0; i < 3; i++) await h.register(`2001:db8:1:2::${i + 1}`);
-    expect((await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": "2001:db8:1:2:ffff::9" } })).status).toBe(429);
-    expect((await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": "2001:db8:1:3::1" } })).status).toBe(201);
-  });
-
-  test("a client's 24 h item quota → 429 until its window passes; staged counters follow staging and ingest", async () => {
-    const { clientId, token } = await h.register();
-    expect((await upload(token, [obs(), obs()])).status).toBe(202);
-    expect(await h.db.prepare("SELECT value FROM kv_state WHERE key = 'staged_items'").first()).toEqual({ value: "2" });
-    await h.db.prepare("UPDATE clients SET quota_items = ?2 WHERE id = ?1").bind(clientId, CLIENT_DAY_ITEMS).run();
-    h.clock.t += 61_000;
-    const over = await upload(token, [obs()]);
-    expect(over.status).toBe(429);
-    expect(Number(over.headers.get("Retry-After"))).toBe(24 * 3600 - 61);
-    await drainJobs(h);
-    expect(await h.db.prepare("SELECT value FROM kv_state WHERE key = 'staged_items'").first()).toEqual({ value: "0" });
-    h.clock.t += QUOTA_WINDOW_MS;
-    expect((await upload(token, [obs()])).status).toBe(202);
-    expect(await h.db.prepare("SELECT quota_items FROM clients WHERE id = ?1").bind(clientId).first()).toEqual({ quota_items: 1 });
-  });
-
-  test("a full backlog → 503 with Retry-After for everyone", async () => {
-    const { token } = await h.register();
-    await h.db.prepare("UPDATE kv_state SET value = ?1 WHERE key = 'staged_items'").bind(String(STAGED_MAX_ITEMS)).run();
-    const r = await upload(token, [obs()]);
-    expect(r.status).toBe(503);
-    expect(r.headers.get("Retry-After")).toBe("3600");
+    await h.register("2001:db8:1:2::1");
+    await h.register("2001:db8:1:2:ffff::9");
+    await h.register("2001:db8:1:3::1");
+    const [a, b, c] = h.limiter.keys;
+    expect(a).toBe(b);
+    expect(a).not.toBe(c);
   });
 
   test("WRITES_DISABLED: registration and uploads answer 503, reads still work", async () => {

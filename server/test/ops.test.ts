@@ -1,4 +1,4 @@
-// Write-side operations (src/ops.ts, src/ingest/revalidate.ts, admin routes): IP bans, bulk purge, re-validation of
+// Write-side operations (src/ops.ts, src/ingest/revalidate.ts, admin routes): address bans, bulk purge, re-validation of
 // stored observations, write statistics and alerts.
 import { beforeEach, describe, expect, test } from "bun:test";
 import { hashIp, ipKey } from "../src/auth/clients";
@@ -25,18 +25,17 @@ const count = async (sql: string) => (await h.db.prepare(sql).first<{ n: number 
 const ipHashOf = (ip: string) => hashIp(ipKey(ip), "test-salt");
 
 describe("IP bans and bulk purge", () => {
-  test("a banned address cannot register; its clients' uploads get 403", async () => {
+  test("an address ban bans the clients registered from it, whatever address they upload from; unban lifts it", async () => {
     const ip = "198.51.100.70";
     const { token } = await h.register(ip);
+    const other = await h.register("198.51.100.71");
     const r = await h.call("POST", `/admin/ips/${await ipHashOf(ip)}/ban`, { body: { reason: "sybils" } });
-    expect(r.json).toMatchObject({ banned: true });
-    expect(await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": ip } })).toMatchObject({ status: 403, json: { error: "banned" } });
-    // the client's registration address is banned, whatever address it uploads from
-    h.clock.t += 61_000;
+    expect(r.json).toMatchObject({ banned: 1 });
     expect(await h.call("POST", "/api/v1/observations", { token, body: { observations: linked() }, headers: { "CF-Connecting-IP": "203.0.113.99" } }))
       .toMatchObject({ status: 403, json: { error: "banned" } });
-    expect((await h.call("DELETE", `/admin/ips/${await ipHashOf(ip)}/ban`)).json).toMatchObject({ unbanned: true });
-    expect((await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": ip } })).status).toBe(201);
+    expect((await h.call("POST", "/api/v1/observations", { token: other.token, body: { observations: linked() } })).status).toBe(202);
+    expect((await h.call("DELETE", `/admin/ips/${await ipHashOf(ip)}/ban`)).json).toMatchObject({ unbanned: 1 });
+    expect((await h.call("POST", "/api/v1/observations", { token, body: { observations: linked() } })).status).toBe(202);
   });
 
   test("purge by registration address removes the clients' data, refolds the rest, bans them", async () => {
@@ -51,8 +50,8 @@ describe("IP bans and bulk purge", () => {
     const list = await h.call<{ clients: { id: string }[] }>("GET", `/admin/clients?ipHash=${await ipHashOf(ip)}`);
     expect(list.json.clients.map((c) => c.id).sort()).toEqual([a.clientId, b.clientId].sort());
     expect((await h.call("POST", "/admin/clients/purge", { body: {} })).status).toBe(400);
-    const r = await h.call("POST", "/admin/clients/purge", { body: { ipHash: await ipHashOf(ip), banIp: true, reason: "test" } });
-    expect(r.json).toMatchObject({ clients: 2, deleted: 6, maps: ["1-5"], banned: true, ipBanned: true });
+    const r = await h.call("POST", "/admin/clients/purge", { body: { ipHash: await ipHashOf(ip), reason: "test" } });
+    expect(r.json).toMatchObject({ clients: 2, deleted: 6, maps: ["1-5"], banned: true });
     await drainJobs(h);
     expect(await count("SELECT COALESCE(SUM(count), 0) AS n FROM poi_comp_counts")).toBe(1);
     expect(await count("SELECT COUNT(*) AS n FROM clients WHERE banned_at IS NOT NULL")).toBe(2);
@@ -83,7 +82,8 @@ describe("write statistics", () => {
   test("alerts trip on a registration wave and a growing backlog", async () => {
     expect((await writeStats(h.db, h.clock.t)).alerts).toEqual([]);
     for (let i = 0; i <= ALERTS.newClientAddresses; i++) await h.register(`198.51.100.${100 + i}`);
-    await h.db.prepare("UPDATE kv_state SET value = ?1 WHERE key = 'staged_items'").bind(String(ALERTS.stagedItems + 1)).run();
+    await h.db.prepare(`WITH RECURSIVE k(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM k WHERE i <= ?1)
+      INSERT INTO upload_items (client_id, client_obs_id, received_at, item, bytes) SELECT 'c_x', 'x' || i, '', '{}', 2 FROM k`).bind(ALERTS.stagedItems).run();
     const r = await h.call<{ stats: { newClients: number }; alerts: string[] }>("GET", "/admin/writes/status");
     expect(r.json.stats.newClients).toBe(ALERTS.newClientAddresses + 1);
     expect(r.json.alerts).toHaveLength(2);

@@ -197,6 +197,5 @@ export const purgeRequest = z.object({
   createdFrom: z.int().min(0).optional(),
   createdTo: z.int().min(0).optional(),
   ban: z.boolean().default(true),
-  banIp: z.boolean().default(false),
   reason: z.string().max(200).optional(),
 }).strict().refine((p) => p.clientIds || p.ipHash || p.createdFrom !== undefined || p.createdTo !== undefined, { message: "select clients by clientIds, ipHash or createdFrom/createdTo" });
