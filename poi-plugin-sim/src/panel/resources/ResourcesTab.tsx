@@ -5,8 +5,21 @@ import type { TabItem } from "@web/ui";
 import { formatDateTime, formatShortDateTime } from "@web/ui/format";
 import { getResourceDb, onResourceRecorded } from "../../resources";
 import type { ResourceSnapshot } from "../../resources";
-import { RANGES, RESOURCES, dayDeltas, eventDeltas, rangeStart, snapshotLabel, stepSeries } from "../../resources/view";
-import type { DeltaRow, RangeId } from "../../resources/view";
+import {
+  RANGES,
+  RESOURCES,
+  bucketEnd,
+  bucketStart,
+  dayDeltas,
+  deltaBucket,
+  eventDeltas,
+  periodDeltas,
+  rangeStart,
+  snapshotLabel,
+  stepSeries,
+} from "../../resources/view";
+import type { DeltaRow, PeriodDelta, RangeId } from "../../resources/view";
+import { BarChart } from "./BarChart";
 import { L } from "../strings";
 import { LineChart } from "./LineChart";
 
@@ -14,8 +27,15 @@ import { LineChart } from "./LineChart";
 type View = Extract<PluginView, `resources-${string}`>;
 
 const RANGE_TABS: TabItem<RangeId>[] = RANGES.map((r) => ({ id: r.id, label: r.label }));
+type DeltaMode = "chart" | "table";
+const MODE_TABS: TabItem<DeltaMode>[] = [
+  { id: "chart", label: L.resources.chart },
+  { id: "table", label: L.resources.table },
+];
 /** 増減の表の行数の上限 (イベントごとは 1 週で数千行になりうる) */
 const MAX_ROWS = 500;
+/** 増減のグラフの吹き出しに出す内訳の行数の上限 */
+const MAX_CAUSES = 6;
 
 const num = new Intl.NumberFormat("ja-JP");
 const signed = new Intl.NumberFormat("ja-JP", { signDisplay: "exceptZero" });
@@ -42,6 +62,7 @@ export const ResourcesTab = ({ currentAdmiral, view }: { currentAdmiral: string 
   const [snapshots, setSnapshots] = useState<ResourceSnapshot[]>([]);
   const [range, setRange] = useState<RangeId>("week");
   const [shown, setShown] = useState<boolean[]>(() => RESOURCES.map(() => true));
+  const [mode, setMode] = useState<DeltaMode>("chart");
   const [now, setNow] = useState(Date.now);
   /** 新しい記録が来るたびに増やして読み直す */
   const [version, setVersion] = useState(0);
@@ -95,16 +116,28 @@ export const ResourcesTab = ({ currentAdmiral, view }: { currentAdmiral: string 
     () =>
       (["material", "item"] as const).map((group) => ({
         group,
-        series: RESOURCES.flatMap((r, i) =>
-          r.group === group && shown[i] ? [{ key: r.label, color: r.color, lines: stepSeries(snapshots, i, from, now) }] : []
-        ),
+        series:
+          view !== "resources-chart"
+            ? []
+            : RESOURCES.flatMap((r, i) =>
+                r.group === group && shown[i] ? [{ key: r.label, color: r.color, lines: stepSeries(snapshots, i, from, now) }] : []
+              ),
       })),
-    [snapshots, shown, from, now]
+    [view, snapshots, shown, from, now]
   );
 
   const rows: DeltaRow[] = useMemo(
-    () => (view === "resources-event" ? eventDeltas(snapshots, from, now) : view === "resources-day" ? dayDeltas(snapshots, from, now) : []),
-    [view, snapshots, from, now]
+    () =>
+      mode !== "table" ? [] : view === "resources-event" ? eventDeltas(snapshots, from, now) : view === "resources-day" ? dayDeltas(snapshots, from, now) : [],
+    [mode, view, snapshots, from, now]
+  );
+
+  // 増減のグラフ: 区切りの始まりから描く (期間の始まりで欠けた区切りも丸ごと)
+  const bucket = deltaBucket(view === "resources-event", range);
+  const barFrom = bucketStart(bucket, from);
+  const periods: PeriodDelta[] = useMemo(
+    () => (mode !== "chart" || view === "resources-chart" ? [] : periodDeltas(snapshots, barFrom, now, (t) => bucketStart(bucket, t)).reverse()),
+    [mode, view, snapshots, barFrom, now, bucket]
   );
 
   if (admirals === null || !loaded) return null;
@@ -132,10 +165,62 @@ export const ResourcesTab = ({ currentAdmiral, view }: { currentAdmiral: string 
     );
   };
 
+  const periodLabel = (t: number) => {
+    const date = new Date(t).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
+    return bucket === "day" ? date : `${date} ${new Date(t).getHours()}:00–${new Date(bucketEnd(bucket, t)).getHours()}:00`;
+  };
+  const deltaTooltip = (p: PeriodDelta, group: "material" | "item") => {
+    const cols = columns.filter((c) => c.group === group);
+    const causes = p.by
+      .map((b) => ({ ...b, size: cols.reduce((a, c) => a + Math.abs(b.d[c.i]), 0) }))
+      .filter((b) => b.size > 0)
+      .sort((a, b) => b.size - a.size);
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="text-ink-400">{periodLabel(p.t)}</span>
+        {cols.map((c) => (
+          <span key={c.label} className="flex items-center gap-2 whitespace-nowrap">
+            <span className="h-2 w-2 rounded-full" style={{ background: c.color }} />
+            <span className="flex-1">{c.label}</span>
+            <Delta d={p.d[c.i]} />
+          </span>
+        ))}
+        {causes.length > 0 && (
+          <table className="mt-1 border-t border-ink-700 text-xs tabular-nums">
+            <thead>
+              <tr>
+                <th />
+                {cols.map((c) => (
+                  <th key={c.label} className="pt-1 pl-2 text-right" aria-label={c.label}>
+                    <span className="inline-block h-2 w-2 rounded-full" style={{ background: c.color }} />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {causes.slice(0, MAX_CAUSES).map((b) => (
+                <tr key={b.label}>
+                  <td className="max-w-40 truncate pr-2 text-ink-400">{b.label}</td>
+                  {cols.map((c) => (
+                    <td key={c.label} className="pl-2 text-right whitespace-nowrap">
+                      <Delta d={b.d[c.i]} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {causes.length > MAX_CAUSES && <span className="text-ink-400">{L.resources.moreCauses(causes.length - MAX_CAUSES)}</span>}
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex shrink-0 flex-wrap items-center gap-3">
         <Tabs tabs={RANGE_TABS} value={range} onChange={setRange} variant="pill" size="sm" />
+        {view !== "resources-chart" && <Tabs tabs={MODE_TABS} value={mode} onChange={setMode} variant="pill" size="sm" />}
         {admirals.length > 1 && (
           <Select className="w-44" value={admiral ?? ""} onChange={(e) => setChosen(e.target.value)} aria-label={L.resources.admiral}>
             {admirals.map((a) => (
@@ -177,30 +262,37 @@ export const ResourcesTab = ({ currentAdmiral, view }: { currentAdmiral: string 
         })}
       </div>
 
-      {view === "resources-chart" ? (
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          {charts.map(({ group, series }) => (
-            <section
-              key={group}
-              className={cx("flex min-h-0 flex-col rounded-md border border-ink-800 bg-ink-900", group === "material" ? "flex-[3]" : "flex-[2]")}
-            >
-              <h3 className="shrink-0 px-3 pt-2 text-xs text-ink-400">{group === "material" ? L.resources.materials : L.resources.items}</h3>
-              {series.length ? (
-                <LineChart
-                  series={series}
-                  from={from}
-                  to={now}
-                  tooltip={(t) => tooltip(t, group)}
-                  ariaLabel={group === "material" ? L.resources.materials : L.resources.items}
-                />
-              ) : (
-                <div className="flex flex-1 items-center justify-center text-xs text-ink-500">{L.resources.noneShown}</div>
-              )}
-            </section>
-          ))}
-        </div>
-      ) : rows.length === 0 ? (
+      {view !== "resources-chart" && (mode === "chart" ? periods : rows).length === 0 ? (
         <EmptyState title={L.resources.noChange} className="min-h-0 flex-1" />
+      ) : view === "resources-chart" || mode === "chart" ? (
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          {charts.map(({ group, series }) => {
+            const label = group === "material" ? L.resources.materials : L.resources.items;
+            const cols = columns.filter((c) => c.group === group);
+            return (
+              <section
+                key={group}
+                className={cx("flex min-h-0 flex-col rounded-md border border-ink-800 bg-ink-900", group === "material" ? "flex-[3]" : "flex-[2]")}
+              >
+                <h3 className="shrink-0 px-3 pt-2 text-xs text-ink-400">{label}</h3>
+                {cols.length === 0 ? (
+                  <div className="flex flex-1 items-center justify-center text-xs text-ink-500">{L.resources.noneShown}</div>
+                ) : view === "resources-chart" ? (
+                  <LineChart series={series} from={from} to={now} tooltip={(t) => tooltip(t, group)} ariaLabel={label} />
+                ) : (
+                  <BarChart
+                    colors={cols.map((c) => c.color)}
+                    bars={periods.map((p) => ({ t0: p.t, t1: bucketEnd(bucket, p.t), d: cols.map((c) => p.d[c.i]) }))}
+                    from={barFrom}
+                    to={bucketEnd(bucket, now)}
+                    tooltip={(i) => deltaTooltip(periods[i], group)}
+                    ariaLabel={`${label} ${L.resources.delta}`}
+                  />
+                )}
+              </section>
+            );
+          })}
+        </div>
       ) : (
         <Table className="min-h-0 flex-1 rounded-md border border-ink-800 bg-ink-900">
           <Thead>

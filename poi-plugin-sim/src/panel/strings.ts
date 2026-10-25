@@ -39,6 +39,10 @@ export const L = {
     date: "日付",
     time: "日時",
     event: "内容",
+    chart: "グラフ",
+    table: "表",
+    delta: "増減",
+    moreCauses: (n: number) => `ほか ${n} 件`,
     empty: "資源の記録がありません",
     emptyHint:
       "poi でゲームを開くと、資源 (燃料・弾薬・鋼材・ボーキ・資材) が変わるたびにこのプラグインに記録します。プラグインのウィンドウを開いていなくても記録します。",

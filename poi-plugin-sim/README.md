@@ -56,7 +56,7 @@ wasm もワーカーも含まない。シミュレーションは Web UI で動�
 
 - `bun test`、`bunx tsc --noEmit`
 - `bun run dev`(下記)
-- `bun run screenshots`: 2 つの開発サーバを起動し、`docs/screenshots/{05-log-list,06-log-detail,08-plugin-upload,19-plugin-embedded,20-plugin-resources,21-plugin-resources-delta,22-plugin-quests}.png` を 1024x600 で書き出す。poi の macOS のドラッグ帯とウィンドウボタンは左上に重ねて描く。資源のスクリーンショットは `dev/resourcesSeed.ts` が生成した履歴を、任務のスクリーンショットはローカルのデータ API の任務を使う。API に 4-2 の敵編成がなければ(KCNav を取り込んでいないローカル D1)、マップのデータは静的なバンドルから取る。次のどれかに当たると失敗する。どの機能やビューでもバーと上の行が定位置に留まらない、ウィンドウボタンの下にタブがある、ドラッグ帯の中のタブが `no-drag` でない、プラグインのタブで iframe のビューが切り替わらない、iframe 内の移動が戻ってこない、埋め込んだ Web UI がバーを描く、4-2 の出撃がボスに到達しない、1280x800 / 1200x710 / 1024x600 のいずれかでページ(プラグインのものも iframe のものも)がスクロールする。
+- `bun run screenshots`: 2 つの開発サーバを起動し、`docs/screenshots/{05-log-list,06-log-detail,08-plugin-upload,19-plugin-embedded,20-plugin-resources,21-plugin-resources-delta,22-plugin-quests,26-plugin-resources-delta-chart}.png` を 1024x600 で書き出す。poi の macOS のドラッグ帯とウィンドウボタンは左上に重ねて描く。資源のスクリーンショットは `dev/resourcesSeed.ts` が生成した履歴を、任務のスクリーンショットはローカルのデータ API の任務を使う。API に 4-2 の敵編成がなければ(KCNav を取り込んでいないローカル D1)、マップのデータは静的なバンドルから取る。次のどれかに当たると失敗する。どの機能やビューでもバーと上の行が定位置に留まらない、ウィンドウボタンの下にタブがある、ドラッグ帯の中のタブが `no-drag` でない、プラグインのタブで iframe のビューが切り替わらない、iframe 内の移動が戻ってこない、埋め込んだ Web UI がバーを描く、4-2 の出撃がボスに到達しない、1280x800 / 1200x710 / 1024x600 のいずれかでページ(プラグインのものも iframe のものも)がスクロールする。
 - `bun dev/resources-smoke.ts`: poi と同じように、台本どおりの API 応答の列を `startCapture` に流し、記録内容、再起動、間引きの結果を出力する。
 
 ## 構成
@@ -67,7 +67,7 @@ wasm もワーカーも含まない。シミュレーションは Web UI で動�
 | `src/panel/PluginPanel.tsx` | プラグインのビュー: クローム(`@web/ui` の `AppChrome`)、iframe、プラグイン自身のビュー |
 | `src/panel/WebFrame.tsx`、`src/panel/bridge.ts` | iframe と、埋め込みプロトコルのプラグイン側 |
 | `src/panel/log/`、`src/panel/UploadSettings.tsx` | 観測ログと送信設定(UI の部品は `@web/*` = `../web/src` から) |
-| `src/panel/resources/` | 資源ビュー: 折れ線グラフ(自前の SVG。グラフのライブラリは使わない)と 増減 のテーブル |
+| `src/panel/resources/` | 資源ビュー: 折れ線グラフと増減の棒グラフ(自前の SVG。グラフのライブラリは使わない)と 増減 のテーブル |
 | `src/settings.ts` | プラグインの設定(`kcsim:plugin`: サーバ URL、自動送信、アップロードの通知)と、旧プラグイン内 UI からの 1 回限りのアップグレード |
 | `src/capture/` | パケットの捕捉、IndexedDB、アップロードクライアント、自動送信 |
 | `src/resources/` | 資源の履歴: 記録、間引き(`history.ts`)、IndexedDB(`store.ts`)、ビューの計算(`view.ts`) |
@@ -125,7 +125,7 @@ cd "$HOME/Library/Application Support/poi/plugins" && npm uninstall poi-plugin-s
 - **タイミング**: `startCapture` は資源も監視する。poi は `game.response` を発火する前に redux ストアを更新する(`views/env-parts/data-resolver`)ので、プラグインは応答のたびに `info.resources` と `info.basic.api_member_id` を読む。`info.resources` の並びは poi の順序で、燃料、弾薬、鋼材、ボーキ、高速建造材、高速修復材、開発資材、改修資材である。対象は poi が追跡する API すべてで、`api_port/port`、`api_get_member/material`、`api_req_hokyu/charge`、`api_req_kousyou/*`(開発、建造、解体、廃棄、改修、高速建造)、`api_req_nyukyo/start` / `speedchange`、`api_req_air_corps/supply` / `set_plane` を含む。
 - **内容**:スナップショット `{admiral, t, v[8], event, via?}` は、その提督の直前のスナップショットと値が異なるときだけ記録する。再起動をまたいでも同じで、直前のものは IndexedDB から読み戻す。`event` は変化を起こした API のパスである。ゲーム内では資源が動くのに、poi のストアには次の同期まで反映されない API もある(遠征 `api_req_mission/result`、任務 `api_req_quest/clearitemget`、`api_itemget` を伴う資源マス `api_req_map/start|next`、改造、アイテム使用)。これらは次のスナップショットの `via` に並べ(たとえば「母港 (遠征・任務)」)、全体の同期(母港 / 資材)で値が変わっていなければ捨てる。
 - **保存**: IndexedDB `kcsim-resources` に保存する。観測ログとは別なので、観測ログを消してもこちらは残る。スナップショット 1 件を 1 行とし、`[admiral, t]` を索引にする。履歴は提督 ID ごとに 1 つある。間引きはセッションの最初のスナップショットのあとと、1 日ごとに行う。直近 7 日間は全件を残し(イベントごとの 増減 に使う)、90 日までは 1 時間ごと、それより古いものは現地時間の 1 日ごとに最後のスナップショットを残す。残したスナップショットは、吸収した件数(`merged`)を持つ。よく遊ぶプレイヤーでも、数千行に 1 年あたり 365 行を足した程度に収まる。
-- **ビュー**:推移(階段状の線。燃料、弾薬、鋼材、ボーキと資材は目盛りを分ける)、増減 (イベント)、増減 (日別) がある。期間は 1日 / 1週 / 1月 / 全期間から選び、資源ごとのトグルには現在値と期間内の変化を表示する。履歴が複数あるときは提督を選べる。スクロールするのは 増減 のテーブルだけで、ページはスクロールしない。履歴がないとき(poi の外、または最初の母港の前)は「資源の記録がありません」と表示する。
+- **ビュー**:推移(階段状の線。燃料、弾薬、鋼材、ボーキと資材は目盛りを分ける)、増減 (イベント)、増減 (日別) がある。増減はグラフと表を切り替えられる。グラフは区切りごとの増減の棒で、資源を符号ごとに積む(増えた分は 0 の線の上、減った分は下)。区切りは 増減 (日別) では日、増減 (イベント) では 1日 / 1週 なら時間(1 週で 168 本)、それより長い期間では日(時間ごとでは細かすぎる)。棒にポインタを当てると、資源ごとの増減と、その区切りの記録の増減を原因(母港 (遠征)、補給 など)ごとに足した内訳を表示する。表はイベントごと、または日ごとの行。期間は 1日 / 1週 / 1月 / 全期間から選び、資源ごとのトグルには現在値と期間内の変化を表示する。履歴が複数あるときは提督を選べる。スクロールするのは 増減 のテーブルだけで、ページはスクロールしない。履歴がないとき(poi の外、または最初の母港の前)は「資源の記録がありません」と表示する。
 
 ## 任務の進捗(任務カウンタ)
 

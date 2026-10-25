@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { DAY, HOUR, ResourceRecorder, affectsLater, normalizeValues, thinSnapshots } from "./history";
 import type { ResourceSnapshot, ResourceStore, ThinTier } from "./history";
-import { dayDeltas, eventDeltas, snapshotLabel, stepSeries } from "./view";
+import { bucketEnd, bucketStart, dayDeltas, deltaBucket, eventDeltas, periodDeltas, snapshotLabel, stepSeries } from "./view";
 
 /** 保存先のメモリ実装 (IndexedDB と同じく id を振り、時刻順に返す) */
 class MemoryStore implements ResourceStore {
@@ -251,6 +251,39 @@ describe("view: deltas and series", () => {
       [10, -10, 90],
     ]);
     expect(dayDeltas(rows, 11 * DAY, 12 * DAY - 1, utcDay).map((r) => r.t / DAY)).toEqual([11]);
+  });
+
+  test("periodDeltas: per-bucket change with the records' changes summed by cause", () => {
+    const utcHour = (t: number) => t - (t % HOUR);
+    const got = periodDeltas(rows, 0, 20 * DAY, utcHour);
+    expect(got.map((r) => [(r.t - 10 * DAY) / HOUR, r.d[0], r.by.map((b) => [b.label, b.d[0]])])).toEqual([
+      [72, 120, [["母港", 120]]],
+      [27, -20, [["開発", -20]]],
+      [25, 310, [["母港 (遠征)", 310]]],
+      [2, -10, [["補給", -10]]],
+      // 最初の記録は前が無いので内訳に出ない
+      [1, 0, []],
+    ]);
+    // 同じ原因は足す
+    const day = dayDeltas([snap(0, 10), snap(HOUR, 30), snap(2 * HOUR, 25, { event: "api_req_hokyu/charge" }), snap(3 * HOUR, 45)], 0, DAY, utcDay);
+    expect(day[0].by.map((b) => [b.label, b.d[0]])).toEqual([
+      ["母港", 40],
+      ["補給", -5],
+    ]);
+    expect(day[0].d[0]).toBe(35);
+  });
+
+  test("buckets: hours for the per-event chart up to a week, days otherwise", () => {
+    expect([deltaBucket(true, "day"), deltaBucket(true, "week"), deltaBucket(true, "month"), deltaBucket(false, "day")]).toEqual([
+      "hour",
+      "hour",
+      "day",
+      "day",
+    ]);
+    const t = new Date(2026, 9, 24, 15, 42).getTime();
+    expect(bucketStart("hour", t)).toBe(new Date(2026, 9, 24, 15).getTime());
+    expect(bucketEnd("hour", bucketStart("hour", t))).toBe(new Date(2026, 9, 24, 16).getTime());
+    expect(bucketEnd("day", t)).toBe(new Date(2026, 9, 25).getTime());
   });
 
   test("stepSeries: holds each value until the next record, from the value before the range to the end", () => {

@@ -21,11 +21,13 @@
 
 ### 資源 (プラグインのみ)
 
-- 燃料、弾薬、鋼材、ボーキと資材の推移をグラフで表示します。増減はイベントごと、日ごとの表でも確認できます。
+- 燃料、弾薬、鋼材、ボーキと資材の推移をグラフで表示します。増減はイベントごと、日ごとのグラフと表でも確認できます。
 
 ![任務の前提ツリー](docs/screenshots/25-quest-tree.png)
 
 ![資源の推移](docs/screenshots/20-plugin-resources.png)
+
+![資源の日ごとの増減](docs/screenshots/26-plugin-resources-delta-chart.png)
 
 ## 使い方
 

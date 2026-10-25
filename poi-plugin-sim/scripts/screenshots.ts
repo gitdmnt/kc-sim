@@ -318,14 +318,19 @@ try {
   await tab("資源");
   await page.getByRole("img", { name: "燃料・弾薬・鋼材・ボーキ" }).waitFor();
   await atEverySize("資源", false, async () => {
-    for (const view of ["増減 (日別)", "増減 (イベント)", "推移"]) {
+    for (const view of ["増減 (日別)", "増減 (イベント)"]) {
       await tab(view);
-      await assertNoPageScroll(`資源 ${view}`);
+      for (const mode of ["表", "グラフ"]) {
+        await tab(mode);
+        await assertNoPageScroll(`資源 ${view} ${mode}`);
+      }
     }
+    await tab("推移");
+    await assertNoPageScroll("資源 推移");
   });
   await page.setViewportSize(DOC);
   await page.waitForTimeout(200);
-  // 推移 (1 月) にポインタを当てた状態と、イベントごとの増減を撮る
+  // 推移 (1 月) にポインタを当てた状態と、イベントごとの増減 (表) と、日ごとの増減のグラフにポインタを当てた状態を撮る
   await tab("1月");
   const chart = (await page.getByRole("img", { name: "燃料・弾薬・鋼材・ボーキ" }).boundingBox())!;
   await page.mouse.move(chart.x + chart.width * 0.7, chart.y + chart.height * 0.5);
@@ -333,8 +338,16 @@ try {
   await shot("20-plugin-resources");
   await tab("1週");
   await tab("増減 (イベント)");
+  await tab("表");
   await page.waitForTimeout(200);
   await shot("21-plugin-resources-delta");
+  await tab("グラフ");
+  await tab("増減 (日別)");
+  await tab("1月");
+  const bars = (await page.getByRole("img", { name: "燃料・弾薬・鋼材・ボーキ 増減" }).boundingBox())!;
+  await page.mouse.move(bars.x + bars.width * 0.75, bars.y + bars.height * 0.5);
+  await page.waitForTimeout(200);
+  await shot("26-plugin-resources-delta-chart");
 
   // 全体の設定 (バーの下端の歯車): Web UI の設定画面
   await tab("設定");

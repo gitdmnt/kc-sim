@@ -92,32 +92,81 @@ export const eventDeltas = (snapshots: ResourceSnapshot[], from: number, to: num
   return rows.reverse();
 };
 
+/** 期間の増減に、その中の記録ごとの増減を原因 (snapshotLabel) ごとに足した内訳を付けたもの */
+export interface PeriodDelta extends DeltaRow {
+  /** 現れた順。値の無い資源は 0 */
+  by: { label: string; d: number[] }[];
+}
+
 /**
- * [from, to] の日ごとの増減 (新しい順): その日の最後の値 − 前日までの最後の値。記録の無い日 (変化なし) は出さない。
- * 最初の日は前日までの値が無いので、その日の最初の記録からの増減。
+ * [from, to] の区切り (startOf が返す区切りの始まりごと) の増減 (新しい順): 区切りの最後の値 − 前の区切りまでの最後の値。
+ * 記録の無い区切り (変化なし) は出さない。最初の区切りは前の値が無いので、その区切りの最初の記録からの増減。
  */
-export const dayDeltas = (
+export const periodDeltas = (
   snapshots: ResourceSnapshot[],
   from: number,
   to: number,
-  startOfDay: (t: number) => number = localStartOfDay
-): DeltaRow[] => {
-  const rows: DeltaRow[] = [];
+  startOf: (t: number) => number
+): PeriodDelta[] => {
+  const rows: PeriodDelta[] = [];
   let base: ResourceValues | null = null;
   for (let i = 0; i < snapshots.length; i++) {
-    const day = startOfDay(snapshots[i].t);
+    const start = startOf(snapshots[i].t);
     let j = i;
-    while (j + 1 < snapshots.length && startOfDay(snapshots[j + 1].t) === day) j++;
+    while (j + 1 < snapshots.length && startOf(snapshots[j + 1].t) === start) j++;
     const end = snapshots[j].v;
-    const start = base ?? snapshots[i].v;
     if (snapshots[j].t >= from && snapshots[i].t <= to) {
-      rows.push({ t: day, label: "", d: diff(end, start), v: end });
+      const by = new Map<string, number[]>();
+      for (let k = Math.max(i, 1); k <= j; k++) {
+        const label = snapshotLabel(snapshots[k]);
+        const sum = by.get(label) ?? snapshots[k].v.map(() => 0);
+        diff(snapshots[k].v, snapshots[k - 1].v).forEach((n, r) => (sum[r] += n ?? 0));
+        by.set(label, sum);
+      }
+      rows.push({
+        t: start,
+        label: "",
+        d: diff(end, base ?? snapshots[i].v),
+        v: end,
+        by: [...by].map(([label, d]) => ({ label, d })),
+      });
     }
     base = end;
     i = j;
   }
   return rows.reverse();
 };
+
+/** その時刻を含むローカル時刻の時の始まり */
+export const localStartOfHour = (t: number): number => {
+  const d = new Date(t);
+  d.setMinutes(0, 0, 0);
+  return d.getTime();
+};
+
+/** 増減のグラフの棒の幅 */
+export type BucketId = "hour" | "day";
+
+export const bucketStart = (bucket: BucketId, t: number): number => (bucket === "hour" ? localStartOfHour(t) : localStartOfDay(t));
+
+/** 次の区切りの始まり (日は夏時間で 23・25 時間になりうる) */
+export const bucketEnd = (bucket: BucketId, t: number): number =>
+  bucket === "hour" ? localStartOfHour(t + HOUR) : localStartOfDay(localStartOfDay(t) + DAY + 2 * HOUR);
+
+/**
+ * 増減のグラフの棒の幅。日別は日ごと。イベントごとは 1日・1週なら時間ごと (1 週で 168 本)、
+ * それより長い期間は時間ごとでは細かすぎるので日ごと。
+ */
+export const deltaBucket = (perEvent: boolean, range: RangeId): BucketId =>
+  perEvent && (range === "day" || range === "week") ? "hour" : "day";
+
+/** [from, to] の日ごとの増減 (新しい順)。periodDeltas の日の区切り */
+export const dayDeltas = (
+  snapshots: ResourceSnapshot[],
+  from: number,
+  to: number,
+  startOfDay: (t: number) => number = localStartOfDay
+): PeriodDelta[] => periodDeltas(snapshots, from, to, startOfDay);
 
 /**
  * 1 資源の階段状の点列 [t, 値] (値は次の記録まで続く)。期間の前の最後の記録の値から始め、to まで伸ばす。
