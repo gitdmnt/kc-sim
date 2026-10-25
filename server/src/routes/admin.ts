@@ -18,6 +18,7 @@ import { reparseCached, tick } from "../kcnav/tick";
 import { aggregatePending, deleteClientObservations, resetStatements } from "../observed/aggregate";
 import { countRules, validateRoutingDoc } from "../routing/validate";
 import { banRequest, enqueueRequest, estimateRunRequest } from "../schemas";
+import { flagOn } from "./write";
 
 export interface AdminDeps extends JobDeps {
   /** Access JWKS fetch and clock (tests inject them) */
@@ -40,14 +41,14 @@ export function adminRoutes(deps: AdminDeps) {
   app.post("/jobs/run", async (c) => {
     const budgetMs = budgetParam(c.req.query("budgetMs"), RUN_MS);
     if (budgetMs === null) return c.json({ error: "budgetMs must be a number in (0, 60000]" }, 400);
-    return c.json(await runJobs(c.env.DB, deps, { budgetMs }));
+    return c.json(await runJobs(c.env.DB, deps, { budgetMs, ingest: !flagOn(c.env.INGEST_PAUSED) }));
   });
 
   // The same run without the estimator: staged uploads and aggregation only.
   app.post("/ingest/run", async (c) => {
     const budgetMs = budgetParam(c.req.query("budgetMs"), RUN_MS);
     if (budgetMs === null) return c.json({ error: "budgetMs must be a number in (0, 60000]" }, 400);
-    return c.json(await runJobs(c.env.DB, deps, { budgetMs, estimator: false }));
+    return c.json(await runJobs(c.env.DB, deps, { budgetMs, estimator: false, ingest: !flagOn(c.env.INGEST_PAUSED) }));
   });
 
   // Server estimator (private notes ESTIMATOR "Server job"). Body (all optional): {rebuild, shipIds, budgetMs}.

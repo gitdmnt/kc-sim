@@ -29,6 +29,8 @@ env:
   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
   D1_REMOTE: "1"
+  # Repository variable: "1" leaves staged uploads staged (scripts/run-jobs.ts run; incident kill switch).
+  INGEST_PAUSED: ${{ vars.INGEST_PAUSED }}
 
 jobs:
   jobs:

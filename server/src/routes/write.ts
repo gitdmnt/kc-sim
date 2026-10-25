@@ -4,7 +4,10 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { claimPostSlot, issueClient, limitWritesPerIp, requestIpHash, requireClient, type ClientVars } from "../auth/clients";
-import { MAX_BODY_BYTES, MAX_OBSERVATIONS_PER_REQUEST, stageUpload } from "../ingest/upload";
+import { checkQuota, MAX_BODY_BYTES, MAX_OBSERVATIONS_PER_REQUEST, stageUpload } from "../ingest/upload";
+
+/** Env flags are strings; "1" and "true" turn them on. */
+export const flagOn = (v: string | undefined) => v === "1" || v === "true";
 
 export interface WriteDeps { now: () => number }
 
@@ -36,6 +39,11 @@ async function readCapped(req: Request, max: number): Promise<string | null> {
 
 export function writeRoutes(deps: WriteDeps) {
   const write = new Hono<{ Bindings: Env; Variables: ClientVars }>();
+  write.use("*", async (c, next) => {
+    if (!flagOn(c.env.WRITES_DISABLED)) return next();
+    c.header("Retry-After", "3600");
+    return c.json({ error: "writes are disabled for maintenance", retryAfter: 3600 }, 503);
+  });
   write.use("*", limitWritesPerIp);
 
   write.post("/clients", async (c) => {
@@ -56,6 +64,11 @@ export function writeRoutes(deps: WriteDeps) {
     if (wait > 0) {
       c.header("Retry-After", String(wait));
       return c.json({ error: "one upload per 60 s per client", retryAfter: wait }, 429);
+    }
+    const quota = await checkQuota(c.env.DB, clientId, now);
+    if (!quota.ok) {
+      c.header("Retry-After", String(quota.retryAfter));
+      return c.json({ error: quota.error, retryAfter: quota.retryAfter }, quota.status);
     }
     const text = await readCapped(c.req.raw, MAX_BODY_BYTES);
     if (text === null) return c.json({ error: "body too large", maxBytes: MAX_BODY_BYTES }, 413);

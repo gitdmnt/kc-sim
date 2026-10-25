@@ -18,6 +18,45 @@ export const MAX_OBSERVATIONS_PER_REQUEST = 100;
 /** Bound JSON parameters stay below D1's 2 MB value limit. */
 const MAX_PARAM_BYTES = 900_000;
 
+/**
+ * Write quotas. A client may stage CLIENT_DAY_ITEMS items / CLIENT_DAY_BYTES bytes per rolling 24 h window (a heavy
+ * player uploads a few hundred battles a day, ~8 KB each); the whole backlog is capped at STAGED_MAX_ITEMS /
+ * STAGED_MAX_BYTES (several days of ingest), beyond which uploads get 503 until the jobs catch up.
+ */
+export const QUOTA_WINDOW_MS = 24 * 60 * 60_000;
+export const CLIENT_DAY_ITEMS = 3000;
+export const CLIENT_DAY_BYTES = 32 * 1024 * 1024;
+export const STAGED_MAX_ITEMS = 20_000;
+export const STAGED_MAX_BYTES = 256 * 1024 * 1024;
+
+export type QuotaVerdict = { ok: true } | { ok: false; status: 429 | 503; retryAfter: number; error: string };
+
+/** Whether `clientId` may stage another upload now (its 24 h quota, the global backlog cap). */
+export async function checkQuota(db: D1Database, clientId: string, now: number): Promise<QuotaVerdict> {
+  const r = await db.prepare(
+    `SELECT quota_start, quota_items, quota_bytes,
+       (SELECT CAST(value AS INTEGER) FROM kv_state WHERE key = 'staged_items') AS si,
+       (SELECT CAST(value AS INTEGER) FROM kv_state WHERE key = 'staged_bytes') AS sb
+     FROM clients WHERE id = ?1`,
+  ).bind(clientId).first<{ quota_start: number; quota_items: number; quota_bytes: number; si: number | null; sb: number | null }>();
+  if (!r) return { ok: true };
+  if ((r.si ?? 0) >= STAGED_MAX_ITEMS || (r.sb ?? 0) >= STAGED_MAX_BYTES) {
+    return { ok: false, status: 503, retryAfter: 3600, error: "upload backlog is full; try again later" };
+  }
+  const fresh = r.quota_start <= now - QUOTA_WINDOW_MS;
+  if (!fresh && (r.quota_items >= CLIENT_DAY_ITEMS || r.quota_bytes >= CLIENT_DAY_BYTES)) {
+    const retryAfter = Math.max(1, Math.ceil((r.quota_start + QUOTA_WINDOW_MS - now) / 1000));
+    return { ok: false, status: 429, retryAfter, error: `daily upload quota reached (${CLIENT_DAY_ITEMS} observations / ${CLIENT_DAY_BYTES >> 20} MiB per 24 h)` };
+  }
+  return { ok: true };
+}
+
+/** Exact staged backlog counters (after ingest and purges; staging only adds to them). */
+export const recountStaged = (db: D1Database): D1PreparedStatement[] => [
+  db.prepare("UPDATE kv_state SET value = (SELECT COUNT(*) FROM upload_items) WHERE key = 'staged_items'"),
+  db.prepare("UPDATE kv_state SET value = (SELECT COALESCE(SUM(bytes), 0) FROM upload_items) WHERE key = 'staged_bytes'"),
+];
+
 /** JSON arrays of `rows`, each at most MAX_PARAM_BYTES serialized. */
 function chunkJson(rows: unknown[]): string[] {
   const out: string[] = [];
@@ -53,18 +92,29 @@ const STAGE_ITEMS = `INSERT INTO upload_items (client_id, client_obs_id, receive
     AND NOT EXISTS (SELECT 1 FROM observations o WHERE o.client_id = ?1 AND o.client_obs_id = ${ITEM_ID})
   ON CONFLICT (client_id, client_obs_id) DO NOTHING`;
 
+const MINE = "FROM upload_items WHERE client_id = ?1 AND received_at = ?2";
+
 /**
  * Stages one upload in one D1 call: the body is bound once, SQLite validates it as JSON, counts the items and
  * stores each as an upload_items row. Items already stored or already staged for this client are duplicates.
  */
 export async function stageUpload(db: D1Database, clientId: string, body: string, now: number): Promise<StageResult> {
+  const at = new Date(now).toISOString();
   const [, staged, envelope, , pending] = await db.batch<{ valid?: number; n?: number | null }>([
     db.prepare("INSERT INTO upload_bodies (body) VALUES (?1)").bind(body),
-    db.prepare(STAGE_ITEMS).bind(clientId, new Date(now).toISOString(), MAX_OBSERVATIONS_PER_REQUEST),
+    db.prepare(STAGE_ITEMS).bind(clientId, at, MAX_OBSERVATIONS_PER_REQUEST),
     db.prepare(`SELECT json_valid(body) AS valid, CASE WHEN json_valid(body) AND json_type(body, '$.observations') = 'array'
       THEN json_array_length(body, '$.observations') END AS n FROM upload_bodies WHERE id = (SELECT MAX(id) FROM upload_bodies)`),
     db.prepare("DELETE FROM upload_bodies"),
     db.prepare(`SELECT COUNT(*) AS n FROM (SELECT 1 FROM upload_items LIMIT ${BACKLOG_COUNT_CAP})`),
+    // this request's items count against the client's 24 h quota and the global backlog counters
+    db.prepare(`UPDATE clients SET
+        quota_items = CASE WHEN quota_start <= ?3 - ?4 THEN 0 ELSE quota_items END + (SELECT COUNT(*) ${MINE}),
+        quota_bytes = CASE WHEN quota_start <= ?3 - ?4 THEN 0 ELSE quota_bytes END + (SELECT COALESCE(SUM(bytes), 0) ${MINE}),
+        quota_start = CASE WHEN quota_start <= ?3 - ?4 THEN ?3 ELSE quota_start END
+      WHERE id = ?1`).bind(clientId, at, now, QUOTA_WINDOW_MS),
+    db.prepare(`UPDATE kv_state SET value = CAST(value AS INTEGER) + (SELECT COUNT(*) ${MINE}) WHERE key = 'staged_items'`).bind(clientId, at),
+    db.prepare(`UPDATE kv_state SET value = CAST(value AS INTEGER) + (SELECT COALESCE(SUM(bytes), 0) ${MINE}) WHERE key = 'staged_bytes'`).bind(clientId, at),
   ]);
   const env = envelope?.results[0];
   if (!env?.valid) return { ok: false, error: "not_json", observations: null };
@@ -232,5 +282,9 @@ export async function ingestPending(db: D1Database, budget: Budget, now: number)
   }
   out.remaining = (await db.prepare(`SELECT COUNT(*) AS n FROM (SELECT 1 FROM upload_items LIMIT ${BACKLOG_COUNT_CAP})`).first<{ n: number }>())?.n ?? 0;
   budget.charge(COST.d1Call, 1);
+  if (out.ingested + out.duplicates + out.rejected > 0) {
+    await db.batch(recountStaged(db));
+    budget.charge(COST.d1Call, 1);
+  }
   return out;
 }

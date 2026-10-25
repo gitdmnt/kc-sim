@@ -9,6 +9,7 @@
 import * as z from "zod";
 import { BACKLOG_COUNT_CAP, COST, type Budget } from "../budget";
 import { bumpDataVersion, PUBLISH_EVERY_MS } from "../cache";
+import { recountStaged } from "../ingest/upload";
 import type { SortieRecord } from "../schemas";
 
 export const OBSERVED_SOURCE = "poi-observed";
@@ -279,6 +280,7 @@ export async function deleteClientObservations(db: D1Database, clientId: string)
     db.prepare("DELETE FROM upload_items WHERE client_id = ?1").bind(clientId),
     db.prepare("DELETE FROM observations WHERE client_id = ?1").bind(clientId),
     ...(maps.length ? resetStatements(db, maps) : []),
+    ...recountStaged(db),
   ]);
   return { deleted: res[1]?.meta.changes ?? 0, maps };
 }

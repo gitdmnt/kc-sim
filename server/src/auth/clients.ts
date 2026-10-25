@@ -21,10 +21,25 @@ export async function hashIp(ip: string, salt: string): Promise<string> {
   return hex(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(ip)));
 }
 
-/** Salted hash of the client IP (CF-Connecting-IP); null when IP_HASH_SALT is missing (callers fail closed). */
+/**
+ * The address the per-IP limits key on: IPv4 as is, IPv6 by its /64 (one subscriber or VPS usually gets a whole
+ * /64, so per-address keys would not limit anything). IPv4-mapped IPv6 counts as the IPv4 address.
+ */
+export function ipKey(ip: string): string {
+  const v4 = /^(?:::ffff:)?(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
+  if (v4) return v4[1]!;
+  if (!ip.includes(":")) return ip;
+  const [head = "", tail = ""] = ip.toLowerCase().split("%")[0]!.split("::");
+  const h = head ? head.split(":") : [];
+  const t = ip.includes("::") ? (tail ? tail.split(":") : []) : [];
+  const groups = ip.includes("::") ? [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t] : h;
+  return `${groups.slice(0, 4).map((g) => (parseInt(g, 16) || 0).toString(16)).join(":")}::/64`;
+}
+
+/** Salted hash of the client IP (CF-Connecting-IP, IPv6 by /64); null when IP_HASH_SALT is missing (callers fail closed). */
 export async function requestIpHash(env: Env, ip: string | undefined): Promise<string | null> {
   if (!env.IP_HASH_SALT) return null;
-  return hashIp(ip ?? "unknown", env.IP_HASH_SALT);
+  return hashIp(ipKey(ip ?? "unknown"), env.IP_HASH_SALT);
 }
 
 export type IssueResult = { ok: true; clientId: string; token: string } | { ok: false; retryAfter: number };

@@ -12,4 +12,8 @@ export interface Env {
   IP_HASH_SALT?: string;
   /** Workers Rate Limiting binding: per-IP limit on write requests (wrangler.toml [[ratelimits]]). */
   WRITE_LIMITER: RateLimit;
+  /** "1"/"true": kill switch, every write (registration, upload) answers 503. */
+  WRITES_DISABLED?: string;
+  /** "1"/"true": jobs runs leave staged uploads staged (POST /admin/jobs/run, /admin/ingest/run). */
+  INGEST_PAUSED?: string;
 }

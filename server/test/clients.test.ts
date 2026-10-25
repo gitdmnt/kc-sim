@@ -1,7 +1,8 @@
 // Per-install tokens, per-IP issuance limits, bearer auth, ban, the 1-per-60-s upload gate (injected clock),
 // the per-IP write limiter, body caps and CORS (src/auth/clients.ts, src/routes/write.ts).
 import { beforeEach, describe, expect, test } from "bun:test";
-import { hashIp, sha256Hex } from "../src/auth/clients";
+import { hashIp, ipKey, sha256Hex } from "../src/auth/clients";
+import { CLIENT_DAY_ITEMS, QUOTA_WINDOW_MS, STAGED_MAX_ITEMS } from "../src/ingest/upload";
 import { battleResponse, drainJobs, fleet, harness, LAYOUT_15, seedBasic, uploadAndProcess, type Harness } from "./helpers";
 
 let h: Harness;
@@ -153,5 +154,59 @@ describe("caps and per-IP write limit", () => {
     const limited = await upload(token, [obs()]);
     expect(limited.headers.get("Access-Control-Allow-Origin")).toBe("*");
     expect(limited.headers.get("Access-Control-Expose-Headers")).toContain("Retry-After");
+  });
+});
+
+describe("IPv6 keys, quotas, backlog cap, kill switch", () => {
+  test("IPv6 addresses of one /64 share a key; IPv4-mapped IPv6 is the IPv4 address", async () => {
+    expect(ipKey("2001:db8:1:2:aaaa::1")).toBe("2001:db8:1:2::/64");
+    expect(ipKey("2001:0db8:0001:0002:ffff:1:2:3")).toBe("2001:db8:1:2::/64");
+    expect(ipKey("2001:db8::5")).toBe("2001:db8:0:0::/64");
+    expect(ipKey("::ffff:192.0.2.1")).toBe("192.0.2.1");
+    expect(ipKey("192.0.2.1")).toBe("192.0.2.1");
+    for (let i = 0; i < 3; i++) await h.register(`2001:db8:1:2::${i + 1}`);
+    expect((await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": "2001:db8:1:2:ffff::9" } })).status).toBe(429);
+    expect((await h.call("POST", "/api/v1/clients", { headers: { "CF-Connecting-IP": "2001:db8:1:3::1" } })).status).toBe(201);
+  });
+
+  test("a client's 24 h item quota → 429 until its window passes; staged counters follow staging and ingest", async () => {
+    const { clientId, token } = await h.register();
+    expect((await upload(token, [obs(), obs()])).status).toBe(202);
+    expect(await h.db.prepare("SELECT value FROM kv_state WHERE key = 'staged_items'").first()).toEqual({ value: "2" });
+    await h.db.prepare("UPDATE clients SET quota_items = ?2 WHERE id = ?1").bind(clientId, CLIENT_DAY_ITEMS).run();
+    h.clock.t += 61_000;
+    const over = await upload(token, [obs()]);
+    expect(over.status).toBe(429);
+    expect(Number(over.headers.get("Retry-After"))).toBe(24 * 3600 - 61);
+    await drainJobs(h);
+    expect(await h.db.prepare("SELECT value FROM kv_state WHERE key = 'staged_items'").first()).toEqual({ value: "0" });
+    h.clock.t += QUOTA_WINDOW_MS;
+    expect((await upload(token, [obs()])).status).toBe(202);
+    expect(await h.db.prepare("SELECT quota_items FROM clients WHERE id = ?1").bind(clientId).first()).toEqual({ quota_items: 1 });
+  });
+
+  test("a full backlog → 503 with Retry-After for everyone", async () => {
+    const { token } = await h.register();
+    await h.db.prepare("UPDATE kv_state SET value = ?1 WHERE key = 'staged_items'").bind(String(STAGED_MAX_ITEMS)).run();
+    const r = await upload(token, [obs()]);
+    expect(r.status).toBe(503);
+    expect(r.headers.get("Retry-After")).toBe("3600");
+  });
+
+  test("WRITES_DISABLED: registration and uploads answer 503, reads still work", async () => {
+    const off = harness({ env: { WRITES_DISABLED: "1" } });
+    const r = await off.call("POST", "/api/v1/clients");
+    expect(r.status).toBe(503);
+    expect(r.headers.get("Retry-After")).toBe("3600");
+    expect((await off.call("GET", "/api/v1/health")).status).toBe(200);
+  });
+
+  test("INGEST_PAUSED: jobs runs leave staged uploads staged", async () => {
+    const paused = harness({ env: { INGEST_PAUSED: "1" } });
+    await seedBasic(paused.db);
+    const { token } = await paused.register();
+    expect((await paused.call("POST", "/api/v1/observations", { token, body: { observations: [obs()] } })).status).toBe(202);
+    await paused.call("POST", "/admin/ingest/run");
+    expect(await paused.db.prepare("SELECT COUNT(*) AS n FROM upload_items").first()).toEqual({ n: 1 });
   });
 });

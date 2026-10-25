@@ -1,6 +1,6 @@
 // Background jobs outside the worker (private deployment notes §5). GitHub Actions (.github/workflows/jobs.yml) runs this
 // against production D1 (D1_REMOTE=1: D1 HTTP API); without D1_REMOTE it works on the local wrangler D1 file.
-//   bun scripts/run-jobs.ts run [--minutes 25] [--no-estimator]
+//   bun scripts/run-jobs.ts run [--minutes 25] [--no-estimator]   (INGEST_PAUSED=1: leave staged uploads staged)
 //       jobs runs (staged uploads → observations, aggregation, estimator; src/jobs.ts) until every queue is empty,
 //       a run makes no progress, or the time is up
 //   bun scripts/run-jobs.ts kcnav [--minutes 25] [--only battles | --skip battles] [--max N]
@@ -20,6 +20,7 @@ import { enqueueRequest } from "../src/schemas";
 import { openD1, productionConfig } from "./lib/d1-database";
 import { bunGrid } from "./lib/sim-core";
 import { appendSummary } from "./lib/summary";
+import { flagOn } from "../src/routes/write";
 
 const { positionals, values } = parseArgs({
   args: Bun.argv.slice(2),
@@ -38,7 +39,7 @@ switch (positionals[0]) {
     const deadline = Date.now() + Number(values.minutes ?? 25) * 60_000;
     const runs: JobsResult[] = [];
     while (Date.now() < deadline) {
-      const r = await runJobs(db, { gridFn: bunGrid, now: () => Date.now() }, { estimator: !values["no-estimator"] });
+      const r = await runJobs(db, { gridFn: bunGrid, now: () => Date.now() }, { estimator: !values["no-estimator"], ingest: !flagOn(process.env.INGEST_PAUSED) });
       console.log(stamp(), JSON.stringify(r));
       runs.push(r);
       // Another run holds the lease, nothing is queued, or the run ended before its caps: nothing more to do now.

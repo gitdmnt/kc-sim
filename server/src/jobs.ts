@@ -59,19 +59,19 @@ type Stages = Pick<JobsResult, "ingest" | "aggregation" | "estimator">;
  * re-materialisation (rare, possibly most of a pass: first with the whole budget, then with what is left so that
  * a burst that was just folded in shows up at once).
  */
-async function storeStages(db: D1Database, budget: Budget, now: number, ingestShare: number) {
+async function storeStages(db: D1Database, budget: Budget, now: number, ingestShare: number, ingest: boolean) {
   const iso = () => new Date(now).toISOString();
   const maps = await materializeDirty(db, budget, iso);
   const total = budget.left;
-  const ib = budget.slice(ingestShare * total);
-  const ingest = await ingestPending(db, ib, now);
+  const ib = budget.slice(ingest ? ingestShare * total : 0);
+  const ingested = ingest ? await ingestPending(db, ib, now) : { ingested: 0, duplicates: 0, rejected: 0, flagged: 0, quarantined: 0, remaining: 0 };
   budget.absorb(ib);
   const ab = budget.slice(0.3 * total);
   const folded = await foldPending(db, ab, iso);
   budget.absorb(ab);
   if (folded.aggregated) maps.push(...(await materializeDirty(db, budget, iso)));
   const aggregation: AggregateResult = { ...folded, maps, ...(await aggregationBacklog(db, budget)) };
-  return { ingest, aggregation };
+  return { ingest: ingested, aggregation };
 }
 
 /** Whether any queue has work (one read; an idle jobs run then writes nothing, not even its lease). */
@@ -105,10 +105,12 @@ const done = (budget: Budget, passes: number, r: Partial<JobsResult> & { busy: b
 /**
  * One jobs run (scripts/run-jobs.ts in GitHub Actions, POST /admin/jobs/run; without the estimator POST
  * /admin/ingest/run): passes over the stages under the jobs lease until the queues are empty, a pass gets
- * nothing done, or `budgetMs` (default RUN_MS) or RUN_D1_CALLS is spent.
+ * nothing done, or `budgetMs` (default RUN_MS) or RUN_D1_CALLS is spent. `ingest: false` (INGEST_PAUSED) leaves
+ * staged uploads staged.
  */
 export async function runJobs(
-  db: D1Database, deps: JobDeps, { budgetMs = RUN_MS, estimator = true }: { budgetMs?: number; estimator?: boolean } = {},
+  db: D1Database, deps: JobDeps,
+  { budgetMs = RUN_MS, estimator = true, ingest = true }: { budgetMs?: number; estimator?: boolean; ingest?: boolean } = {},
 ): Promise<JobsResult> {
   const budget = new Budget(budgetMs);
   budget.charge(COST.invocation);
@@ -119,7 +121,7 @@ export async function runJobs(
     let total: Stages | undefined;
     for (;;) {
       const pass = budget.slice(PASS_MS);
-      const { ingest: i, aggregation: a } = await storeStages(db, pass, now, estimator ? 0.4 : 0.6);
+      const { ingest: i, aggregation: a } = await storeStages(db, pass, now, estimator ? 0.4 : 0.6, ingest);
       const e = estimator ? await runEstimator(db, { gridFn: deps.gridFn, budget: pass, now }) : undefined;
       budget.absorb(pass);
       passes++;
