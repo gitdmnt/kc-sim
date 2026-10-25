@@ -22,7 +22,6 @@ import { DEFAULT_GRID, type GridSpec, type PosteriorState } from "../../../share
 import { choosePrior } from "../../../shared/estimate/prior";
 import { ESTIMATED_STATS, type BattleRecord, type EstimateResult, type ObservationRole, type SkipCounts } from "../../../shared/estimate/types";
 import type { FitEntry } from "../../../shared/sim/fit";
-import { CLIENT_SHIP_DAY_CAP, trustedClient } from "../auth/trust";
 import { COST, type Budget } from "../budget";
 import { bumpDataVersion, PUBLISH_EVERY_MS } from "../cache";
 import { mapName, parseMapKey } from "../maps";
@@ -147,7 +146,7 @@ async function loadPriors(db: D1Database, shipIds: number[]): Promise<PriorTable
 
 interface ObsRow {
   id: number; client_id: string; observed_at: string; map_id: number; cell_no: number | null; difficulty: number | null;
-  fleet: string | null; enemy: string | null; raw: string | null; quarantine: string | null; bytes: number; uploaded_at: string;
+  fleet: string | null; enemy: string | null; raw: string | null; quarantine: string | null; bytes: number;
 }
 interface SiblingRow { id: number; observed_at: string; map_id: number; cell_no: number | null; fleet_deck: number | null; enemy: string | null; path: string; visit: string }
 
@@ -227,10 +226,10 @@ interface FitLoader { prepare: () => Promise<number>; load: () => Promise<FitEnt
 
 /**
  * Pending queue rows of observations the estimator may count now: battles waiting for their sortie (quarantine
- * 'unlinked', released by it) and observations of clients on probation stay queued.
+ * 'unlinked', released by it) stay queued.
  */
 export const PENDING_OBSERVATIONS = `SELECT DISTINCT s.observation_id FROM observation_ships s JOIN observations q ON q.id = s.observation_id
-  WHERE s.est_at IS NULL AND COALESCE(q.quarantine, '') <> 'unlinked' AND ${trustedClient("q")}`;
+  WHERE s.est_at IS NULL AND COALESCE(q.quarantine, '') <> 'unlinked'`;
 
 /**
  * One count step over the oldest pending observations whose cumulative cost fits (SQLite sums it). Returns false
@@ -241,7 +240,7 @@ async function countStep(db: D1Database, budget: Budget, fit: FitLoader, now: st
   const fixed = 5 * COST.d1Call + COST.estimateStep + (await fit.prepare());
   if (!budget.fits(fixed + COST.estimateObservation + TYPICAL_OBS_KB * OBS_KB, 6)) return false;
   const { results: rows } = await db.prepare(
-    `SELECT id, client_id, observed_at, uploaded_at, map_id, cell_no, difficulty, fleet, enemy, raw, quarantine, bytes FROM (
+    `SELECT id, client_id, observed_at, map_id, cell_no, difficulty, fleet, enemy, raw, quarantine, bytes FROM (
        SELECT o.*, length(CAST(o.raw AS BLOB)) + length(CAST(o.fleet AS BLOB)) AS bytes,
          SUM(?1 + ?2 * (length(CAST(o.raw AS BLOB)) + length(CAST(o.fleet AS BLOB))) / 1024.0) OVER (ORDER BY o.id) AS cost
        FROM observations o WHERE o.id IN (${PENDING_OBSERVATIONS} ORDER BY s.observation_id LIMIT 50))
@@ -264,37 +263,11 @@ async function countStep(db: D1Database, budget: Budget, fit: FitLoader, now: st
   const done: number[] = [];
   const perObs: BattleRecord[][] = [];
   for (const r of rows) {
-    if (!budget.fits(0, 5)) break;
+    if (!budget.fits(0, 4)) break;
     budget.charge(COST.estimateObservation + OBS_KB * r.bytes / 1024);
     done.push(r.id);
     if (r.quarantine !== null || r.raw === null || r.enemy === null) continue;
     perObs.push(await recordsFor(db, r, () => budget.charge(COST.d1Call, 1)));
-  }
-  // A client's battles count for an enemy ship at most CLIENT_SHIP_DAY_CAP times per upload day.
-  const byId = new Map(rows.map((r) => [r.id, r]));
-  const dayOf = (r: ObsRow) => r.uploaded_at.slice(0, 10);
-  const { results: used } = await db.prepare(
-    `SELECT client_id, ship_id, day, n FROM estimator_client_days
-     WHERE client_id IN (SELECT value FROM json_each(?1)) AND day IN (SELECT value FROM json_each(?2))`,
-  ).bind(JSON.stringify([...new Set(rows.map((r) => r.client_id))]), JSON.stringify([...new Set(rows.map(dayOf))]))
-    .all<{ client_id: string; ship_id: number; day: string; n: number }>();
-  budget.charge(COST.d1Call, 1);
-  const capKey = (client: string, ship: number, day: string) => `${client}|${ship}|${day}`;
-  const usedBy = new Map(used.map((u) => [capKey(u.client_id, u.ship_id, u.day), u.n]));
-  const counted: [string, number, string][] = [];
-  for (const id of done) {
-    const r = byId.get(id)!;
-    const ships = r.quarantine === null && r.raw !== null && r.enemy !== null ? wanted.get(String(id)) : undefined;
-    if (!ships) continue;
-    for (const ship of [...ships]) {
-      const k = capKey(r.client_id, ship, dayOf(r));
-      const n = usedBy.get(k) ?? 0;
-      if (n >= CLIENT_SHIP_DAY_CAP) ships.delete(ship);
-      else {
-        usedBy.set(k, n + 1);
-        counted.push([r.client_id, ship, dayOf(r)]);
-      }
-    }
   }
   const ids = masterIdsOf(perObs.flat());
   const master = await loadMaster(db, ids.ships, ids.equips);
@@ -312,11 +285,6 @@ async function countStep(db: D1Database, budget: Budget, fit: FitLoader, now: st
   const chunks = chunkJson(counts);
   budget.charge(COST.d1Call, 1); // the signatures' serialization is part of COST.estimateObservation
   await db.batch([
-    ...chunkJson(counted).map((p) => db.prepare(
-      `INSERT INTO estimator_client_days (client_id, ship_id, day, n)
-       SELECT json_extract(j.value, '$[0]'), json_extract(j.value, '$[1]'), json_extract(j.value, '$[2]'), 1 FROM json_each(?1) j WHERE true
-       ON CONFLICT (client_id, ship_id, day) DO UPDATE SET n = n + 1`,
-    ).bind(p)),
     ...chunks.map((p) => db.prepare(
       `INSERT INTO estimator_rolls (ship_id, role, sig, miss, hit, crit)
        SELECT json_extract(j.value, '$[0]'), json_extract(j.value, '$[1]'), json_extract(j.value, '$[2]'),
@@ -553,7 +521,6 @@ export function resetShipsStatements(db: D1Database, shipIds: number[] | null): 
   return [
     db.prepare(`DELETE FROM estimator_accum WHERE ${inShips}`).bind(ids),
     db.prepare(`DELETE FROM estimator_rolls WHERE ${inShips}`).bind(ids),
-    db.prepare(`DELETE FROM estimator_client_days WHERE ${inShips}`).bind(ids),
     db.prepare(`DELETE FROM estimator_posteriors WHERE ${inShips}`).bind(ids),
     db.prepare(`DELETE FROM estimates WHERE source_id = ${SRC} AND ${inShips}`).bind(ids),
     db.prepare(`UPDATE observation_ships SET est_at = NULL WHERE ${inShips}`).bind(ids),

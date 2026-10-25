@@ -22,9 +22,9 @@ switch (positionals[0]) {
   }
   case "run":
     for (;;) {
-      const r = (await call("POST", `/admin/aggregate/run${budget}`)) as { aggregated: number; failed: number; capped: number; maps: number[]; remaining: number; dirtyMaps: number };
+      const r = (await call("POST", `/admin/aggregate/run${budget}`)) as { aggregated: number; failed: number; maps: number[]; remaining: number; dirtyMaps: number };
       console.log(JSON.stringify(r));
-      if (!values.all || (r.remaining === 0 && r.dirtyMaps === 0) || r.aggregated + r.failed + r.capped + r.maps.length === 0) break;
+      if (!values.all || (r.remaining === 0 && r.dirtyMaps === 0) || r.aggregated + r.failed + r.maps.length === 0) break;
     }
     break;
   case "status":

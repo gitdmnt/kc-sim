@@ -3,19 +3,18 @@ import { cellLetters } from "./aggregate";
 
 type Row = Record<string, unknown>;
 
-export const OBSERVED_LAYOUT_COLS = "map_id, layout, version, boss_cell, sorties, encounters, first_seen, last_seen, current";
+export const OBSERVED_LAYOUT_COLS = "map_id, layout, version, boss_cell, sorties, encounters, first_seen, last_seen";
 export const OBSERVED_CELL_COLS = "map_id, layout, cell_no, color_no, event_id, event_kind, visits, is_boss, lbas_distance";
 export const OBSERVED_EDGE_SQL = "SELECT map_id, layout, from_cell, to_cell, SUM(count) AS count FROM poi_edge_counts";
 export const OBSERVED_EDGE_GROUP = "GROUP BY map_id, layout, from_cell, to_cell";
 export const MISMATCH_COLS = "map_id, layout, kind, from_cell, to_cell, count, observed, stored, checked_at";
 
 /**
- * The current layout of one map (poi_layouts.current, chosen when its comp sets are materialised: see
- * aggregate.ts currentLayout; the newest before that): cells, transitions (summed over difficulty) and mismatches
- * against the stored graph, with letters resolved from `edges` (null when unresolvable). Null when nothing is observed.
+ * The newest layout of one map: cells, transitions (summed over difficulty) and mismatches against the
+ * stored graph, with letters resolved from `edges` (null when unresolvable). Null when nothing is observed.
  */
 export function observedGraphJson(rows: { layouts: Row[]; cells: Row[]; edgeCounts: Row[]; mismatches: Row[]; edges: Row[] }) {
-  const current = rows.layouts.find((l) => l.current === 1) ?? [...rows.layouts].sort((a, b) => (b.version as number) - (a.version as number))[0];
+  const current = [...rows.layouts].sort((a, b) => (b.version as number) - (a.version as number))[0];
   if (!current) return null;
   const mine = (r: Row) => r.layout === current.layout;
   const edges = rows.edges as { edge_id: number; from_letter: string; to_letter: string }[];

@@ -75,7 +75,7 @@ export function routingJson(head: Row | null, rules: Row[], inferred: Row | null
   return null;
 }
 
-export const COMP_SET_COLS = "s.id, s.map_id, s.node_letter, s.difficulty, s.period_start, s.period_end, s.total_count, s.retrieved_at, src.key AS source, s.layout, s.cell_nos, s.reporters";
+export const COMP_SET_COLS = "s.id, s.map_id, s.node_letter, s.difficulty, s.period_start, s.period_end, s.total_count, s.retrieved_at, src.key AS source, s.layout, s.cell_nos";
 export const COMP_COLS = "id, set_id, kcnav_master_id, formation, count, weight, airpower, lbas_airpower, first_seen, last_seen";
 export const COMP_SHIP_COLS = "comp_id, fleet, position, ship_id, level, hp, fp, tp, aa, ar, equips";
 /** One line per set (map detail `compSets`): node, difficulty, source, sample size and period. */
@@ -95,8 +95,8 @@ export function compSetsJson(sets: Row[], comps: Row[], ships: Row[]) {
   return sets.map((s) => ({
     difficulty: s.difficulty as number, periodStart: (s.period_start as string) || null, periodEnd: (s.period_end as string) || null,
     totalCount: s.total_count as number, retrievedAt: s.retrieved_at, source: s.source,
-    // poi-observed only: layout version, the raw cells merged into this node, distinct reporters.
-    ...(s.layout == null ? {} : { layout: s.layout, cells: parseJson(s.cell_nos), reporters: s.reporters ?? 0 }),
+    // poi-observed only: layout version and the raw cells merged into this node.
+    ...(s.layout == null ? {} : { layout: s.layout, cells: parseJson(s.cell_nos) }),
     comps: comps
       .filter((c) => c.set_id === s.id)
       .sort((a, b) => (b.count as number) - (a.count as number) || (a.id as number) - (b.id as number))

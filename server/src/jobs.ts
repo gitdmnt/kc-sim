@@ -10,8 +10,7 @@ import type { GridFn } from "../../shared/estimate/forward";
 import { Budget, COST, PASS_MS, RUN_MS } from "./budget";
 import { PENDING_OBSERVATIONS, runEstimator, type EstimatorResult } from "./estimator/job";
 import { ingestPending, type IngestResult } from "./ingest/upload";
-import { aggregationBacklog, foldable, foldPending, materializeDirty, type AggregateResult } from "./observed/aggregate";
-import { promoteClients } from "./auth/trust";
+import { aggregationBacklog, foldPending, materializeDirty, type AggregateResult } from "./observed/aggregate";
 
 export interface JobDeps {
   /** sim-core hitProbabilityGrid */
@@ -43,8 +42,6 @@ export interface JobsResult {
   busy: boolean;
   /** nothing queued: no lease taken, nothing written */
   idle?: boolean;
-  /** probation clients trusted by this run (src/auth/trust.ts) */
-  promoted: number;
   ingest?: IngestResult;
   aggregation?: AggregateResult;
   estimator?: EstimatorResult;
@@ -77,10 +74,10 @@ async function storeStages(db: D1Database, budget: Budget, now: number, ingestSh
   return { ingest: ingested, aggregation };
 }
 
-/** Whether any queue has work (one read; an idle jobs run then takes no lease and writes only promotions). */
+/** Whether any queue has work (one read; an idle jobs run then writes nothing, not even its lease). */
 async function hasWork(db: D1Database, budget: Budget): Promise<boolean> {
   const r = await db.prepare(
-    `SELECT EXISTS (SELECT 1 FROM upload_items) OR EXISTS (SELECT 1 FROM observations o WHERE ${foldable("o")})
+    `SELECT EXISTS (SELECT 1 FROM upload_items) OR EXISTS (SELECT 1 FROM observations WHERE aggregated_at IS NULL AND quarantine IS NULL)
        OR EXISTS (SELECT 1 FROM poi_dirty_maps) OR EXISTS (${PENDING_OBSERVATIONS})
        OR EXISTS (SELECT 1 FROM estimator_rolls) OR EXISTS (SELECT 1 FROM estimator_accum WHERE dirty_since IS NOT NULL) AS work`,
   ).first<{ work: number }>();
@@ -102,7 +99,7 @@ function addPass<T extends object>(total: T | undefined, pass: T): T {
   return out as T;
 }
 
-const done = (budget: Budget, passes: number, r: Partial<JobsResult> & { busy: boolean; promoted: number }): JobsResult =>
+const done = (budget: Budget, passes: number, r: Partial<JobsResult> & { busy: boolean }): JobsResult =>
   ({ ...r, passes, spentMs: Number(budget.spent.toFixed(2)), d1Calls: budget.d1Calls });
 
 /**
@@ -117,11 +114,8 @@ export async function runJobs(
 ): Promise<JobsResult> {
   const budget = new Budget(budgetMs);
   budget.charge(COST.invocation);
+  if (!(await hasWork(db, budget))) return done(budget, 0, { busy: false, idle: true });
   const now = deps.now();
-  // probation clients that qualify become trusted first, so their waiting observations are folded in this run
-  const promoted = await promoteClients(db, now);
-  budget.charge(COST.d1Call, 1);
-  if (!(await hasWork(db, budget))) return done(budget, 0, { busy: false, idle: true, promoted });
   let passes = 0;
   const r = await withJobsLease(db, now, budget, async () => {
     let total: Stages | undefined;
@@ -133,9 +127,9 @@ export async function runJobs(
       passes++;
       total = addPass(total, { ingest: i, aggregation: a, ...(e && { estimator: e }) });
       // a pass that moved no queue: what is left cannot progress in this run
-      const moved = i.ingested + i.duplicates + i.rejected + a.aggregated + a.failed + a.capped + a.maps.length + (e ? e.observations + e.gridCalls + e.summarized : 0);
+      const moved = i.ingested + i.duplicates + i.rejected + a.aggregated + a.failed + a.maps.length + (e ? e.observations + e.gridCalls + e.summarized : 0);
       if (!moved || budget.left === 0 || !(await hasWork(db, budget))) return total;
     }
   });
-  return done(budget, passes, { busy: r === null, promoted, ...r });
+  return done(budget, passes, { busy: r === null, ...r });
 }
