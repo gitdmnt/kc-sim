@@ -1,11 +1,6 @@
 # sim-core
 
-艦これの戦闘と出撃を計算するエンジン(Rust で書き、wasm にビルドする)。
-モンテカルロ法で勝率、ランク率、ルーティング、ゲージを求める。
-単艦隊または連合艦隊(機動、水上、輸送護衛)の自艦隊と、単一の敵艦隊との戦闘を扱う。
-基地航空隊の波状攻撃も計算する。
-JSON と TypeScript の契約は `sim_core_types.d.ts` に機械可読な形で定義してあり、`pkg/sim_core.d.ts` に埋め込まれる。
-説明つきの契約書(SIM_INTERFACE)は非公開のメモである。
+艦これの戦闘と出撃を計算するエンジン(Rust で書き、wasm にビルドする)。モンテカルロ法で勝率、ランク率、ルーティング、ゲージを求める。自艦隊は単艦隊と連合艦隊(機動、水上、輸送護衛)を、敵艦隊は単艦隊と連合艦隊(随伴艦隊 1〜6 隻)を扱う。敵連合艦隊との 6 対 12、12 対 12 の戦闘と、基地航空隊の波状攻撃にも対応する。JSON と TypeScript の契約は `sim_core_types.d.ts` に機械可読な形で定義してあり、`pkg/sim_core.d.ts` に埋め込まれる。説明つきの契約書(SIM_INTERFACE)は非公開のメモである。
 
 ```ts
 simulateBattle(input: BattleInput, count: number, seed: number): SimulationSummary
@@ -48,8 +43,7 @@ KCR_DIR=<kancolle-replay checkout> bun validation/battle-vs-kcsim.ts  # realisti
 
 ## 出典
 
-戦闘式、定数、フェーズの処理は [KC3Kai/kancolle-replay](https://github.com/KC3Kai/kancolle-replay)(`js/kcsim.js`、`js/kcsimcombined.js`、`js/kcships.js`、`js/kcEQDATA.js`)から移植し、[en.kancollewiki.net](https://en.kancollewiki.net/) と照合した。
-戦闘ランクの規則は KC3Kai の `BattlePrediction` と ElectronicObserver の `kcmemo.md` に従う。
+戦闘式、定数、フェーズの処理は [KC3Kai/kancolle-replay](https://github.com/KC3Kai/kancolle-replay)(`js/kcsim.js`、`js/kcsimcombined.js`、`js/kcships.js`、`js/kcEQDATA.js`)から移植し、[en.kancollewiki.net](https://en.kancollewiki.net/) と照合した。戦闘ランクの規則は KC3Kai の `BattlePrediction` と ElectronicObserver の `kcmemo.md` に従う。
 
 kancolle-replay は MIT ライセンスで配布されている。
 
