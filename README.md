@@ -51,7 +51,7 @@ npm install /絶対パス/kc-sim/poi-plugin-sim-build
 ```
 
 Windows は `%APPDATA%\poi\plugins`、Linux は `~/.config/poi/plugins` です。
-以前の手順で `poi-plugin-sim-build` として登録した場合の切り替えは [poi-plugin-sim/README.md](poi-plugin-sim/README.md) の「Install into poi」にあります。
+以前の手順で `poi-plugin-sim-build` として登録した場合の切り替えは [poi-plugin-sim/README.md](poi-plugin-sim/README.md) の「poi へのインストール」にあります。
 
 - **ウィンドウモードで開いてください。** タブ表示ではシミュと任務の画面が出ません (観測ログ・送信設定・資源は使えます)。
 - 計算結果にはコミュニティやユーザーが独自に推定した計算式や値を参照しています。KCNavの出撃データと照合して90%以上の確率で結果を再現することを確認していますが、シミュレーションの結果がゲームの結果と一致する保証はありません。
